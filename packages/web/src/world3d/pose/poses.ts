@@ -73,9 +73,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
     sitBase(w, c);
     const k = s(c.t, 3.2, c.phase);
     const k2 = s(c.t, 2.3, c.phase + 1.7);
-    w.rot('spine_01', -4).rot('spine_02', -4).rot('spine_03', -3);
-    w.pair('upperarm', -34, 0, -24).pair('lowerarm', -62);
-    w.rot('hand_l', -8 + k * 6, 0, 0).rot('hand_r', -8 + k2 * 6, 0, 0);
+    w.rot('spine_01', 3).rot('spine_02', 4).rot('spine_03', 3);
+    w.reach('l', 0.13 + k * 0.01, 0.79 + k * 0.006, 0.36).reach('r', -0.13 - k2 * 0.01, 0.79 + k2 * 0.006, 0.36);
+    w.rot('hand_l', 10, 0, 0).rot('hand_r', 10, 0, 0);
     w.rot('head', 8 + s(c.t, 0.18, c.phase) * 2, s(c.t, 0.11, c.phase) * 9);
     w.curl(0.55 + k * 0.1, 0.55 + k2 * 0.1);
   },
@@ -112,7 +112,7 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   sleep(w, c) {
     sitBase(w, c);
     const b = s(c.t, 0.2, c.phase);
-    w.rot('spine_01', -14).rot('spine_02', -16).rot('spine_03', -14).rot('head', 25 + b * 1.5);
+    w.rot('spine_01', 14).rot('spine_02', 16).rot('spine_03', 12).rot('head', 20 + b * 1.5);
     w.pair('upperarm', -55, 0, -14).pair('lowerarm', -80);
     w.curl(0.2);
   },
@@ -120,7 +120,7 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   lean(w, c) {
     sitBase(w, c);
     breathe(w, c);
-    w.rot('spine_01', 10).rot('spine_02', 8).rot('head', -8);
+    w.rot('spine_01', -8).rot('spine_02', -8).rot('head', 6);
     w.pair('upperarm', 10, 55, -40).pair('lowerarm', -95);
     w.curl(0.3);
   },
@@ -128,7 +128,7 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   stretch(w, c) {
     sitBase(w, c);
     const b = s(c.t, 0.25, c.phase);
-    w.rot('spine_02', 10 + b * 3).rot('spine_03', 6).rot('head', -14);
+    w.rot('spine_02', -8 - b * 3).rot('spine_03', -6).rot('head', 8);
     w.pair('upperarm', -10, 0, 165).pair('lowerarm', -10);
     w.curl(0.1);
   },

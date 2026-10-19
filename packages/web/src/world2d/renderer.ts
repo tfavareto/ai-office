@@ -172,7 +172,8 @@ export class Renderer {
     for (const area of s.sim.building.areas) {
       const projectInfo = area.projectId ? s.roomInfo.get(area.projectId) : undefined;
       const room = s.sim.rooms.byArea(area.id);
-      const alwaysLit = area.kind === 'reception';
+      // every common area stays lit at night (the floor is a working office); project rooms follow their people
+      const alwaysLit = !area.projectId && area.kind !== 'terrace';
       const target = alwaysLit || (counts.get(area.id) ?? 0) > 0 || (!!projectInfo && projectInfo.agents > 0 && !room?.ghost) ? 1 : 0;
       const current = this.lit.get(area.id) ?? target;
       const next = current + (target - current) * (1 - Math.exp(-s.dt * 2.2));

@@ -14,7 +14,9 @@ export const BONE_INDEX: Readonly<Record<BoneName, number>> = Object.fromEntries
 
 const PELVIS_OFFSET = BONES.length * 3;
 const CURL_OFFSET = PELVIS_OFFSET + 3;
-export const POSE_SIZE = CURL_OFFSET + 2;
+const REACH_OFFSET = CURL_OFFSET + 2;
+/** Per hand: weight, x, y, z of an optional reach target (model space, metres). */
+export const POSE_SIZE = REACH_OFFSET + 8;
 
 export type PoseVec = Float32Array;
 
@@ -45,6 +47,16 @@ export class PoseWriter {
     return this;
   }
 
+  /** Two-bone IK target for a hand (model space, metres). */
+  reach(side: 'l' | 'r', x: number, y: number, z: number, weight = 1): this {
+    const i = REACH_OFFSET + (side === 'l' ? 0 : 4);
+    this.v[i] = weight;
+    this.v[i + 1] = x;
+    this.v[i + 2] = y;
+    this.v[i + 3] = z;
+    return this;
+  }
+
   curl(left: number, right = left): this {
     this.v[CURL_OFFSET] += left;
     this.v[CURL_OFFSET + 1] += right;
@@ -54,6 +66,11 @@ export class PoseWriter {
 
 export function readPelvisOffset(v: PoseVec): [number, number, number] {
   return [v[PELVIS_OFFSET], v[PELVIS_OFFSET + 1], v[PELVIS_OFFSET + 2]];
+}
+
+export function readReach(v: PoseVec, side: 0 | 1): { w: number; x: number; y: number; z: number } {
+  const i = REACH_OFFSET + side * 4;
+  return { w: v[i], x: v[i + 1], y: v[i + 2], z: v[i + 3] };
 }
 
 export function readCurl(v: PoseVec): [number, number] {
