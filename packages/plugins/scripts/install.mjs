@@ -26,6 +26,9 @@ import { delimiter, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+/** Account folder names the server discovers in the home directory (see packages/server/src/claude/accounts.ts). */
+const ACCOUNT_DIR_NAME = /^\.claude(-.+)?$/;
+
 export const PLUGIN_NAME = 'ai-office';
 export const MARKETPLACE_NAME = 'ai-office';
 export const PLUGIN_ID = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
@@ -117,7 +120,7 @@ const isDirectory = (path) => {
 };
 
 /**
- * Every `~/.claude*` directory containing `projects/`, like the AI Office server's default discovery.
+ * Every `~/.claude` or `~/.claude-<name>` directory containing `projects/`, like the AI Office server's default discovery.
  * @param {string} home
  * @returns {string[]}
  */
@@ -129,7 +132,7 @@ function scanHome(home) {
     return [];
   }
   return names
-    .filter((name) => name.startsWith('.claude'))
+    .filter((name) => ACCOUNT_DIR_NAME.test(name))
     .sort()
     .map((name) => join(home, name))
     .filter((dir) => isDirectory(join(dir, 'projects')));

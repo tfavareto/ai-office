@@ -62,6 +62,11 @@ describe('detectAccounts', () => {
     ]);
   });
 
+  test('uses the same names as the server: .claude and .claude-<name> only', () => {
+    for (const name of ['.claude_backup', '.claudeold']) mkdirSync(join(home, name, 'projects'), { recursive: true });
+    expect(detectAccounts({ env: {}, home }).map((a) => a.dir)).toEqual([join(home, '.claude'), join(home, '.claude-work')]);
+  });
+
   test('adds CLAUDE_CONFIG_DIR without duplicating', () => {
     const extra = join(home, 'elsewhere');
     const accounts = detectAccounts({ env: { CLAUDE_CONFIG_DIR: extra }, home });
