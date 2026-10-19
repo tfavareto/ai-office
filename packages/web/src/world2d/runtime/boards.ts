@@ -44,13 +44,15 @@ export function renderBoard(w: number, h: number, info: RoomInfo, accent: string
   const canvas = makeCanvas(w, h);
   const ctx = context2d(canvas);
   rect(ctx, 0, 0, w, h, '#0b1322');
-  const head = info.tasksTotal ? `TAREFAS ${info.tasksDone}/${info.tasksTotal}` : info.agents ? 'SEM TAREFAS' : 'SALA VAZIA';
-  drawPixelText(ctx, head, 2, 2, accent);
-  const barW = w - 4;
-  rect(ctx, 2, 8, barW, 1, '#1d2b45');
-  if (info.tasksTotal) rect(ctx, 2, 8, Math.round((barW * info.tasksDone) / info.tasksTotal), 1, LED.teal);
-  const line = info.current ?? (info.waiting ? 'AGUARDANDO VOCE' : info.working ? 'TRABALHANDO' : '');
-  if (line) drawPixelText(ctx, fit(line, w - 4), 2, 5 + 5 > h ? 4 : 5 + 0, '#c9d6ee');
+  const progress = info.tasksTotal ? `${info.tasksDone}/${info.tasksTotal} ` : '';
+  const line = info.current ?? (info.waiting ? 'AGUARDANDO VOCE' : info.working ? 'TRABALHANDO' : info.agents ? 'OCIOSO' : 'SALA VAZIA');
+  drawPixelText(ctx, progress, 3, 1, accent);
+  const offset = textWidth(progress);
+  drawPixelText(ctx, fit(line, w - 5 - offset), 3 + offset, 1, '#c9d6ee');
+  if (info.tasksTotal) {
+    rect(ctx, 3, h - 1, w - 6, 1, '#1d2b45');
+    rect(ctx, 3, h - 1, Math.round(((w - 6) * info.tasksDone) / info.tasksTotal), 1, LED.teal);
+  }
   return canvas;
 }
 
@@ -59,15 +61,18 @@ export function renderMeetingTv(w: number, h: number, names: readonly string[]):
   const canvas = makeCanvas(w, h);
   const ctx = context2d(canvas);
   rect(ctx, 0, 0, w, h, '#0a1424');
-  rect(ctx, 0, 0, w, 6, '#1d3a63');
-  drawPixelText(ctx, names.length ? `NA SALA ${names.length}` : 'SALA LIVRE', 2, 1, '#e8f1ff');
-  hline(ctx, 0, 6, w, LED.teal);
-  const colW = Math.floor((w - 4) / 2);
-  names.slice(0, 6).forEach((name, i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    rect(ctx, 2 + col * colW, 9 + row * 4, 2, 2, i % 3 === 0 ? '#3ecf8e' : '#6ea2ff');
-    drawPixelText(ctx, fit(name, colW - 6), 6 + col * colW, 8 + row * 4 - 1, '#c9d6ee');
+  rect(ctx, 0, 0, w, 7, '#1d3a63');
+  drawPixelText(ctx, names.length ? `NA SALA ${names.length}` : 'SALA LIVRE', 3, 1, '#e8f1ff');
+  hline(ctx, 0, 7, w, LED.teal);
+  const cols = 3;
+  const colW = Math.floor((w - 4) / cols);
+  names.slice(0, cols * 2).forEach((name, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = 3 + col * colW;
+    const y = 10 + row * 6;
+    rect(ctx, x, y + 1, 2, 3, i % 3 === 0 ? '#3ecf8e' : '#6ea2ff');
+    drawPixelText(ctx, fit(name, colW - 7), x + 4, y, '#c9d6ee');
   });
   return canvas;
 }

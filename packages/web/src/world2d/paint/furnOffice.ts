@@ -1,7 +1,7 @@
 import type { FurnitureItem } from '../../layout/types';
 import { mix, noise2, shade } from '../color';
 import { BRASS, EBONY, GRAPHITE, LED, OAK, PLANT, WALNUT, WOODS } from '../palette';
-import { type Ctx, bevel, disc, ellipse, hline, pixel, rect, vline } from './ctx';
+import { type Ctx, bevel, ellipse, hline, pixel, rect, vline } from './ctx';
 
 /** Position of the 4 screens of a desk, relative to the desk footprint's top-left (px). */
 export const DESK_SCREENS = [0, 1, 2, 3].map((i) => ({ x: 2 + i * 15, y: -8, w: 12, h: 7 }));
@@ -212,20 +212,18 @@ export function waterCooler(ctx: Ctx): void {
 export function rugFill(ctx: Ctx, it: FurnitureItem, accent: string, carpet: string): void {
   const w = it.w * 16;
   const h = it.h * 16;
-  const base = mix(carpet, accent, 0.18);
-  ctx.globalAlpha = 0.9;
-  rect(ctx, 2, 2, w - 4, h - 4, shade(base, -0.05));
-  rect(ctx, 4, 4, w - 8, h - 8, base);
+  const base = mix(carpet, accent, 0.1);
+  ctx.globalAlpha = 0.55;
+  rect(ctx, 3, 3, w - 6, h - 6, shade(base, -0.12));
+  rect(ctx, 5, 5, w - 10, h - 10, base);
   ctx.globalAlpha = 1;
-  for (let x = 4; x < w - 4; x += 4) {
-    pixel(ctx, x, 3, BRASS.base);
-    pixel(ctx, x, h - 4, BRASS.base);
+  for (let x = 6; x < w - 6; x += 4) {
+    pixel(ctx, x, 4, BRASS.dark);
+    pixel(ctx, x, h - 5, BRASS.dark);
   }
-  for (let y = 4; y < h - 4; y += 4) {
-    pixel(ctx, 3, y, BRASS.base);
-    pixel(ctx, w - 4, y, BRASS.base);
+  for (let y = 6; y < h - 6; y += 4) {
+    pixel(ctx, 4, y, BRASS.dark);
+    pixel(ctx, w - 5, y, BRASS.dark);
   }
-  hline(ctx, 6, 6, w - 12, shade(base, 0.18));
-  disc(ctx, Math.floor(w / 2), Math.floor(h / 2), Math.max(2, Math.min(w, h) / 6), shade(base, 0.1));
-  disc(ctx, Math.floor(w / 2), Math.floor(h / 2), Math.max(1, Math.min(w, h) / 12), shade(accent, 0.1));
+  hline(ctx, 7, 7, w - 14, shade(base, 0.12));
 }

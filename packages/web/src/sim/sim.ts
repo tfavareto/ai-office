@@ -214,8 +214,7 @@ export class OfficeSim {
       this.offerBubble(actor, { text: 'Terminei!', icon: '✅', importance: 60, sticky: false, ttl: 3.2 });
     }
     if (agent.status === 'waiting' && previous.status !== 'waiting') {
-      const text = clipText(agent.waitingFor ?? agent.permission?.summary ?? 'Precisa de você');
-      this.offerBubble(actor, { text: agent.waitingFor || agent.permission ? text : 'Precisa de você', icon: '!', importance: ALERT_IMPORTANCE, sticky: true, ttl: 0 });
+      this.offerBubble(actor, { text: 'Precisa de você', icon: '!', importance: ALERT_IMPORTANCE, sticky: true, ttl: 0 });
     }
     if (agent.status !== 'waiting' && previous.status === 'waiting') this.bubbleManager.withdrawSticky(actor.id);
     if (agent.status === 'idle' && previous.status !== 'idle') {

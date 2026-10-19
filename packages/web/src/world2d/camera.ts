@@ -93,23 +93,31 @@ export class Camera {
     const next = stepLevel(this.levels, this.zoom, direction);
     if (next === this.zoom) return;
     const anchor = this.screenToWorld(sx, sy);
+    const before = { x: this.cx, y: this.cy };
     this.zoom = next;
     this.cx = anchor.x - (sx - this.view.width / 2) / next;
     this.cy = anchor.y - (sy - this.view.height / 2) / next;
-    this.tx = this.cx;
-    this.ty = this.cy;
+    this.retarget(before);
     this.clamp();
   }
 
   setZoom(zoom: number): void {
     const fc = freeCenter(this.view);
     const anchor = this.screenToWorld(fc.x, fc.y);
+    const before = { x: this.cx, y: this.cy };
     this.zoom = zoom;
     this.cx = anchor.x - (fc.x - this.view.width / 2) / zoom;
     this.cy = anchor.y - (fc.y - this.view.height / 2) / zoom;
-    this.tx = this.cx;
-    this.ty = this.cy;
+    this.retarget(before);
     this.clamp();
+  }
+
+  /** After a zoom: a settled camera keeps following its centre, a camera easing toward a target keeps that target. */
+  private retarget(before: { x: number; y: number }): void {
+    if (Math.abs(this.tx - before.x) < 1e-6 && Math.abs(this.ty - before.y) < 1e-6) {
+      this.tx = this.cx;
+      this.ty = this.cy;
+    }
   }
 
   /** Centre target so that world point (wx, wy) lands in the middle of the free area. */

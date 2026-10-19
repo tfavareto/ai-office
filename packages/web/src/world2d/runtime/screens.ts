@@ -29,10 +29,12 @@ function drawScreen(kind: ScreenKind, frame: number): HTMLCanvasElement {
   const ctx = context2d(canvas);
   switch (kind) {
     case 'off':
-      rect(ctx, 0, 0, SCREEN_W, SCREEN_H, '#0c0f16');
+      rect(ctx, 0, 0, SCREEN_W, SCREEN_H, '#1a2030');
+      hline(ctx, 0, 0, SCREEN_W, '#2a3248');
       break;
     case 'standby':
-      rect(ctx, 0, 0, SCREEN_W, SCREEN_H, '#0d121c');
+      rect(ctx, 0, 0, SCREEN_W, SCREEN_H, '#161d2c');
+      hline(ctx, 0, 0, SCREEN_W, '#26304a');
       pixel(ctx, SCREEN_W - 2, SCREEN_H - 1, frame % 3 === 0 ? '#2a7a80' : '#143f44');
       break;
     case 'code':

@@ -102,7 +102,6 @@ function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme']): { ca
       ctx.restore();
     }
   }
-  for (const item of area.furniture) drawShadow(ctx, item, ox, oy);
   wallShade(ctx, area);
 
   const panes = paintWall(ctx, area);
@@ -147,6 +146,10 @@ export function buildAreaCanvas(area: AreaLayout, key: string, corridorTheme: Ar
   const y = area.rect.y * TILE;
   const furn = makeCanvas(ground.width, ground.height + furnMargin);
   const fctx = context2d(furn);
+  fctx.save();
+  fctx.translate(0, furnMargin);
+  for (const item of area.furniture) drawShadow(fctx, item, area.rect.x, area.rect.y);
+  fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + furnMargin);
   return {
     area, key, x, y, w: ground.width, h: ground.height, ground, furn, furnMargin, items,
@@ -193,18 +196,14 @@ export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number,
     if (item.kind !== 'rug') continue;
     ctx.save();
     ctx.translate((item.x - ox) * TILE, (item.y - oy) * TILE);
-    ctx.fillStyle = item.variant ? '#2c4a63' : '#4a3a2e';
+    ctx.fillStyle = item.variant ? '#7f93a6' : '#a8957c';
     ctx.fillRect(1, 3, item.w * TILE - 2, 10);
     ctx.fillStyle = '#b8923f';
     ctx.fillRect(1, 3, item.w * TILE - 2, 1);
     ctx.fillRect(1, 12, item.w * TILE - 2, 1);
-    ctx.fillStyle = item.variant ? '#3d6585' : '#6a5240';
+    ctx.fillStyle = item.variant ? '#8fa3b6' : '#b8a68c';
     for (let x = 6; x < item.w * TILE - 6; x += 12) ctx.fillRect(x, 6, 6, 4);
     ctx.restore();
-  }
-  for (const item of corridor.furniture) {
-    if (item.kind === 'rug') continue;
-    drawShadow(ctx, item, ox, oy);
   }
   // soft shadow under the north ledge and the south wall top
   const top = ctx.createLinearGradient(0, 0, 0, 7);
@@ -220,6 +219,10 @@ export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number,
   const fctx = context2d(furn);
   const x = 0;
   const y = corridor.rect.y * TILE;
+  fctx.save();
+  fctx.translate(0, CORRIDOR_OVERHANG);
+  for (const item of corridor.furniture) drawShadow(fctx, item, 0, corridor.rect.y);
+  fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + CORRIDOR_OVERHANG);
   return {
     area: corridor, key, x, y, w, h, ground, furn, furnMargin: CORRIDOR_OVERHANG, items,

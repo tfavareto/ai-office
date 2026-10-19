@@ -1,7 +1,7 @@
 import { TILE } from '../layout/constants';
 import type { Rect } from '../layout/types';
-import { DESK_SCREENS } from './paint/furnOffice';
 import { type Ctx, context2d, makeCanvas } from './paint/ctx';
+import { mix } from './color';
 import { NIGHT_COLORS } from './lighting';
 import { intersects } from './blit';
 import type { AreaCanvas } from './layers/areaLayer';
@@ -9,7 +9,6 @@ import type { CarDraw } from './runtime/cars';
 import type { FrameState, Renderer } from './renderer';
 
 let warm: HTMLCanvasElement | null = null;
-let cool: HTMLCanvasElement | null = null;
 
 function glowSprite(r: number, g: number, b: number): HTMLCanvasElement {
   const size = 96;
@@ -35,7 +34,6 @@ function pool(ctx: Ctx, sprite: HTMLCanvasElement, cx: number, cy: number, radiu
  */
 export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordered: AreaCanvas[], vis: Rect, cars: readonly CarDraw[]): void {
   warm ??= glowSprite(255, 196, 120);
-  cool ??= glowSprite(120, 200, 255);
   const night = s.night;
   const b = s.sim.building;
   const bw = b.width * TILE;
@@ -56,7 +54,7 @@ export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordere
   for (const ac of ordered) {
     if (!intersects(ac.x, ac.y, ac.w, ac.h, vis)) continue;
     const lit = ac.area.kind === 'corridor' ? 1 : ac.area.kind === 'terrace' ? 0 : renderer.lightOf(ac.area.id);
-    ctx.fillStyle = renderer.mixNight(lit);
+    ctx.fillStyle = mix(NIGHT_COLORS.dark, NIGHT_COLORS.lit, lit);
     ctx.fillRect(ac.x, ac.y, ac.w, ac.h);
   }
   ctx.fillStyle = NIGHT_COLORS.dark;
@@ -67,7 +65,7 @@ export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordere
     if (!intersects(ac.x, ac.y, ac.w, ac.h, vis)) continue;
     const lit = ac.area.kind === 'corridor' ? 1 : renderer.lightOf(ac.area.id);
     if (lit < 0.02 || ac.area.kind === 'terrace') continue;
-    drawAreaPools(ctx, ac, lit * night, s);
+    drawAreaPools(ctx, ac, lit * night);
   }
   const layout = renderer.layers.exterior?.layout;
   if (layout) {
@@ -87,10 +85,9 @@ export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordere
   }
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
-  void cool;
 }
 
-function drawAreaPools(ctx: Ctx, ac: AreaCanvas, strength: number, s: FrameState): void {
+function drawAreaPools(ctx: Ctx, ac: AreaCanvas, strength: number): void {
   const area = ac.area;
   const radius = area.kind === 'corridor' ? 44 : 40;
   if (area.kind === 'corridor') {
@@ -111,6 +108,4 @@ function drawAreaPools(ctx: Ctx, ac: AreaCanvas, strength: number, s: FrameState
   for (const f of area.furniture) {
     if (f.kind === 'lamp') pool(ctx, warm!, f.x * TILE + 8, f.y * TILE - 2, 26, strength * 0.7);
   }
-  void s;
-  void DESK_SCREENS;
 }

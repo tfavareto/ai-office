@@ -1,7 +1,7 @@
 import { TILE } from '../layout/constants';
 import type { Rect } from '../layout/types';
 import { characterFrame } from './chars/cache';
-import { ANCHOR_X, ANCHOR_Y, SPRITE_H, SPRITE_W, frameFor } from './chars/sprites';
+import { ANCHOR_X, ANCHOR_Y, SPRITE_W, frameFor } from './chars/sprites';
 import { rgba } from './color';
 import type { AreaCanvas, PlacedItem } from './layers/areaLayer';
 import { type Ctx, context2d, ellipse, makeCanvas } from './paint/ctx';
@@ -62,7 +62,6 @@ export function drawCharacters(ctx: Ctx, renderer: Renderer, s: FrameState, orde
     tall.push(...ac.tall);
   }
 
-  renderer.drawn.characters = people.length;
   const pulse = 0.65 + 0.35 * Math.sin(s.time * 4);
   for (const c of people) {
     const look = renderer.lookOf(c.agent);
@@ -91,5 +90,4 @@ export function drawCharacters(ctx: Ctx, renderer: Renderer, s: FrameState, orde
       ctx.drawImage(p.sprite, p.x, p.y);
     }
   }
-  void SPRITE_H;
 }

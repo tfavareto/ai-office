@@ -1,6 +1,6 @@
 import type { Agent } from '@ai-office/shared';
 import { TILE } from '../layout/constants';
-import type { AreaLayout, BuildingLayout, Rect } from '../layout/types';
+import type { AreaLayout, Rect } from '../layout/types';
 import type { OfficeSim } from '../sim/sim';
 import type { Selection, WorldOptions } from '../world/api';
 import { blit, intersects } from './blit';
@@ -8,8 +8,7 @@ import { Camera } from './camera';
 import { type Look, lookFor } from './chars/looks';
 import type { AreaCanvas } from './layers/areaLayer';
 import { LayerCache } from './layers/cache';
-import { NIGHT_COLORS, skyColors } from './lighting';
-import { mix } from './color';
+import { skyColors } from './lighting';
 import { type Ctx, context2d, makeCanvas } from './paint/ctx';
 import { DESK_SCREENS } from './paint/furnOffice';
 import { type RoomInfo, renderBoard, renderMeetingTv, roomInfoKey } from './runtime/boards';
@@ -62,8 +61,6 @@ export class Renderer {
   private seenVersion = -1;
   private trafficKey = '';
   private lookCache = new Map<string, Look>();
-  /** Per-frame scratch: tall items near characters. */
-  drawn = { areas: 0, characters: 0 };
 
   constructor() {
     this.skyDay = this.makeSky(false);
@@ -111,7 +108,7 @@ export class Renderer {
     this.layers.sync(sim.building);
     if (this.layers.version !== this.seenVersion) {
       this.seenVersion = this.layers.version;
-      this.refreshDynamic(sim.building);
+      this.refreshDynamic();
     }
     const ex = this.layers.exterior;
     if (ex && ex.key !== this.trafficKey) {
@@ -120,7 +117,7 @@ export class Renderer {
     }
   }
 
-  private refreshDynamic(building: BuildingLayout): void {
+  private refreshDynamic(): void {
     this.desks.clear();
     for (const ac of this.layers.areas.values()) {
       const list: DeskRef[] = [];
@@ -131,7 +128,6 @@ export class Renderer {
       }
       if (list.length) this.desks.set(ac.area.id, list);
     }
-    void building;
   }
 
   lightOf(areaId: string): number {
@@ -235,12 +231,10 @@ export class Renderer {
     return area.projectId ? s.roomInfo.get(area.projectId) : undefined;
   }
 
-  private boardFor(key: string, w: number, h: number, build: () => HTMLCanvasElement, version: string): HTMLCanvasElement {
+  private boardFor(key: string, build: () => HTMLCanvasElement, version: string): HTMLCanvasElement {
     const hit = this.boards.get(key);
     if (hit && hit.key === version) return hit.canvas;
     const canvas = build();
-    void w;
-    void h;
     this.boards.set(key, { key: version, canvas });
     return canvas;
   }
@@ -253,10 +247,18 @@ export class Renderer {
       if (room && room.progress < 1) continue;
       const desks = this.desks.get(ac.area.id);
       if (desks) this.drawDesks(ctx, s, desks, frameBase);
+      if (ac.area.kind === 'meeting' && ac.area.ledge) this.drawFrost(ctx, ac, this.lightOf(ac.area.id));
       for (const screen of ac.screens) this.drawWallScreen(ctx, s, ac, screen, frameBase);
     }
     drawElevators(ctx, s.sim, vis);
     this.drawTicker(ctx, s, vis);
+  }
+
+  /** The meeting-room glass wall frosts over while people are inside. */
+  private drawFrost(ctx: Ctx, ac: AreaCanvas, amount: number): void {
+    if (amount < 0.02 || !ac.area.ledge) return;
+    ctx.fillStyle = `rgba(244,249,252,${(0.6 * amount).toFixed(3)})`;
+    ctx.fillRect(ac.area.rect.x * TILE, ac.area.ledge.y * TILE + 6, ac.area.rect.w * TILE, 10);
   }
 
   private drawDesks(ctx: Ctx, s: FrameState, desks: DeskRef[], frameBase: number): void {
@@ -280,13 +282,13 @@ export class Renderer {
       const info = this.roomInfoOf(s, area);
       if (!info) return;
       const version = `${roomInfoKey(info)}|${area.theme.accent}`;
-      const canvas = this.boardFor(`${area.id}:board`, screen.w, screen.h, () => renderBoard(screen.w, screen.h, info, area.theme.accent), version);
+      const canvas = this.boardFor(`${area.id}:board`, () => renderBoard(screen.w, screen.h, info, area.theme.accent), version);
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
     if (area.kind === 'meeting') {
       const names = s.sim.characters.filter((c) => c.areaId === 'meeting' && c.alpha > 0.5).map((c) => c.name);
-      const canvas = this.boardFor('meeting:tv', screen.w, screen.h, () => renderMeetingTv(screen.w, screen.h, names), names.join('|'));
+      const canvas = this.boardFor('meeting:tv', () => renderMeetingTv(screen.w, screen.h, names), names.join('|'));
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
@@ -336,19 +338,5 @@ export class Renderer {
     }
   }
 
-  // ---------------------------------------------------------------------------------------------------------------
-  // data for overlay/lighting passes
-
-  screenLocal(ac: AreaCanvas): { x: number; y: number } {
-    return { x: ac.x, y: ac.y };
-  }
-
-  getSky(): { day: HTMLCanvasElement; night: HTMLCanvasElement } {
-    return { day: this.skyDay, night: this.skyNight };
-  }
-
-  mixNight(lit: number): string {
-    return mix(NIGHT_COLORS.dark, NIGHT_COLORS.lit, lit);
-  }
 }
 

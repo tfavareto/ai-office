@@ -15,8 +15,8 @@ export function projectTheme(seed: number): AreaTheme {
     floor: 'carpet',
     hue,
     accent: hslToHex(hue, 0.62 + rng.range(-0.06, 0.08), 0.56),
-    carpet: hslToHex(hue + rng.range(-12, 12), 0.2 + rng.range(0, 0.08), 0.36),
-    carpetAlt: hslToHex(hue + rng.range(-12, 12), 0.2 + rng.range(0, 0.08), 0.31),
+    carpet: hslToHex(hue + rng.range(-10, 10), 0.09 + rng.range(0, 0.05), 0.32),
+    carpetAlt: hslToHex(hue + rng.range(-10, 10), 0.09 + rng.range(0, 0.05), 0.28),
     pattern: rng.int(4),
     wood: rng.int(3),
   };
@@ -27,32 +27,30 @@ interface Bay {
   fy: number;
 }
 
-/** Free 4-wide bays next to the aisle where decoration may stand without blocking anything important. */
-const DECOR_BAYS: readonly Bay[] = [
-  { fx: 0, fy: 2 }, { fx: 5, fy: 2 }, { fx: 0, fy: 5 }, { fx: 5, fy: 5 },
-];
+/** Free bays on the bottom row (between the corner plants and the aisle) where decoration may stand. */
+const DECOR_BAYS: readonly Bay[] = [{ fx: 1, fy: 8 }, { fx: 5, fy: 8 }];
 
 type DecorFn = (b: AreaBuilder, bay: Bay, rng: Rng) => void;
 
 const DECOR: readonly DecorFn[] = [
   (b, bay) => {
     b.put('shelf', bay.fx, bay.fy, 2, 1);
-    b.put('plant', bay.fx + 3, bay.fy, 1, 1, { variant: 0 });
+    b.put('plant', bay.fx + 2, bay.fy, 1, 1, { variant: 0 });
   },
   (b, bay) => {
-    b.put('copier', bay.fx + 1, bay.fy, 1, 1);
-    b.put('bin', bay.fx + 3, bay.fy, 1, 1);
+    b.put('copier', bay.fx, bay.fy, 1, 1);
+    b.put('bin', bay.fx + 2, bay.fy, 1, 1);
   },
   (b, bay, rng) => {
     b.put('plant', bay.fx, bay.fy, 1, 1, { variant: rng.int(4) });
-    b.put('plant', bay.fx + 3, bay.fy, 1, 1, { variant: rng.int(4) });
+    b.put('plant', bay.fx + 2, bay.fy, 1, 1, { variant: rng.int(4) });
   },
   (b, bay) => {
-    b.put('sideTable', bay.fx + 1, bay.fy, 1, 1);
-    b.put('lamp', bay.fx + 2, bay.fy, 1, 1);
+    b.put('sideTable', bay.fx, bay.fy, 1, 1);
+    b.put('lamp', bay.fx + 1, bay.fy, 1, 1);
   },
   (b, bay) => {
-    b.put('shelf', bay.fx + 2, bay.fy, 2, 1, { variant: 1 });
+    b.put('shelf', bay.fx + 1, bay.fy, 2, 1, { variant: 1 });
   },
 ];
 
@@ -102,15 +100,16 @@ export function layoutProjectRoom(spec: RoomSpec): AreaLayout {
     const j = rng.int(i + 1);
     [bays[i], bays[j]] = [bays[j], bays[i]];
   }
-  const decorCount = 2 + rng.int(3);
-  bays.slice(0, decorCount).forEach((bay) => DECOR[rng.int(DECOR.length)](b, bay, rng));
+  bays.forEach((bay) => {
+    if (rng.chance(0.85)) DECOR[rng.int(DECOR.length)](b, bay, rng);
+  });
 
   b.put('plantTall', 0, 8, 1, 1, { variant: rng.int(2) });
   b.put('plantTall', 8, 8, 1, 1, { variant: rng.int(2) });
-  b.spot('overflow', 1.5, 8.55, 'n', { approach: { x: 1, y: 8 } });
-  b.spot('overflow', 2.5, 8.55, 'n', { approach: { x: 2, y: 8 } });
-  b.spot('overflow', 6.5, 8.55, 'n', { approach: { x: 6, y: 8 } });
-  b.spot('overflow', 7.5, 8.55, 'n', { approach: { x: 7, y: 8 } });
+  b.spot('overflow', 1.5, 5.55, 'n', { approach: { x: 1, y: 5 } });
+  b.spot('overflow', 2.5, 5.55, 'n', { approach: { x: 2, y: 5 } });
+  b.spot('overflow', 6.5, 5.55, 'n', { approach: { x: 6, y: 5 } });
+  b.spot('overflow', 7.5, 5.55, 'n', { approach: { x: 7, y: 5 } });
   b.door(AISLE_FX, 1, 'door');
   return b.build();
 }

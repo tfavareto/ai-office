@@ -12,7 +12,7 @@ export interface WallItemFrame {
 }
 
 /** y (px from the wall top) where wall items hang. */
-export const ITEM_Y = 10;
+export const ITEM_Y = 12;
 
 function frame(ctx: Ctx, x: number, y: number, w: number, h: number, base: string): void {
   rect(ctx, x, y, w, h, shade(base, -0.45));
@@ -28,14 +28,14 @@ function fitName(text: string, maxChars: number): string {
 function sign(ctx: Ctx, x: number, w: number, label: string, accent: string): void {
   const px = x * T;
   const pw = w * T;
-  const y = ITEM_Y + 3;
-  frame(ctx, px + 2, y, pw - 4, 12, BRASS.base);
-  rect(ctx, px + 4, y + 2, pw - 8, 8, EBONY.base);
+  const y = ITEM_Y;
+  frame(ctx, px + 2, y, pw - 4, 11, BRASS.base);
+  rect(ctx, px + 4, y + 2, pw - 8, 7, EBONY.base);
   hline(ctx, px + 4, y + 2, pw - 8, EBONY.mid);
   const text = fitName(label, Math.floor((pw - 18) / 4));
-  rect(ctx, px + 5, y + 4, 4, 4, accent);
-  rect(ctx, px + 6, y + 5, 2, 2, shade(accent, 0.45));
-  drawPixelText(ctx, text, px + 11, y + 4, BRASS.hi);
+  rect(ctx, px + 5, y + 3, 3, 5, accent);
+  rect(ctx, px + 5, y + 3, 3, 1, shade(accent, 0.45));
+  drawPixelText(ctx, text, px + 10, y + 3, BRASS.hi);
 }
 
 function logoSign(ctx: Ctx, x: number, w: number): void {
@@ -61,18 +61,18 @@ function logoSign(ctx: Ctx, x: number, w: number): void {
 function board(ctx: Ctx, x: number, w: number, accent: string): WallItemFrame {
   const px = x * T + 2;
   const pw = w * T - 4;
-  frame(ctx, px, ITEM_Y + 1, pw, 15, GRAPHITE.base);
-  rect(ctx, px + 2, ITEM_Y + 3, pw - 4, 11, '#0b1322');
-  rect(ctx, px + 2, ITEM_Y + 3, pw - 4, 1, accent);
-  pixel(ctx, px + pw - 3, ITEM_Y + 15, LED.teal);
-  return { screen: { x: px + 2, y: ITEM_Y + 3, w: pw - 4, h: 11 } };
+  frame(ctx, px, ITEM_Y, pw, 11, GRAPHITE.base);
+  rect(ctx, px + 2, ITEM_Y + 2, pw - 4, 7, '#0b1322');
+  rect(ctx, px + 2, ITEM_Y + 2, 1, 7, accent);
+  pixel(ctx, px + pw - 2, ITEM_Y + 10, LED.teal);
+  return { screen: { x: px + 2, y: ITEM_Y + 2, w: pw - 4, h: 7 } };
 }
 
 function tv(ctx: Ctx, x: number, w: number, big: boolean): WallItemFrame {
   const px = x * T + 2;
   const pw = w * T - 4;
-  const h = big ? 22 : 18;
-  const y = big ? 7 : 9;
+  const h = big ? 26 : 18;
+  const y = big ? 4 : 9;
   frame(ctx, px, y, pw, h, EBONY.base);
   rect(ctx, px + 2, y + 2, pw - 4, h - 4, '#08101d');
   hline(ctx, px + 2, y + 2, pw - 4, '#16233a');
@@ -138,23 +138,22 @@ function mirror(ctx: Ctx, x: number, w: number): void {
 
 function poster(ctx: Ctx, x: number, w: number, variant: number): void {
   const px = x * T + Math.floor((w * T - 20) / 2);
-  frame(ctx, px, 10, 20, 15, WALNUT.base);
+  frame(ctx, px, 12, 20, 11, WALNUT.base);
   const palettes = [['#e0795a', '#f2c46d', '#2f6fed'], ['#3b8a52', '#cde7c2', '#1d3a63'], ['#8a5ad6', '#f2a3c4', '#2a2f3a']];
   const [a, b, c] = palettes[variant % 3];
-  rect(ctx, px + 2, 12, 16, 11, b);
-  rect(ctx, px + 2, 12, 8, 11, a);
-  disc(ctx, px + 13, 17, 3, c);
-  hline(ctx, px + 2, 21, 16, shade(c, -0.2));
+  rect(ctx, px + 2, 14, 16, 7, b);
+  rect(ctx, px + 2, 14, 8, 7, a);
+  disc(ctx, px + 13, 17, 2, c);
+  hline(ctx, px + 2, 20, 16, shade(c, -0.2));
 }
 
 function clock(ctx: Ctx, x: number, w: number): void {
   const cx = x * T + Math.floor((w * T) / 2);
-  disc(ctx, cx, 17, 6, BRASS.dark);
-  disc(ctx, cx, 17, 5, BRASS.base);
-  disc(ctx, cx, 17, 4, MARBLE.light);
-  vline(ctx, cx, 14, 4, GRAPHITE.deep);
-  hline(ctx, cx, 17, 3, GRAPHITE.deep);
-  pixel(ctx, cx, 12 + 1, GRAPHITE.mid);
+  disc(ctx, cx, 17, 5, BRASS.dark);
+  disc(ctx, cx, 17, 4, BRASS.base);
+  disc(ctx, cx, 17, 3, MARBLE.light);
+  vline(ctx, cx, 15, 3, GRAPHITE.deep);
+  hline(ctx, cx, 17, 2, GRAPHITE.deep);
 }
 
 /** Paint a static wall decoration. Returns the dynamic screen rect, if any. */

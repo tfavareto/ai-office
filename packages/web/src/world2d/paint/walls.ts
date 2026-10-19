@@ -9,7 +9,7 @@ export const WALL_H = 32;
 const CROWN_H = 3;
 const SKIRT_Y = 28;
 const PANE_Y = 4;
-const PANE_H = 8;
+const PANE_H = 6;
 
 function slats(ctx: Ctx, x: number, y: number, w: number, h: number, wood: { dark: string; base: string; mid: string; light: string; hi: string }, seed: number): void {
   rect(ctx, x, y, w, h, wood.dark);

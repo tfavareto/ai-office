@@ -92,7 +92,7 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
     const x = cell * 8 + 2 + (hh % 4);
     if (x > -SIDEWALK && x < w + SIDEWALK + 3) {
       if (hh & 0x10) trees.push({ x, y: -2, variant: hh % 3 });
-      if (hh & 0x20) trees.push({ x: x + 3, y: h + 1, variant: (hh >> 3) % 3 });
+      if (hh & 0x20) trees.push({ x: x + 3, y: h + 1, variant: (hh >>> 3) % 3 });
     }
     lamps.push({ x: cell * 8 + 6, y: -1 }, { x: cell * 8 + 2, y: h + 1 });
   }
@@ -107,7 +107,7 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
     const x = cell * 14 + (hh % 3);
     if (x + width < bounds.x || x > bounds.x + bounds.w) continue;
     rooftops.push({ rect: { x, y: farNorth.y - blockH, w: width, h: blockH }, variant: hh % 4 });
-    rooftops.push({ rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK, w: width, h: blockH }, variant: (hh >> 4) % 4 });
+    rooftops.push({ rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK, w: width, h: blockH }, variant: (hh >>> 4) % 4 });
   }
   for (let i = 0; i < 4; i++) {
     const hh = hash32(i + 3000, 13);

@@ -102,6 +102,19 @@ function stone(ctx: Ctx, x: number, y: number, tx: number, ty: number): void {
   }
 }
 
+function carpetAlt(pattern: number, gx: number, gy: number): boolean {
+  switch (pattern) {
+    case 1:
+      return Math.floor(gx / 4) % 2 === 0;
+    case 2:
+      return (Math.floor(gx / 8) + Math.floor(gy / 8)) % 2 === 0;
+    case 3:
+      return (Math.abs((gx % 16) - 8) + Math.abs((gy % 16) - 8)) % 16 < 5;
+    default:
+      return false;
+  }
+}
+
 function carpet(ctx: Ctx, x: number, y: number, tx: number, ty: number, theme: AreaTheme): void {
   const a = theme.carpet;
   const b = theme.carpetAlt;
@@ -112,20 +125,7 @@ function carpet(ctx: Ctx, x: number, y: number, tx: number, ty: number, theme: A
     for (let i = 0; i < T; i++) {
       const gx = px + i;
       const gy = py + j;
-      let alt = false;
-      switch (theme.pattern) {
-        case 1:
-          alt = Math.floor(gx / 4) % 2 === 0;
-          break;
-        case 2:
-          alt = (Math.floor(gx / 8) + Math.floor(gy / 8)) % 2 === 0;
-          break;
-        case 3:
-          alt = (Math.abs((gx % 16) - 8) + Math.abs((gy % 16) - 8)) % 16 < 5;
-          break;
-        default:
-          alt = false;
-      }
+      const alt = carpetAlt(theme.pattern, gx, gy);
       if (alt) rect(ctx, x + i, y + j, 1, 1, b);
       else if (noise2(gx, gy, 5) > 0.86) rect(ctx, x + i, y + j, 1, 1, shade(a, 0.07));
       else if (noise2(gx, gy, 6) > 0.9) rect(ctx, x + i, y + j, 1, 1, shade(a, -0.08));

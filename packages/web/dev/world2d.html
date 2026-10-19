@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Office · 2D world harness</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #12151c; overflow: hidden; }
+      #world { position: fixed; inset: 0; }
+      #hud { position: fixed; left: 8px; top: 8px; color: #cfd6e4; font: 12px/1.4 ui-monospace, monospace; background: rgba(0,0,0,.45); padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="world"></div>
+    <div id="hud"></div>
+    <script type="module" src="./world2d.ts"></script>
+  </body>
+</html>
