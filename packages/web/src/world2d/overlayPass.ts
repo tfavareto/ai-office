@@ -12,6 +12,7 @@ import {
   type LabelItem,
   type Pos,
 } from './labels';
+import type { Viewport } from './camera';
 import type { OverlaySprites, Sprite } from './overlay';
 import { STATUS_COLORS } from './palette';
 import { FOOT_OFFSET } from './picking';
@@ -26,6 +27,7 @@ const KEEP_BONUS = 30;
 const MAX_BUBBLE_STACK = 3;
 const TAG_GAP = 4;
 const FREE_MARGIN = 40;
+const MIN_FREE = 120;
 
 type Layer = 'tag' | 'badge' | 'bubble';
 const LAYER_ORDER: readonly Layer[] = ['tag', 'badge', 'bubble'];
@@ -63,6 +65,17 @@ function bubbleAlpha(b: Bubble, now: number): number {
   const born = Math.min(1, (now - b.shownAt) / FADE_IN);
   const left = b.endsAt === Infinity ? 1 : Math.min(1, (b.endsAt - now) / FADE_OUT);
   return Math.max(0, Math.min(born, left));
+}
+
+/** The part of the canvas not covered by panels; labels stay inside it. */
+function freeArea(view: Viewport): Box {
+  const { insets } = view;
+  return {
+    x: insets.left,
+    y: insets.top,
+    w: Math.max(MIN_FREE, view.width - insets.left - insets.right),
+    h: Math.max(MIN_FREE, view.height - insets.top - insets.bottom),
+  };
 }
 
 /** Spots above a head: first the natural one, then raised, then to the left/right of it. */
@@ -103,14 +116,14 @@ export class OverlayPass {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = 1;
-    const screen: Box = { x: 0, y: 0, w: cam.view.width, h: cam.view.height };
+    const free = freeArea(cam.view);
 
-    const pills = this.drawRooms(ctx, sprites, s);
+    const pills = this.drawRooms(ctx, sprites, s, free);
     const payloads = new Map<string, Payload>();
-    const items = this.buildItems(sprites, s, payloads);
+    const items = this.buildItems(sprites, s, payloads, free);
     const placed = placeLabels(items, {
       obstacles: pills,
-      clip: screen,
+      clip: free,
       gap: LABEL_GAP,
       groupLimit: bubblesPerRoom(cam.zoom),
       kept: this.kept,
@@ -147,10 +160,8 @@ export class OverlayPass {
     ctx.globalAlpha = 1;
   }
 
-  private buildItems(sprites: OverlaySprites, s: FrameState, payloads: Map<string, Payload>): LabelItem[] {
+  private buildItems(sprites: OverlaySprites, s: FrameState, payloads: Map<string, Payload>, free: Box): LabelItem[] {
     const { cam, sim } = s;
-    const w = cam.view.width;
-    const h = cam.view.height;
     const bubbles = new Map<string, Bubble>();
     for (const b of sim.bubbles) bubbles.set(b.agentId, b);
     const items: LabelItem[] = [];
@@ -158,7 +169,7 @@ export class OverlayPass {
     for (const c of sim.characters) {
       if (c.alpha <= 0.35) continue;
       const head = cam.worldToScreen(c.x * TILE, c.y * TILE + FOOT_OFFSET - HEAD_HEIGHT + (c.seat ? 4 : 0));
-      if (head.x < -FREE_MARGIN || head.x > w + FREE_MARGIN || head.y < -FREE_MARGIN || head.y > h + FREE_MARGIN) continue;
+      if (head.x < free.x - FREE_MARGIN || head.x > free.x + free.w + FREE_MARGIN || head.y < free.y - FREE_MARGIN || head.y > free.y + free.h + FREE_MARGIN) continue;
       const selected = s.selection?.type === 'agent' && s.selection.id === c.agentId;
       const hovered = s.hover.agentId === c.agentId;
       const showTag = selected || hovered || c.alert || (s.options.showNames && cam.zoom >= NAME_MIN_ZOOM);
@@ -219,16 +230,9 @@ export class OverlayPass {
   }
 
   /** Draws room outlines and pills; returns the pill boxes (obstacles for the other labels). */
-  private drawRooms(ctx: CanvasRenderingContext2D, sprites: OverlaySprites, s: FrameState): Box[] {
+  private drawRooms(ctx: CanvasRenderingContext2D, sprites: OverlaySprites, s: FrameState, free: Box): Box[] {
     const { cam, sim } = s;
     const selectedRoom = s.selection?.type === 'room' ? s.selection.id : null;
-    const insets = cam.view.insets;
-    const free: Box = {
-      x: insets.left,
-      y: insets.top,
-      w: cam.view.width - insets.left - insets.right,
-      h: cam.view.height - insets.top - insets.bottom,
-    };
     const pills: Box[] = [];
     for (const area of sim.building.areas) {
       const isProject = area.kind === 'project';

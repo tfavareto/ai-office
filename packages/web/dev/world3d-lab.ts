@@ -1,6 +1,10 @@
 // Asset lab: renders the CC0 models side by side to inspect scale, orientation and rest poses.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { Rig } from '../src/world3d/pose/rig';
+import { createPose } from '../src/world3d/pose/poseVec';
+import { ALL_POSES, solvePose, isSeatedPose } from '../src/world3d/pose/poses';
 
 const params = new URLSearchParams(location.search);
 const set = params.get('set') ?? 'humans';
@@ -27,6 +31,48 @@ const report: Record<string, unknown>[] = [];
 const side = params.get('view') === 'side';
 const spacing = Number(params.get('sp') ?? (set === 'humans' ? 1.3 : 1.6));
 const only = params.get('only');
+if (set === 'poses') {
+  const models = ['m1_lod', 'f1'];
+  const gl = await Promise.all(models.map((m) => loader.loadAsync(`/assets/3d/humans/${m}.gltf`)));
+  const mat = new THREE.MeshStandardMaterial({ color: '#7a6a58' });
+  const poseList = params.get('list') ? params.get('list')!.split(',') as typeof ALL_POSES : ALL_POSES;
+  const walkPhase = Number(params.get('wp') ?? 0.1);
+  poseList.forEach((pose, i) => {
+    const g = gl[i % 2];
+    const inst = SkeletonUtils.clone(g.scene);
+    const rig = new Rig(inst);
+    const v = createPose();
+    solvePose(v, pose, { t: Number(params.get('t') ?? 1), walk: walkPhase, phase: 0, pelvisRest: rig.pelvisRestY, seated: isSeatedPose(pose), shellStage: 0 });
+    rig.apply(v);
+    const holder = new THREE.Group();
+    holder.add(inst);
+    holder.position.x = i * 1.35;
+    holder.rotation.y = side ? Math.PI / 2 : 0;
+    if (isSeatedPose(pose)) {
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.04, 0.45), mat);
+      seat.position.set(0, 0.45, -0.02);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.05), mat);
+      back.position.set(0, 0.7, -0.27);
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1, 0.04, 0.7), mat);
+      desk.position.set(0, 0.74, 0.7);
+      const h2 = new THREE.Group();
+      h2.add(seat, back, desk);
+      holder.add(h2);
+    }
+    scene.add(holder);
+  });
+  const sp = 1.35;
+  const n = poseList.length;
+  const aspect = innerWidth / innerHeight;
+  const hh = Number(params.get('h') ?? 1.05);
+  const camX = ((n - 1) * sp) / 2;
+  const cam = new THREE.OrthographicCamera(-hh * aspect, hh * aspect, hh, -hh, 0.1, 100);
+  cam.position.set(camX, hh * 0.9, 8);
+  cam.lookAt(camX, hh * 0.9, 0);
+  renderer.render(scene, cam);
+  document.title = 'ready';
+  throw new Error('lab-poses-done');
+}
 const paths = (names[set] ?? []).filter((n) => !only || n.includes(only));
 for (const path of paths) {
   const gltf = await loader.loadAsync(`/assets/3d/${path}`);
