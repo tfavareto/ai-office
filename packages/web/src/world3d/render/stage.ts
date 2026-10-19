@@ -149,17 +149,12 @@ export class Stage {
 
   private ensureComposer(camera: Camera): EffectComposer {
     if (this.composer) return this.composer;
-    const target = new WebGLRenderTarget(this.width * this.pixelRatio, this.height * this.pixelRatio, { type: HalfFloatType, samples: this.pixelRatio >= 2 ? 0 : 4 });
+    const target = new WebGLRenderTarget(this.width * this.pixelRatio, this.height * this.pixelRatio, { type: HalfFloatType, samples: 4 });
     const composer = new EffectComposer(this.renderer, target);
     composer.setPixelRatio(this.pixelRatio);
     composer.setSize(this.width, this.height);
     composer.addPass(new RenderPass(this.scene, camera));
     this.bloom = new UnrealBloomPass(new Vector2(this.width, this.height), daylight(this.night).bloomStrength, 0.55, 0.82);
-    // the glow is soft anyway: run the whole bloom chain at half the composer resolution
-    const bloom = this.bloom;
-    const setSize = bloom.setSize.bind(bloom);
-    bloom.setSize = (w: number, h: number): void => setSize(Math.max(2, Math.round(w / 2)), Math.max(2, Math.round(h / 2)));
-    bloom.setSize(this.width * this.pixelRatio, this.height * this.pixelRatio);
     composer.addPass(this.bloom);
     composer.addPass(new OutputPass());
     this.composer = composer;

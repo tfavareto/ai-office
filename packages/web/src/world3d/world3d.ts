@@ -38,7 +38,6 @@ const MIN_DPR = 1;
 const SCREEN_REFRESH = 0.2;
 const POOL_REFRESH = 0.35;
 const NAME_MIN_ZOOM = 11;
-const DETAIL_ZOOM = 70;
 const FOCUS_ZOOM = 85;
 const PAN_SPEED = 14;
 const LOOK_SPEED = 1.9;
@@ -91,8 +90,6 @@ export class World3D implements WorldApi {
   private clock = 0;
   private fps = 60;
   private drawMs = 0;
-  private slowFor = 0;
-  private fastFor = 0;
   private screenTimer = 0;
   private poolTimer = 0;
   private disposed = false;
@@ -120,7 +117,7 @@ export class World3D implements WorldApi {
     if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
     container.append(canvas, this.overlay.canvas);
     const query = new URLSearchParams(location.search);
-    this.stage = new Stage(canvas, query.get('glcheck') === '1', query.get('aa') !== '0' && (window.devicePixelRatio || 1) < 2);
+    this.stage = new Stage(canvas, query.get('glcheck') === '1', query.get('aa') !== '0');
     this.areas = new AreaManager({ m: parts.materials, models: parts.models }, this.sim);
     this.crowd = new Crowd(parts.library, this.sim);
     this.city = new CityScene(parts.materials, parts.city);
@@ -378,7 +375,6 @@ export class World3D implements WorldApi {
     this.last = now;
     this.clock += dt;
     if (dt > 0) this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;
-    this.governQuality(dt);
     const t0 = performance.now();
 
     this.sim.advance(dt);
@@ -408,7 +404,7 @@ export class World3D implements WorldApi {
     this.crowd.update({
       time: this.clock, dt, accountColor: (id) => this.accountColors.get(id) ?? '#8d99ad',
       selectedId: this.selection?.type === 'agent' ? this.selection.id : null, hoveredId: this.hover.agentId,
-      detail: this.rig.mode !== 'overview' || this.rig.zoom >= DETAIL_ZOOM, still: this.options.reducedMotion,
+      detail: true, still: this.options.reducedMotion,
     });
     this.city.update(this.clock, night);
     this.updatePool(dt);
@@ -433,28 +429,6 @@ export class World3D implements WorldApi {
 
   private updateWorldBounds(): void {
     this.stage.fitSun(this.officeBox());
-  }
-
-  /** Lowers the render resolution when the frame rate stays low and raises it back when there is headroom. */
-  private governQuality(dt: number): void {
-    const ratio = this.stage.ratio;
-    const cap = clamp(window.devicePixelRatio || 1, MIN_DPR, MAX_DPR);
-    if (this.fps < 38) this.slowFor += dt;
-    else this.slowFor = 0;
-    if (this.fps > 57) this.fastFor += dt;
-    else this.fastFor = 0;
-    if (this.slowFor > 2.5 && ratio > MIN_DPR) {
-      this.slowFor = 0;
-      this.setRatio(Math.max(MIN_DPR, ratio - 0.25));
-    } else if (this.fastFor > 8 && ratio < cap) {
-      this.fastFor = 0;
-      this.setRatio(Math.min(cap, ratio + 0.25));
-    }
-  }
-
-  private setRatio(ratio: number): void {
-    this.stage.setPixelRatio(ratio);
-    this.overlay.resize(this.width, this.height, ratio);
   }
 
   private desksIn(area: AreaLayout): DeskState[] {
