@@ -1,3 +1,5 @@
+import type { Locale } from '@ai-office/shared';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import type { AreaLayout, FurnitureItem, Rect } from '../../layout/types';
 import { TILE } from '../../layout/constants';
 import { type Ctx, context2d, ellipse, makeCanvas } from '../paint/ctx';
@@ -44,9 +46,19 @@ export interface AreaCanvas {
   screens: ScreenRect[];
 }
 
-export function areaKey(area: AreaLayout, extra = ''): string {
+/** Wall decorations that spell words in the viewer's language (the pantry menu); signs carry brand or project names. */
+function hasLocalizedWallText(area: AreaLayout): boolean {
+  return area.wallItems.some((item) => item.kind === 'menu');
+}
+
+/**
+ * Cache key of an area's static layers. The locale only takes part for areas that paint translated text, so a language
+ * change redraws just those and leaves the other canvases alone.
+ */
+export function areaKey(area: AreaLayout, extra = '', locale: Locale = 'pt-BR'): string {
   const furn = area.furniture.map((f) => `${f.kind}${f.x},${f.y},${f.variant}`).join(';');
-  return `${area.id}|${area.rect.x},${area.rect.y},${area.rect.w}|${area.label}|${JSON.stringify(area.theme)}|${furn}|${area.doors.length}|${extra}`;
+  const lang = hasLocalizedWallText(area) ? locale : '';
+  return `${area.id}|${area.rect.x},${area.rect.y},${area.rect.w}|${area.label}|${JSON.stringify(area.theme)}|${furn}|${area.doors.length}|${extra}|${lang}`;
 }
 
 function drawShadow(ctx: Ctx, item: FurnitureItem, ox: number, oy: number): void {
@@ -79,7 +91,7 @@ function wallShade(ctx: Ctx, area: AreaLayout): void {
   ctx.fillRect(0, y, w, 8);
 }
 
-function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme']): { canvas: HTMLCanvasElement; panes: Rect[]; screens: ScreenRect[] } {
+function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme'], text: WorldText): { canvas: HTMLCanvasElement; panes: Rect[]; screens: ScreenRect[] } {
   const w = area.rect.w * TILE;
   const h = area.rect.h * TILE;
   const canvas = makeCanvas(w, h);
@@ -108,7 +120,7 @@ function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme']): { ca
   const screens: ScreenRect[] = [];
   for (const wi of area.wallItems) {
     if (wi.side !== 'north') continue;
-    const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent);
+    const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent, text);
     if (frame.screen) screens.push({ ...frame.screen, kind: wi.kind === 'board' ? 'board' : 'tv', itemId: wi.id, big: wi.w >= 6 });
   }
   if (!isTerrace) paintSideWall(ctx, area);
@@ -139,8 +151,8 @@ function placeItems(area: AreaLayout): PlacedItem[] {
 }
 
 /** Pre-render an area into a ground canvas (floor, walls, decoration) and a furniture canvas. */
-export function buildAreaCanvas(area: AreaLayout, key: string, corridorTheme: AreaLayout['theme'], furnMargin = 0): AreaCanvas {
-  const { canvas: ground, panes, screens } = buildGround(area, corridorTheme);
+export function buildAreaCanvas(area: AreaLayout, key: string, corridorTheme: AreaLayout['theme'], furnMargin = 0, text: WorldText = worldText('pt-BR')): AreaCanvas {
+  const { canvas: ground, panes, screens } = buildGround(area, corridorTheme, text);
   const items = placeItems(area);
   const x = area.rect.x * TILE;
   const y = area.rect.y * TILE;

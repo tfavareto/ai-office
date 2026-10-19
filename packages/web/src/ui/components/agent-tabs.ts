@@ -1,11 +1,13 @@
 // Tab panels of the agent drawer: Resumo, Mensagens, Atividade, Dados.
 import type { Activity, Agent } from '@ai-office/shared';
+import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
-import { LOCAL_ONLY_HINT, type AppContext } from '../context';
+import { localOnlyHint, type AppContext } from '../context';
+import { accountLabel, activityDetail, activityText, agentRole, shellLabel, taskLabel } from '../display';
 import { compact, h, setText, toggleClass } from '../dom';
 import { formatClockSeconds, formatCost, formatDayLabel, formatClock, formatDuration, formatTokens, percent } from '../format';
 import { icon } from '../icons';
-import { isLive, STATUS_LABEL, displayStatus } from '../model/status';
+import { displayStatus, isLive, statusLabel } from '../model/status';
 import { mergeTimeline } from '../model/timeline';
 import { createAvatar, emptyNote, liveText, sectionTitle, setLive, setStatusDot, statusDot } from '../widgets';
 import { MessageComposer } from './message-composer';
@@ -33,11 +35,11 @@ function tile(label: string): Tile {
 
 export class SummaryTab implements AgentTab {
   readonly el = h('div', { class: 'ao-tab-body' });
-  private readonly tools = tile('Ferramentas');
-  private readonly tokens = tile('Tokens');
-  private readonly time = tile('Tempo na sessão');
+  private readonly tools = tile(t('tab.summary.tools'));
+  private readonly tokens = tile(t('tab.summary.tokens'));
+  private readonly time = tile(t('tab.summary.time'));
   private readonly timeLive = liveText('duration', 0);
-  private readonly cost = tile('Custo');
+  private readonly cost = tile(t('tab.summary.cost'));
   private readonly now = h('div', { class: 'ao-block ao-now' });
   private readonly tasks = h('div', { class: 'ao-block' });
   private readonly relations = h('div', { class: 'ao-block' });
@@ -56,12 +58,12 @@ export class SummaryTab implements AgentTab {
   update(agent: Agent): void {
     const { stats } = agent;
     setText(this.tools.value, String(stats.toolCalls));
-    setText(this.tools.sub, stats.linesAdded || stats.linesRemoved ? `+${stats.linesAdded} −${stats.linesRemoved} linhas` : 'chamadas');
+    setText(this.tools.sub, stats.linesAdded || stats.linesRemoved ? t('tab.summary.lines', { added: stats.linesAdded, removed: stats.linesRemoved }) : t('tab.summary.calls'));
     setText(this.tokens.value, formatTokens(stats.tokensIn + stats.tokensOut));
     setText(this.tokens.sub, `↓ ${formatTokens(stats.tokensIn)} · ↑ ${formatTokens(stats.tokensOut)}`);
     setLive(this.timeLive, 'duration', agent.startedAt);
     setText(this.cost.value, formatCost(stats.costUSD));
-    setText(this.cost.sub, stats.costUSD === undefined ? 'modelo desconhecido' : 'estimado');
+    setText(this.cost.sub, stats.costUSD === undefined ? t('tab.summary.unknownModel') : t('tab.summary.estimated'));
     this.renderNow(agent);
     this.renderTasks(agent);
     this.renderRelations(agent);
@@ -73,27 +75,27 @@ export class SummaryTab implements AgentTab {
     if (signature === this.signatures.now) return;
     this.signatures.now = signature;
     this.now.replaceChildren(
-      sectionTitle('Agora'),
+      sectionTitle(t('tab.summary.now')),
       a
         ? h(
             'div',
             { class: `ao-now-card ${a.error ? 'is-error' : ''}`.trim() },
             h('span', { class: 'ao-now-icon', 'aria-hidden': 'true' }, a.icon),
-            h('div', { class: 'ao-now-text' }, h('strong', null, a.text), a.detail ? h('code', null, a.detail) : null, liveText('ago', a.at, 'ao-now-time')),
+            h('div', { class: 'ao-now-text' }, h('strong', null, activityText(a)), activityDetail(a) ? h('code', null, activityDetail(a)) : null, liveText('ago', a.at, 'ao-now-time')),
           )
-        : emptyNote(isLive(agent) ? 'Nenhuma atividade registrada ainda.' : 'Sem atividade.'),
+        : emptyNote(isLive(agent) ? t('tab.summary.noActivity') : t('tab.summary.offlineNoActivity')),
     );
   }
 
   private renderTasks(agent: Agent): void {
-    const signature = agent.tasks.map((t) => `${t.id}${t.status}${t.title}`).join('|');
+    const signature = agent.tasks.map((task) => `${task.id}${task.status}${task.title}`).join('|');
     if (signature === this.signatures.tasks) return;
     this.signatures.tasks = signature;
-    const done = agent.tasks.filter((t) => t.status === 'completed').length;
+    const done = agent.tasks.filter((task) => task.status === 'completed').length;
     this.tasks.replaceChildren(
-      sectionTitle('Tarefas', agent.tasks.length ? h('span', { class: 'ao-section-count' }, `${done}/${agent.tasks.length}`) : null),
+      sectionTitle(t('tab.summary.tasks'), agent.tasks.length ? h('span', { class: 'ao-section-count' }, `${done}/${agent.tasks.length}`) : null),
       agent.tasks.length === 0
-        ? emptyNote('Nenhuma tarefa no plano.')
+        ? emptyNote(t('tab.summary.noTasks'))
         : h(
             'div',
             null,
@@ -106,8 +108,8 @@ export class SummaryTab implements AgentTab {
                   'li',
                   { class: `ao-task is-${task.status}` },
                   h('span', { class: 'ao-task-mark', 'aria-hidden': 'true' }, task.status === 'completed' ? icon('check', 12) : null),
-                  h('span', { class: 'ao-task-text' }, task.status === 'in_progress' ? (task.activeForm ?? task.title) : task.title),
-                  h('span', { class: 'ao-visually-hidden' }, task.status === 'completed' ? ' (concluída)' : task.status === 'in_progress' ? ' (em andamento)' : ' (pendente)'),
+                  h('span', { class: 'ao-task-text' }, taskLabel(task)),
+                  h('span', { class: 'ao-visually-hidden' }, ` (${task.status === 'completed' ? t('task.completed') : task.status === 'in_progress' ? t('task.inProgress') : t('task.pending')})`),
                 ),
               ),
             ),
@@ -124,11 +126,11 @@ export class SummaryTab implements AgentTab {
     const signature = `${agent.kind}|${related.map((a) => `${a.id}${a.status}${a.activity?.id ?? ''}${a.name}`).join('|')}`;
     if (signature === this.signatures.relations) return;
     this.signatures.relations = signature;
-    const title = agent.kind === 'main' ? 'Subagentes' : 'Responsável';
+    const title = agent.kind === 'main' ? t('tab.summary.subagents') : t('tab.summary.owner');
     this.relations.replaceChildren(
       sectionTitle(title, agent.kind === 'main' && related.length ? h('span', { class: 'ao-section-count' }, String(related.length)) : null),
       related.length === 0
-        ? emptyNote(agent.kind === 'main' ? 'Nenhum subagente trabalhando agora.' : 'O agente responsável já saiu.')
+        ? emptyNote(agent.kind === 'main' ? t('tab.summary.noSubagents') : t('tab.summary.ownerGone'))
         : h('div', { class: 'ao-mini-list' }, ...related.map((other) => this.miniRow(other))),
     );
   }
@@ -142,8 +144,8 @@ export class SummaryTab implements AgentTab {
       'button',
       { type: 'button', class: 'ao-mini-row', onclick: () => this.ctx.selectAgent(agent.id, { focus: true }) },
       h('span', { class: 'ao-row-avatar' }, avatar.el, dot),
-      h('span', { class: 'ao-mini-body' }, h('strong', null, agent.name), h('span', null, agent.kind === 'sub' ? agent.role : (agent.activity?.text ?? STATUS_LABEL[displayStatus(agent)]))),
-      h('span', { class: 'ao-mini-meta' }, agent.activity?.text ?? STATUS_LABEL[displayStatus(agent)]),
+      h('span', { class: 'ao-mini-body' }, h('strong', null, agent.name), h('span', null, agent.kind === 'sub' ? agentRole(agent) : (agent.activity ? activityText(agent.activity) : statusLabel(displayStatus(agent))))),
+      h('span', { class: 'ao-mini-meta' }, agent.activity ? activityText(agent.activity) : statusLabel(displayStatus(agent))),
     );
   }
 }
@@ -156,18 +158,18 @@ export class MessagesTab implements AgentTab {
   private readonly history: MessageHistory;
 
   constructor(private readonly ctx: AppContext) {
-    this.history = new MessageHistory(ctx, (id) => ctx.agent(id)?.name ?? 'Agente');
+    this.history = new MessageHistory(ctx, (id) => ctx.agent(id)?.name ?? t('agent.fallback'));
     this.composer = new MessageComposer(ctx, () => this.history.refreshNow());
-    this.el.append(sectionTitle('Enviar ordem'), this.composer.el, sectionTitle('Histórico'), this.history.el);
+    this.el.append(sectionTitle(t('tab.messages.send')), this.composer.el, sectionTitle(t('tab.messages.history')), this.history.el);
   }
 
   update(agent: Agent): void {
-    const blockedReason = !this.ctx.isLocal ? LOCAL_ONLY_HINT : !isLive(agent) ? 'Este agente já saiu do escritório.' : null;
+    const blockedReason = !this.ctx.isLocal ? localOnlyHint() : !isLive(agent) ? t('agent.gone') : null;
     this.composer.setTarget({
       key: agent.id,
       agentIds: [agent.id],
-      placeholder: `Mensagem para ${agent.name}. Chega na próxima chamada de ferramenta ou no fim do turno.`,
-      sendLabel: 'Enviar',
+      placeholder: t('tab.messages.placeholder', { name: agent.name }),
+      sendLabel: t('common.send'),
       blockedReason,
     });
     this.history.setAgents([agent.id]);
@@ -240,9 +242,9 @@ export class ActivityTab implements AgentTab {
     if (signature === this.shellSignature) return;
     this.shellSignature = signature;
     this.shells.replaceChildren(
-      sectionTitle('Shells', agent.shells.length ? h('span', { class: 'ao-section-count' }, String(agent.shells.length)) : null),
+      sectionTitle(t('tab.activity.shells'), agent.shells.length ? h('span', { class: 'ao-section-count' }, String(agent.shells.length)) : null),
       agent.shells.length === 0
-        ? emptyNote('Nenhum shell rodando.')
+        ? emptyNote(t('tab.activity.noShells'))
         : h(
             'ul',
             { class: 'ao-shell-rows' },
@@ -251,8 +253,8 @@ export class ActivityTab implements AgentTab {
                 'li',
                 { class: 'ao-shell-row' },
                 icon('terminal', 14),
-                h('span', { class: 'ao-shell-row-body' }, h('strong', null, shell.label), shell.command ? h('code', null, shell.command) : null),
-                h('span', { class: 'ao-shell-kind' }, shell.kind === 'monitor' ? 'monitor' : shell.background ? 'segundo plano' : 'primeiro plano'),
+                h('span', { class: 'ao-shell-row-body' }, h('strong', null, shellLabel(shell)), shell.command ? h('code', null, shell.command) : null),
+                h('span', { class: 'ao-shell-kind' }, shell.kind === 'monitor' ? t('shell.kind.monitor') : shell.background ? t('shell.kind.background') : t('shell.row.foreground')),
                 liveText('elapsed', shell.startedAt, 'ao-shell-elapsed'),
               ),
             ),
@@ -270,11 +272,11 @@ export class ActivityTab implements AgentTab {
     const shown = items.slice(0, this.visibleCount);
     this.timeline.replaceChildren(
       ...compact(
-      sectionTitle('Linha do tempo', loading ? h('span', { class: 'ao-section-count' }, 'carregando…') : null),
+      sectionTitle(t('tab.activity.timeline'), loading ? h('span', { class: 'ao-section-count' }, t('tab.activity.loadingShort')) : null),
       error ? h('p', { class: 'ao-error' }, error) : null,
-      items.length === 0 ? emptyNote(loading ? 'Carregando o histórico…' : 'Nenhuma atividade registrada ainda.') : h('ol', { class: 'ao-timeline' }, ...shown.map((a) => this.timelineItem(a))),
+      items.length === 0 ? emptyNote(loading ? t('tab.activity.loading') : t('tab.summary.noActivity')) : h('ol', { class: 'ao-timeline' }, ...shown.map((a) => this.timelineItem(a))),
       items.length > shown.length
-        ? h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.showMore() }, `Mostrar mais (${items.length - shown.length})`)
+        ? h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.showMore() }, t('common.showMore', { n: items.length - shown.length }))
         : null,
       ),
     );
@@ -288,14 +290,15 @@ export class ActivityTab implements AgentTab {
 
   private timelineItem(activity: Activity): HTMLElement {
     const open = this.expanded.has(activity.id);
+    const detail = activityDetail(activity);
     const item = h(
       'li',
       { class: `ao-tl-item ${activity.error ? 'is-error' : ''} ${open ? 'is-open' : ''}`.trim() },
       h('span', { class: 'ao-tl-time' }, formatClockSeconds(activity.at)),
       h('span', { class: 'ao-tl-icon', 'aria-hidden': 'true' }, activity.icon),
-      h('div', { class: 'ao-tl-body' }, h('span', { class: 'ao-tl-text' }, activity.text), activity.durationMs && activity.durationMs >= 1000 ? h('span', { class: 'ao-tl-duration' }, formatDuration(activity.durationMs)) : null, activity.detail ? h('code', { class: 'ao-tl-detail' }, activity.detail) : null),
+      h('div', { class: 'ao-tl-body' }, h('span', { class: 'ao-tl-text' }, activityText(activity)), activity.durationMs && activity.durationMs >= 1000 ? h('span', { class: 'ao-tl-duration' }, formatDuration(activity.durationMs)) : null, detail ? h('code', { class: 'ao-tl-detail' }, detail) : null),
     );
-    if (activity.detail) {
+    if (detail) {
       item.tabIndex = 0;
       item.setAttribute('role', 'button');
       item.setAttribute('aria-expanded', String(open));
@@ -335,24 +338,24 @@ export class DataTab implements AgentTab {
 
   constructor(private readonly ctx: AppContext) {
     this.el.append(this.list);
-    this.add('account', 'Conta');
-    this.add('room', 'Sala');
-    this.add('kind', 'Tipo');
-    this.add('model', 'Modelo');
-    this.add('branch', 'Branch');
-    this.add('permissionMode', 'Modo de permissão');
-    this.add('session', 'Sessão');
-    this.add('started', 'Início');
-    this.add('duration', 'Duração');
-    this.add('tools', 'Ferramentas');
-    this.add('tokensIn', 'Tokens de entrada');
-    this.add('tokensOut', 'Tokens de saída');
-    this.add('lines', 'Linhas alteradas');
-    this.add('subagents', 'Subagentes criados');
-    this.add('cost', 'Custo estimado');
+    this.add('account', t('data.account'));
+    this.add('room', t('data.room'));
+    this.add('kind', t('data.kind'));
+    this.add('model', t('data.model'));
+    this.add('branch', t('data.branch'));
+    this.add('permissionMode', t('data.permissionMode'));
+    this.add('session', t('data.session'));
+    this.add('started', t('data.started'));
+    this.add('duration', t('data.duration'));
+    this.add('tools', t('tab.summary.tools'));
+    this.add('tokensIn', t('data.tokensIn'));
+    this.add('tokensOut', t('data.tokensOut'));
+    this.add('lines', t('data.lines'));
+    this.add('subagents', t('data.subagents'));
+    this.add('cost', t('data.cost'));
     this.row('account').value.replaceChildren(this.accountCell);
     this.row('duration').value.replaceChildren(this.duration);
-    const copy = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': 'Copiar id da sessão', title: 'Copiar id da sessão', onclick: () => this.agent && ctx.copy(this.agent.sessionId, 'Id da sessão copiado.') }, icon('copy', 14));
+    const copy = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('data.copySession'), title: t('data.copySession'), onclick: () => this.agent && ctx.copy(this.agent.sessionId, t('data.copied')) }, icon('copy', 14));
     this.row('session').value.replaceChildren(this.sessionId, copy);
   }
 
@@ -365,7 +368,7 @@ export class DataTab implements AgentTab {
 
   private row(key: string): DataRow {
     const row = this.rows.get(key);
-    if (!row) throw new Error(`Linha de dados desconhecida: ${key}`);
+    if (!row) throw new Error(`Unknown data row: ${key}`);
     return row;
   }
 
@@ -379,9 +382,9 @@ export class DataTab implements AgentTab {
     this.agent = agent;
     const account = this.ctx.account(agent.accountId);
     const project = this.ctx.project(agent.projectId);
-    this.accountCell.replaceChildren(h('span', { class: 'ao-dot-account', style: `background:${account?.color ?? '#8d99ad'}` }), account?.label ?? agent.accountId);
+    this.accountCell.replaceChildren(h('span', { class: 'ao-dot-account', style: `background:${account?.color ?? '#8d99ad'}` }), account ? accountLabel(account) : agent.accountId);
     this.setValue('room', project?.name);
-    this.setValue('kind', agent.kind === 'main' ? 'Principal' : `Subagente · ${agent.role}`);
+    this.setValue('kind', agent.kind === 'main' ? t('agent.main') : t('agent.sub', { role: agentRole(agent) }));
     this.setValue('model', agent.model);
     this.setValue('branch', agent.gitBranch);
     this.setValue('permissionMode', agent.permissionMode);

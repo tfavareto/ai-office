@@ -12,6 +12,7 @@ import type {
   TranscriptEntry,
   TranscriptPage,
 } from '@ai-office/shared';
+import { t } from '../i18n';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -132,7 +133,7 @@ function isTranscriptEntry(value: unknown): value is TranscriptEntry {
 }
 
 export function parseTranscriptPage(data: unknown): TranscriptPage {
-  if (!isRecord(data)) throw new Error('Resposta inválida do servidor.');
+  if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
   const entries = arr(data.entries, isTranscriptEntry);
   return { entries, next: num(data.next, entries.length), title: typeof data.title === 'string' ? data.title : undefined, open: data.open !== false };
 }
@@ -146,7 +147,7 @@ export function parseSessions(data: unknown): RecentSession[] {
 }
 
 export function parseDay(data: unknown): DayStats {
-  if (!isRecord(data)) throw new Error('Resposta inválida do servidor.');
+  if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
   const agents = arr(data.agents, (item): item is DayStats['agents'][number] => isRecord(item) && typeof item.agentId === 'string' && isRecord(item.ms));
   return { date: str(data.date), agents };
 }

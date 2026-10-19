@@ -1,14 +1,13 @@
 // "Meu dia": aggregates the server's per-agent status times into bars and totals.
 import type { AgentStatus, DayStats } from '@ai-office/shared';
+import { t } from '../../i18n';
 
 export const DAY_STATUSES = ['working', 'waiting', 'idle'] as const;
 export type DayStatus = (typeof DAY_STATUSES)[number];
 
-export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
-  working: 'Trabalhando',
-  waiting: 'Esperando você',
-  idle: 'Ocioso',
-};
+export function dayStatusLabel(status: DayStatus): string {
+  return t(`day.status.${status}`);
+}
 
 export interface DaySegment {
   status: DayStatus;

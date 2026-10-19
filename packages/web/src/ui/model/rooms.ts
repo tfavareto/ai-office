@@ -1,5 +1,6 @@
 // Sidebar model: rooms with their agents, filtered by search and account.
 import type { Account, Agent, OfficeSnapshot, Project, TaskItem } from '@ai-office/shared';
+import { accountLabel, activityText, agentRole, agentTitle } from '../display';
 import { displayStatus, isLive, statusRank } from './status';
 
 export interface AgentRowModel {
@@ -36,7 +37,9 @@ export function normalizeQuery(query: string): string {
 
 function agentHaystack(agent: Agent, project: Project | undefined, account: Account | undefined): string {
   return normalizeQuery(
-    [agent.name, agent.role, agent.title, agent.activity?.text, project?.name, project?.path, account?.label].filter(Boolean).join(' '),
+    [agent.name, agentRole(agent), agentTitle(agent), agent.activity ? activityText(agent.activity) : undefined, project?.name, project?.path, account ? accountLabel(account) : undefined]
+      .filter(Boolean)
+      .join(' '),
   );
 }
 

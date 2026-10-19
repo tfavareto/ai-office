@@ -1,11 +1,12 @@
 // "Meu dia": time per status per agent (stacked bars) and totals, for any of the recorded days.
 import type { DayStats } from '@ai-office/shared';
+import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
 import type { AppContext } from '../context';
 import { h } from '../dom';
 import { formatDateKey, formatDuration, shiftDateKey, toDateKey } from '../format';
 import { icon } from '../icons';
-import { DAY_STATUSES, DAY_STATUS_LABEL, aggregateDay, type DayStatus, type DayView } from '../model/day';
+import { DAY_STATUSES, aggregateDay, dayStatusLabel, type DayStatus, type DayView } from '../model/day';
 import { emptyNote } from '../widgets';
 import { Dialog, closeButton } from './overlay';
 
@@ -24,10 +25,10 @@ export class DayDialog extends Dialog {
 
   constructor(ctx: AppContext) {
     super(ctx, 'day', 'ao-day-title', 'ao-dialog--day');
-    const prev = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': 'Dia anterior', title: 'Dia anterior', onclick: () => this.shift(-1) }, icon('chevronLeft', 16));
-    this.nextBtn = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': 'Próximo dia', title: 'Próximo dia', onclick: () => this.shift(1) }, icon('chevronRight', 16));
+    const prev = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.prev'), title: t('day.prev'), onclick: () => this.shift(-1) }, icon('chevronLeft', 16));
+    this.nextBtn = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.next'), title: t('day.next'), onclick: () => this.shift(1) }, icon('chevronRight', 16));
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-day-title' }, 'Meu dia'), h('div', { class: 'ao-day-nav' }, prev, this.dateLabel, this.nextBtn), closeButton('Fechar', () => ctx.closeDialog())),
+      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-day-title' }, t('day.title')), h('div', { class: 'ao-day-nav' }, prev, this.dateLabel, this.nextBtn), closeButton(t('common.close'), () => ctx.closeDialog())),
       this.body,
     );
   }
@@ -64,17 +65,17 @@ export class DayDialog extends Dialog {
   }
 
   protected update(): void {
-    this.dateLabel.textContent = this.date === toDateKey(this.ctx.now()) ? `Hoje · ${formatDateKey(this.date)}` : formatDateKey(this.date);
+    this.dateLabel.textContent = this.date === toDateKey(this.ctx.now()) ? t('day.today', { date: formatDateKey(this.date) }) : formatDateKey(this.date);
     this.nextBtn.disabled = this.date >= toDateKey(this.ctx.now());
     const signature = `${this.state}|${this.date}|${this.view?.totalMs ?? 0}|${this.view?.rows.length ?? 0}`;
     if (signature === this.signature) return;
     this.signature = signature;
     if (this.state === 'loading') {
-      this.body.replaceChildren(emptyNote('Carregando o dia…'));
+      this.body.replaceChildren(emptyNote(t('day.loading')));
     } else if (this.state === 'error') {
-      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, 'Tentar de novo'));
+      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
     } else if (!this.view || this.view.rows.length === 0) {
-      this.body.replaceChildren(emptyNote('Nenhuma atividade registrada neste dia.'));
+      this.body.replaceChildren(emptyNote(t('day.empty')));
     } else {
       this.body.replaceChildren(this.totals(this.view), this.legend(), this.bars(this.view));
     }
@@ -84,12 +85,12 @@ export class DayDialog extends Dialog {
     return h(
       'div',
       { class: 'ao-day-totals' },
-      ...DAY_STATUSES.map((status) => h('div', { class: `ao-day-total ao-day-total--${status}` }, h('span', { class: 'ao-day-total-label' }, DAY_STATUS_LABEL[status]), h('strong', null, formatDuration(view.totals[status])))),
+      ...DAY_STATUSES.map((status) => h('div', { class: `ao-day-total ao-day-total--${status}` }, h('span', { class: 'ao-day-total-label' }, dayStatusLabel(status)), h('strong', null, formatDuration(view.totals[status])))),
     );
   }
 
   private legend(): HTMLElement {
-    return h('ul', { class: 'ao-day-legend', 'aria-hidden': 'true' }, ...DAY_STATUSES.map((status) => h('li', null, h('span', { class: `ao-day-swatch ao-day-seg--${status}` }), DAY_STATUS_LABEL[status])));
+    return h('ul', { class: 'ao-day-legend', 'aria-hidden': 'true' }, ...DAY_STATUSES.map((status) => h('li', null, h('span', { class: `ao-day-swatch ao-day-seg--${status}` }), dayStatusLabel(status))));
   }
 
   private bars(view: DayView): HTMLElement {
@@ -97,7 +98,7 @@ export class DayDialog extends Dialog {
       'ul',
       { class: 'ao-day-rows' },
       ...view.rows.map((row) => {
-        const summary = DAY_STATUSES.map((status: DayStatus) => `${DAY_STATUS_LABEL[status]} ${formatDuration(row.segments.find((s) => s.status === status)?.ms ?? 0)}`).join(', ');
+        const summary = DAY_STATUSES.map((status: DayStatus) => `${dayStatusLabel(status)} ${formatDuration(row.segments.find((s) => s.status === status)?.ms ?? 0)}`).join(', ');
         return h(
           'li',
           { class: 'ao-day-row' },
@@ -105,7 +106,7 @@ export class DayDialog extends Dialog {
           h(
             'div',
             { class: 'ao-day-bar', role: 'img', 'aria-label': `${row.name}: ${summary}` },
-            ...row.segments.filter((s) => s.ms > 0).map((s) => h('span', { class: `ao-day-seg ao-day-seg--${s.status}`, style: `width:${s.widthPct}%`, title: `${DAY_STATUS_LABEL[s.status]}: ${formatDuration(s.ms)}` })),
+            ...row.segments.filter((s) => s.ms > 0).map((s) => h('span', { class: `ao-day-seg ao-day-seg--${s.status}`, style: `width:${s.widthPct}%`, title: `${dayStatusLabel(s.status)}: ${formatDuration(s.ms)}` })),
           ),
         );
       }),

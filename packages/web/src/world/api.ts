@@ -1,12 +1,14 @@
 // Contract between the UI and a world renderer (2D or 3D). The UI owns the store and panels; the world draws the
 // office from snapshots and reports selection/hover. Implementations: world2d (default) and world3d (lazy-loaded).
-import type { OfficeSnapshot } from '@ai-office/shared';
+import type { Locale, OfficeSnapshot } from '@ai-office/shared';
 
 export type Selection = { type: 'agent'; id: string } | { type: 'room'; id: string } | null;
 
 export type DaylightMode = 'auto' | 'day' | 'night';
 
 export interface WorldOptions {
+  /** Language of texts drawn in the world (room names, signs, tickers, bubbles). */
+  locale: Locale;
   showNames: boolean;
   bubbles: 'all' | 'important' | 'none';
   liveliness: 'calm' | 'normal' | 'lively';
@@ -71,6 +73,7 @@ export interface WorldFactoryOptions {
 export type WorldFactory = (container: HTMLElement, opts: WorldFactoryOptions) => WorldApi | Promise<WorldApi>;
 
 export const DEFAULT_WORLD_OPTIONS: WorldOptions = {
+  locale: 'pt-BR',
   showNames: true,
   bubbles: 'important',
   liveliness: 'normal',

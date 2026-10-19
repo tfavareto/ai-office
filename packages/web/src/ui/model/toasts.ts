@@ -1,11 +1,13 @@
 // Toast model: dedupe, auto-dismiss for non-alerts, alerts persist until their agent no longer needs the user.
-import type { Agent, Notice, NoticeLevel } from '@ai-office/shared';
+import type { Agent, Msg, Notice, NoticeLevel } from '@ai-office/shared';
 
 export interface Toast {
   id: string;
   key: string;
   level: NoticeLevel;
   text: string;
+  /** Localizable form of `text`. */
+  msg?: Msg;
   agentId?: string;
   projectId?: string;
   count: number;
@@ -29,7 +31,7 @@ export function pushToast(toasts: readonly Toast[], notice: Notice, now: number)
   if (existing) {
     return toasts.map((toast) => (toast === existing ? { ...toast, count: toast.count + 1, expiresAt } : toast));
   }
-  const next: Toast = { id: notice.id, key, level: notice.level, text: notice.text, agentId: notice.agentId, projectId: notice.projectId, count: 1, createdAt: now, expiresAt };
+  const next: Toast = { id: notice.id, key, level: notice.level, text: notice.text, msg: notice.msg, agentId: notice.agentId, projectId: notice.projectId, count: 1, createdAt: now, expiresAt };
   const all = [...toasts, next];
   if (all.length <= MAX_TOASTS) return all;
   // Drop the oldest expirable toast first; alerts are only dropped when nothing else is left.

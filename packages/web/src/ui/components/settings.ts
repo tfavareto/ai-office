@@ -1,7 +1,10 @@
-// Settings popover: visual, day/night, names, bubbles, animation, sounds, browser notifications, demo mode, about.
+// Settings popover: language, visual, day/night, names, bubbles, animation, sounds, browser notifications, demo mode, about.
+import { LOCALES, LOCALE_NAMES } from '@ai-office/shared';
+import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
+import type { LanguagePref } from '../../prefs/prefs';
 import { notifyPermission, requestNotifyPermission } from '../browser-notify';
-import { LOCAL_ONLY_HINT, type AppContext } from '../context';
+import { localOnlyHint, type AppContext } from '../context';
 import { h, setText } from '../dom';
 import { createSegmented, createSwitch } from '../widgets';
 import { Popover } from './overlay';
@@ -16,47 +19,78 @@ function row(label: string, control: HTMLElement, hint = ''): Row {
   return { el: h('div', { class: 'ao-setting' }, h('div', { class: 'ao-setting-main' }, h('span', { class: 'ao-setting-label' }, label), control), hintEl), hint: hintEl };
 }
 
+/** Marks controls that keep keyboard focus when the interface is rebuilt after a language change. */
+export const FOCUS_KEY_ATTR = 'data-focus-key';
+export const LANGUAGE_FOCUS_KEY = 'settings-language';
+
 export class Settings extends Popover {
-  private readonly visual = createSegmented('Visual', [{ value: '2d', label: '2D' }, { value: '3d', label: '3D' }] as const, (value) => ctxPrefs(this.ctx, { visual: value }));
-  private readonly daylight = createSegmented('Dia e noite', [{ value: 'auto', label: 'Automático' }, { value: 'day', label: 'Dia' }, { value: 'night', label: 'Noite' }] as const, (value) => ctxPrefs(this.ctx, { daylight: value }));
-  private readonly names = createSwitch('Nomes sobre as pessoas', (on) => ctxPrefs(this.ctx, { showNames: on }));
-  private readonly bubbles = createSegmented('Balões', [{ value: 'all', label: 'Todos' }, { value: 'important', label: 'Importantes' }, { value: 'none', label: 'Nenhum' }] as const, (value) => ctxPrefs(this.ctx, { bubbles: value }));
-  private readonly animation = createSegmented('Animação', [{ value: 'calm', label: 'Calma' }, { value: 'normal', label: 'Normal' }, { value: 'lively', label: 'Animada' }] as const, (value) => ctxPrefs(this.ctx, { animation: value }));
-  private readonly sounds = createSwitch('Sons', (on) => {
+  private readonly language = this.createLanguageSelect();
+  private readonly visual = createSegmented(t('settings.visual'), [{ value: '2d', label: '2D' }, { value: '3d', label: '3D' }] as const, (value) => ctxPrefs(this.ctx, { visual: value }));
+  private readonly daylight = createSegmented(
+    t('settings.daylight'),
+    [{ value: 'auto', label: t('settings.daylight.auto') }, { value: 'day', label: t('settings.daylight.day') }, { value: 'night', label: t('settings.daylight.night') }] as const,
+    (value) => ctxPrefs(this.ctx, { daylight: value }),
+  );
+  private readonly names = createSwitch(t('settings.names'), (on) => ctxPrefs(this.ctx, { showNames: on }));
+  private readonly bubbles = createSegmented(
+    t('settings.bubbles'),
+    [{ value: 'all', label: t('settings.bubbles.all') }, { value: 'important', label: t('settings.bubbles.important') }, { value: 'none', label: t('settings.bubbles.none') }] as const,
+    (value) => ctxPrefs(this.ctx, { bubbles: value }),
+  );
+  private readonly animation = createSegmented(
+    t('settings.animation'),
+    [{ value: 'calm', label: t('settings.animation.calm') }, { value: 'normal', label: t('settings.animation.normal') }, { value: 'lively', label: t('settings.animation.lively') }] as const,
+    (value) => ctxPrefs(this.ctx, { animation: value }),
+  );
+  private readonly sounds = createSwitch(t('settings.sounds'), (on) => {
     this.ctx.prefs.set({ sounds: on });
     if (on) this.ctx.cue('success');
   });
-  private readonly volume = h('input', { type: 'range', min: 0, max: 100, step: 5, class: 'ao-range', 'aria-label': 'Volume dos sons' });
-  private readonly browser = createSwitch('Notificações do navegador', (on) => void this.toggleBrowser(on));
-  private readonly demo = createSwitch('Modo demonstração', (on) => void this.toggleDemo(on));
-  private readonly visualRow = row('Visual', this.visual.el);
+  private readonly volume = h('input', { type: 'range', min: 0, max: 100, step: 5, class: 'ao-range', 'aria-label': t('settings.volume') });
+  private readonly browser = createSwitch(t('settings.browser'), (on) => void this.toggleBrowser(on));
+  private readonly demo = createSwitch(t('settings.demo'), (on) => void this.toggleDemo(on));
+  private readonly languageRow = row(t('settings.language'), this.language);
+  private readonly visualRow = row(t('settings.visual'), this.visual.el);
   private readonly soundRow: Row;
-  private readonly browserRow = row('Notificações do navegador', this.browser.el);
-  private readonly demoRow = row('Modo demonstração', this.demo.el);
+  private readonly browserRow = row(t('settings.browser'), this.browser.el);
+  private readonly demoRow = row(t('settings.demo'), this.demo.el);
   private readonly about = h('p', { class: 'ao-setting-about' });
   private busy = false;
 
   constructor(ctx: AppContext) {
-    super(ctx, 'settings', 'Configurações', 'ao-popover--settings');
+    super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
     this.volume.addEventListener('input', () => ctx.prefs.set({ volume: Number(this.volume.value) / 100 }));
     this.volume.addEventListener('change', () => ctx.cue('info'));
-    this.soundRow = row('Sons', h('div', { class: 'ao-sound-control' }, this.volume, this.sounds.el));
+    this.soundRow = row(t('settings.sounds'), h('div', { class: 'ao-sound-control' }, this.volume, this.sounds.el));
     this.el.append(
-      h('header', { class: 'ao-popover-head' }, h('strong', null, 'Configurações')),
+      h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.settings'))),
       h(
         'div',
         { class: 'ao-settings-body' },
+        this.languageRow.el,
         this.visualRow.el,
-        row('Dia e noite', this.daylight.el).el,
-        row('Nomes sobre as pessoas', this.names.el).el,
-        row('Balões', this.bubbles.el).el,
-        row('Animação', this.animation.el).el,
+        row(t('settings.daylight'), this.daylight.el).el,
+        row(t('settings.names'), this.names.el).el,
+        row(t('settings.bubbles'), this.bubbles.el).el,
+        row(t('settings.animation'), this.animation.el).el,
         this.soundRow.el,
         this.browserRow.el,
         this.demoRow.el,
-        h('div', { class: 'ao-setting ao-setting--about' }, h('span', { class: 'ao-setting-label' }, 'Sobre'), this.about),
+        h('div', { class: 'ao-setting ao-setting--about' }, h('span', { class: 'ao-setting-label' }, t('settings.about')), this.about),
       ),
     );
+  }
+
+  /** "Automático (sistema)" plus each language under its own name, so it is findable whatever the current one is. */
+  private createLanguageSelect(): HTMLSelectElement {
+    const select = h(
+      'select',
+      { class: 'ao-select', 'aria-label': t('settings.language'), [FOCUS_KEY_ATTR]: LANGUAGE_FOCUS_KEY },
+      h('option', { value: 'auto' }, t('settings.language.auto')),
+      ...LOCALES.map((code) => h('option', { value: code, lang: code }, LOCALE_NAMES[code])),
+    );
+    select.addEventListener('change', () => ctxPrefs(this.ctx, { language: select.value as LanguagePref }));
+    return select;
   }
 
   protected onOpen(): void {
@@ -65,6 +99,7 @@ export class Settings extends Popover {
 
   protected update(): void {
     const prefs = this.ctx.prefs.get();
+    if (this.language.value !== prefs.language) this.language.value = prefs.language;
     this.visual.set(prefs.visual);
     this.daylight.set(prefs.daylight);
     this.names.set(prefs.showNames);
@@ -78,17 +113,17 @@ export class Settings extends Popover {
     this.browser.set(prefs.browserNotifications && permission === 'granted');
     this.browser.el.disabled = permission === 'unsupported' || permission === 'denied';
     this.browserRow.hint.hidden = permission === 'granted' || permission === 'default';
-    setText(this.browserRow.hint, permission === 'denied' ? 'O navegador bloqueou as notificações deste site. Libere nas configurações do navegador.' : 'Este navegador não oferece notificações.');
+    setText(this.browserRow.hint, permission === 'denied' ? t('settings.browser.blocked') : t('settings.browser.unsupported'));
 
     const mock = this.ctx.store.mode === 'mock';
     const local = this.ctx.isLocal;
     this.demo.set(mock || this.ctx.snapshot?.meta.demo === true);
     this.demo.el.disabled = mock || !local || this.busy;
     this.demoRow.hint.hidden = !mock && local;
-    setText(this.demoRow.hint, mock ? 'Você está na demonstração local (?mock=1): tudo é simulado no navegador.' : LOCAL_ONLY_HINT);
+    setText(this.demoRow.hint, mock ? t('settings.demo.mock') : localOnlyHint());
 
     const meta = this.ctx.snapshot?.meta;
-    setText(this.about, meta ? `AI Office ${meta.version}${meta.build ? ` · build ${meta.build}` : ''} · tudo roda neste computador, nada sai dele.` : 'AI Office · tudo roda neste computador, nada sai dele.');
+    setText(this.about, meta ? t('settings.about.text', { version: meta.version, build: meta.build ? t('settings.about.build', { build: meta.build }) : '' }) : t('settings.about.textNoVersion'));
   }
 
   private async toggleBrowser(on: boolean): Promise<void> {

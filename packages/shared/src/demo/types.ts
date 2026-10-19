@@ -1,5 +1,6 @@
 // Contract of the demo simulator (implemented in ./simulator.ts): fake but realistic sessions used by the server's
 // demo mode and by the web app's fully client-side `?mock=1` mode.
+import type { Locale } from '../i18n/i18n';
 import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PermissionDecision, Project } from '../model';
 
 export interface DemoOptions {
@@ -29,8 +30,8 @@ export interface DemoSimulator {
   snapshot(now: number): OfficeSnapshot;
   /** Answer a demo permission request; false if it no longer exists. */
   decidePermission(requestId: string, decision: PermissionDecision): boolean;
-  /** Deliver a message to demo agents after a short simulated delay. */
-  sendMessage(agentIds: readonly string[], text: string, now: number): BossMessage[];
+  /** Deliver a message to demo agents after a short simulated delay (`locale`: language of the sender). */
+  sendMessage(agentIds: readonly string[], text: string, now: number, locale?: Locale): BossMessage[];
   messages(agentId: string): BossMessage[];
   /** Debug helper: open a new demo session (project with a main agent and `subs` subagents). */
   spawnSession(opts: { project: string; subs?: number; status?: Agent['status'] }): void;

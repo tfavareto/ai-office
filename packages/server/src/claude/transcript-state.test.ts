@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { messageDraft } from '@ai-office/shared';
 import { T0, assistantLine, text, thinking, toolResultLine, toolUse, userLine } from '../test-helpers';
 import { parseLine } from './line-parser';
 import { TranscriptState } from './transcript-state';
@@ -189,7 +190,8 @@ describe('TranscriptState stats', () => {
 
   test('addExternal appends an activity outside the transcript', () => {
     const state = main();
-    const activity = state.addExternal({ kind: 'message', icon: '📨', text: 'Mensagem sua: oi' }, T0);
+    const activity = state.addExternal(messageDraft('oi'), T0);
     expect(state.activity).toEqual(activity);
+    expect(activity).toMatchObject({ text: 'Mensagem sua: oi', msg: { key: 'activity.message', params: { text: 'oi' } } });
   });
 });

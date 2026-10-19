@@ -1,3 +1,5 @@
+import type { OfficeSnapshot } from '@ai-office/shared';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import { drawPixelText, textWidth } from '../font';
 import { context2d, makeCanvas } from '../paint/ctx';
 
@@ -20,9 +22,36 @@ export function renderTicker(text: string): TickerStrip {
   return { canvas, text, period };
 }
 
-export function tickerText(rooms: number, agents: number, working: number, waiting: number, shells: number): string {
-  const parts = ['AI OFFICE', `${rooms} ${rooms === 1 ? 'SALA' : 'SALAS'}`, `${agents} ${agents === 1 ? 'AGENTE' : 'AGENTES'}`, `${working} TRABALHANDO`];
-  if (shells) parts.push(`${shells} ${shells === 1 ? 'SHELL RODANDO' : 'SHELLS RODANDO'}`);
-  parts.push(waiting ? `${waiting} PRECISA DE VOCE` : 'TUDO EM ORDEM', 'CAFE FRESCO NA COPA');
-  return parts.join('  *  ');
+/** Numbers the ticker reports. */
+export interface TickerStats {
+  rooms: number;
+  agents: number;
+  working: number;
+  waiting: number;
+  shells: number;
+}
+
+export function tickerFromSnapshot(snapshot: OfficeSnapshot): TickerStats {
+  const live = snapshot.agents.filter((a) => a.status !== 'done' && a.status !== 'offline');
+  return {
+    rooms: snapshot.projects.length,
+    agents: live.length,
+    working: live.filter((a) => a.status === 'working').length,
+    waiting: live.filter((a) => a.status === 'waiting').length,
+    shells: live.reduce((n, a) => n + a.shells.filter((s) => !s.background).length, 0),
+  };
+}
+
+/** Separator between ticker items. */
+export const TICKER_SEPARATOR = '  *  ';
+
+/**
+ * Text of the LED ticker (corridor, 2D and 3D) in upper case. The brand and the order of the items are the same in every
+ * language; the 2D pixel font folds accents, the 3D texture draws them.
+ */
+export function tickerText(rooms: number, agents: number, working: number, waiting: number, shells: number, text: WorldText = worldText('pt-BR')): string {
+  const parts = ['AI OFFICE', text.t('count.rooms', { n: rooms }), text.t('count.agents', { n: agents }), text.t('ticker.working', { n: working })];
+  if (shells) parts.push(text.t('ticker.shells', { n: shells }));
+  parts.push(waiting ? text.t('count.needsYou', { n: waiting }) : text.t('ticker.allGood'), text.t('ticker.coffee'));
+  return parts.join(TICKER_SEPARATOR).toLocaleUpperCase(text.locale);
 }

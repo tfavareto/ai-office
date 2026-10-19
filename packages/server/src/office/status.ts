@@ -1,5 +1,9 @@
 // Status derivation: a pure function from transcript/registry/overlay facts to the agent status.
-import type { AgentStatus } from '@ai-office/shared';
+import { type AgentStatus, type Msg, msg, sourceText } from '@ai-office/shared';
+
+/** "Needs you": the generic reason when something blocks the agent and we cannot say what. */
+export const NEEDS_YOU_MSG: Msg = msg('waiting.needsYou');
+export const NEEDS_YOU_TEXT = sourceText(NEEDS_YOU_MSG);
 
 /** A tool_use pending longer than this while the registry says idle means a permission prompt is open. */
 export const PENDING_TOOL_WAIT_MS = 8000;
@@ -19,8 +23,11 @@ export interface StatusInput {
   registryStatusAt?: number;
   permissionPending: boolean;
   attentionMessage?: string;
+  /** Localizable form of `attentionMessage`, when it is a generated text. */
+  attentionMsg?: Msg;
   /** Text for a pending user-facing tool (question, plan approval). */
   pendingUserTool?: string;
+  pendingUserToolMsg?: Msg;
   /** Oldest pending tool that normally finishes fast. */
   blockingTool?: { name: string; at: number };
 }
@@ -28,19 +35,29 @@ export interface StatusInput {
 export interface DerivedStatus {
   status: Extract<AgentStatus, 'working' | 'waiting' | 'idle'>;
   waitingFor?: string;
+  waitingForMsg?: Msg;
+}
+
+function approveTool(name: string): Pick<DerivedStatus, 'waitingFor' | 'waitingForMsg'> {
+  const message = msg('waiting.approve', { tool: name });
+  return { waitingFor: sourceText(message), waitingForMsg: message };
+}
+
+function withMsg(waitingFor: string, waitingForMsg: Msg | undefined): Pick<DerivedStatus, 'waitingFor' | 'waitingForMsg'> {
+  return { waitingFor, ...(waitingForMsg !== undefined ? { waitingForMsg } : {}) };
 }
 
 export function deriveStatus(input: StatusInput): DerivedStatus {
   const registry = input.registryStatus;
   if (input.permissionPending) return { status: 'waiting' };
-  if (input.attentionMessage !== undefined) return { status: 'waiting', waitingFor: input.attentionMessage };
-  if (input.pendingUserTool !== undefined) return { status: 'waiting', waitingFor: input.pendingUserTool };
+  if (input.attentionMessage !== undefined) return { status: 'waiting', ...withMsg(input.attentionMessage, input.attentionMsg) };
+  if (input.pendingUserTool !== undefined) return { status: 'waiting', ...withMsg(input.pendingUserTool, input.pendingUserToolMsg) };
   if (registry === 'waiting') {
-    return { status: 'waiting', waitingFor: input.blockingTool ? `Aprovar ${input.blockingTool.name}` : 'Precisa de você' };
+    return { status: 'waiting', ...(input.blockingTool ? approveTool(input.blockingTool.name) : withMsg(NEEDS_YOU_TEXT, NEEDS_YOU_MSG)) };
   }
   const tool = input.blockingTool;
   if (registry === 'idle' && tool !== undefined && input.now - tool.at > PENDING_TOOL_WAIT_MS) {
-    return { status: 'waiting', waitingFor: `Aprovar ${tool.name}` };
+    return { status: 'waiting', ...approveTool(tool.name) };
   }
   const registryKnown = registry !== undefined;
   const idleFor = input.now - input.lastEventAt;

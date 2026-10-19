@@ -1,4 +1,6 @@
 // Synthetic server data for `?mock=1`: transcripts, sessions and day stats derived from the simulated agents.
+import { t } from '../i18n';
+import { activityDetail, activityText, agentTitle, uiMsg } from '../ui/display';
 import type { Activity, ActivityKind, Agent, DayStats, OfficeSnapshot, RecentSession, TranscriptEntry, TranscriptPage } from '@ai-office/shared';
 
 const TOOL_NAMES: Partial<Record<ActivityKind, string>> = {
@@ -15,27 +17,31 @@ const TOOL_NAMES: Partial<Record<ActivityKind, string>> = {
 
 function toEntry(activity: Activity): TranscriptEntry {
   const tool = TOOL_NAMES[activity.kind];
+  const text = activityText(activity);
+  const detail = activityDetail(activity);
   if (tool) {
     return {
       kind: 'tool',
       at: activity.at,
       id: activity.id,
       name: tool,
-      summary: activity.text,
-      input: activity.detail ? { detail: activity.detail } : undefined,
-      result: activity.detail ?? 'Concluído.',
+      summary: `${activity.icon} ${activity.text}`,
+      icon: activity.icon,
+      summaryMsg: activity.msg,
+      input: detail ? { detail } : undefined,
+      result: activityDetail(activity) ?? t('mock.toolDone'),
       error: activity.error,
     };
   }
   switch (activity.kind) {
     case 'prompt':
-      return { kind: 'user', at: activity.at, text: activity.detail ?? activity.text };
+      return { kind: 'user', at: activity.at, text: detail ?? text };
     case 'think':
-      return { kind: 'thinking', at: activity.at, text: activity.detail ?? activity.text };
+      return { kind: 'thinking', at: activity.at, text: detail ?? text };
     case 'reply':
-      return { kind: 'assistant', at: activity.at, text: activity.detail ?? activity.text };
+      return { kind: 'assistant', at: activity.at, text: detail ?? text };
     default:
-      return { kind: 'system', at: activity.at, text: activity.text };
+      return { kind: 'system', at: activity.at, text: activity.text, msg: activity.msg };
   }
 }
 
@@ -61,7 +67,7 @@ export class MockLog {
 
   transcript(agent: Agent | undefined, after: number): TranscriptPage {
     const head: TranscriptEntry[] = agent
-      ? [{ kind: 'user', at: agent.startedAt, text: agent.title ?? 'Continue o trabalho de onde parou.' }]
+      ? [{ kind: 'user', at: agent.startedAt, text: agentTitle(agent) ?? t('mock.resumeWork') }]
       : [];
     const entries = [...head, ...(agent ? this.activities(agent.id).map(toEntry) : [])];
     return { entries: entries.slice(Math.max(0, after)), next: entries.length, title: agent?.title, open: agent !== undefined };
@@ -79,8 +85,9 @@ export function mockSessions(snapshot: OfficeSnapshot, now: number): RecentSessi
         accountId: agent.accountId,
         sessionId: agent.sessionId,
         projectPath: project?.path ?? agent.projectId,
-        projectName: project?.name ?? 'projeto',
+        projectName: project?.name ?? t('mock.project'),
         title: agent.title,
+        titleMsg: agent.titleMsg,
         firstAt: agent.startedAt,
         lastAt: agent.lastEventAt,
         open: true,
@@ -88,12 +95,14 @@ export function mockSessions(snapshot: OfficeSnapshot, now: number): RecentSessi
       };
     });
   const accountId = snapshot.accounts[0]?.id ?? 'demo';
+  const closedTitles = ['mock.session.checkout', 'mock.session.contact', 'mock.session.dependencies'] as const;
   const closed: RecentSession[] = ['api-pagamentos', 'site-institucional', 'app-mobile'].map((name, index) => ({
     accountId,
     sessionId: `mock-closed-${index}`,
     projectPath: `/demo/${name}`,
     projectName: name,
-    title: ['Corrigir fluxo de checkout', 'Revisar página de contato', 'Atualizar dependências'][index],
+    title: t(closedTitles[index]),
+    titleMsg: uiMsg(closedTitles[index]),
     firstAt: now - (index + 1) * 20 * HOUR_MS,
     lastAt: now - (index + 1) * 20 * HOUR_MS + 2 * HOUR_MS,
     open: false,

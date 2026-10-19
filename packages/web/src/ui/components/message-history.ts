@@ -1,4 +1,5 @@
 // History of messages sent to one agent or a room (team messages are grouped: "2 de 3 entregues").
+import { t } from '../../i18n';
 import type { AppContext, Component } from '../context';
 import { h, setText } from '../dom';
 import { formatClock } from '../format';
@@ -46,7 +47,7 @@ export class MessageHistory implements Component {
     if (signature === this.signature) return;
     this.signature = signature;
     if (groups.length === 0) {
-      this.el.replaceChildren(emptyNote('Nenhuma mensagem enviada ainda.'));
+      this.el.replaceChildren(emptyNote(t('history.empty')));
       return;
     }
     this.el.replaceChildren(...groups.map((group) => this.groupView(group)));

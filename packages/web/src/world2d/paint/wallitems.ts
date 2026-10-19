@@ -1,4 +1,5 @@
 import type { WallItem } from '../../layout/types';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import { drawPixelText, textWidth } from '../font';
 import { noise2, rgba, shade } from '../color';
 import { BRASS, EBONY, GRAPHITE, LED, MARBLE, WALNUT } from '../palette';
@@ -80,19 +81,41 @@ function tv(ctx: Ctx, x: number, w: number, big: boolean): WallItemFrame {
   return { screen: { x: px + 2, y: y + 2, w: pw - 4, h: h - 4 } };
 }
 
-function menu(ctx: Ctx, x: number, w: number): void {
+/** Horizontal placement of the pantry menu's words (px inside the board), computed apart from drawing so it can be tested. */
+export interface MenuLayout {
+  title: { text: string; x: number };
+  rows: { label: string; labelX: number; price: string; priceX: number }[];
+}
+
+const MENU_PAD = 5;
+
+export function menuLayout(pw: number, text: WorldText): MenuLayout {
+  const title = text.t('menu2d.title');
+  const row = (labelKey: 'menu2d.coffee' | 'menu2d.juice', priceKey: 'menu2d.coffeePrice' | 'menu2d.juicePrice') => {
+    const price = text.t(priceKey);
+    return { label: text.t(labelKey), labelX: MENU_PAD, price, priceX: pw - 1 - MENU_PAD - textWidth(price) };
+  };
+  return {
+    title: { text: title, x: Math.floor((pw - textWidth(title)) / 2) },
+    rows: [row('menu2d.coffee', 'menu2d.coffeePrice'), row('menu2d.juice', 'menu2d.juicePrice')],
+  };
+}
+
+function menu(ctx: Ctx, x: number, w: number, text: WorldText): void {
   const px = x * T + 1;
   const pw = w * T - 2;
   frame(ctx, px, 7, pw, 21, WALNUT.base);
   rect(ctx, px + 2, 9, pw - 4, 17, '#1f2a24');
   hline(ctx, px + 2, 9, pw - 4, '#2d3b33');
   const chalk = '#e8efe6';
-  drawPixelText(ctx, 'CARDAPIO', px + Math.floor((pw - textWidth('CARDAPIO')) / 2), 11, BRASS.hi);
+  const layout = menuLayout(pw, text);
+  drawPixelText(ctx, layout.title.text, px + layout.title.x, 11, BRASS.hi);
   hline(ctx, px + 5, 17, pw - 10, rgba(chalk, 0.4));
-  drawPixelText(ctx, 'CAFE', px + 5, 19, chalk);
-  drawPixelText(ctx, '3,00', px + pw - 21, 19, BRASS.light);
-  drawPixelText(ctx, 'SUCO', px + 5, 24 - 1, chalk);
-  drawPixelText(ctx, '5,00', px + pw - 21, 23, BRASS.light);
+  layout.rows.forEach((row, i) => {
+    const y = i === 0 ? 19 : 23;
+    drawPixelText(ctx, row.label, px + row.labelX, y, chalk);
+    drawPixelText(ctx, row.price, px + row.priceX, y, BRASS.light);
+  });
 }
 
 function whiteboard(ctx: Ctx, x: number, w: number): void {
@@ -157,7 +180,7 @@ function clock(ctx: Ctx, x: number, w: number): void {
 }
 
 /** Paint a static wall decoration. Returns the dynamic screen rect, if any. */
-export function paintWallItem(ctx: Ctx, item: WallItem, localX: number, label: string, accent: string): WallItemFrame {
+export function paintWallItem(ctx: Ctx, item: WallItem, localX: number, label: string, accent: string, text: WorldText = worldText('pt-BR')): WallItemFrame {
   switch (item.kind) {
     case 'sign':
       sign(ctx, localX, item.w, label, accent);
@@ -170,7 +193,7 @@ export function paintWallItem(ctx: Ctx, item: WallItem, localX: number, label: s
     case 'tv':
       return tv(ctx, localX, item.w, item.w >= 6);
     case 'menu':
-      menu(ctx, localX, item.w);
+      menu(ctx, localX, item.w, text);
       return { screen: null };
     case 'whiteboard':
       whiteboard(ctx, localX, item.w);

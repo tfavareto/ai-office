@@ -1,4 +1,6 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
+import { LOCALES, type Locale } from '@ai-office/shared';
+import { systemLocale } from '../i18n';
 import { DEFAULT_WORLD_OPTIONS, type DaylightMode, type WorldOptions } from '../world/api';
 
 export const PREFS_KEY = 'ai-office:prefs';
@@ -6,8 +8,11 @@ export const PREFS_KEY = 'ai-office:prefs';
 export type VisualKind = '2d' | '3d';
 export type BubbleMode = WorldOptions['bubbles'];
 export type Liveliness = WorldOptions['liveliness'];
+/** Interface language: `auto` follows the browser (pt → pt-BR, es → es, otherwise en). */
+export type LanguagePref = 'auto' | Locale;
 
 export interface Prefs {
+  language: LanguagePref;
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -24,6 +29,7 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
+  language: 'auto',
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -54,6 +60,7 @@ export function parsePrefs(raw: unknown): Prefs {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ...DEFAULT_PREFS };
   const data = raw as Record<string, unknown>;
   return {
+    language: oneOf(data.language, ['auto', ...LOCALES], DEFAULT_PREFS.language),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),
@@ -106,8 +113,17 @@ export function savePrefs(prefs: Prefs, storage: StorageLike | null = defaultSto
   }
 }
 
-export function toWorldOptions(prefs: Prefs, extra: { followSelected: boolean; reducedMotion: boolean }): WorldOptions {
+/** The locale the page should use for these preferences. */
+export function effectiveLocale(prefs: Prefs, system: Locale = systemLocale()): Locale {
+  return prefs.language === 'auto' ? system : prefs.language;
+}
+
+export function toWorldOptions(
+  prefs: Prefs,
+  extra: { followSelected: boolean; reducedMotion: boolean; locale?: Locale },
+): WorldOptions {
   return {
+    locale: extra.locale ?? effectiveLocale(prefs),
     showNames: prefs.showNames,
     bubbles: prefs.bubbles,
     liveliness: prefs.animation,

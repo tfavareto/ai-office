@@ -1,6 +1,8 @@
 // "Needs you" marks coming from the Notification hook. Cleared by the agent's next transcript event.
+import { NEEDS_YOU_TEXT } from '../office/status';
+
 const ATTENTION_TTL_MS = 30 * 60_000;
-const DEFAULT_TEXT = 'Precisa de você';
+const DEFAULT_TEXT = NEEDS_YOU_TEXT;
 const IDLE_PROMPT = /waiting for your input|aguardando.*(entrada|resposta|comando)/i;
 
 interface Mark {

@@ -1,4 +1,5 @@
 // Request/response side of the server API (everything except the SSE stream).
+import { t } from '../i18n';
 import type { Activity, BossMessage, DayStats, PermissionDecision, RecentSession, TranscriptPage } from '@ai-office/shared';
 
 export interface TranscriptQuery {
@@ -32,16 +33,16 @@ export class BackendError extends Error {
   }
 }
 
-/** Friendly pt-BR explanation of a failed request, for UI-facing messages. */
+/** Friendly explanation, in the current language, of a failed request (for UI-facing messages). */
 export function describeError(error: unknown): string {
   if (error instanceof BackendError) {
-    if (error.status === 403) return 'Disponível apenas ao abrir o AI Office neste computador (localhost).';
-    if (error.status === 404) return 'Não encontrado: a sessão pode ter sido encerrada.';
-    if (error.status === 409) return 'Esta solicitação já foi respondida.';
-    if (error.status === 0) return 'Sem conexão com o servidor do AI Office.';
-    if (error.status >= 500) return 'O servidor do AI Office teve um problema. Tente de novo.';
-    return error.message || 'Não foi possível concluir a ação.';
+    if (error.status === 403) return t('hint.localOnly');
+    if (error.status === 404) return t('error.notFound');
+    if (error.status === 409) return t('error.alreadyAnswered');
+    if (error.status === 0) return t('error.noConnection');
+    if (error.status >= 500) return t('error.server');
+    return error.message || t('error.generic');
   }
-  if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) return 'O servidor demorou demais para responder.';
-  return 'Não foi possível concluir a ação.';
+  if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) return t('error.timeout');
+  return t('error.generic');
 }

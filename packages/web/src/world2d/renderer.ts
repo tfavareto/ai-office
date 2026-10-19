@@ -1,4 +1,5 @@
-import type { Agent } from '@ai-office/shared';
+import type { Agent, Locale } from '@ai-office/shared';
+import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
 import type { AreaLayout, Rect } from '../layout/types';
 import type { OfficeSim } from '../sim/sim';
@@ -104,8 +105,8 @@ export class Renderer {
   }
 
   /** Make sure static layers match the simulation's layout. */
-  sync(sim: OfficeSim): void {
-    this.layers.sync(sim.building);
+  sync(sim: OfficeSim, locale: Locale = 'pt-BR'): void {
+    this.layers.sync(sim.building, locale);
     if (this.layers.version !== this.seenVersion) {
       this.seenVersion = this.layers.version;
       this.refreshDynamic();
@@ -143,7 +144,7 @@ export class Renderer {
     ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#12151c';
     ctx.fillRect(0, 0, cam.view.width * dpr, cam.view.height * dpr);
-    this.sync(s.sim);
+    this.sync(s.sim, s.options.locale);
 
     const scale = cam.zoom * dpr;
     const c = cam.snapped();
@@ -284,14 +285,16 @@ export class Renderer {
     if (screen.kind === 'board') {
       const info = this.roomInfoOf(s, area);
       if (!info) return;
-      const version = `${roomInfoKey(info)}|${area.theme.accent}`;
-      const canvas = this.boardFor(`${area.id}:board`, () => renderBoard(screen.w, screen.h, info, area.theme.accent), version);
+      const text = worldText(s.options.locale);
+      const version = `${roomInfoKey(info)}|${area.theme.accent}|${text.locale}`;
+      const canvas = this.boardFor(`${area.id}:board`, () => renderBoard(screen.w, screen.h, info, area.theme.accent, text), version);
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
     if (area.kind === 'meeting') {
       const names = s.sim.characters.filter((c) => c.areaId === 'meeting' && c.alpha > 0.5).map((c) => c.name);
-      const canvas = this.boardFor('meeting:tv', () => renderMeetingTv(screen.w, screen.h, names), names.join('|'));
+      const text = worldText(s.options.locale);
+      const canvas = this.boardFor('meeting:tv', () => renderMeetingTv(screen.w, screen.h, names, text), `${text.locale}|${names.join('|')}`);
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeInsets } from '../ui/layout';
 import { resolveShortcut } from '../ui/shortcuts';
-import { DEFAULT_PREFS, PREFS_KEY, PrefsStore, loadPrefs, parsePrefs, parsePrefsJson, savePrefs, toWorldOptions, type StorageLike } from './prefs';
+import { DEFAULT_PREFS, PREFS_KEY, PrefsStore, effectiveLocale, loadPrefs, parsePrefs, parsePrefsJson, savePrefs, toWorldOptions, type StorageLike } from './prefs';
 
 function memoryStorage(initial?: string): StorageLike & { data: Map<string, string> } {
   const data = new Map<string, string>(initial ? [[PREFS_KEY, initial]] : []);
@@ -70,6 +70,24 @@ describe('PrefsStore', () => {
   it('maps preferences to world options', () => {
     const options = toWorldOptions({ ...DEFAULT_PREFS, animation: 'lively', bubbles: 'all' }, { followSelected: true, reducedMotion: true });
     expect(options).toMatchObject({ liveliness: 'lively', bubbles: 'all', followSelected: true, reducedMotion: true });
+  });
+});
+
+describe('language', () => {
+  it('defaults to auto and keeps only supported values', () => {
+    expect(DEFAULT_PREFS.language).toBe('auto');
+    expect(parsePrefs({ language: 'es' }).language).toBe('es');
+    expect(parsePrefs({ language: 'fr' }).language).toBe('auto');
+  });
+
+  it('resolves auto to the system locale and keeps an explicit choice', () => {
+    expect(effectiveLocale({ ...DEFAULT_PREFS, language: 'auto' }, 'es')).toBe('es');
+    expect(effectiveLocale({ ...DEFAULT_PREFS, language: 'en' }, 'es')).toBe('en');
+  });
+
+  it('passes the locale to the world options', () => {
+    const options = toWorldOptions(DEFAULT_PREFS, { followSelected: false, reducedMotion: false, locale: 'en' });
+    expect(options.locale).toBe('en');
   });
 });
 

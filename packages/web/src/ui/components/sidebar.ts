@@ -1,10 +1,12 @@
 // Sidebar: search, account filter chips, rooms with their agents and subagents.
 import type { Agent } from '@ai-office/shared';
+import { t } from '../../i18n';
 import type { AppContext, Component } from '../context';
+import { accountLabel, activityText, agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../display';
 import { KeyedList, h, setAttr, setText, toggleClass, type KeyedEntry } from '../dom';
 import { icon } from '../icons';
 import { buildRooms, roomColor, type AgentRowModel, type RoomModel } from '../model/rooms';
-import { STATUS_LABEL, displayStatus, primaryShell } from '../model/status';
+import { displayStatus, primaryShell, statusLabel } from '../model/status';
 import { createAvatar, liveText, setLive, setStatusDot, statusDot, updateAccountChip, accountChip } from '../widgets';
 
 const AVATAR_SIZE = 30;
@@ -12,10 +14,10 @@ const AVATAR_SIZE = 30;
 const PORTRAIT_REFRESH_MS = 2000;
 
 export class Sidebar implements Component {
-  readonly el = h('aside', { class: 'ao-sidebar', 'aria-label': 'Salas e agentes' });
+  readonly el = h('aside', { class: 'ao-sidebar', 'aria-label': t('sidebar.label') });
   private readonly input: HTMLInputElement;
   private readonly clearBtn: HTMLButtonElement;
-  private readonly chips = h('div', { class: 'ao-chips', role: 'group', 'aria-label': 'Filtrar por conta' });
+  private readonly chips = h('div', { class: 'ao-chips', role: 'group', 'aria-label': t('sidebar.accountFilter') });
   private readonly list = h('div', { class: 'ao-sidebar-list' });
   private readonly note = h('p', { class: 'ao-note ao-sidebar-note' });
   private readonly rooms: KeyedList<RoomModel>;
@@ -26,8 +28,8 @@ export class Sidebar implements Component {
     this.input = h('input', {
       type: 'search',
       class: 'ao-search-input',
-      placeholder: 'Buscar agente, projeto ou conta',
-      'aria-label': 'Buscar agente, projeto ou conta',
+      placeholder: t('sidebar.search'),
+      'aria-label': t('sidebar.search'),
       autocomplete: 'off',
       spellcheck: 'false',
     });
@@ -41,7 +43,7 @@ export class Sidebar implements Component {
         this.list.querySelector<HTMLElement>('.ao-agent-row')?.focus();
       }
     });
-    this.clearBtn = h('button', { type: 'button', class: 'ao-search-clear', 'aria-label': 'Limpar busca', hidden: true, onclick: () => this.setQuery('') }, icon('x', 14));
+    this.clearBtn = h('button', { type: 'button', class: 'ao-search-clear', 'aria-label': t('sidebar.search.clear'), hidden: true, onclick: () => this.setQuery('') }, icon('x', 14));
     const search = h('label', { class: 'ao-search' }, icon('search', 16), this.input, h('kbd', { class: 'ao-kbd' }, '/'), this.clearBtn);
     this.el.append(h('div', { class: 'ao-sidebar-head' }, search, this.chips), this.list, this.note);
     this.rooms = new KeyedList(this.list, (room) => room.project.id, (room) => this.createRoom(room));
@@ -91,7 +93,7 @@ export class Sidebar implements Component {
     const filtering = ui.query.trim().length > 0 || ui.accountFilter.length > 0;
     if (rooms.length === 0) {
       this.note.hidden = false;
-      setText(this.note, filtering ? 'Nenhum resultado para esta busca.' : 'Nenhuma sessão aberta no momento.');
+      setText(this.note, filtering ? t('sidebar.empty.noResults') : t('sidebar.empty.noSessions'));
     } else {
       this.note.hidden = true;
     }
@@ -109,9 +111,9 @@ export class Sidebar implements Component {
         const on = selected.includes(account.id);
         const chip = h(
           'button',
-          { type: 'button', class: `ao-chip ${on ? 'is-on' : ''}`.trim(), 'aria-pressed': String(on), title: `Mostrar só a conta ${account.label}`, onclick: () => this.ctx.ui.toggleAccount(account.id) },
+          { type: 'button', class: `ao-chip ${on ? 'is-on' : ''}`.trim(), 'aria-pressed': String(on), title: t('sidebar.accountOnly', { label: accountLabel(account) }), onclick: () => this.ctx.ui.toggleAccount(account.id) },
           accountChip(account),
-          h('span', null, account.label),
+          h('span', null, accountLabel(account)),
         );
         return chip;
       }),
@@ -128,7 +130,7 @@ export class Sidebar implements Component {
     const progressBar = h('span', { class: 'ao-progress-bar' });
     const progress = h('span', { class: 'ao-progress', hidden: true }, progressBar);
     const progressText = h('span', { class: 'ao-room-tasks' });
-    const toggle = h('button', { type: 'button', class: 'ao-room-toggle', 'aria-label': 'Recolher ou expandir sala' }, icon('chevronDown', 16));
+    const toggle = h('button', { type: 'button', class: 'ao-room-toggle', 'aria-label': t('sidebar.room.toggle') }, icon('chevronDown', 16));
     const main = h('button', { type: 'button', class: 'ao-room-main' }, swatch, name, attention, count, progressText, progress);
     const rowsEl = h('div', { class: 'ao-room-rows' });
     const el = h('section', { class: 'ao-room' }, h('div', { class: 'ao-room-head' }, toggle, main), rowsEl);
@@ -150,7 +152,7 @@ export class Sidebar implements Component {
         main.title = room.project.path;
         setText(count, String(room.agentCount));
         attention.hidden = room.needsYou === 0;
-        setText(attention, room.needsYou > 0 ? `${room.needsYou} precisa${room.needsYou > 1 ? 'm' : ''}` : '');
+        setText(attention, room.needsYou > 0 ? t('sidebar.room.needs', { n: room.needsYou }) : '');
         const hasTasks = room.tasksTotal > 0;
         progress.hidden = !hasTasks;
         progressText.hidden = !hasTasks;
@@ -200,16 +202,16 @@ export class Sidebar implements Component {
         setStatusDot(dot, ds);
         setText(name, agent.name);
         updateAccountChip(account, this.ctx.account(agent.accountId));
-        setText(role, agent.kind === 'sub' ? agent.role : this.mainRole(agent));
+        setText(role, agent.kind === 'sub' ? agentRole(agent) : this.mainRole(agent));
         setText(activity, this.activityText(agent));
-        setText(status, STATUS_LABEL[ds]);
+        setText(status, statusLabel(ds));
         status.className = `ao-row-status ao-text--${ds}`;
         const shell = primaryShell(agent);
         shellIcon.hidden = !shell;
         if (shell) setLive(time, 'elapsed', shell.startedAt);
         else setLive(time, 'ago', agent.statusSince);
         el.dataset.depth = String(depth);
-        el.setAttribute('aria-label', `${agent.name}, ${STATUS_LABEL[ds]}`);
+        el.setAttribute('aria-label', t('sidebar.row.label', { name: agent.name, status: statusLabel(ds) }));
         toggleClass(el, 'is-sub', depth === 1);
         toggleClass(el, 'is-selected', selection?.type === 'agent' && selection.id === agent.id);
         toggleClass(el, 'is-leaving', agent.status === 'offline' || agent.status === 'done');
@@ -218,12 +220,12 @@ export class Sidebar implements Component {
   }
 
   private mainRole(agent: Agent): string {
-    return agent.role && agent.role !== 'Principal' ? agent.role : '';
+    return agent.role && agent.role !== 'Principal' ? agentRole(agent) : '';
   }
 
   private activityText(agent: Agent): string {
-    if (agent.status === 'waiting') return agent.permission?.summary ?? agent.waitingFor ?? 'Precisa de você';
-    if (agent.activity) return `${agent.activity.icon} ${agent.activity.text}`;
-    return agent.title ?? 'Sem atividade ainda';
+    if (agent.status === 'waiting') return (agent.permission ? permissionSummary(agent.permission) : undefined) ?? agentWaitingFor(agent) ?? t('sidebar.row.needsYou');
+    if (agent.activity) return `${agent.activity.icon} ${activityText(agent.activity)}`;
+    return agentTitle(agent) ?? t('sidebar.row.noActivity');
   }
 }

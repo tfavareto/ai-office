@@ -5,11 +5,14 @@ import {
   type AgentStats,
   type ShellJob,
   type TaskItem,
+  type Msg,
   describeToolUse,
   doneDraft,
   errorDraft,
+  msg,
   promptDraft,
   replyDraft,
+  sourceText,
   thinkingDraft,
   toActivity,
   truncate,
@@ -23,9 +26,9 @@ const RECENT_LIMIT = 30;
 const HISTORY_LIMIT = 300;
 const MAX_RESULT_IDS = 2000;
 const FOREGROUND_SHELL_AFTER_MS = 10_000;
-const USER_TOOLS: Readonly<Record<string, string>> = {
-  AskUserQuestion: 'Responder uma pergunta',
-  ExitPlanMode: 'Aprovar o plano',
+const USER_TOOLS: Readonly<Record<string, Msg>> = {
+  AskUserQuestion: msg('waiting.answerQuestion'),
+  ExitPlanMode: msg('waiting.approvePlan'),
 };
 
 export interface PendingTool {
@@ -140,10 +143,10 @@ export class TranscriptState {
   }
 
   /** A tool that needs the user (question, plan approval), with the text for "waitingFor". */
-  pendingUserTool(): { tool: PendingTool; waitingFor: string } | undefined {
+  pendingUserTool(): { tool: PendingTool; waitingFor: string; waitingForMsg: Msg } | undefined {
     for (const tool of this.pending.values()) {
-      const waitingFor = USER_TOOLS[tool.name];
-      if (waitingFor !== undefined) return { tool, waitingFor };
+      const waitingForMsg = USER_TOOLS[tool.name];
+      if (waitingForMsg !== undefined) return { tool, waitingFor: sourceText(waitingForMsg), waitingForMsg };
     }
     return undefined;
   }
@@ -165,7 +168,7 @@ export class TranscriptState {
       if (tool.name !== 'Bash' || tool.background || this.jobs.has(tool.id)) continue;
       if (now - tool.at < FOREGROUND_SHELL_AFTER_MS) continue;
       const draft = describeToolUse('Bash', tool.input);
-      shells.push({ id: tool.id, label: draft.text, ...(draft.detail ? { command: draft.detail } : {}), background: false, kind: 'shell', startedAt: tool.at });
+      shells.push({ id: tool.id, label: draft.text, labelMsg: draft.msg, ...(draft.detail ? { command: draft.detail } : {}), background: false, kind: 'shell', startedAt: tool.at });
     }
     return shells;
   }
@@ -383,7 +386,7 @@ export class TranscriptState {
   private addJob(id: string, input: Record<string, unknown>, kind: ShellJob['kind'], at: number): void {
     const draft = describeToolUse(kind === 'monitor' ? 'Monitor' : 'Bash', input);
     const command = asString(input.command);
-    this.jobs.set(id, { id, label: draft.text, ...(command !== undefined ? { command } : {}), background: true, kind, startedAt: at });
+    this.jobs.set(id, { id, label: draft.text, labelMsg: draft.msg, ...(command !== undefined ? { command } : {}), background: true, kind, startedAt: at });
   }
 
   private removeJob(input: Record<string, unknown>): void {

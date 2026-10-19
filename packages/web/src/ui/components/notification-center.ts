@@ -1,4 +1,6 @@
 // Bell popover: notification history with filters, "Não perturbe" and clear.
+import { t, type UiKey } from '../../i18n';
+import { localized } from '../display';
 import { h, setText, toggleClass } from '../dom';
 import { formatAgo } from '../format';
 import { icon, type IconName } from '../icons';
@@ -7,10 +9,10 @@ import type { AppContext } from '../context';
 import { emptyNote } from '../widgets';
 import { Popover } from './overlay';
 
-const FILTERS: readonly { id: NotificationFilter; label: string }[] = [
-  { id: 'all', label: 'Tudo' },
-  { id: 'alerts', label: 'Precisa de você' },
-  { id: 'messages', label: 'Mensagens' },
+const FILTERS: readonly { id: NotificationFilter; label: UiKey }[] = [
+  { id: 'all', label: 'notifications.filter.all' },
+  { id: 'alerts', label: 'notifications.filter.alerts' },
+  { id: 'messages', label: 'notifications.filter.messages' },
 ];
 
 const LEVEL_ICON: Record<NotificationItem['level'], IconName> = { info: 'info', success: 'check', warn: 'alert', alert: 'bell' };
@@ -24,17 +26,17 @@ export class NotificationCenter extends Popover {
   private signature = '';
 
   constructor(ctx: AppContext) {
-    super(ctx, 'notifications', 'Notificações', 'ao-popover--notifications');
-    this.dndBtn = h('button', { type: 'button', class: 'ao-switch-row', role: 'switch', 'aria-checked': 'false', onclick: () => this.toggleDnd() }, h('span', { class: 'ao-switch' }, h('span', { class: 'ao-switch-knob' })), h('span', null, 'Não perturbe'));
-    this.dndBtn.title = 'Com "Não perturbe" só os alertas viram aviso, som e notificação do navegador.';
-    this.clearBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => ctx.notifications.clear() }, icon('trash', 14), h('span', null, 'Limpar'));
-    const tablist = h('div', { class: 'ao-segmented', role: 'tablist', 'aria-label': 'Filtro' });
+    super(ctx, 'notifications', t('topbar.notifications'), 'ao-popover--notifications');
+    this.dndBtn = h('button', { type: 'button', class: 'ao-switch-row', role: 'switch', 'aria-checked': 'false', onclick: () => this.toggleDnd() }, h('span', { class: 'ao-switch' }, h('span', { class: 'ao-switch-knob' })), h('span', null, t('notifications.dnd')));
+    this.dndBtn.title = t('notifications.dnd.hint');
+    this.clearBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => ctx.notifications.clear() }, icon('trash', 14), h('span', null, t('notifications.clear')));
+    const tablist = h('div', { class: 'ao-segmented', role: 'tablist', 'aria-label': t('notifications.filter') });
     for (const f of FILTERS) {
-      const btn = h('button', { type: 'button', role: 'tab', class: 'ao-segmented-item', onclick: () => this.setFilter(f.id) }, f.label);
+      const btn = h('button', { type: 'button', role: 'tab', class: 'ao-segmented-item', onclick: () => this.setFilter(f.id) }, t(f.label));
       this.tabs.set(f.id, btn);
       tablist.appendChild(btn);
     }
-    this.el.append(h('header', { class: 'ao-popover-head' }, h('strong', null, 'Notificações'), this.clearBtn), h('div', { class: 'ao-popover-sub' }, tablist), this.list, h('footer', { class: 'ao-popover-foot' }, this.dndBtn));
+    this.el.append(h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.notifications')), this.clearBtn), h('div', { class: 'ao-popover-sub' }, tablist), this.list, h('footer', { class: 'ao-popover-foot' }, this.dndBtn));
   }
 
   private setFilter(filter: NotificationFilter): void {
@@ -73,14 +75,14 @@ export class NotificationCenter extends Popover {
   }
 
   private emptyText(): string {
-    if (this.filter === 'alerts') return 'Nenhum agente precisou de você ainda.';
-    if (this.filter === 'messages') return 'Nenhuma mensagem entregue ainda.';
-    return 'Nenhuma notificação por enquanto.';
+    if (this.filter === 'alerts') return t('notifications.empty.alerts');
+    if (this.filter === 'messages') return t('notifications.empty.messages');
+    return t('notifications.empty.all');
   }
 
   private item(item: NotificationItem, now: number): HTMLElement {
     const body = h('span', { class: 'ao-notif-body' });
-    setText(body, item.text);
+    setText(body, localized(item.msg, item.text));
     const agentId = item.agentId;
     const clickable = agentId !== undefined && this.ctx.agent(agentId) !== undefined;
     const row = h(

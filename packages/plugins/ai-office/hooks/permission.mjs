@@ -9,7 +9,8 @@
 //      seconds, clamped to 5-1800).
 //   4. A decision becomes the PermissionRequest hook output:
 //        allow    -> { behavior: "allow" } plus the chosen original permission suggestion as `updatedPermissions`
-//        deny     -> { behavior: "deny", message, interrupt }
+//        deny     -> { behavior: "deny", message, interrupt }  (the fixed part of the message follows the decision's
+//                    `locale`: pt-BR, en or es; pt-BR when absent)
 //        terminal / expired / any error -> no output (the terminal dialog stays in charge; first answer wins).
 //
 // Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR (token location), AI_OFFICE_PERMISSION_TIMEOUT, AI_OFFICE_HOOK_DEBUG=1.
@@ -21,6 +22,7 @@ import {
   MAX_POLL_FAILURES,
   POLL_RETRY_DELAY_MS,
   isEntryPoint,
+  normalizeLocale,
   readNumber,
   requestJson,
   runHook,
@@ -38,6 +40,16 @@ export const MAX_BODY_BYTES = 200 * 1024;
 /** Per-string character limits tried in order until the whole body fits `MAX_BODY_BYTES`. */
 export const STRING_LIMIT_STEPS = [8 * 1024, 4 * 1024, 2 * 1024, 1024, 512, 256];
 const MAX_TRIM_DEPTH = 20;
+/**
+ * What the agent reads when the user refuses a request, in the language of the person who answered (pt-BR when the
+ * page did not say). This file imports nothing from @ai-office/shared, hence the small local table.
+ */
+const DENIED = {
+  'pt-BR': 'Recusado pelo usuário no AI Office',
+  en: 'Denied by the user in AI Office',
+  es: 'Rechazado por el usuario en AI Office',
+};
+
 const OMITTED_INPUT = { aviso: 'Entrada grande demais, omitida pelo plugin.' };
 
 /**
@@ -115,7 +127,7 @@ export function buildPermissionBody(input, timeoutMs) {
 
 /**
  * Converts the user's decision into the hook output (or `null` when the terminal should answer).
- * @param {{ behavior?: string, suggestion?: number, message?: string, interrupt?: boolean }} decision
+ * @param {{ behavior?: string, suggestion?: number, message?: string, interrupt?: boolean, locale?: string }} decision
  * @param {unknown[] | undefined} suggestions  The original `permission_suggestions` of the request.
  * @returns {Record<string, unknown> | null}
  */
@@ -133,7 +145,7 @@ export function buildDecisionOutput(decision, suggestions) {
     const reason = typeof decision.message === 'string' ? decision.message.trim() : '';
     return hookOutput({
       behavior: 'deny',
-      message: reason === '' ? 'Recusado pelo usuário no AI Office.' : `Recusado pelo usuário no AI Office: ${reason}`,
+      message: reason === '' ? `${DENIED[normalizeLocale(decision.locale)]}.` : `${DENIED[normalizeLocale(decision.locale)]}: ${reason}`,
       interrupt: decision.interrupt === true,
     });
   }

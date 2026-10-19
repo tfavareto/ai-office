@@ -1,6 +1,7 @@
 // Keeps one AreaScene per layout area in sync with the simulation: builds new or moved areas (a few per frame, so no
 // long task), disposes stale ones, drives room build/dismantle animation and per-frame updates.
 import { Group, Mesh, PlaneGeometry, type Box3 } from 'three';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import type { AreaLayout, BuildingLayout } from '../../layout/types';
 import type { OfficeSim } from '../../sim/sim';
 import { CORRIDOR_Y } from '../../layout/constants';
@@ -55,9 +56,17 @@ export class AreaManager {
   private tickerWidth = -1;
   private builtVersion = -1;
   private lastBuilding: BuildingLayout | null = null;
+  private text: WorldText = worldText('pt-BR');
 
   constructor(private readonly deps: SceneDeps, private readonly sim: OfficeSim) {
     this.group.add(this.batcher.group);
+  }
+
+  /** Language of the texts painted on screens, boards and signs; built areas repaint in place (no rebuild). */
+  setText(text: WorldText): void {
+    if (text.locale === this.text.locale) return;
+    this.text = text;
+    for (const entry of this.entries.values()) entry.scene.setText(text);
   }
 
   get pending(): number {
@@ -101,7 +110,7 @@ export class AreaManager {
 
   private build(area: AreaLayout, building: BuildingLayout): void {
     const room = this.sim.rooms.byArea(area.id);
-    const scene = new AreaScene(area, building, this.deps);
+    const scene = new AreaScene(area, building, this.deps, this.text);
     scene.setBuild(room ? room.progress : 1);
     this.group.add(scene.group);
     this.entries.set(area.id, { scene, signature: signatureOf(area, building), lit: 0 });

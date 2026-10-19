@@ -6,7 +6,8 @@ import { TILE_M as T } from '../units';
 import { BufferGeometry, CylinderGeometry, Float32BufferAttribute } from 'three';
 import { boxGeometry, transform, type PartCollector } from '../util/parts';
 import type { Materials } from './materials';
-import { CanvasScreen, DecorAtlas, paintMenu, paintPoster, paintSign, paintWhiteboard } from './screens';
+import { type WorldText, worldText } from '../../i18n/world/translate';
+import { CanvasScreen, DecorAtlas, type DecorPainter, paintMenu, paintPoster, paintSign, paintWhiteboard } from './screens';
 
 export interface ElevatorRig {
   left: Mesh;
@@ -42,10 +43,10 @@ function quadGeometry(w: number, h: number, uv: [number, number, number, number]
 /** A static decor image as a merged quad (no extra draw call). */
 function decorQuad(
   c: PartCollector, out: WallScreens, x: number, y: number, z: number, w: number, h: number,
-  painter: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
+  painter: DecorPainter, text: WorldText, localized = false,
 ): void {
-  out.decor ??= new DecorAtlas();
-  const slot = out.decor.add(w, h, painter);
+  out.decor ??= new DecorAtlas(text);
+  const slot = out.decor.add(w, h, painter, localized);
   c.add(quadGeometry(w, h, slot.uv), out.decor.material, transform(x, y, z));
 }
 
@@ -114,7 +115,7 @@ function clock(c: PartCollector, m: Materials, x: number, y: number, z: number):
 
 export function buildWallItems(
   c: PartCollector, area: AreaLayout, m: Materials, dynamic: Group, out: WallScreens,
-  accent: string, projectName: string,
+  accent: string, projectName: string, text: WorldText = worldText('pt-BR'),
 ): void {
   const zFace = (area.rect.y + WALL_ROWS) * T;
   const z = zFace + 0.03;
@@ -124,13 +125,13 @@ export function buildWallItems(
     const a = item.x * T;
     const b = (item.x + item.w) * T;
     const mid = (a + b) / 2;
-    placeNorthItem(c, area, m, dynamic, out, item, mid, b - a, z, zFace, accent, projectName, () => elevatorIndex++);
+    placeNorthItem(c, area, m, dynamic, out, item, mid, b - a, z, zFace, accent, projectName, text, () => elevatorIndex++);
   }
 }
 
 function placeNorthItem(
   c: PartCollector, area: AreaLayout, m: Materials, dynamic: Group, out: WallScreens, item: WallItem, mid: number, width: number, z: number,
-  zFace: number, accent: string, projectName: string, nextElevator: () => number,
+  zFace: number, accent: string, projectName: string, text: WorldText, nextElevator: () => number,
 ): void {
   const mk = (w: number, h: number): CanvasScreen => {
     const s = new CanvasScreen(Math.round(w * 256), Math.round(h * 256));
@@ -143,12 +144,12 @@ function placeNorthItem(
       break;
     case 'logoSign': {
       c.box(m.brass, mid, 2.15, z + 0.02, 2.08, 0.58, 0.03);
-      decorQuad(c, out, mid, 2.15, z + 0.045, 2.0, 0.5, (ctx, w, h) => paintSign(ctx, w, h, 'AI Office', '#c9a456', true));
+      decorQuad(c, out, mid, 2.15, z + 0.045, 2.0, 0.5, (ctx, w, h) => paintSign(ctx, w, h, 'AI Office', '#c9a456', true), text);
       break;
     }
     case 'sign': {
       c.box(m.graphite, mid, 2.32, z + 0.02, 1.86, 0.48, 0.03);
-      decorQuad(c, out, mid, 2.32, z + 0.045, 1.8, 0.42, (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true));
+      decorQuad(c, out, mid, 2.32, z + 0.045, 1.8, 0.42, (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true), text);
       break;
     }
     case 'board': {
@@ -171,17 +172,17 @@ function placeNorthItem(
     }
     case 'menu': {
       c.box(m.black, mid, 1.55, z + 0.02, 2.06, 1.06, 0.04);
-      decorQuad(c, out, mid, 1.55, z + 0.045, 2.0, 1.0, paintMenu);
+      decorQuad(c, out, mid, 1.55, z + 0.045, 2.0, 1.0, paintMenu, text, true);
       break;
     }
     case 'whiteboard': {
       c.box(m.steel, mid, 1.5, z + 0.02, 1.96, 1.11, 0.03);
-      decorQuad(c, out, mid, 1.5, z + 0.04, 1.9, 1.05, paintWhiteboard);
+      decorQuad(c, out, mid, 1.5, z + 0.04, 1.9, 1.05, paintWhiteboard, text);
       break;
     }
     case 'poster': {
       c.box(m.walnutDark, mid, 1.65, z + 0.02, 0.88, 1.18, 0.03);
-      decorQuad(c, out, mid, 1.65, z + 0.04, 0.8, 1.1, (ctx, w, h) => paintPoster(ctx, w, h, item.variant));
+      decorQuad(c, out, mid, 1.65, z + 0.04, 0.8, 1.1, (ctx, w, h) => paintPoster(ctx, w, h, item.variant), text);
       break;
     }
     case 'clock':

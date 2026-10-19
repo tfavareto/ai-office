@@ -1,3 +1,5 @@
+import type { Locale } from '@ai-office/shared';
+import { worldText } from '../../i18n/world/translate';
 import { TILE } from '../../layout/constants';
 import { layoutExterior, type ExteriorLayout } from '../../layout/exterior';
 import type { BuildingLayout } from '../../layout/types';
@@ -24,15 +26,16 @@ export class LayerCache {
   version = 0;
 
   /** Returns the built areas in drawing order (north row, corridor, south row) after syncing. */
-  sync(building: BuildingLayout): void {
+  sync(building: BuildingLayout, locale: Locale = 'pt-BR'): void {
+    const text = worldText(locale);
     const present = new Set<string>();
     const theme = building.corridor.theme;
     for (const area of [...building.areas, ...building.terraces]) {
       present.add(area.id);
-      const key = areaKey(area);
+      const key = areaKey(area, '', locale);
       const hit = this.areas.get(area.id);
       if (hit?.key === key) continue;
-      this.areas.set(area.id, buildAreaCanvas(area, key, theme));
+      this.areas.set(area.id, buildAreaCanvas(area, key, theme, 0, text));
       this.version++;
     }
     for (const id of [...this.areas.keys()]) if (!present.has(id)) this.areas.delete(id);

@@ -1,4 +1,5 @@
 // Top bar: brand, connection pill, counters (with jump-to-next), usage cards and the main action buttons.
+import { t, type UiKey } from '../../i18n';
 import type { CameraMode } from '../../world/api';
 import type { AppContext, Component } from '../context';
 import { h, setText, toggleClass } from '../dom';
@@ -13,24 +14,24 @@ import { UsageCards } from './usage-cards';
 interface CounterDef {
   key: keyof Counters;
   icon: IconName;
-  label: string;
-  singular?: string;
+  /** Catalog key of the label; plural-aware ("sala" / "salas"). */
+  label: UiKey;
   jump?: 'shell' | 'needs';
 }
 
 const COUNTERS: readonly CounterDef[] = [
-  { key: 'rooms', icon: 'building', label: 'salas', singular: 'sala' },
-  { key: 'agents', icon: 'users', label: 'agentes', singular: 'agente' },
-  { key: 'working', icon: 'bolt', label: 'trabalhando' },
-  { key: 'subagents', icon: 'layers', label: 'subagentes', singular: 'subagente' },
-  { key: 'shells', icon: 'terminal', label: 'shells rodando', singular: 'shell rodando', jump: 'shell' },
-  { key: 'needsYou', icon: 'alert', label: 'precisam de você', singular: 'precisa de você', jump: 'needs' },
+  { key: 'rooms', icon: 'building', label: 'topbar.counter.rooms' },
+  { key: 'agents', icon: 'users', label: 'topbar.counter.agents' },
+  { key: 'working', icon: 'bolt', label: 'topbar.counter.working' },
+  { key: 'subagents', icon: 'layers', label: 'topbar.counter.subagents' },
+  { key: 'shells', icon: 'terminal', label: 'topbar.counter.shells', jump: 'shell' },
+  { key: 'needsYou', icon: 'alert', label: 'topbar.counter.needsYou', jump: 'needs' },
 ];
 
-const CAMERA_LABEL: Record<CameraMode, string> = {
-  overview: 'Visão geral',
-  'first-person': 'Primeira pessoa',
-  shoulder: 'Sobre o ombro',
+const CAMERA_LABEL: Record<CameraMode, UiKey> = {
+  overview: 'camera.overview',
+  'first-person': 'camera.firstPerson',
+  shoulder: 'camera.shoulder',
 };
 
 interface CounterView {
@@ -59,24 +60,24 @@ export class TopBar implements Component {
   constructor(private readonly ctx: AppContext) {
     this.sidebarBtn = iconButton({
       icon: 'sidebar',
-      label: 'Mostrar ou ocultar a barra lateral ([)',
+      label: t('topbar.sidebar'),
       onClick: () => ctx.ui.set({ sidebarOpen: !ctx.ui.get().sidebarOpen }),
     });
-    this.pillText = h('span', null, 'Conectando…');
+    this.pillText = h('span', null, t('topbar.connection.connecting'));
     this.pill = h('div', { class: 'ao-pill ao-pill--connecting', role: 'status' }, h('span', { class: 'ao-pill-dot' }), this.pillText);
     this.counters = COUNTERS.map((def) => this.createCounter(def));
     this.usage = new UsageCards(ctx);
 
-    this.cameraLabel = h('span', { class: 'ao-camera-label' }, CAMERA_LABEL.overview);
-    this.cameraBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-camera-btn', hidden: true, title: 'Trocar o modo de câmera', onclick: () => this.cycleCamera() }, icon('camera', 16), this.cameraLabel);
+    this.cameraLabel = h('span', { class: 'ao-camera-label' }, t(CAMERA_LABEL.overview));
+    this.cameraBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-camera-btn', hidden: true, title: t('topbar.camera.cycle'), onclick: () => this.cycleCamera() }, icon('camera', 16), this.cameraLabel);
 
-    this.feedBtn = iconButton({ icon: 'feed', label: 'Atividade do escritório (])', pressed: false, onClick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }) });
+    this.feedBtn = iconButton({ icon: 'feed', label: t('topbar.feed'), pressed: false, onClick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }) });
     this.bellBadge = h('span', { class: 'ao-badge', hidden: true });
-    this.bellBtn = iconButton({ icon: 'bell', label: 'Notificações', onClick: () => ctx.togglePopover('notifications') });
+    this.bellBtn = iconButton({ icon: 'bell', label: t('topbar.notifications'), onClick: () => ctx.togglePopover('notifications') });
     this.bellBtn.dataset.popoverTrigger = 'notifications';
     this.bellBtn.appendChild(this.bellBadge);
-    this.dayBtn = iconButton({ icon: 'calendar', label: 'Meu dia (M)', onClick: () => ctx.openDialog('day') });
-    this.helpBtn = iconButton({ icon: 'help', label: 'Ajuda e atalhos (?)', onClick: () => ctx.openDialog('help') });
+    this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDialog('day') });
+    this.helpBtn = iconButton({ icon: 'help', label: t('topbar.help'), className: 'ao-help-btn', onClick: () => ctx.openDialog('help') });
 
     this.el.append(
       h('div', { class: 'ao-topbar-group ao-topbar-left' }, this.sidebarBtn, this.brand(), this.pill),
@@ -84,16 +85,16 @@ export class TopBar implements Component {
       h(
         'div',
         { class: 'ao-topbar-group ao-topbar-right' },
-        iconButton({ icon: 'fit', label: 'Visão geral (O)', onClick: () => ctx.world.overview() }),
-        iconButton({ icon: 'zoomOut', label: 'Afastar (-)', onClick: () => ctx.world.zoomBy(1 / 1.25) }),
-        iconButton({ icon: 'zoomIn', label: 'Aproximar (+)', onClick: () => ctx.world.zoomBy(1.25) }),
+        iconButton({ icon: 'fit', label: t('topbar.overview'), onClick: () => ctx.world.overview() }),
+        iconButton({ icon: 'zoomOut', label: t('topbar.zoomOut'), onClick: () => ctx.world.zoomBy(1 / 1.25) }),
+        iconButton({ icon: 'zoomIn', label: t('topbar.zoomIn'), onClick: () => ctx.world.zoomBy(1.25) }),
         this.cameraBtn,
         h('span', { class: 'ao-topbar-sep', 'aria-hidden': 'true' }),
         this.bellBtn,
         this.dayBtn,
-        this.popoverButton('sessions', 'history', 'Histórico de sessões'),
+        this.popoverButton('sessions', 'history', t('topbar.sessions')),
         this.feedBtn,
-        this.popoverButton('settings', 'settings', 'Configurações'),
+        this.popoverButton('settings', 'settings', t('topbar.settings')),
         this.helpBtn,
       ),
     );
@@ -113,7 +114,7 @@ export class TopBar implements Component {
 
   private createCounter(def: CounterDef): CounterView {
     const value = h('span', { class: 'ao-counter-value' }, '0');
-    const text = h('span', { class: 'ao-counter-label' }, def.label);
+    const text = h('span', { class: 'ao-counter-label' }, t(def.label, { n: 0 }));
     const inner = [icon(def.icon, 16), value, text];
     if (!def.jump) {
       const el = h('div', { class: `ao-counter ao-counter--${def.key}`, role: 'listitem' }, ...inner);
@@ -153,13 +154,13 @@ export class TopBar implements Component {
     let text: string;
     if (connection === 'live') {
       kind = mock ? 'mock' : 'live';
-      text = mock ? 'Demonstração local' : this.ctx.snapshot?.meta.demo ? 'Ao vivo · demo' : 'Ao vivo';
+      text = mock ? t('topbar.connection.mock') : this.ctx.snapshot?.meta.demo ? t('topbar.connection.liveDemo') : t('topbar.connection.live');
     } else if (connection === 'reconnecting') {
       kind = 'warn';
-      text = 'Reconectando…';
+      text = t('topbar.connection.reconnecting');
     } else {
       kind = 'connecting';
-      text = 'Conectando…';
+      text = t('topbar.connection.connecting');
     }
     const next = `ao-pill ao-pill--${kind}`;
     if (this.pill.className !== next) this.pill.className = next;
@@ -171,15 +172,16 @@ export class TopBar implements Component {
     for (const view of this.counters) {
       const value = counters[view.def.key];
       setText(view.value, String(value));
-      setText(view.text, value === 1 && view.def.singular ? view.def.singular : view.def.label);
+      const label = t(view.def.label, { n: value });
+      setText(view.text, label);
       const attention = view.def.key === 'needsYou' && value > 0;
       toggleClass(view.el, 'is-attention', attention);
       toggleClass(view.el, 'is-zero', value === 0);
       if (view.el instanceof HTMLButtonElement) {
         view.el.disabled = value === 0;
-        view.el.title = value === 0 ? `Nenhum item em "${view.def.label}"` : `Ir para o próximo (${view.def.label})`;
+        view.el.title = value === 0 ? t('topbar.counter.none', { label }) : t('topbar.counter.next', { label });
       } else {
-        view.el.title = `${value} ${value === 1 && view.def.singular ? view.def.singular : view.def.label}`;
+        view.el.title = `${value} ${label}`;
       }
     }
   }
@@ -196,10 +198,10 @@ export class TopBar implements Component {
     const unread = unreadCount(this.ctx.notifications.get());
     this.bellBadge.hidden = unread === 0;
     setText(this.bellBadge, unread > 9 ? '9+' : String(unread));
-    this.bellBtn.setAttribute('aria-label', unread > 0 ? `Notificações, ${unread} não lidas` : 'Notificações');
+    this.bellBtn.setAttribute('aria-label', unread > 0 ? t('topbar.notifications.unread', { n: unread }) : t('topbar.notifications'));
 
     const modes = this.ctx.world.cameraModes();
     this.cameraBtn.hidden = modes.length < 2;
-    if (modes.length >= 2) setText(this.cameraLabel, CAMERA_LABEL[this.ctx.world.cameraMode()]);
+    if (modes.length >= 2) setText(this.cameraLabel, t(CAMERA_LABEL[this.ctx.world.cameraMode()]));
   }
 }

@@ -1,7 +1,7 @@
 // Renders a transcript file as TranscriptEntry[] for the read-only terminal view, incrementally.
 // Entries have stable global indices; tool entries are updated in place when their result arrives, so
 // `next` points at the oldest tool entry still waiting for its result (clients replace tool entries by id).
-import { type TranscriptEntry, describeToolUse, truncate } from '@ai-office/shared';
+import { type Msg, type TranscriptEntry, describeToolUse, msg, sourceText, truncate } from '@ai-office/shared';
 import { trimInput } from '../registries/permission-text';
 import { JsonlTailer } from './jsonl-tailer';
 import { parseLine } from './line-parser';
@@ -18,6 +18,10 @@ const MAX_RESULT = 4096;
 export const MAX_VIEW_BYTES = 8 * 1024 * 1024;
 
 type ToolEntry = Extract<TranscriptEntry, { kind: 'tool' }>;
+
+function systemEntry(at: number, message: Msg): TranscriptEntry {
+  return { kind: 'system', at, text: sourceText(message), msg: message };
+}
 
 export interface RenderedPage {
   entries: TranscriptEntry[];
@@ -112,7 +116,7 @@ export class TranscriptView {
         break;
       case 'interrupt':
         this.unresolved.clear();
-        this.push({ kind: 'system', at: line.at, text: 'Interrompido pelo usuário' });
+        this.push(systemEntry(line.at, msg('transcript.interrupted')));
         break;
       case 'assistant':
         this.renderAssistant(line);
@@ -121,7 +125,7 @@ export class TranscriptView {
         for (const result of line.results) this.attachResult(result.toolUseId, result.text, result.isError);
         break;
       case 'system':
-        if (line.subtype === 'compact_boundary') this.push({ kind: 'system', at: line.at, text: 'Conversa compactada' });
+        if (line.subtype === 'compact_boundary') this.push(systemEntry(line.at, msg('transcript.compacted')));
         break;
       default:
         break;
@@ -136,7 +140,7 @@ export class TranscriptView {
         if (block.text.trim().length > 0) this.push({ kind: 'thinking', at: line.at, text: block.text.slice(0, MAX_TEXT) });
       } else {
         const draft = describeToolUse(block.name, block.input);
-        const entry: ToolEntry = { kind: 'tool', at: line.at, id: block.id, name: block.name, summary: `${draft.icon} ${draft.text}`, input: trimInput(block.input) };
+        const entry: ToolEntry = { kind: 'tool', at: line.at, id: block.id, name: block.name, summary: `${draft.icon} ${draft.text}`, icon: draft.icon, summaryMsg: draft.msg, input: trimInput(block.input) };
         const index = this.push(entry);
         this.toolIndex.set(block.id, index);
         this.unresolved.add(index);

@@ -1,4 +1,4 @@
-import type { Agent, OfficeSnapshot } from '@ai-office/shared';
+import type { Agent, Msg, OfficeSnapshot } from '@ai-office/shared';
 import { computeBuilding } from '../layout/building';
 import { isWalkable, nearestWalkable } from '../layout/grid';
 import { clamp, hash32 } from '../layout/rng';
@@ -211,10 +211,10 @@ export class OfficeSim {
     const finishedTurn = previous.status === 'working' && agent.status === 'idle';
     if (finishedTurn && actor.phase === 'atHome') {
       actor.celebrateUntil = this.time + 2;
-      this.offerBubble(actor, { text: 'Terminei!', icon: '✅', importance: 60, sticky: false, ttl: 3.2 });
+      this.offerBubble(actor, { text: 'Terminei!', msg: { key: 'bubble.done' }, icon: '✅', importance: 60, sticky: false, ttl: 3.2 });
     }
     if (agent.status === 'waiting' && previous.status !== 'waiting') {
-      this.offerBubble(actor, { text: 'Precisa de você', icon: '!', importance: ALERT_IMPORTANCE, sticky: true, ttl: 0 });
+      this.offerBubble(actor, { text: 'Precisa de você', msg: { key: 'bubble.needsYou' }, icon: '!', importance: ALERT_IMPORTANCE, sticky: true, ttl: 0 });
     }
     if (agent.status !== 'waiting' && previous.status === 'waiting') this.bubbleManager.withdrawSticky(actor.id);
     if (agent.status === 'idle' && previous.status !== 'idle') {
@@ -223,6 +223,7 @@ export class OfficeSim {
     if (agent.activity && agent.activity.id !== previous.activity?.id && agent.status === 'working') {
       this.offerBubble(actor, {
         text: clipText(agent.activity.text),
+        msg: agent.activity.msg,
         icon: agent.activity.icon,
         importance: activityImportance(agent.activity),
         sticky: false,
@@ -232,7 +233,7 @@ export class OfficeSim {
     if ((agent.status === 'done' || agent.status === 'offline') && !actor.leaving) this.beginLeave(actor, agent.status === 'done');
   }
 
-  private offerBubble(actor: Actor, b: { text: string; icon: string; importance: number; sticky: boolean; ttl: number }): void {
+  private offerBubble(actor: Actor, b: { text: string; msg?: Msg; icon: string; importance: number; sticky: boolean; ttl: number }): void {
     this.bubbleManager.offer({ agentId: actor.id, roomId: actor.areaId ?? 'corridor', ...b }, this.time);
   }
 

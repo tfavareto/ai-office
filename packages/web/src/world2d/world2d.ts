@@ -1,4 +1,5 @@
 import type { Agent, OfficeSnapshot } from '@ai-office/shared';
+import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import { OfficeSim } from '../sim/sim';
@@ -20,7 +21,7 @@ import { OverlayPass } from './overlayPass';
 import { pickCharacter, pickRoom } from './picking';
 import { Renderer, type FrameState } from './renderer';
 import { type RoomInfo, summarizeRoom } from './runtime/boards';
-import { type TickerStrip, renderTicker, tickerText } from './runtime/ticker';
+import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
 
 const PAN_SPEED = 360;
 const DRAG_THRESHOLD = 4;
@@ -51,6 +52,7 @@ export class World2D implements WorldApi {
   private accountColors = new Map<string, string>();
   private ticker: TickerStrip | null = null;
   private tickerKey = '';
+  private tickerStats: TickerStats | null = null;
 
   private raf = 0;
   private last = 0;
@@ -81,7 +83,7 @@ export class World2D implements WorldApi {
     this.ctx = ctx;
     this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
     this.canvas.tabIndex = 0;
-    this.canvas.setAttribute('aria-label', 'Escritório');
+    this.updateAriaLabel();
     if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
     container.appendChild(this.canvas);
     this.applyOptions();
@@ -114,20 +116,40 @@ export class World2D implements WorldApi {
   }
 
   private updateTicker(snapshot: OfficeSnapshot): void {
-    const live = snapshot.agents.filter((a) => a.status !== 'done' && a.status !== 'offline');
-    const working = live.filter((a) => a.status === 'working').length;
-    const waiting = live.filter((a) => a.status === 'waiting').length;
-    const shells = live.reduce((n, a) => n + a.shells.filter((s) => !s.background).length, 0);
-    const text = tickerText(snapshot.projects.length, live.length, working, waiting, shells);
+    this.tickerStats = tickerFromSnapshot(snapshot);
+    this.refreshTicker();
+  }
+
+  /** Re-renders the LED strip when its text changed (new numbers, or another language). */
+  private refreshTicker(): void {
+    const stats = this.tickerStats;
+    if (!stats) return;
+    const text = tickerText(stats.rooms, stats.agents, stats.working, stats.waiting, stats.shells, worldText(this.options.locale));
     if (text !== this.tickerKey) {
       this.tickerKey = text;
       this.ticker = renderTicker(text);
     }
   }
 
+  private updateAriaLabel(): void {
+    this.canvas.setAttribute('aria-label', worldText(this.options.locale).t('world.aria2d'));
+  }
+
   setOptions(options: Partial<WorldOptions>): void {
+    const previous = this.options.locale;
     this.options = { ...this.options, ...options };
     this.applyOptions();
+    if (this.options.locale !== previous) this.onLocaleChanged();
+  }
+
+  /**
+   * Texts drawn in the world follow `options.locale`. Cached pieces are keyed by language (static area layers, wall
+   * boards, label sprites), so only the ones that hold words are redrawn on the next frame; the camera, the selection
+   * and the simulation are untouched. The ticker strip and the accessible name are rebuilt here.
+   */
+  private onLocaleChanged(): void {
+    this.updateAriaLabel();
+    this.refreshTicker();
   }
 
   private applyOptions(): void {

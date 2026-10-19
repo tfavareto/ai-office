@@ -87,11 +87,13 @@ describe('boards and ticker', () => {
     expect(roomInfoKey(info)).toContain('1/2');
   });
 
-  it('writes the ticker in Portuguese without accents the pixel font cannot draw', () => {
+  it('writes the ticker in Portuguese, which the pixel font folds to letters it can draw', () => {
     const text = tickerText(1, 1, 1, 0, 0);
     expect(text).toContain('1 SALA');
     expect(text).toContain('1 AGENTE');
-    expect(tickerText(3, 5, 2, 2, 1)).toContain('2 PRECISA DE VOCE');
+    const busy = tickerText(3, 5, 2, 2, 1);
+    expect(busy).toContain('2 PRECISAM DE VOCÊ');
+    expect(foldText(busy)).toContain('2 PRECISAM DE VOCE');
     expect(foldText('Recepção')).toBe('RECEPCAO');
     expect(textWidth('AB')).toBe(7);
   });

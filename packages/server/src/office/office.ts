@@ -7,13 +7,16 @@ import {
   type AccountUsage,
   type DemoSimulator,
   type FeedItem,
+  type Msg,
   type Notice,
   type NoticeLevel,
   DEMO_ACCOUNTS,
   type PermissionRequest,
   type Project,
+  durationMsg,
   fnv1a,
-  formatDuration,
+  msg,
+  sourceText,
 } from '@ai-office/shared';
 import type { ParsedLine } from '../claude/types';
 import type { SubagentMeta } from '../claude/paths';
@@ -128,7 +131,7 @@ export class Office {
     this.announce.delete(key);
     if (announce) {
       const person = this.personOf(record, undefined);
-      this.notice('info', `${person.name} saiu do escritório`, mainAgentId(record), projectPathOf(record));
+      this.notice('info', msg('notice.left', { name: person.name }), mainAgentId(record), projectPathOf(record));
     }
   }
 
@@ -267,7 +270,7 @@ export class Office {
     const mainId = mainAgentId(record);
     const person = this.personOf(record, undefined);
     out.push(buildMainAgent(record, projectId, person, overlayFor(mainId), now));
-    if (this.announce.delete(record.key)) this.notice('info', `${person.name} chegou ao escritório (${projectId.split('/').pop() ?? projectId})`, mainId, projectId);
+    if (this.announce.delete(record.key)) this.notice('info', msg('notice.arrived', { name: person.name, project: projectId.split('/').pop() ?? projectId }), mainId, projectId);
     for (const sub of record.subs.values()) {
       if (!sub.state.sawAny || !subVisible(record, sub, now)) continue;
       const subPerson = this.personOf(record, sub);
@@ -307,8 +310,9 @@ export class Office {
   }
 
   private alertWaiting(agent: Agent): void {
-    const detail = agent.permission?.summary ?? agent.waitingFor;
-    this.notice('alert', `${agent.name} precisa de você${detail !== undefined ? `: ${detail}` : ''}`, agent.id, agent.projectId, `alert:${agent.id}:${this.deps.now()}`);
+    const detail = agent.permission !== undefined ? (agent.permission.summaryMsg ?? agent.permission.summary) : (agent.waitingForMsg ?? agent.waitingFor);
+    const message = detail === undefined ? msg('notice.needs', { name: agent.name }) : msg('notice.needs.detail', { name: agent.name, detail });
+    this.notice('alert', message, agent.id, agent.projectId, `alert:${agent.id}:${this.deps.now()}`);
   }
 
   // ---- helpers ------------------------------------------------------------------------------------------------
@@ -336,23 +340,24 @@ export class Office {
     const agentId = sub === undefined ? mainAgentId(record) : subAgentId(record, sub.agentId);
     const projectId = projectPathOf(record);
     if (effects.turnCompleted !== undefined) {
-      this.notice('success', `${name} concluiu em ${formatDuration(effects.turnCompleted.durationMs)}`, agentId, projectId);
+      this.notice('success', msg('notice.done', { name, duration: durationMsg(effects.turnCompleted.durationMs) }), agentId, projectId);
     }
     if (effects.error !== undefined) {
       const last = this.lastErrorNotice.get(agentId) ?? 0;
       if (at - last >= ERROR_NOTICE_GAP_MS) {
         this.lastErrorNotice.set(agentId, at);
-        this.notice('warn', `${name}: erro em ${effects.error.tool}`, agentId, projectId);
+        this.notice('warn', msg('notice.error', { name, tool: effects.error.tool }), agentId, projectId);
       }
     }
   }
 
-  private notice(level: NoticeLevel, text: string, agentId?: string, projectId?: string, id?: string): void {
+  private notice(level: NoticeLevel, message: Msg, agentId?: string, projectId?: string, id?: string): void {
     this.deps.events.onNotice({
       id: id ?? `n-${newId(6)}`,
       at: this.deps.now(),
       level,
-      text,
+      text: sourceText(message),
+      msg: message,
       ...(agentId !== undefined ? { agentId } : {}),
       ...(projectId !== undefined ? { projectId } : {}),
     });

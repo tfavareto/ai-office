@@ -26,7 +26,11 @@ describe('deriveStatus', () => {
 
   test('a tool pending over 8 s while the registry says idle means "Aprovar <ferramenta>"', () => {
     const old = { name: 'Bash', at: NOW - PENDING_TOOL_WAIT_MS - 1 };
-    expect(deriveStatus(base({ turn: 'working', registryStatus: 'idle', blockingTool: old }))).toEqual({ status: 'waiting', waitingFor: 'Aprovar Bash' });
+    expect(deriveStatus(base({ turn: 'working', registryStatus: 'idle', blockingTool: old }))).toEqual({
+      status: 'waiting',
+      waitingFor: 'Aprovar Bash',
+      waitingForMsg: { key: 'waiting.approve', params: { tool: 'Bash' } },
+    });
     const fresh = { name: 'Bash', at: NOW - 2000 };
     expect(deriveStatus(base({ turn: 'working', registryStatus: 'idle', blockingTool: fresh })).status).toBe('working');
     expect(deriveStatus(base({ turn: 'working', registryStatus: 'busy', blockingTool: old })).status).toBe('working');

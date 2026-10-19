@@ -1,7 +1,9 @@
 // Popover with the sessions of the last 7 days, grouped by day and searchable; closed sessions open read-only.
 import type { RecentSession } from '@ai-office/shared';
+import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
-import { LOCAL_ONLY_HINT, type AppContext } from '../context';
+import { localOnlyHint, type AppContext } from '../context';
+import { localizedOptional } from '../display';
 import { h } from '../dom';
 import { formatClock } from '../format';
 import { icon } from '../icons';
@@ -20,14 +22,14 @@ export class SessionHistory extends Popover {
   private signature = '';
 
   constructor(ctx: AppContext) {
-    super(ctx, 'sessions', 'Histórico de sessões', 'ao-popover--sessions');
-    this.input = h('input', { type: 'search', class: 'ao-search-input ao-input', placeholder: 'Buscar por projeto ou título', 'aria-label': 'Buscar sessões', autocomplete: 'off' });
+    super(ctx, 'sessions', t('topbar.sessions'), 'ao-popover--sessions');
+    this.input = h('input', { type: 'search', class: 'ao-search-input ao-input', placeholder: t('sessions.search'), 'aria-label': t('sessions.search.label'), autocomplete: 'off' });
     this.input.addEventListener('input', () => {
       this.signature = '';
       this.ctx.refresh();
     });
     this.el.append(
-      h('header', { class: 'ao-popover-head' }, h('strong', null, 'Histórico de sessões'), h('span', { class: 'ao-popover-hint' }, 'últimos 7 dias')),
+      h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.sessions')), h('span', { class: 'ao-popover-hint' }, t('sessions.range'))),
       h('div', { class: 'ao-popover-sub' }, this.input),
       this.body,
     );
@@ -65,20 +67,20 @@ export class SessionHistory extends Popover {
     if (signature === this.signature) return;
     this.signature = signature;
     if (!local) {
-      this.body.replaceChildren(emptyNote(LOCAL_ONLY_HINT));
+      this.body.replaceChildren(emptyNote(localOnlyHint()));
       return;
     }
     if (this.state === 'loading') {
-      this.body.replaceChildren(emptyNote('Carregando sessões…'));
+      this.body.replaceChildren(emptyNote(t('sessions.loading')));
       return;
     }
     if (this.state === 'error') {
-      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, 'Tentar de novo'));
+      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
       return;
     }
     const groups = groupSessionsByDay(filterSessions(this.sessions, this.input.value), this.ctx.now());
     if (groups.length === 0) {
-      this.body.replaceChildren(emptyNote(this.input.value ? 'Nenhuma sessão encontrada para esta busca.' : 'Nenhuma sessão nos últimos 7 dias.'));
+      this.body.replaceChildren(emptyNote(this.input.value ? t('sessions.empty.search') : t('sessions.empty.range')));
       return;
     }
     this.body.replaceChildren(
@@ -93,8 +95,8 @@ export class SessionHistory extends Popover {
       'button',
       { type: 'button', class: 'ao-session', title: session.projectPath },
       accountChip(this.ctx.account(session.accountId)),
-      h('span', { class: 'ao-session-body' }, h('strong', null, session.projectName), h('span', null, session.title ?? 'Sem título')),
-      h('span', { class: 'ao-session-meta' }, session.open ? h('span', { class: 'ao-tag ao-tag--live' }, 'aberta') : null, h('span', null, `${formatClock(session.firstAt)}–${formatClock(session.lastAt)}`)),
+      h('span', { class: 'ao-session-body' }, h('strong', null, session.projectName), h('span', null, localizedOptional(session.titleMsg, session.title) ?? t('sessions.untitled'))),
+      h('span', { class: 'ao-session-meta' }, session.open ? h('span', { class: 'ao-tag ao-tag--live' }, t('sessions.open')) : null, h('span', null, `${formatClock(session.firstAt)}–${formatClock(session.lastAt)}`)),
       icon('chevronRight', 14),
     );
     row.addEventListener('click', () => {

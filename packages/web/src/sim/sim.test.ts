@@ -90,6 +90,7 @@ describe('simulation', () => {
     expect(ana.pose).toBe('hand');
     expect(ana.alert).toBe(true);
     expect(sim.bubbles.some((b) => b.agentId === 'ana' && b.sticky)).toBe(true);
+    expect(sim.bubbles.find((b) => b.agentId === 'ana' && b.sticky)).toMatchObject({ text: 'Precisa de você', msg: { key: 'bubble.needsYou' } });
     sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0, 'idle')], 3), 1_002_000);
     sim.runFor(0.5);
     expect(['sit', 'celebrate']).toContain(sim.character('ana')!.pose);

@@ -3,6 +3,7 @@
 import {
   Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, SRGBColorSpace, Vector3, type Object3D, type Texture,
 } from 'three';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import type { AreaLayout, BuildingLayout } from '../../layout/types';
 import { TILE_M as T } from '../units';
 import { groundQuad, PartCollector, disposeObject } from '../util/parts';
@@ -13,6 +14,7 @@ import { buildAreaShell } from './shell';
 import {
   paintBoard, paintLoungeTv, paintMeetingTv, WorkstationAtlas, type BoardInfo, type DeskState,
 } from './screens';
+import { roomInfoKey } from '../../world2d/runtime/boards';
 import { buildWallItems, disposeScreens, type WallScreens } from './wallItems';
 
 export interface SceneDeps {
@@ -61,20 +63,37 @@ export class AreaScene {
   private lastNamesKey = '';
   private build = 1;
 
-  constructor(readonly area: AreaLayout, building: BuildingLayout, private readonly deps: SceneDeps) {
+  private text: WorldText;
+
+  constructor(readonly area: AreaLayout, building: BuildingLayout, private readonly deps: SceneDeps, text: WorldText = worldText('pt-BR')) {
+    this.text = text;
     const { m, models } = deps;
     const shellParts = new PartCollector();
     buildAreaShell(shellParts, area, building, m);
     const propParts = new PartCollector();
     const furniture = buildFurniture(propParts, area, m, models);
-    buildWallItems(propParts, area, m, this.dynamic, this.screens, area.theme.accent, area.label);
+    buildWallItems(propParts, area, m, this.dynamic, this.screens, area.theme.accent, area.label, text);
     if (furniture.screens.length) this.addMonitors(propParts, furniture.screens);
+    this.atlas?.setText(text);
     this.shell = shellParts.build(shadowOf);
     this.props = propParts.build(shadowOf);
     this.group.add(this.shell, this.props, this.dynamic);
     this.addGlow(area);
     const r = area.rect;
     this.bounds.set(new Vector3(r.x * T, 0, r.y * T), new Vector3((r.x + r.w) * T, 3, (r.y + r.h) * T));
+  }
+
+  /**
+   * Switches the language of the area's texts in place: the decor atlas (pantry menu) is repainted and the boards are
+   * redrawn at the next `update`. Meshes, materials and camera are untouched.
+   */
+  setText(text: WorldText): void {
+    if (text.locale === this.text.locale) return;
+    this.text = text;
+    this.screens.decor?.setText(text);
+    this.atlas?.setText(text);
+    this.lastInfoKey = '';
+    this.lastNamesKey = '';
   }
 
   private addMonitors(parts: PartCollector, quads: readonly ScreenQuad[]): void {
@@ -134,17 +153,17 @@ export class AreaScene {
   update(f: AreaFrame): void {
     const screens = this.screens;
     if (screens.board) {
-      const key = `${f.info.agents}|${f.info.working}|${f.info.waiting}|${f.info.tasksDone}/${f.info.tasksTotal}|${f.info.current ?? ''}`;
+      const key = `${this.text.locale}|${roomInfoKey(f.info)}`;
       if (key !== this.lastInfoKey) {
         this.lastInfoKey = key;
-        screens.board.draw(key, (ctx, w, h) => paintBoard(ctx, w, h, this.area.label, f.info, this.area.theme.accent));
+        screens.board.draw(key, (ctx, w, h) => paintBoard(ctx, w, h, this.area.label, f.info, this.area.theme.accent, this.text));
       }
     }
     if (screens.meetingTv) {
-      const key = f.names.join('|');
+      const key = `${this.text.locale}|${f.names.join('|')}`;
       if (key !== this.lastNamesKey) {
         this.lastNamesKey = key;
-        screens.meetingTv.draw(key, (ctx, w, h) => paintMeetingTv(ctx, w, h, f.names));
+        screens.meetingTv.draw(key, (ctx, w, h) => paintMeetingTv(ctx, w, h, f.names, this.text));
       }
     }
     if (screens.loungeTv && f.refreshScreens && f.visible) {

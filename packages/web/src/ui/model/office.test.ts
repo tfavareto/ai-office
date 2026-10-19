@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { setLocale } from '../../i18n';
 import { account, activity, agent, project, snapshot } from '../../test/fixtures';
 import { agentsNeedingYou, agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './counters';
 import { buildRooms, normalizeQuery } from './rooms';
 import { displayStatus, shellStage } from './status';
 import { filterSessions, groupSessionsByDay } from './sessions';
 import { mergeTimeline, roomActivities } from './timeline';
+
+beforeEach(() => setLocale('pt-BR'));
+afterEach(() => setLocale('pt-BR'));
 
 const shell = (id: string, startedAt: number, background = false) => ({ id, label: 'npm test', background, kind: 'shell' as const, startedAt });
 
@@ -23,6 +27,13 @@ describe('displayStatus', () => {
     expect(shellStage({ startedAt: 0 }, 10_000).label).toBe('Rodando');
     expect(shellStage({ startedAt: 0 }, 90_000).label).toBe('Demorando');
     expect(shellStage({ startedAt: 0 }, 600_000).index).toBe(3);
+  });
+
+  it('names the stages in the current language', () => {
+    setLocale('en');
+    expect(shellStage({ startedAt: 0 }, 1_000).label).toBe('Starting');
+    setLocale('es');
+    expect(shellStage({ startedAt: 0 }, 90_000).label).toBe('Tardando');
   });
 });
 

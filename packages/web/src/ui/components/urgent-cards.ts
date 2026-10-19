@@ -1,9 +1,11 @@
 // Urgent cards at the top of the agent drawer: permission request, "Precisa de você", "Esperando o shell".
 import type { Agent, PermissionRequest } from '@ai-office/shared';
+import { t } from '../../i18n';
 import type { AppContext } from '../context';
+import { agentWaitingFor, permissionSuggestion, permissionSummary, shellLabel } from '../display';
 import { h, setText, toggleClass } from '../dom';
 import { icon } from '../icons';
-import { SHELL_STAGES, shellStage } from '../model/status';
+import { SHELL_STAGES, shellStage, shellStageLabel } from '../model/status';
 import { truncate } from '../format';
 import { button, liveText, setDisabled, setLive } from '../widgets';
 
@@ -20,7 +22,7 @@ function prettyInput(input: unknown): string {
 }
 
 export class PermissionCard {
-  readonly el = h('section', { class: 'ao-urgent ao-permission', 'aria-label': 'Pedido de permissão' });
+  readonly el = h('section', { class: 'ao-urgent ao-permission', 'aria-label': t('permission.title') });
   private readonly tool = h('span', { class: 'ao-tool-chip' });
   private readonly summary = h('p', { class: 'ao-permission-summary' });
   private readonly expires = liveText('until', 0, 'ao-permission-expires');
@@ -40,33 +42,33 @@ export class PermissionCard {
   private busy = false;
 
   constructor(private readonly ctx: AppContext) {
-    this.detailsBtn = h('button', { type: 'button', class: 'ao-link', 'aria-expanded': 'false', onclick: () => this.toggleDetails() }, 'Ver detalhes');
-    this.reason = h('textarea', { class: 'ao-textarea ao-textarea--small', rows: 2, placeholder: 'Motivo da recusa (opcional): o agente vai ler isto.', 'aria-label': 'Motivo da recusa' });
+    this.detailsBtn = h('button', { type: 'button', class: 'ao-link', 'aria-expanded': 'false', onclick: () => this.toggleDetails() }, t('permission.details.show'));
+    this.reason = h('textarea', { class: 'ao-textarea ao-textarea--small', rows: 2, placeholder: t('permission.deny.placeholder'), 'aria-label': t('permission.deny.reason') });
     this.interrupt = h('input', { type: 'checkbox', id: 'ao-deny-interrupt' });
     this.denyBox = h(
       'div',
       { class: 'ao-permission-deny', hidden: true },
       this.reason,
-      h('label', { class: 'ao-check', for: 'ao-deny-interrupt' }, this.interrupt, h('span', null, 'Interromper o turno do agente')),
+      h('label', { class: 'ao-check', for: 'ao-deny-interrupt' }, this.interrupt, h('span', null, t('permission.deny.interrupt'))),
       h(
         'div',
         { class: 'ao-row-actions' },
-        button({ label: 'Confirmar recusa', variant: 'danger', onClick: () => void this.deny() }),
-        button({ label: 'Cancelar', variant: 'ghost', onClick: () => this.toggleDeny(false) }),
+        button({ label: t('permission.deny.confirm'), variant: 'danger', onClick: () => void this.deny() }),
+        button({ label: t('common.cancel'), variant: 'ghost', onClick: () => this.toggleDeny(false) }),
       ),
     );
-    this.allowBtn = button({ label: 'Aprovar', icon: 'check', variant: 'primary', onClick: () => void this.decide({ behavior: 'allow' }) });
-    this.denyBtn = button({ label: 'Recusar', icon: 'x', variant: 'soft', onClick: () => this.toggleDeny(Boolean(this.denyBox.hidden)) });
+    this.allowBtn = button({ label: t('permission.allow'), icon: 'check', variant: 'primary', onClick: () => void this.decide({ behavior: 'allow' }) });
+    this.denyBtn = button({ label: t('permission.deny'), icon: 'x', variant: 'soft', onClick: () => this.toggleDeny(Boolean(this.denyBox.hidden)) });
     this.terminalBtn = button({
-      label: 'Responder no terminal',
+      label: t('permission.terminal'),
       icon: 'terminal',
       variant: 'ghost',
-      title: 'Deixa o diálogo do terminal decidir; a primeira resposta vale.',
+      title: t('permission.terminal.hint'),
       onClick: () => void this.answerInTerminal(),
     });
     this.actions.append(this.allowBtn, this.denyBtn, this.terminalBtn);
     this.el.append(
-      h('header', { class: 'ao-urgent-head' }, icon('shield', 18), h('strong', null, 'Pedido de permissão'), h('span', { class: 'ao-urgent-spacer' }), h('span', { class: 'ao-urgent-sub' }, 'expira em ', this.expires)),
+      h('header', { class: 'ao-urgent-head' }, icon('shield', 18), h('strong', null, t('permission.title')), h('span', { class: 'ao-urgent-spacer' }), h('span', { class: 'ao-urgent-sub' }, t('permission.expiresIn'), this.expires)),
       h('div', { class: 'ao-permission-tool' }, this.tool, this.summary),
       this.detailsBtn,
       this.details,
@@ -88,11 +90,11 @@ export class PermissionCard {
       this.status.hidden = true;
       this.details.hidden = true;
       this.detailsBtn.setAttribute('aria-expanded', 'false');
-      setText(this.detailsBtn, 'Ver detalhes');
+      setText(this.detailsBtn, t('permission.details.show'));
       this.buildRemember(permission);
     }
     setText(this.tool, permission.toolName);
-    setText(this.summary, permission.summary);
+    setText(this.summary, permissionSummary(permission));
     setLive(this.expires, 'until', permission.expiresAt);
     const input = prettyInput(permission.input);
     this.detailsBtn.hidden = input.length === 0;
@@ -103,19 +105,20 @@ export class PermissionCard {
   private buildRemember(permission: PermissionRequest): void {
     this.rememberBox.hidden = permission.suggestions.length === 0;
     this.rememberBox.replaceChildren(
-      ...permission.suggestions.map((label, index) =>
-        h(
+      ...permission.suggestions.map((_, index) => {
+        const label = permissionSuggestion(permission, index);
+        return h(
           'button',
-          { type: 'button', class: 'ao-remember', title: `Aprova e lembra a regra: ${label}`, onclick: () => void this.decide({ behavior: 'allow', suggestion: index }) },
+          { type: 'button', class: 'ao-remember', title: t('permission.remember.title', { rule: label }), onclick: () => void this.decide({ behavior: 'allow', suggestion: index }) },
           icon('check', 14),
-          h('span', { class: 'ao-remember-text' }, h('strong', null, 'Aprovar e não perguntar de novo'), h('span', null, label)),
-        ),
-      ),
+          h('span', { class: 'ao-remember-text' }, h('strong', null, t('permission.remember')), h('span', null, label)),
+        );
+      }),
     );
   }
 
   private syncDisabled(): void {
-    const reason = this.ctx.isLocal ? undefined : 'Disponível apenas ao abrir o AI Office neste computador.';
+    const reason = this.ctx.isLocal ? undefined : t('permission.localOnly');
     const off = this.busy || !this.ctx.isLocal;
     for (const btn of [this.allowBtn, this.denyBtn, this.terminalBtn]) setDisabled(btn, off, reason);
     for (const btn of this.rememberBox.querySelectorAll('button')) setDisabled(btn, off, reason);
@@ -125,7 +128,7 @@ export class PermissionCard {
     const open = this.details.hidden;
     this.details.hidden = !open;
     this.detailsBtn.setAttribute('aria-expanded', String(open));
-    setText(this.detailsBtn, open ? 'Ocultar detalhes' : 'Ver detalhes');
+    setText(this.detailsBtn, open ? t('permission.details.hide') : t('permission.details.show'));
   }
 
   private toggleDeny(open: boolean): void {
@@ -150,7 +153,7 @@ export class PermissionCard {
     if (!agent || this.busy) return false;
     this.busy = true;
     this.syncDisabled();
-    this.showStatus('Enviando resposta…');
+    this.showStatus(t('permission.sending'));
     const ok = await this.ctx.decidePermission(agent, decision);
     // On success the next snapshot removes the card; keep it locked meanwhile. On failure let the user retry.
     if (!ok) {
@@ -158,7 +161,7 @@ export class PermissionCard {
       this.status.hidden = true;
       this.syncDisabled();
     } else {
-      this.showStatus('Resposta enviada. Aguardando o agente…');
+      this.showStatus(t('permission.sent'));
     }
     return ok;
   }
@@ -170,20 +173,20 @@ export class PermissionCard {
 }
 
 export class WaitingCard {
-  readonly el = h('section', { class: 'ao-urgent ao-waiting', 'aria-label': 'Precisa de você' });
+  readonly el = h('section', { class: 'ao-urgent ao-waiting', 'aria-label': t('waiting.title') });
   private readonly text = h('p', { class: 'ao-urgent-text' });
   private readonly since = liveText('ago', 0);
   private agent: Agent | null = null;
 
   constructor(ctx: AppContext) {
     const terminal = button({
-      label: 'Responder no terminal',
+      label: t('permission.terminal'),
       icon: 'terminal',
       variant: 'primary',
       onClick: () => this.agent && ctx.openTerminalForAgent(this.agent),
     });
     this.el.append(
-      h('header', { class: 'ao-urgent-head' }, icon('alert', 18), h('strong', null, 'Precisa de você'), h('span', { class: 'ao-urgent-spacer' }), h('span', { class: 'ao-urgent-sub' }, this.since)),
+      h('header', { class: 'ao-urgent-head' }, icon('alert', 18), h('strong', null, t('waiting.title')), h('span', { class: 'ao-urgent-spacer' }), h('span', { class: 'ao-urgent-sub' }, this.since)),
       this.text,
       h('div', { class: 'ao-row-actions' }, terminal),
     );
@@ -191,20 +194,20 @@ export class WaitingCard {
 
   update(agent: Agent): void {
     this.agent = agent;
-    setText(this.text, agent.waitingFor ?? 'O agente parou e espera uma resposta sua. Responda no terminal onde a sessão está rodando.');
+    setText(this.text, agentWaitingFor(agent) ?? t('waiting.default'));
     setLive(this.since, 'ago', agent.statusSince);
   }
 }
 
 export class ShellCard {
-  readonly el = h('section', { class: 'ao-urgent ao-shell', 'aria-label': 'Esperando o shell' });
+  readonly el = h('section', { class: 'ao-urgent ao-shell', 'aria-label': t('shell.title') });
   private readonly list = h('div', { class: 'ao-shell-list' });
   private signature = '';
 
   constructor(private readonly ctx: AppContext) {
     this.el.append(
-      h('header', { class: 'ao-urgent-head' }, icon('terminal', 18), h('strong', null, 'Esperando o shell')),
-      h('p', { class: 'ao-urgent-text' }, 'O agente segue assim que o comando terminar.'),
+      h('header', { class: 'ao-urgent-head' }, icon('terminal', 18), h('strong', null, t('shell.title'))),
+      h('p', { class: 'ao-urgent-text' }, t('shell.note')),
       this.list,
     );
   }
@@ -220,12 +223,12 @@ export class ShellCard {
         return h(
           'div',
           { class: 'ao-shell-job' },
-          h('div', { class: 'ao-shell-job-head' }, h('strong', null, shell.label), h('span', { class: 'ao-shell-kind' }, shell.kind === 'monitor' ? 'monitor' : shell.background ? 'segundo plano' : 'em primeiro plano'), liveText('elapsed', shell.startedAt, 'ao-shell-elapsed')),
+          h('div', { class: 'ao-shell-job-head' }, h('strong', null, shellLabel(shell)), h('span', { class: 'ao-shell-kind' }, shell.kind === 'monitor' ? t('shell.kind.monitor') : shell.background ? t('shell.kind.background') : t('shell.kind.foreground')), liveText('elapsed', shell.startedAt, 'ao-shell-elapsed')),
           shell.command ? h('code', { class: 'ao-shell-command' }, truncate(shell.command, 160)) : null,
           h(
             'ol',
-            { class: 'ao-stages', 'aria-label': `Etapa: ${stage.label}` },
-            ...SHELL_STAGES.map((s, index) => h('li', { class: `ao-stage ${index < stage.index ? 'is-past' : index === stage.index ? 'is-current' : ''}`.trim(), 'aria-current': index === stage.index ? 'step' : null }, h('span', { class: 'ao-stage-dot' }), h('span', null, s.label))),
+            { class: 'ao-stages', 'aria-label': t('shell.stage.label', { stage: stage.label }) },
+            ...SHELL_STAGES.map((s, index) => h('li', { class: `ao-stage ${index < stage.index ? 'is-past' : index === stage.index ? 'is-current' : ''}`.trim(), 'aria-current': index === stage.index ? 'step' : null }, h('span', { class: 'ao-stage-dot' }), h('span', null, shellStageLabel(s.id)))),
           ),
         );
       }),

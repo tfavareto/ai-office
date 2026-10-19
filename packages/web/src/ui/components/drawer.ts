@@ -17,6 +17,13 @@ export class Drawer implements Component {
     this.el.setAttribute('inert', '');
   }
 
+  /** The shell is being rebuilt: stop the polling of the open agent or room view. */
+  dispose(): void {
+    this.agentView.deactivate();
+    this.roomView.deactivate();
+    this.shown = null;
+  }
+
   render(): void {
     const selection = this.ctx.ui.get().selection;
     const open = selection !== null;

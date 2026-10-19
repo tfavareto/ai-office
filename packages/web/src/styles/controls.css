@@ -237,6 +237,37 @@
   color: var(--accent);
 }
 
+/* Select (language picker). */
+.ao-select {
+  height: 30px;
+  max-width: 190px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: rgba(0, 0, 0, 0.22);
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 13px, calc(100% - 10px) 13px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  appearance: none;
+  cursor: pointer;
+}
+
+.ao-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ao-select option {
+  background: var(--bg-solid, #111621);
+  color: var(--text);
+}
+
 /* Switch. */
 .ao-switch {
   position: relative;

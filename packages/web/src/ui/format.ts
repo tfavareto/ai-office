@@ -1,24 +1,60 @@
-// Formatters for pt-BR text. Hand-rolled (no Intl) so output is identical in every runtime.
+// Locale-aware formatters. Numbers, dates and times go through Intl for the current interface language; the few
+// words around them ("ago", "now", "today") come from the catalogs. Formatters are cached per locale.
+import type { Locale } from '@ai-office/shared';
+import { locale, t } from '../i18n';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-const WEEKDAYS = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
+/** Digits of a compact token count: "1,23 mil" below 10k, "12,3 mil" above. */
+const TOKEN_FRACTION_SMALL = 2;
+const TOKEN_FRACTION_LARGE = 1;
+const TOKEN_SMALL_LIMIT = 10_000;
+const COST_ROUND_FROM = 100;
+const MIN_VISIBLE_COST = 0.01;
+
+type CacheKey = `${Locale}|${string}`;
+const numberFormats = new Map<CacheKey, Intl.NumberFormat>();
+const dateFormats = new Map<CacheKey, Intl.DateTimeFormat>();
+
+function numberFormat(id: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key: CacheKey = `${locale()}|${id}`;
+  let format = numberFormats.get(key);
+  if (!format) {
+    format = new Intl.NumberFormat(locale(), options);
+    numberFormats.set(key, format);
+  }
+  return format;
+}
+
+function dateFormat(id: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key: CacheKey = `${locale()}|${id}`;
+  let format = dateFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale(), options);
+    dateFormats.set(key, format);
+  }
+  return format;
+}
+
+/** English clocks are 12-hour ("2:30 PM"); pt-BR and Spanish use 24 hours with a leading zero ("14:30"). */
+function clockOptions(withSeconds: boolean): Intl.DateTimeFormatOptions {
+  const base: Intl.DateTimeFormatOptions = withSeconds ? { minute: '2-digit', second: '2-digit' } : { minute: '2-digit' };
+  return locale() === 'en' ? { ...base, hour: 'numeric', hour12: true } : { ...base, hour: '2-digit', hourCycle: 'h23' };
+}
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** Decimal with a comma and at most `digits` decimals, trailing zeros trimmed ("12,4"). */
+/** Decimal with the locale's separator and at most `digits` decimals, trailing zeros trimmed ("12,4" / "12.4"). */
 export function formatDecimal(value: number, digits = 1): string {
-  const fixed = value.toFixed(digits);
-  const trimmed = digits > 0 && fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
-  return trimmed.replace('.', ',');
+  return numberFormat(`dec${digits}`, { maximumFractionDigits: digits }).format(value);
 }
 
-/** "45 s", "12 min", "2 h 05 min", "1 d 3 h". */
+/** "45 s", "12 min", "2 h 05 min", "1 d 3 h" (unit symbols are the same in every supported language). */
 export function formatDuration(ms: number): string {
   const safe = Math.max(0, Math.floor(ms));
   if (safe < MINUTE) return `${Math.floor(safe / SECOND)} s`;
@@ -42,40 +78,43 @@ export function formatElapsed(ms: number): string {
   return hours > 0 ? `${hours}:${pad2(minutes)}:${pad2(seconds)}` : `${minutes}:${pad2(seconds)}`;
 }
 
-/** "agora", "há 45 s", "há 3 min", "há 2 h", "há 3 d". */
+/** "agora" / "just now" / "ahora", then "há 45 s" / "45 s ago" / "hace 45 s", minutes, hours, days. */
 export function formatAgo(ms: number): string {
   const safe = Math.max(0, ms);
-  if (safe < 10 * SECOND) return 'agora';
-  if (safe < MINUTE) return `há ${Math.floor(safe / SECOND)} s`;
-  if (safe < HOUR) return `há ${Math.floor(safe / MINUTE)} min`;
-  if (safe < DAY) return `há ${Math.floor(safe / HOUR)} h`;
-  return `há ${Math.floor(safe / DAY)} d`;
+  if (safe < 10 * SECOND) return t('time.now');
+  if (safe < MINUTE) return t('time.ago', { value: `${Math.floor(safe / SECOND)} s` });
+  if (safe < HOUR) return t('time.ago', { value: `${Math.floor(safe / MINUTE)} min` });
+  if (safe < DAY) return t('time.ago', { value: `${Math.floor(safe / HOUR)} h` });
+  return t('time.ago', { value: `${Math.floor(safe / DAY)} d` });
 }
 
-/** "842", "12,4 mil", "1,23 mi". */
+/** Compact token count: "842", "12,4 mil" / "12.4K" / "12,4 mil", "1,23 mi" / "1.23M" / "1,23 M". */
 export function formatTokens(count: number): string {
   const n = Math.max(0, count);
   if (n < 1000) return String(Math.round(n));
-  if (n < 1_000_000) return `${formatDecimal(n / 1000, n < 10_000 ? 2 : 1)} mil`;
-  return `${formatDecimal(n / 1_000_000, 2)} mi`;
+  const fraction = n < TOKEN_SMALL_LIMIT || n >= 1_000_000 ? TOKEN_FRACTION_SMALL : TOKEN_FRACTION_LARGE;
+  // Intl separates the number from its suffix with a no-break space; a regular one wraps like the rest of the text.
+  return numberFormat(`tok${fraction}`, { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: fraction })
+    .format(n)
+    .replace(/[\u00a0\u202f]/g, ' ');
 }
 
-/** "US$ 0,42"; unknown values render as an em dash. */
+/** Money is always US dollars: "US$ 0,42" in pt-BR and Spanish, "$0.42" in English; unknown values are an em dash. */
 export function formatCost(usd: number | undefined): string {
   if (usd === undefined || !Number.isFinite(usd)) return '—';
-  if (usd > 0 && usd < 0.01) return '< US$ 0,01';
-  if (usd >= 100) return `US$ ${Math.round(usd)}`;
-  return `US$ ${usd.toFixed(2).replace('.', ',')}`;
+  const symbol = locale() === 'en' ? '$' : 'US$ ';
+  if (usd > 0 && usd < MIN_VISIBLE_COST) return `< ${symbol}${numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(MIN_VISIBLE_COST)}`;
+  const amount = usd >= COST_ROUND_FROM ? numberFormat('cost0', { maximumFractionDigits: 0 }).format(usd) : numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usd);
+  return `${symbol}${amount}`;
 }
 
+/** "14:30" in pt-BR/Spanish, "2:30 PM" in English. */
 export function formatClock(ts: number): string {
-  const d = new Date(ts);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return dateFormat('clock', clockOptions(false)).format(ts);
 }
 
 export function formatClockSeconds(ts: number): string {
-  const d = new Date(ts);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  return dateFormat('clock-s', clockOptions(true)).format(ts);
 }
 
 /** Local calendar key, YYYY-MM-DD. */
@@ -91,19 +130,19 @@ export function startOfDay(ts: number): number {
   return d.getTime();
 }
 
-/** "Hoje", "Ontem" or "seg., 12/10". */
+/** "Hoje" / "Today" / "Hoy", "Ontem" / "Yesterday" / "Ayer", or a short weekday and date ("seg., 12/10"). */
 export function formatDayLabel(ts: number, now: number): string {
   const diffDays = Math.round((startOfDay(now) - startOfDay(ts)) / DAY);
-  if (diffDays === 0) return 'Hoje';
-  if (diffDays === 1) return 'Ontem';
-  const d = new Date(ts);
-  return `${WEEKDAYS[d.getDay()]}, ${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`;
+  if (diffDays === 0) return t('time.today');
+  if (diffDays === 1) return t('time.yesterday');
+  return dateFormat('weekday', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(ts);
 }
 
-/** "25/10/2026" from a YYYY-MM-DD key. */
+/** A YYYY-MM-DD key in the locale's order: "25/10/2026" (pt-BR, Spanish) or "10/25/2026" (English). */
 export function formatDateKey(key: string): string {
-  const [y, m, d] = key.split('-');
-  return y && m && d ? `${d}/${m}/${y}` : key;
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  return dateFormat('date', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(y, m - 1, d, 12));
 }
 
 /** Moves a YYYY-MM-DD key by whole days (calendar arithmetic, DST safe). */
@@ -113,18 +152,10 @@ export function shiftDateKey(key: string, days: number): string {
   return toDateKey(date.getTime());
 }
 
-export function pluralize(n: number, one: string, many: string): string {
-  return n === 1 ? one : many;
-}
-
-export function formatCount(n: number, one: string, many: string): string {
-  return `${n} ${pluralize(n, one, many)}`;
-}
-
-/** "em 2 h 10 min" until `resetsAt`, or "agora" when already past. */
+/** "em 2 h 10 min" / "in 2 h 10 min" until `resetsAt`, or "agora" / "now" when already past. */
 export function formatResetIn(resetsAt: number, now: number): string {
   const left = resetsAt - now;
-  return left <= 0 ? 'agora' : `em ${formatDuration(left)}`;
+  return left <= 0 ? t('time.now') : t('time.in', { value: formatDuration(left) });
 }
 
 export function truncate(text: string, max: number): string {

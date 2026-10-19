@@ -1,5 +1,10 @@
 // AI Office: data model shared by the server (which builds it from Claude Code data) and the web app (which draws it).
-// Every timestamp is epoch milliseconds (server clock). Texts shown to people are Brazilian Portuguese.
+// Every timestamp is epoch milliseconds (server clock).
+// Localization: texts the server or the demo generate come in two forms — `text`-like fields hold the pt-BR rendering
+// (a fallback for old clients) and the matching `*Msg` field holds the localizable message (key + params) that the web
+// app renders in the user's language. Texts that come from the user's own sessions (prompts, titles, commands) have
+// no `Msg` and are shown as they are.
+import type { Locale, Msg } from './i18n/i18n';
 
 /** A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... */
 export interface Account {
@@ -12,6 +17,10 @@ export interface Account {
   color: string;
   /** Absolute path of the configuration directory. */
   dir: string;
+  /** The default account (~/.claude): its label is localized by the client ("Pessoal", "Personal"…). */
+  isDefault?: boolean;
+  /** Localizable label (demo accounts). */
+  labelMsg?: Msg;
 }
 
 /** A project = a working directory. Each open project becomes a room in the office. */
@@ -61,10 +70,14 @@ export interface Activity {
   kind: ActivityKind;
   /** One emoji. */
   icon: string;
-  /** Short sentence (≤ 60 chars), e.g. "Editando App.tsx". */
+  /** Short sentence (≤ 60 chars), e.g. "Editando App.tsx" (pt-BR fallback of `msg`). */
   text: string;
+  /** Localizable form of `text`. */
+  msg?: Msg;
   /** Longer detail (command, file path, query...), ≤ 400 chars. */
   detail?: string;
+  /** Localizable form of `detail`, when the detail is generated text rather than data. */
+  detailMsg?: Msg;
   durationMs?: number;
   error?: boolean;
 }
@@ -72,8 +85,11 @@ export interface Activity {
 export interface TaskItem {
   id: string;
   title: string;
+  /** Localizable title (demo tasks only; real tasks come from the session as written). */
+  titleMsg?: Msg;
   /** Present-tense form shown while in progress ("Rodando os testes"). */
   activeForm?: string;
+  activeFormMsg?: Msg;
   status: 'pending' | 'in_progress' | 'completed';
 }
 
@@ -81,6 +97,7 @@ export interface TaskItem {
 export interface ShellJob {
   id: string;
   label: string;
+  labelMsg?: Msg;
   command?: string;
   background: boolean;
   kind: 'shell' | 'monitor';
@@ -109,6 +126,10 @@ export interface PermissionRequest {
   input?: unknown;
   /** Rules Claude Code suggested for "always allow" (shown as labels; answered by index). */
   suggestions: string[];
+  /** Localizable form of each suggestion (same order and length as `suggestions`). */
+  suggestionMsgs?: Msg[];
+  /** Localizable form of `summary`, when it is generated text. */
+  summaryMsg?: Msg;
   createdAt: number;
   expiresAt: number;
 }
@@ -123,6 +144,8 @@ export interface PermissionDecision {
   message?: string;
   /** Stop the agent's turn (deny only). */
   interrupt?: boolean;
+  /** Language of the person answering: the hook phrases what it tells the agent in it. */
+  locale?: Locale;
 }
 
 export interface Agent {
@@ -137,8 +160,11 @@ export interface Agent {
   name: string;
   /** "Principal" for main agents; the subagent type for subagents ("Explore", "general-purpose"...). */
   role: string;
+  roleMsg?: Msg;
   /** Session title or the subagent's task description. */
   title?: string;
+  /** Localizable title (demo agents only). */
+  titleMsg?: Msg;
   look: 'f' | 'm';
   seed: number;
   status: AgentStatus;
@@ -157,6 +183,7 @@ export interface Agent {
   permission?: PermissionRequest;
   /** What it is waiting for, when status is 'waiting' without a permission ("Responder uma pergunta"). */
   waitingFor?: string;
+  waitingForMsg?: Msg;
   startedAt: number;
   lastEventAt: number;
   /** Demo agent (not a real session). */
@@ -209,6 +236,7 @@ export interface Notice {
   at: number;
   level: NoticeLevel;
   text: string;
+  msg?: Msg;
   agentId?: string;
   projectId?: string;
 }
@@ -225,6 +253,8 @@ export interface BossMessage {
   via?: 'tool' | 'stop' | 'demo';
   /** Same id for a message sent to the whole team of a room. */
   group?: string;
+  /** Language of the sender: the hook phrases the delivery preamble in it. */
+  locale?: Locale;
 }
 
 /** One entry of the read-only terminal view of a session. */
@@ -232,8 +262,21 @@ export type TranscriptEntry =
   | { kind: 'user'; at: number; text: string }
   | { kind: 'assistant'; at: number; text: string }
   | { kind: 'thinking'; at: number; text: string }
-  | { kind: 'tool'; at: number; id: string; name: string; summary: string; input?: unknown; result?: string; error?: boolean }
-  | { kind: 'system'; at: number; text: string };
+  | {
+      kind: 'tool';
+      at: number;
+      id: string;
+      name: string;
+      /** Icon + pt-BR text ('📖 Lendo app.ts'). */
+      summary: string;
+      /** The icon and the localizable text of `summary`. */
+      icon?: string;
+      summaryMsg?: Msg;
+      input?: unknown;
+      result?: string;
+      error?: boolean;
+    }
+  | { kind: 'system'; at: number; text: string; msg?: Msg };
 
 export interface RecentSession {
   accountId: string;
@@ -241,6 +284,7 @@ export interface RecentSession {
   projectPath: string;
   projectName: string;
   title?: string;
+  titleMsg?: Msg;
   firstAt: number;
   lastAt: number;
   /** Still open (an agent is in the office). */

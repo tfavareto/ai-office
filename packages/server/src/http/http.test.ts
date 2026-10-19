@@ -216,6 +216,38 @@ describe('permissions', () => {
     stream.close();
   });
 
+  test('requests carry localizable messages for generated summaries and suggestions', async () => {
+    await seedSession();
+    await boot();
+    await app.context.engine.scan();
+    const stream = await openStream((t) => t.includes('event: feed'));
+    const { id } = (await (await apiFetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
+    const command = (await get<Record<string, unknown>>(`/api/permissions/${id}`)).body;
+    expect(command).toMatchObject({ summary: 'npm install zod', suggestionMsgs: [{ key: 'perm.suggestion.allow', params: { rules: 'Bash(npm install:*)', scope: 'project' } }] });
+    expect(command.summaryMsg).toBeUndefined();
+    await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'terminal' }));
+    const edit = await (await apiFetch(`${base}/api/permissions`, json({ ...hookBody, tool_name: 'Edit', tool_input: { file_path: 'src/a.ts' } }))).json();
+    const request = (await get<Record<string, unknown>>(`/api/permissions/${(edit as { id: string }).id}`)).body;
+    expect(request).toMatchObject({ summary: 'Editar src/a.ts', summaryMsg: { key: 'perm.edit', params: { file: 'src/a.ts' } } });
+    stream.close();
+  });
+
+  test('a decision may carry the answering language and the hook receives it; unknown languages are rejected', async () => {
+    await seedSession();
+    await boot();
+    await app.context.engine.scan();
+    const stream = await openStream((t) => t.includes('event: feed'));
+    const { id } = (await (await apiFetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
+    const decide = (body: unknown) => apiFetch(`${base}/api/permissions/${id}/decision`, json(body));
+    expect((await decide({ behavior: 'deny', locale: 'fr' })).status).toBe(400);
+    expect((await decide({ behavior: 'deny', locale: 7 })).status).toBe(400);
+    expect((await decide({ behavior: 'deny', locale: 'pt' })).status).toBe(400);
+    const waiting = get<{ status: string }>(`/api/permissions/${id}/wait?timeout=5`);
+    expect((await decide({ behavior: 'deny', message: 'No way', locale: 'en' })).status).toBe(200);
+    expect((await waiting).body).toEqual({ status: 'decided', behavior: 'deny', message: 'No way', locale: 'en' });
+    stream.close();
+  });
+
   test('is cancelled when the session moves on (answered in the terminal)', async () => {
     await seedSession();
     await boot();
@@ -245,6 +277,25 @@ describe('messages and attention', () => {
     const list = (await get<{ messages: { status: string; via: string }[] }>('/api/messages?agent=claude:s1')).body.messages;
     expect(list[0]).toMatchObject({ status: 'delivered', via: 'tool' });
     expect(app.context.office.recentFeed().some((item) => item.activity.kind === 'message')).toBe(true);
+  });
+
+  test('messages carry the sender language to the hook; unknown languages are rejected', async () => {
+    await seedSession();
+    await boot();
+    await app.context.engine.scan();
+    const send = (locale: unknown, text = 'Run the tests') => apiFetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text, ...(locale === undefined ? {} : { locale }) }));
+    expect((await send('fr')).status).toBe(400);
+    expect((await send(42)).status).toBe(400);
+    expect((await send('pt')).status).toBe(400);
+    const sent = await send('en');
+    expect(sent.status).toBe(201);
+    expect(((await sent.json()) as { messages: unknown[] }).messages[0]).toMatchObject({ text: 'Run the tests', locale: 'en' });
+    expect((await send(undefined, 'Sem idioma')).status).toBe(201);
+    const taken = (await (await apiFetch(`${base}/api/messages/inbox`, json({ session: 's1', via: 'tool' }))).json()) as { messages: { text: string; locale?: string }[] };
+    expect(taken.messages.map((m) => [m.text, m.locale])).toEqual([
+      ['Run the tests', 'en'],
+      ['Sem idioma', undefined],
+    ]);
   });
 
   test('team messages share a group; unknown agents and bad bodies are rejected', async () => {

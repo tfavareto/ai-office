@@ -1,5 +1,7 @@
 // Toasts: bottom-right stack. Alerts persist until resolved; repeated notices collapse with a counter.
+import { t } from '../../i18n';
 import type { AppContext, Component } from '../context';
+import { localized } from '../display';
 import { KeyedList, h, setText, type KeyedEntry } from '../dom';
 import { icon, type IconName } from '../icons';
 import type { Toast } from '../model/toasts';
@@ -7,7 +9,7 @@ import type { Toast } from '../model/toasts';
 const LEVEL_ICON: Record<Toast['level'], IconName> = { info: 'info', success: 'check', warn: 'alert', alert: 'bell' };
 
 export class Toasts implements Component {
-  readonly el = h('div', { class: 'ao-toasts', role: 'region', 'aria-label': 'Avisos' });
+  readonly el = h('div', { class: 'ao-toasts', role: 'region', 'aria-label': t('toasts.label') });
   private readonly list: KeyedList<Toast>;
   private signature = '';
 
@@ -17,7 +19,7 @@ export class Toasts implements Component {
 
   render(): void {
     const toasts = this.ctx.toasts.get();
-    const signature = toasts.map((t) => `${t.id}:${t.count}:${t.text}`).join('|');
+    const signature = toasts.map((toast) => `${toast.id}:${toast.count}:${toast.text}`).join('|');
     if (signature === this.signature) return;
     this.signature = signature;
     this.list.sync(toasts);
@@ -28,7 +30,7 @@ export class Toasts implements Component {
     const text = h('span', { class: 'ao-toast-text' });
     const count = h('span', { class: 'ao-toast-count', hidden: true });
     const actions = h('div', { class: 'ao-toast-actions' });
-    const close = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': 'Dispensar aviso', title: 'Dispensar' }, icon('x', 14));
+    const close = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('toasts.dismiss.label'), title: t('toasts.dismiss') }, icon('x', 14));
     const el = h('div', { class: 'ao-toast', role: initial.level === 'alert' ? 'alert' : 'status' }, iconSlot, h('div', { class: 'ao-toast-body' }, h('div', { class: 'ao-toast-line' }, text, count), actions), close);
     let current = initial;
     close.addEventListener('click', () => this.ctx.toasts.dismiss(current.id));
@@ -38,13 +40,13 @@ export class Toasts implements Component {
         current = toast;
         el.className = `ao-toast ao-toast--${toast.level}`;
         iconSlot.replaceChildren(icon(LEVEL_ICON[toast.level], 18));
-        setText(text, toast.text);
+        setText(text, localized(toast.msg, toast.text));
         count.hidden = toast.count < 2;
         setText(count, `×${toast.count}`);
         actions.replaceChildren();
         const agentId = toast.agentId;
         if (agentId && this.ctx.agent(agentId)) {
-          const label = toast.level === 'alert' ? 'Responder' : 'Ver';
+          const label = toast.level === 'alert' ? t('toasts.answer') : t('toasts.view');
           actions.appendChild(
             h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => this.answer(toast) }, label),
           );

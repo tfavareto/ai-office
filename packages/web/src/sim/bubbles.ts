@@ -1,4 +1,4 @@
-import type { Activity, ActivityKind } from '@ai-office/shared';
+import type { Activity, ActivityKind, Msg } from '@ai-office/shared';
 
 export type BubbleMode = 'all' | 'important' | 'none';
 export type Liveliness = 'calm' | 'normal' | 'lively';
@@ -7,7 +7,10 @@ export interface BubbleCandidate {
   agentId: string;
   /** Area the agent is in (the per-room cap uses it). */
   roomId: string;
+  /** pt-BR text (already clipped): shown when the bubble has no `msg` or the viewer's language has no entry for it. */
   text: string;
+  /** Localizable form of `text`: the activity's `msg` from the server/demo, or a world catalog message. */
+  msg?: Msg;
   icon: string;
   importance: number;
   /** Stays until replaced or withdrawn (alerts). */
@@ -43,6 +46,11 @@ export function activityImportance(activity: Activity): number {
 export function clipText(text: string, max = MAX_TEXT): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
+}
+
+/** The text a bubble shows in the language of `translate` (`tm` of a world translator): `msg` rendered, clipped to the bubble size. */
+export function bubbleText(bubble: Pick<BubbleCandidate, 'text' | 'msg'>, translate: (msg: Msg | undefined, fallback: string) => string): string {
+  return bubble.msg ? clipText(translate(bubble.msg, bubble.text)) : bubble.text;
 }
 
 /**

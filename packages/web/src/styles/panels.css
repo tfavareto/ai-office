@@ -70,7 +70,7 @@
 
 .ao-feed-row {
   display: grid;
-  grid-template-columns: 62px 20px auto 1fr;
+  grid-template-columns: 76px 20px auto 1fr;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -86,6 +86,7 @@
 
 .ao-feed-time {
   color: var(--faint);
+  white-space: nowrap;
   font-size: 11px;
 }
 

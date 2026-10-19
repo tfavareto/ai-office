@@ -1,5 +1,6 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import type { Account, Agent, BossMessage, Notice, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, Msg, Notice, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
 import type { Store } from '../net/store';
@@ -14,13 +15,15 @@ import { HelpDialog } from './components/help-dialog';
 import { HoverTip } from './components/hover-tip';
 import { NotificationCenter } from './components/notification-center';
 import { SessionHistory } from './components/session-history';
-import { Settings } from './components/settings';
+import { FOCUS_KEY_ATTR, Settings } from './components/settings';
 import { Sidebar } from './components/sidebar';
 import { ConnectionBanner, Splash } from './components/splash';
 import { TerminalPanel } from './components/terminal-panel';
 import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
-import { LOCAL_ONLY_HINT, type AppContext, type Component } from './context';
+import { localOnlyHint, type AppContext, type Component } from './context';
+import { bindLanguage } from './language';
+import { agentRole, agentTitle, localized, localizedOptional } from './display';
 import { h, isEditable, toggleClass } from './dom';
 import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { MessageCenter } from './message-center';
@@ -39,6 +42,9 @@ const NBSP = String.fromCharCode(160);
 const RELOAD_GUARD_KEY = 'ai-office:reload-at';
 const RELOAD_GUARD_MS = 15_000;
 
+/** Scrollable panels whose position survives the rebuild after a language change. */
+const SCROLL_SELECTORS = ['.ao-sidebar-list', '.ao-agent-body', '.ao-feed-list', '.ao-settings-body', '.ao-help-body', '.ao-sessions-body', '.ao-notif-list'] as const;
+
 const CUE_BY_LEVEL: Record<NoticeLevel, CueKind> = { alert: 'alert', warn: 'info', info: 'info', success: 'success' };
 
 export class App implements AppContext {
@@ -48,10 +54,11 @@ export class App implements AppContext {
   readonly messages: MessageCenter;
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
-  private readonly components: Component[] = [];
-  private readonly sidebar: Sidebar;
-  private readonly terminal: TerminalPanel;
-  private readonly hoverTip: HoverTip;
+  private components: Component[] = [];
+  private sidebar!: Sidebar;
+  private terminal!: TerminalPanel;
+  private hoverTip!: HoverTip;
+  private readonly worldContainer: HTMLElement;
   private readonly scrim = h('div', { class: 'ao-scrim ao-panel-scrim' });
   private readonly liveRegion = h('div', { class: 'ao-visually-hidden', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
   private frame = 0;
@@ -72,13 +79,14 @@ export class App implements AppContext {
     worldContainer: HTMLElement,
   ) {
     this.root = host;
+    this.worldContainer = worldContainer;
     const narrow = window.innerWidth < NARROW_BREAKPOINT;
     const initial = prefs.get();
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
     this.messages = new MessageCenter({
       backend: store.backend,
-      nameOf: (id) => this.agent(id)?.name ?? 'Agente',
+      nameOf: (id) => this.agent(id)?.name ?? t('agent.fallback'),
       now: () => this.now(),
       onDelivery: (summary, agentId, final) => {
         this.notifications.upsertGrouped({ key: summary.key, at: this.now(), level: summary.level, kind: 'message', text: summary.text, agentId });
@@ -87,6 +95,23 @@ export class App implements AppContext {
       },
     });
 
+    for (const [key, value] of Object.entries(layoutVariables())) host.style.setProperty(key, value);
+    host.classList.add('ao-root');
+    this.buildShell();
+    document.documentElement.lang = locale();
+    this.updateDocumentMeta();
+    this.wire();
+  }
+
+  // --- shell ---------------------------------------------------------------------------------------------------------
+
+  /**
+   * Builds every panel in the current language and puts them around the world container. Components write their
+   * texts when they are created, so a language change calls this again: the world renderer, the stores, the
+   * selection and the open panels (they live in `ui`) are kept; only the DOM of the panels is replaced.
+   */
+  private buildShell(): void {
+    for (const component of this.components) component.dispose?.();
     this.sidebar = new Sidebar(this);
     this.terminal = new TerminalPanel(this);
     this.hoverTip = new HoverTip(this);
@@ -98,13 +123,12 @@ export class App implements AppContext {
     const dialogs = [new DayDialog(this), new HelpDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
-    const splash = new Splash(this);
-    this.components.push(topbar, this.sidebar, drawer, this.terminal, feed, toasts, ...popovers, ...dialogs, empty, banner, splash);
+    const splash = this.snapshot === null ? new Splash(this) : null;
+    this.components = [topbar, this.sidebar, drawer, this.terminal, feed, toasts, ...popovers, ...dialogs, empty, banner, ...(splash ? [splash] : [])];
 
-    for (const [key, value] of Object.entries(layoutVariables())) host.style.setProperty(key, value);
-    host.classList.add('ao-root');
-    host.replaceChildren(
-      worldContainer,
+    for (const child of Array.from(this.root.children)) if (child !== this.worldContainer) child.remove();
+    if (this.worldContainer.parentElement !== this.root) this.root.prepend(this.worldContainer);
+    this.root.append(
       topbar.el,
       banner.el,
       this.sidebar.el,
@@ -117,10 +141,32 @@ export class App implements AppContext {
       ...popovers.map((p) => p.el),
       ...dialogs.map((d) => d.el),
       this.hoverTip.el,
-      splash.el,
+      ...(splash ? [splash.el] : []),
       this.liveRegion,
     );
-    this.wire();
+  }
+
+  /** Language changed: rebuild the panels in it and tell the world renderer (labels it draws itself). */
+  private onLocaleChanged(): void {
+    document.documentElement.lang = locale();
+    this.updateDocumentMeta();
+    this.world.setOptions({ locale: locale() });
+    const focusKey = document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute(FOCUS_KEY_ATTR) : null;
+    const scrolls = SCROLL_SELECTORS.map((selector) => Array.from(this.root.querySelectorAll<HTMLElement>(selector), (el) => el.scrollTop));
+    this.buildShell();
+    this.lastTitle = '';
+    this.renderAll();
+    SCROLL_SELECTORS.forEach((selector, index) => {
+      this.root.querySelectorAll<HTMLElement>(selector).forEach((el, position) => {
+        el.scrollTop = scrolls[index]?.[position] ?? 0;
+      });
+    });
+    // The popover moves focus to itself when it opens (microtask); give it back to the control the user was using.
+    if (focusKey) queueMicrotask(() => this.root.querySelector<HTMLElement>(`[${FOCUS_KEY_ATTR}="${focusKey}"]`)?.focus({ preventScroll: true }));
+  }
+
+  private updateDocumentMeta(): void {
+    document.querySelector('meta[name="description"]')?.setAttribute('content', t('app.description'));
   }
 
   // --- AppContext: data ----------------------------------------------------------------------------------------------
@@ -175,7 +221,7 @@ export class App implements AppContext {
       accountId: agent.accountId,
       agentId: agent.kind === 'sub' ? agent.id : undefined,
       title: agent.name,
-      subtitle: [project?.name, agent.kind === 'sub' ? agent.role : agent.title].filter(Boolean).join(' · '),
+      subtitle: [project?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)].filter(Boolean).join(' · '),
       officeAgentId: agent.id,
     };
     this.ui.set({ terminal: target });
@@ -189,7 +235,7 @@ export class App implements AppContext {
       return;
     }
     this.ui.set({
-      terminal: { sessionId: session.sessionId, accountId: session.accountId, title: session.projectName, subtitle: session.title ?? 'Sessão encerrada' },
+      terminal: { sessionId: session.sessionId, accountId: session.accountId, title: session.projectName, subtitle: localizedOptional(session.titleMsg, session.title) ?? t('terminal.sessionEnded') },
     });
   }
 
@@ -200,12 +246,12 @@ export class App implements AppContext {
   toggleFollow(): void {
     const selection = this.ui.get().selection;
     if (selection?.type !== 'agent') {
-      this.announce('Selecione um agente para seguir com a câmera.');
+      this.announce(t('announce.follow.select'));
       return;
     }
     const following = !this.ui.get().following;
     this.ui.set({ following });
-    this.announce(following ? 'Seguindo o agente.' : 'Parou de seguir.');
+    this.announce(following ? t('announce.follow.on') : t('announce.follow.off'));
   }
 
   focusComposer(): void {
@@ -235,7 +281,7 @@ export class App implements AppContext {
     const current = this.ui.get().selection;
     const next = nextAfter(agentsNeedingYou(agents), current?.type === 'agent' ? current.id : null);
     if (next) this.selectAgent(next.id, { focus: true, tab: 'summary' });
-    else this.announce('Nenhum agente precisa de você agora.');
+    else this.announce(t('announce.needs.none'));
   }
 
   jumpToShell(): void {
@@ -243,7 +289,7 @@ export class App implements AppContext {
     const current = this.ui.get().selection;
     const next = nextAfter(agentsWithShells(agents), current?.type === 'agent' ? current.id : null);
     if (next) this.selectAgent(next.id, { focus: true, tab: 'activity' });
-    else this.announce('Nenhum shell rodando agora.');
+    else this.announce(t('announce.shell.none'));
   }
 
   // --- AppContext: feedback ------------------------------------------------------------------------------------------
@@ -266,13 +312,17 @@ export class App implements AppContext {
     this.toasts.push({ id: `local-${++this.localId}`, at: this.now(), level, text, ...opts }, this.now());
   }
 
-  notifyLocal(level: NoticeLevel, text: string, opts?: { agentId?: string; projectId?: string }): void {
-    this.handleNotice({ id: `local-${++this.localId}`, at: this.now(), level, text, ...opts });
+  notifyLocal(level: NoticeLevel, message: string | Msg, opts?: { agentId?: string; projectId?: string }): void {
+    const notice: Notice =
+      typeof message === 'string'
+        ? { id: `local-${++this.localId}`, at: this.now(), level, text: message, ...opts }
+        : { id: `local-${++this.localId}`, at: this.now(), level, text: tm(message, message.key), msg: message, ...opts };
+    this.handleNotice(notice);
   }
 
   copy(text: string, label: string): void {
     const done = (): void => this.flash('success', label);
-    const fail = (): void => this.flash('warn', 'Não foi possível copiar. Selecione o texto e copie manualmente.');
+    const fail = (): void => this.flash('warn', t('toast.copyFailed'));
     if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, fail);
     else fail();
   }
@@ -289,8 +339,8 @@ export class App implements AppContext {
     if (!permission) return false;
     try {
       const result = await this.store.backend.decidePermission(permission.id, decision);
-      if (result === 'already-answered') this.flash('info', 'Esta solicitação já foi respondida (a primeira resposta vale).');
-      else this.announce(decision.behavior === 'allow' ? 'Permissão aprovada.' : decision.behavior === 'deny' ? 'Permissão recusada.' : 'Resposta passada para o terminal.');
+      if (result === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
+      else this.announce(decision.behavior === 'allow' ? t('announce.permission.allowed') : decision.behavior === 'deny' ? t('announce.permission.denied') : t('announce.permission.terminal'));
       return true;
     } catch (error) {
       this.notifyLocal('warn', describeError(error), { agentId: agent.id });
@@ -299,11 +349,11 @@ export class App implements AppContext {
   }
 
   async sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]> {
-    if (!this.isLocal) throw new Error(LOCAL_ONLY_HINT);
+    if (!this.isLocal) throw new Error(localOnlyHint());
     const sent = await this.store.backend.sendMessage(agentIds, text);
     this.messages.track(sent, teamLabel);
     this.cue('sent');
-    this.announce(agentIds.length > 1 ? 'Mensagem enviada à equipe.' : 'Mensagem enviada.');
+    this.announce(agentIds.length > 1 ? t('announce.message.team') : t('announce.message.sent'));
     return sent;
   }
 
@@ -330,7 +380,10 @@ export class App implements AppContext {
     });
     this.world.onHover((hover) => this.hoverTip.setHover(hover));
     this.world.onCameraMode(() => this.refresh());
+    onLocaleChange(() => this.onLocaleChanged());
 
+    // Subscribed first, so the panels are rebuilt in the new language and the world options below already carry it.
+    bindLanguage(this.prefs);
     this.prefs.subscribe((prefs, changed) => {
       if (changed.includes('dnd')) this.notifications.setDnd(prefs.dnd);
       if (changed.includes('visual')) void this.switchVisual(prefs.visual);
@@ -414,10 +467,10 @@ export class App implements AppContext {
     if (result.isNew) {
       this.cue(CUE_BY_LEVEL[notice.level]);
       if (notice.level === 'alert' && this.prefs.get().browserNotifications && notifyPermission() === 'granted') {
-        showBrowserNotification(notice.text, () => notice.agentId && this.agent(notice.agentId) && this.selectAgent(notice.agentId, { focus: true }));
+        showBrowserNotification(localized(notice.msg, notice.text), () => notice.agentId && this.agent(notice.agentId) && this.selectAgent(notice.agentId, { focus: true }));
       }
     }
-    if (notice.level === 'alert' || notice.level === 'warn') this.announce(notice.text);
+    if (notice.level === 'alert' || notice.level === 'warn') this.announce(localized(notice.msg, notice.text));
   }
 
   // --- rendering -----------------------------------------------------------------------------------------------------
@@ -462,7 +515,7 @@ export class App implements AppContext {
       this.lastTitle = title;
       document.title = title;
     }
-    if (needs > this.lastNeeds) this.announce(`${needs} ${needs === 1 ? 'agente precisa' : 'agentes precisam'} de você.`);
+    if (needs > this.lastNeeds) this.announce(t('announce.needs', { n: needs }));
     this.lastNeeds = needs;
   }
 
@@ -538,19 +591,19 @@ export class App implements AppContext {
       return;
     }
     const agent = ui.selection?.type === 'agent' ? this.agent(ui.selection.id) : undefined;
-    if (!agent) this.announce('Selecione um agente para abrir o terminal.');
-    else if (!this.isLocal) this.announce(LOCAL_ONLY_HINT);
+    if (!agent) this.announce(t('announce.terminal.select'));
+    else if (!this.isLocal) this.announce(localOnlyHint());
     else this.openTerminalForAgent(agent);
   }
 
   private messageShortcut(): void {
     const ui = this.ui.get();
     if (!ui.selection) {
-      this.announce('Selecione um agente ou uma sala para enviar uma mensagem.');
+      this.announce(t('announce.message.select'));
       return;
     }
     if (!this.isLocal) {
-      this.announce(LOCAL_ONLY_HINT);
+      this.announce(localOnlyHint());
       return;
     }
     this.ui.set({ drawerTab: ui.selection.type === 'agent' ? 'messages' : ui.drawerTab, composerFocus: ui.composerFocus + 1 });
@@ -561,7 +614,7 @@ export class App implements AppContext {
     const current = this.ui.get().selection;
     const next = nextAfter(agentsWithPermission(agents), current?.type === 'agent' ? current.id : null);
     if (next) this.selectAgent(next.id, { focus: true, tab: 'summary' });
-    else this.announce('Nenhum pedido de permissão pendente.');
+    else this.announce(t('announce.permission.none'));
   }
 
   /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, then the selection. */

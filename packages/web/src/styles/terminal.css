@@ -121,6 +121,7 @@
 
 .ao-term-time {
   flex: none;
+  white-space: nowrap;
   color: var(--faint);
   font-size: 11px;
 }

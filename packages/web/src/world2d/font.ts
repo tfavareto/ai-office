@@ -1,4 +1,6 @@
-// Tiny 3x5 pixel font for in-world signs, boards and the LED ticker. Upper-case only; accents fold to their base letter.
+// Tiny 3x5 pixel font for in-world signs, boards and the LED ticker. Upper-case only; the diacritics of pt-BR, en and es
+// (á é í ó ú â ê ô ã õ ç ñ ü and their capitals) fold to their base letter because a 3x5 cell has no room for an
+// accent. Inverted marks (¿ ¡) and the bullet have their own glyphs; typographic punctuation folds to ASCII.
 
 const GLYPHS: Record<string, readonly string[]> = {
   'A': ['.#.', '#.#', '###', '#.#', '#.#'],
@@ -55,11 +57,36 @@ const GLYPHS: Record<string, readonly string[]> = {
   '>': ['#..', '.#.', '..#', '.#.', '#..'],
   '<': ['..#', '.#.', '#..', '.#.', '..#'],
   '_': ['...', '...', '...', '...', '###'],
+  '"': ['#.#', '#.#', '...', '...', '...'],
+  '¡': ['.#.', '...', '.#.', '.#.', '.#.'],
+  '¿': ['.#.', '...', '.#.', '#..', '.##'],
+  '•': ['...', '...', '.#.', '...', '...'],
+  ' ': ['...', '...', '...', '...', '...'],
+};
+
+/** Punctuation that folds to ASCII before drawing (the font has no typographic variants). */
+const PUNCTUATION_FOLD: Readonly<Record<string, string>> = {
+  '…': '...',
+  '’': "'",
+  '‘': "'",
+  '“': '"',
+  '”': '"',
+  '–': '-',
+  '—': '-',
+  '·': '•',
 };
 
 /** Strip diacritics and upper-case a string for the 3x5 font. */
 export function foldText(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  const base = text.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  return base.replace(/[…’‘“”–—·]/g, (ch) => PUNCTUATION_FOLD[ch] ?? ch);
+}
+
+/** Characters of `text` that the font cannot draw (after folding); spaces count as drawable gaps. */
+export function unsupportedChars(text: string): string[] {
+  const missing = new Set<string>();
+  for (const ch of foldText(text)) if (GLYPHS[ch] === undefined) missing.add(ch);
+  return [...missing];
 }
 
 export const GLYPH_W = 3;

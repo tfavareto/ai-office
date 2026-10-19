@@ -1,5 +1,6 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, Msg, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
 import type { MessageCenter } from './message-center';
@@ -11,9 +12,14 @@ import type { CueKind } from './sound';
 export interface Component {
   readonly el: HTMLElement;
   render(): void;
+  /** Stops timers and polling; called when the UI shell is rebuilt (language change). */
+  dispose?(): void;
 }
 
-export const LOCAL_ONLY_HINT = 'Disponível apenas quando o AI Office é aberto neste computador (localhost).';
+/** Why a feature is off when the page is not opened on the computer that runs AI Office. */
+export function localOnlyHint(): string {
+  return t('hint.localOnly');
+}
 
 export interface AppContext {
   readonly store: Store;
@@ -51,8 +57,12 @@ export interface AppContext {
   /** Asks for a render pass on the next frame. */
   refresh(): void;
   announce(text: string): void;
-  /** Shows a toast and records a notification that originated in the page itself. */
-  notifyLocal(level: NoticeLevel, text: string, opts?: { agentId?: string; projectId?: string }): void;
+  /**
+   * Shows a toast and records a notification that originated in the page itself. A `Msg` (keys of the app catalog)
+   * is re-rendered when the language changes; a plain string is kept as it is.
+   */
+  notifyLocal(level: NoticeLevel, message: string | Msg, opts?: { agentId?: string; projectId?: string }): void;
+  /** Copies `text` to the clipboard and confirms with a toast saying `label`. */
   copy(text: string, label: string): void;
   cue(kind: CueKind): void;
 

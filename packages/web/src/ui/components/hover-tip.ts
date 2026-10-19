@@ -1,8 +1,10 @@
 // Small tip that follows the pointer over the world: who/what is under the cursor.
+import { t } from '../../i18n';
 import type { HoverInfo } from '../../world/api';
 import type { AppContext, Component } from '../context';
 import { h, setText } from '../dom';
-import { STATUS_LABEL, displayStatus } from '../model/status';
+import { activityText, agentKindLabel, agentTitle } from '../display';
+import { displayStatus, statusLabel } from '../model/status';
 import { agentsOfProject } from '../model/rooms';
 
 const OFFSET_PX = 14;
@@ -34,12 +36,12 @@ export class HoverTip implements Component {
     }
     if (agent) {
       setText(this.title, agent.name);
-      setText(this.line, `${agent.kind === 'sub' ? agent.role : 'Principal'} · ${STATUS_LABEL[displayStatus(agent)]}`);
-      setText(this.extra, agent.activity ? `${agent.activity.icon} ${agent.activity.text}` : (agent.title ?? ''));
+      setText(this.line, `${agentKindLabel(agent)} · ${statusLabel(displayStatus(agent))}`);
+      setText(this.extra, agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : (agentTitle(agent) ?? ''));
     } else if (project) {
       const agents = agentsOfProject(this.ctx.snapshot, project.id);
       setText(this.title, project.name);
-      setText(this.line, `${agents.length} ${agents.length === 1 ? 'pessoa' : 'pessoas'} na sala`);
+      setText(this.line, t('hover.room.people', { n: agents.length }));
       setText(this.extra, project.path);
     }
     this.el.hidden = false;

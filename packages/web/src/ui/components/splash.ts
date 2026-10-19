@@ -1,4 +1,5 @@
 // Splash ("Conectando ao escritório…") and the connection banner shown when the stream drops.
+import { t } from '../../i18n';
 import type { AppContext, Component } from '../context';
 import { h, setText, toggleClass } from '../dom';
 import { formatElapsed } from '../format';
@@ -8,7 +9,7 @@ const SLOW_CONNECT_MS = 8000;
 
 export class Splash implements Component {
   readonly el = h('div', { class: 'ao-splash', role: 'status' });
-  private readonly text = h('p', { class: 'ao-splash-text' }, 'Conectando ao escritório…');
+  private readonly text = h('p', { class: 'ao-splash-text' }, t('splash.connecting'));
   private readonly hint = h('p', { class: 'ao-splash-hint', hidden: true });
   private readonly startedAt = Date.now();
   private hidden = false;
@@ -29,8 +30,8 @@ export class Splash implements Component {
     const slow = Date.now() - this.startedAt > SLOW_CONNECT_MS || this.ctx.store.data.connection === 'reconnecting';
     this.hint.hidden = !slow;
     if (slow) {
-      setText(this.text, 'Ainda tentando conectar…');
-      setText(this.hint, 'Confira se o servidor do AI Office está rodando (npm run dev ou npm start). Vamos tentar de novo automaticamente.');
+      setText(this.text, t('splash.slow'));
+      setText(this.hint, t('splash.hint'));
     }
   }
 }
@@ -41,7 +42,7 @@ export class ConnectionBanner implements Component {
   private readonly countdown = h('span', { class: 'ao-banner-count' });
 
   constructor(private readonly ctx: AppContext) {
-    this.el.append(h('span', { class: 'ao-banner-dot', 'aria-hidden': 'true' }), this.text, this.countdown, h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => ctx.store.retryNow() }, 'Tentar agora'));
+    this.el.append(h('span', { class: 'ao-banner-dot', 'aria-hidden': 'true' }), this.text, this.countdown, h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => ctx.store.retryNow() }, t('banner.retry')));
   }
 
   render(): void {
@@ -49,8 +50,8 @@ export class ConnectionBanner implements Component {
     const show = connection === 'reconnecting' && everConnected;
     this.el.hidden = !show;
     if (!show) return;
-    setText(this.text, 'Conexão com o AI Office perdida. Os dados na tela podem estar desatualizados.');
+    setText(this.text, t('banner.lost'));
     const left = retryAt === null ? 0 : Math.max(0, retryAt - Date.now());
-    setText(this.countdown, left > 0 ? `Nova tentativa em ${formatElapsed(left)}` : 'Reconectando…');
+    setText(this.countdown, left > 0 ? t('banner.retryIn', { time: formatElapsed(left) }) : t('topbar.connection.reconnecting'));
   }
 }

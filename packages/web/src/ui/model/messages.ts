@@ -1,25 +1,26 @@
 // Messages to agents: status labels, grouping of team messages, delivery summaries.
 import type { BossMessage } from '@ai-office/shared';
+import { t, type UiKey } from '../../i18n';
 
-export const QUICK_MESSAGES: readonly string[] = [
-  'Como está indo? Me dê um resumo rápido.',
-  'Pare e me explique o plano antes de seguir.',
-  'Rode os testes antes de continuar.',
-  'Pode finalizar e me mandar um resumo.',
-];
+const QUICK_MESSAGE_KEYS = ['message.quick.progress', 'message.quick.plan', 'message.quick.tests', 'message.quick.finish'] as const satisfies readonly UiKey[];
+
+/** Ready-made orders offered as chips above the composer, in the current language. */
+export function quickMessages(): string[] {
+  return QUICK_MESSAGE_KEYS.map((key) => t(key));
+}
 
 export const MAX_MESSAGE_LENGTH = 4000;
 
 export function messageStatusLabel(message: Pick<BossMessage, 'status' | 'via'>): string {
-  if (message.status === 'queued') return 'Na fila';
-  if (message.status === 'expired') return 'Expirou';
+  if (message.status === 'queued') return t('message.status.queued');
+  if (message.status === 'expired') return t('message.status.expired');
   switch (message.via) {
     case 'tool':
-      return 'Entregue durante o trabalho';
+      return t('message.status.deliveredTool');
     case 'stop':
-      return 'Entregue como nova instrução';
+      return t('message.status.deliveredStop');
     default:
-      return 'Entregue';
+      return t('message.status.delivered');
   }
 }
 
@@ -39,9 +40,9 @@ export interface MessageGroupView {
 /** "2 de 3 entregues" / "Entregue" / "Na fila" for a group of one or more messages. */
 export function groupStatusLabel(group: Pick<MessageGroupView, 'delivered' | 'expired' | 'queued' | 'total' | 'messages' | 'isTeam'>): string {
   if (!group.isTeam) return messageStatusLabel(group.messages[0]);
-  const base = `${group.delivered} de ${group.total} ${group.delivered === 1 ? 'entregue' : 'entregues'}`;
-  if (group.queued > 0) return `${base} · ${group.queued} na fila`;
-  if (group.expired > 0) return `${base} · ${group.expired} ${group.expired === 1 ? 'expirou' : 'expiraram'}`;
+  const base = t('message.group.progress', { delivered: group.delivered, total: group.total });
+  if (group.queued > 0) return t('message.group.withQueued', { base, queued: group.queued });
+  if (group.expired > 0) return t('message.group.withExpired', { base, expired: group.expired });
   return base;
 }
 
@@ -85,7 +86,7 @@ export function hasPending(messages: readonly BossMessage[]): boolean {
 
 export function validateMessageText(raw: string): { ok: true; text: string } | { ok: false; error: string } {
   const text = raw.trim();
-  if (!text) return { ok: false, error: 'Escreva uma mensagem antes de enviar.' };
-  if (text.length > MAX_MESSAGE_LENGTH) return { ok: false, error: `A mensagem passa de ${MAX_MESSAGE_LENGTH} caracteres.` };
+  if (!text) return { ok: false, error: t('message.error.empty') };
+  if (text.length > MAX_MESSAGE_LENGTH) return { ok: false, error: t('message.error.tooLong', { max: String(MAX_MESSAGE_LENGTH) }) };
   return { ok: true, text };
 }

@@ -1,7 +1,9 @@
 // Read-only terminal: renders a session's conversation like Claude Code does, live-updating, with search.
 import type { TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
-import { LOCAL_ONLY_HINT, type AppContext, type Component } from '../context';
+import { t } from '../../i18n';
+import { localOnlyHint, type AppContext, type Component } from '../context';
+import { agentRole, agentTitle, localized, toolSummary } from '../display';
 import { compact, h, setText, toggleClass } from '../dom';
 import { formatClock } from '../format';
 import { icon } from '../icons';
@@ -35,7 +37,7 @@ interface Highlighter {
 }
 
 export class TerminalPanel implements Component {
-  readonly el = h('section', { class: 'ao-terminal', 'aria-label': 'Terminal da sessão (somente leitura)' });
+  readonly el = h('section', { class: 'ao-terminal', 'aria-label': t('terminal.label') });
   private readonly title = h('strong', { class: 'ao-terminal-title' });
   private readonly subtitle = h('span', { class: 'ao-terminal-subtitle' });
   private readonly badge = h('span', { class: 'ao-tag' });
@@ -63,8 +65,8 @@ export class TerminalPanel implements Component {
   private wasOpen = false;
 
   constructor(private readonly ctx: AppContext) {
-    this.toEnd = h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small ao-terminal-end', hidden: true, onclick: () => this.scrollToEnd() }, icon('arrowDown', 14), h('span', null, 'Ir para o fim'));
-    this.searchInput = h('input', { type: 'search', class: 'ao-input', placeholder: 'Buscar na conversa', 'aria-label': 'Buscar na conversa', autocomplete: 'off' });
+    this.toEnd = h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small ao-terminal-end', hidden: true, onclick: () => this.scrollToEnd() }, icon('arrowDown', 14), h('span', null, t('terminal.toEnd')));
+    this.searchInput = h('input', { type: 'search', class: 'ao-input', placeholder: t('terminal.search'), 'aria-label': t('terminal.search'), autocomplete: 'off' });
     this.searchInput.addEventListener('input', () => this.setQuery(this.searchInput.value));
     this.searchInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -75,14 +77,14 @@ export class TerminalPanel implements Component {
     this.searchBar.append(
       this.searchInput,
       this.searchCount,
-      this.iconBtn('chevronUp', 'Resultado anterior (Shift+Enter)', () => this.step(-1)),
-      this.iconBtn('chevronDown', 'Próximo resultado (Enter)', () => this.step(1)),
-      this.iconBtn('x', 'Fechar busca (Esc)', () => this.closeSearch()),
+      this.iconBtn('chevronUp', t('terminal.search.prev'), () => this.step(-1)),
+      this.iconBtn('chevronDown', t('terminal.search.next'), () => this.step(1)),
+      this.iconBtn('x', t('terminal.search.close'), () => this.closeSearch()),
     );
-    this.expandBtn = this.iconBtn('layers', 'Expandir pensamentos e resultados', () => this.toggleExpandAll());
-    const searchBtn = this.iconBtn('search', 'Buscar na conversa (Ctrl/⌘+F)', () => this.openSearch());
+    this.expandBtn = this.iconBtn('layers', t('terminal.expand'), () => this.toggleExpandAll());
+    const searchBtn = this.iconBtn('search', t('terminal.search.open'), () => this.openSearch());
     this.el.append(
-      h('header', { class: 'ao-terminal-head' }, h('div', { class: 'ao-terminal-heading' }, this.title, this.subtitle), this.badge, searchBtn, this.expandBtn, closeButton('Fechar terminal (Esc)', () => ctx.closeTerminal())),
+      h('header', { class: 'ao-terminal-head' }, h('div', { class: 'ao-terminal-heading' }, this.title, this.subtitle), this.badge, searchBtn, this.expandBtn, closeButton(t('terminal.close'), () => ctx.closeTerminal())),
       this.searchBar,
       this.body,
       this.toEnd,
@@ -121,6 +123,10 @@ export class TerminalPanel implements Component {
     return this.wasOpen;
   }
 
+  dispose(): void {
+    this.stop();
+  }
+
   private setQuery(query: string): void {
     this.query = query;
     this.matches = findMatches(this.state.entries, query);
@@ -141,7 +147,7 @@ export class TerminalPanel implements Component {
   private revealActive = false;
 
   private updateCount(): void {
-    setText(this.searchCount, !this.query ? '' : this.matches.length === 0 ? 'Sem resultados' : `${this.active + 1} de ${this.matches.length}`);
+    setText(this.searchCount, !this.query ? '' : this.matches.length === 0 ? t('terminal.search.none') : t('terminal.search.count', { current: this.active + 1, total: this.matches.length }));
   }
 
   private toggleExpandAll(): void {
@@ -193,7 +199,7 @@ export class TerminalPanel implements Component {
     this.needsFullRender = true;
     if (!this.ctx.isLocal) {
       this.status = 'error';
-      this.errorText = LOCAL_ONLY_HINT;
+      this.errorText = localOnlyHint();
       return;
     }
     void this.fetch(target, 0);
@@ -244,12 +250,19 @@ export class TerminalPanel implements Component {
 
   // --- rendering -----------------------------------------------------------------------------------------------------
 
+  /** Live agents are described from the current snapshot so the text follows the language; closed sessions keep theirs. */
+  private subtitleOf(target: TerminalTarget): string {
+    const agent = target.officeAgentId ? this.ctx.agent(target.officeAgentId) : undefined;
+    if (!agent) return target.subtitle ?? '';
+    return [this.ctx.project(agent.projectId)?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)].filter(Boolean).join(' · ');
+  }
+
   private renderHeader(target: TerminalTarget): void {
     setText(this.title, target.title);
-    setText(this.subtitle, target.subtitle ?? '');
+    setText(this.subtitle, this.subtitleOf(target));
     const live = this.status === 'ready' && this.state.open;
     this.badge.className = `ao-tag ${live ? 'ao-tag--live' : ''}`.trim();
-    setText(this.badge, live ? 'Ao vivo · somente leitura' : 'Somente leitura');
+    setText(this.badge, live ? t('terminal.badge.live') : t('terminal.badge.readOnly'));
   }
 
   private renderBody(): void {
@@ -259,7 +272,7 @@ export class TerminalPanel implements Component {
     }
     const entries = this.state.entries;
     if (entries.length === 0) {
-      this.body.replaceChildren(h('p', { class: 'ao-note' }, 'A conversa ainda está vazia.'));
+      this.body.replaceChildren(h('p', { class: 'ao-note' }, t('terminal.empty')));
       this.renderedUntil = 0;
       return;
     }
@@ -273,9 +286,9 @@ export class TerminalPanel implements Component {
 
   private renderPlaceholder(): void {
     if (this.status === 'loading') {
-      this.body.replaceChildren(h('p', { class: 'ao-note' }, 'Carregando a conversa…'));
+      this.body.replaceChildren(h('p', { class: 'ao-note' }, t('terminal.loading')));
     } else if (this.status === 'error') {
-      this.body.replaceChildren(...compact(h('p', { class: 'ao-error' }, this.errorText), this.ctx.isLocal ? h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => this.retry() }, 'Tentar de novo') : null));
+      this.body.replaceChildren(...compact(h('p', { class: 'ao-error' }, this.errorText), this.ctx.isLocal ? h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => this.retry() }, t('common.retry')) : null));
     }
     this.renderedUntil = 0;
     this.needsFullRender = true;
@@ -288,7 +301,7 @@ export class TerminalPanel implements Component {
     if (this.startIndex > entries.length) this.startIndex = 0;
     const frag = document.createDocumentFragment();
     if (this.startIndex > 0) {
-      frag.appendChild(h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.loadEarlier() }, `Mostrar anteriores (${this.startIndex})`));
+      frag.appendChild(h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.loadEarlier() }, t('terminal.earlier', { n: this.startIndex })));
     }
     for (let i = this.startIndex; i < entries.length; i++) frag.appendChild(this.entryEl(entries[i], i));
     this.body.replaceChildren(frag);
@@ -365,7 +378,7 @@ export class TerminalPanel implements Component {
         return this.toolEl(entry, index, hl);
       case 'system': {
         const el = h('div', { class: 'ao-term-entry ao-term-system' });
-        hl.append(el, entry.text);
+        hl.append(el, localized(entry.msg, entry.text));
         return el;
       }
     }
@@ -397,7 +410,7 @@ export class TerminalPanel implements Component {
 
   private thinkingEl(entry: Extract<TranscriptEntry, { kind: 'thinking' }>, index: number, hl: Highlighter): HTMLElement {
     const open = this.isExpanded(index, entry);
-    const toggle = h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronDown' : 'chevronRight', 12), h('span', null, 'Pensando…'));
+    const toggle = h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronDown' : 'chevronRight', 12), h('span', null, t('terminal.thinking')));
     const el = h('div', { class: `ao-term-entry ao-term-thinking ${open ? 'is-open' : ''}`.trim() }, toggle);
     if (open) {
       const text = h('div', { class: 'ao-term-text' });
@@ -412,7 +425,7 @@ export class TerminalPanel implements Component {
     const name = h('strong', { class: 'ao-term-tool-name' });
     hl.append(name, entry.name);
     const summary = h('span', { class: 'ao-term-tool-summary' });
-    hl.append(summary, entry.summary);
+    hl.append(summary, toolSummary(entry));
     const head = h('div', { class: 'ao-term-tool-head' }, h('span', { class: `ao-term-bullet ${entry.error ? 'is-error' : ''}`.trim(), 'aria-hidden': 'true' }, '●'), name, summary);
     const el = h('div', { class: `ao-term-entry ao-term-tool ${entry.error ? 'is-error' : ''} ${open ? 'is-open' : ''}`.trim() }, head);
     if (entry.result) {
@@ -422,7 +435,7 @@ export class TerminalPanel implements Component {
       else result.textContent = preview;
       el.appendChild(result);
       if (hiddenLines > 0 || open) {
-        el.appendChild(h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronUp' : 'chevronDown', 12), h('span', null, open ? 'Recolher' : `Mostrar mais ${hiddenLines} ${hiddenLines === 1 ? 'linha' : 'linhas'}`)));
+        el.appendChild(h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronUp' : 'chevronDown', 12), h('span', null, open ? t('terminal.collapse') : t('terminal.moreLines', { n: hiddenLines }))));
       }
     }
     return el;

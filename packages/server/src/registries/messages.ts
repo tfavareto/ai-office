@@ -1,5 +1,5 @@
 // Messages from the user ("boss") to agents: queues, delivery through hooks, long-poll for the Stop hook.
-import type { BossMessage } from '@ai-office/shared';
+import type { BossMessage, Locale } from '@ai-office/shared';
 import { newId } from '../util/ids';
 
 export const MESSAGE_TTL_MS = 2 * 60 * 60_000;
@@ -12,6 +12,8 @@ export interface InboxMessage {
   id: string;
   text: string;
   createdAt: number;
+  /** Language of the sender: the hook phrases the delivery preamble in it. */
+  locale?: Locale;
 }
 
 export interface MessageDeps {
@@ -28,7 +30,7 @@ export class MessageRegistry {
   constructor(private readonly deps: MessageDeps) {}
 
   /** Queues the text for each agent. Several agents share a group id. */
-  send(agentIds: readonly string[], text: string): BossMessage[] {
+  send(agentIds: readonly string[], text: string, locale?: Locale): BossMessage[] {
     const targets = [...new Set(agentIds)].slice(0, MAX_TEAM_SIZE);
     const group = targets.length > 1 ? newId(6) : undefined;
     const now = this.deps.now();
@@ -39,6 +41,7 @@ export class MessageRegistry {
       createdAt: now,
       status: 'queued',
       ...(group !== undefined ? { group } : {}),
+      ...(locale !== undefined ? { locale } : {}),
     }));
     for (const message of created) {
       this.byAgent.set(message.agentId, [...(this.byAgent.get(message.agentId) ?? []), message].slice(-MESSAGES_KEPT));
@@ -75,7 +78,7 @@ export class MessageRegistry {
     );
     for (const message of delivered) this.deps.onDelivered(message);
     this.deps.onChange();
-    return queued.map(({ id, text, createdAt }) => ({ id, text, createdAt }));
+    return queued.map(({ id, text, createdAt, locale }) => ({ id, text, createdAt, ...(locale !== undefined ? { locale } : {}) }));
   }
 
   /** Long-poll: resolves with the queued messages as soon as one exists, or an empty list after the timeout. */

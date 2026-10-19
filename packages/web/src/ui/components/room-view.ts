@@ -1,11 +1,13 @@
 // Drawer content for a selected room: hero, accounts, agents, team message composer, tasks, recent activity.
 import type { Agent } from '@ai-office/shared';
-import { LOCAL_ONLY_HINT, type AppContext, type Component } from '../context';
+import { t } from '../../i18n';
+import { localOnlyHint, type AppContext, type Component } from '../context';
+import { activityText, agentRole, taskLabel } from '../display';
 import { h, setText } from '../dom';
 import { formatClock } from '../format';
 import { icon } from '../icons';
 import { agentsOfProject, roomColor } from '../model/rooms';
-import { STATUS_LABEL, displayStatus } from '../model/status';
+import { displayStatus, statusLabel } from '../model/status';
 import { roomActivities } from '../model/timeline';
 import { accountChip, createAvatar, emptyNote, sectionTitle, setStatusDot, statusDot } from '../widgets';
 import { MessageComposer } from './message-composer';
@@ -26,15 +28,15 @@ export class RoomView implements Component {
   private readonly composer: MessageComposer;
   private readonly history: MessageHistory;
   private readonly body = h('div', { class: 'ao-agent-body' });
-  private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote('Esta sala não está mais no escritório.'));
+  private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote(t('room.gone')));
   private signatures = { stats: '', accounts: '', agents: '', tasks: '', activity: '' };
 
   constructor(private readonly ctx: AppContext) {
-    this.history = new MessageHistory(ctx, (id) => ctx.agent(id)?.name ?? 'Agente');
+    this.history = new MessageHistory(ctx, (id) => ctx.agent(id)?.name ?? t('agent.fallback'));
     this.composer = new MessageComposer(ctx, () => this.history.refreshNow());
     const copy = h(
       'button',
-      { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': 'Copiar caminho do projeto', title: 'Copiar caminho do projeto', onclick: () => this.copyPath() },
+      { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('room.copyPath'), title: t('room.copyPath'), onclick: () => this.copyPath() },
       icon('copy', 14),
     );
     const hero = h(
@@ -42,13 +44,13 @@ export class RoomView implements Component {
       { class: 'ao-hero ao-hero--room' },
       this.swatch,
       h('div', { class: 'ao-hero-info' }, this.name, h('div', { class: 'ao-room-path-row' }, this.path, copy)),
-      closeButton('Fechar detalhes (Esc)', () => ctx.clearSelection()),
+      closeButton(t('drawer.close'), () => ctx.clearSelection()),
     );
     this.body.append(
       this.stats,
       this.accounts,
       this.agents,
-      h('div', { class: 'ao-block' }, sectionTitle('Mensagem para a equipe'), this.composer.el, this.history.el),
+      h('div', { class: 'ao-block' }, sectionTitle(t('room.team.title')), this.composer.el, this.history.el),
       this.tasks,
       this.activity,
     );
@@ -68,7 +70,7 @@ export class RoomView implements Component {
 
   private copyPath(): void {
     const project = this.roomId ? this.ctx.project(this.roomId) : undefined;
-    if (project) this.ctx.copy(project.path, 'Caminho copiado.');
+    if (project) this.ctx.copy(project.path, t('room.pathCopied'));
   }
 
   render(): void {
@@ -95,7 +97,7 @@ export class RoomView implements Component {
     if (signature === this.signatures.stats) return;
     this.signatures.stats = signature;
     const stat = (value: number, label: string, cls = ''): HTMLElement => h('div', { class: `ao-room-stat ${cls}`.trim() }, h('strong', null, String(value)), h('span', null, label));
-    this.stats.replaceChildren(stat(agents.length, agents.length === 1 ? 'agente' : 'agentes'), stat(working, 'trabalhando'), stat(needs, needs === 1 ? 'precisa de você' : 'precisam de você', needs > 0 ? 'is-attention' : ''));
+    this.stats.replaceChildren(stat(agents.length, t('topbar.counter.agents', { n: agents.length })), stat(working, t('topbar.counter.working', { n: working })), stat(needs, t('topbar.counter.needsYou', { n: needs }), needs > 0 ? 'is-attention' : ''));
   }
 
   private renderAccounts(agents: Agent[]): void {
@@ -104,7 +106,7 @@ export class RoomView implements Component {
     if (signature === this.signatures.accounts) return;
     this.signatures.accounts = signature;
     this.accounts.hidden = ids.length === 0;
-    this.accounts.replaceChildren(sectionTitle('Contas'), h('div', { class: 'ao-chip-row' }, ...ids.map((id) => accountChip(this.ctx.account(id), true))));
+    this.accounts.replaceChildren(sectionTitle(t('room.accounts')), h('div', { class: 'ao-chip-row' }, ...ids.map((id) => accountChip(this.ctx.account(id), true))));
   }
 
   private renderAgents(agents: Agent[]): void {
@@ -112,9 +114,9 @@ export class RoomView implements Component {
     if (signature === this.signatures.agents) return;
     this.signatures.agents = signature;
     this.agents.replaceChildren(
-      sectionTitle('Agentes', h('span', { class: 'ao-section-count' }, String(agents.length))),
+      sectionTitle(t('room.agents'), h('span', { class: 'ao-section-count' }, String(agents.length))),
       agents.length === 0
-        ? emptyNote('Ninguém na sala agora.')
+        ? emptyNote(t('room.noAgents'))
         : h(
             'div',
             { class: 'ao-mini-list' },
@@ -128,8 +130,8 @@ export class RoomView implements Component {
                 'button',
                 { type: 'button', class: 'ao-mini-row', onclick: () => this.ctx.selectAgent(agent.id, { focus: true }) },
                 h('span', { class: 'ao-row-avatar' }, avatar.el, dot),
-                h('span', { class: 'ao-mini-body' }, h('strong', null, agent.name), h('span', null, agent.kind === 'sub' ? `Subagente · ${agent.role}` : 'Principal')),
-                h('span', { class: `ao-mini-meta ao-text--${ds}` }, agent.activity?.text ?? STATUS_LABEL[ds]),
+                h('span', { class: 'ao-mini-body' }, h('strong', null, agent.name), h('span', null, agent.kind === 'sub' ? t('agent.sub', { role: agentRole(agent) }) : t('agent.main'))),
+                h('span', { class: `ao-mini-meta ao-text--${ds}` }, agent.activity ? activityText(agent.activity) : statusLabel(ds)),
               );
             }),
           ),
@@ -137,14 +139,14 @@ export class RoomView implements Component {
   }
 
   private renderTeam(roomName: string, agents: Agent[]): void {
-    const blockedReason = !this.ctx.isLocal ? LOCAL_ONLY_HINT : agents.length === 0 ? 'Ninguém na sala para receber a mensagem.' : null;
+    const blockedReason = !this.ctx.isLocal ? localOnlyHint() : agents.length === 0 ? t('room.team.nobody') : null;
     const ids = agents.map((a) => a.id);
     this.composer.setTarget({
       key: `room:${this.roomId}`,
       agentIds: ids,
       teamLabel: roomName,
-      placeholder: `Mensagem para os ${ids.length} agentes de ${roomName}.`,
-      sendLabel: 'Enviar à equipe',
+      placeholder: t('room.team.placeholder', { n: ids.length, room: roomName }),
+      sendLabel: t('room.team.send'),
       blockedReason,
     });
     this.history.setAgents(this.ctx.snapshot ? this.ctx.snapshot.agents.filter((a) => a.projectId === this.roomId).map((a) => a.id) : ids);
@@ -154,18 +156,18 @@ export class RoomView implements Component {
 
   private renderTasks(agents: Agent[]): void {
     const withTasks = agents.filter((a) => a.tasks.length > 0);
-    const signature = withTasks.map((a) => `${a.id}${a.tasks.map((t) => t.status[0]).join('')}`).join('|');
+    const signature = withTasks.map((a) => `${a.id}${a.tasks.map((task) => task.status[0]).join('')}`).join('|');
     if (signature === this.signatures.tasks) return;
     this.signatures.tasks = signature;
     this.tasks.replaceChildren(
-      sectionTitle('Tarefas'),
+      sectionTitle(t('tab.summary.tasks')),
       withTasks.length === 0
-        ? emptyNote('Nenhuma tarefa nos planos da sala.')
+        ? emptyNote(t('room.noTasks'))
         : h(
             'div',
             null,
             ...withTasks.map((agent) => {
-              const done = agent.tasks.filter((t) => t.status === 'completed').length;
+              const done = agent.tasks.filter((task) => task.status === 'completed').length;
               return h(
                 'div',
                 { class: 'ao-task-group' },
@@ -174,7 +176,7 @@ export class RoomView implements Component {
                   'ul',
                   { class: 'ao-tasks' },
                   ...agent.tasks.map((task) =>
-                    h('li', { class: `ao-task is-${task.status}` }, h('span', { class: 'ao-task-mark', 'aria-hidden': 'true' }, task.status === 'completed' ? icon('check', 12) : null), h('span', { class: 'ao-task-text' }, task.status === 'in_progress' ? (task.activeForm ?? task.title) : task.title)),
+                    h('li', { class: `ao-task is-${task.status}` }, h('span', { class: 'ao-task-mark', 'aria-hidden': 'true' }, task.status === 'completed' ? icon('check', 12) : null), h('span', { class: 'ao-task-text' }, taskLabel(task))),
                   ),
                 ),
               );
@@ -189,9 +191,9 @@ export class RoomView implements Component {
     if (signature === this.signatures.activity) return;
     this.signatures.activity = signature;
     this.activity.replaceChildren(
-      sectionTitle('Atividade recente'),
+      sectionTitle(t('room.recent')),
       items.length === 0
-        ? emptyNote('Sem atividade recente.')
+        ? emptyNote(t('room.noRecent'))
         : h(
             'ol',
             { class: 'ao-timeline' },
@@ -201,7 +203,7 @@ export class RoomView implements Component {
                 { class: `ao-tl-item ${activity.error ? 'is-error' : ''}`.trim() },
                 h('span', { class: 'ao-tl-time' }, formatClock(activity.at)),
                 h('span', { class: 'ao-tl-icon', 'aria-hidden': 'true' }, activity.icon),
-                h('div', { class: 'ao-tl-body' }, h('span', { class: 'ao-tl-text' }, `${agent.name}: ${activity.text}`)),
+                h('div', { class: 'ao-tl-body' }, h('span', { class: 'ao-tl-text' }, `${agent.name}: ${activityText(activity)}`)),
               ),
             ),
           ),

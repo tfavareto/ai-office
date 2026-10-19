@@ -18,6 +18,20 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+/** Interface languages of AI Office (same as `LOCALES` in @ai-office/shared; the plugin cannot import it at runtime). */
+export const LOCALES = ['pt-BR', 'en', 'es'];
+/** Language used for what is said to the agent when the page did not say which one it speaks. */
+export const DEFAULT_LOCALE = 'pt-BR';
+
+/**
+ * A supported locale, or `DEFAULT_LOCALE` for anything else (absent, unknown, not a string).
+ * @param {unknown} value
+ * @returns {'pt-BR' | 'en' | 'es'}
+ */
+export function normalizeLocale(value) {
+  return typeof value === 'string' && LOCALES.includes(value) ? /** @type {'pt-BR' | 'en' | 'es'} */ (value) : DEFAULT_LOCALE;
+}
+
 /** Same default as `DEFAULT_PORT` in @ai-office/shared (the plugin cannot import it at runtime). */
 export const DEFAULT_PORT = 4848;
 /** Hooks only ever talk to the local machine. */

@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { type Account, accountColor, fnv1a } from '@ai-office/shared';
+import { type Account, accountColor, fnv1a, msg, sourceText } from '@ai-office/shared';
 
 export interface DiscoverOptions {
   homeDir: string;
@@ -30,7 +30,7 @@ function slug(name: string): string {
 
 function labelFor(dir: string, homeDir: string): string {
   const name = basename(dir);
-  if (dir === join(homeDir, '.claude')) return 'Pessoal';
+  if (dir === join(homeDir, '.claude')) return sourceText(msg('account.default'));
   const rest = name.replace(/^\.?claude[-_]?/i, '');
   return rest.length > 0 ? rest : name.replace(/^\./, '');
 }
@@ -46,7 +46,7 @@ export function accountsFromDirs(dirs: readonly string[], homeDir: string): Acco
     if (usedIds.has(id)) id = `${id}-${(fnv1a(dir) % 0xffff).toString(16)}`;
     usedIds.add(id);
     const label = labelFor(dir, homeDir);
-    return { id, label, initial: (label[0] ?? '?').toUpperCase(), color: accountColor(index), dir };
+    return { id, label, initial: (label[0] ?? '?').toUpperCase(), color: accountColor(index), dir, ...(dir === defaultDir ? { isDefault: true } : {}) };
   });
 }
 

@@ -1,5 +1,6 @@
-// Dev harness: mounts the 2D world full-screen with a synthetic office. Query: ?daylight=day|night|auto
+// Dev harness: mounts the 2D world full-screen with a synthetic office. Query: ?locale=pt-BR|en|es&daylight=day|night|auto
 // &projects=4&agents=10&step=4&zoom=2&hud=1&insets=top,right,bottom,left (CSS px, like the app shell)
+import { isLocale } from '@ai-office/shared';
 import { createWorld2D } from '../src/world2d';
 import type { DaylightMode, WorldApi } from '../src/world/api';
 import { DEFAULT_WORLD_OPTIONS } from '../src/world/api';
@@ -8,10 +9,13 @@ import { type FixtureOptions, makeFixture } from './fixture';
 const params = new URLSearchParams(location.search);
 const num = (key: string, fallback: number): number => Number(params.get(key) ?? fallback);
 const daylight = (params.get('daylight') ?? 'day') as DaylightMode;
+const requestedLocale = params.get('locale');
+const locale = isLocale(requestedLocale) ? requestedLocale : DEFAULT_WORLD_OPTIONS.locale;
 const fixture: FixtureOptions = { projects: num('projects', 4), agents: num('agents', 10), step: num('step', 4) };
 const [top = 0, right = 0, bottom = 0, left = 0] = (params.get('insets') ?? '').split(',').map(Number);
 const force = params.get('force');
 if (force) fixture.force = force as FixtureOptions['force'];
+if (params.get('notasks') === '1') fixture.noTasks = true;
 
 declare global {
   interface Window {
@@ -24,7 +28,7 @@ declare global {
 async function main(): Promise<void> {
   const container = document.getElementById('world')!;
   const world = await createWorld2D(container, {
-    options: { ...DEFAULT_WORLD_OPTIONS, daylight, bubbles: 'all' },
+    options: { ...DEFAULT_WORLD_OPTIONS, daylight, locale, bubbles: 'all' },
     insets: { top, right, bottom, left },
   });
   window.__world = world;
@@ -37,7 +41,7 @@ async function main(): Promise<void> {
   if (params.get('hud') !== '1') hud.style.display = 'none';
   setInterval(() => {
     const s = world.stats();
-    hud.textContent = `fps ${s.fps} · draw ${s.drawMs} ms · agentes ${s.agents}`;
+    hud.textContent = `fps ${s.fps} · draw ${s.drawMs} ms · agents ${s.agents}`;
   }, 500);
   const zoom = params.get('zoom');
   if (zoom) {

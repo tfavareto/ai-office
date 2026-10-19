@@ -1,7 +1,7 @@
 // Pending permission requests created by the plugin hook and answered from the office page.
 import type { PermissionDecision, PermissionHookRequest, PermissionRequest, PermissionWaitResponse } from '@ai-office/shared';
 import { newId } from '../util/ids';
-import { summarizePermission, suggestionLabel, trimInput } from './permission-text';
+import { describePermission, describeSuggestion, trimInput } from './permission-text';
 
 export const PERMISSION_TTL_MS = 5 * 60_000;
 export const MAX_WAIT_MS = 25_000;
@@ -38,14 +38,18 @@ export class PermissionRegistry {
     const now = this.deps.now();
     const hookBudget = request.timeout_ms !== undefined && request.timeout_ms > 0 ? request.timeout_ms : PERMISSION_TTL_MS;
     const id = newId(8);
+    const { summary, summaryMsg } = describePermission(request.tool_name, request.tool_input);
+    const suggestions = (request.permission_suggestions ?? []).map(describeSuggestion);
     const entry: Entry = {
       request: {
         id,
         agentId,
         toolName: request.tool_name,
-        summary: summarizePermission(request.tool_name, request.tool_input),
+        summary,
+        ...(summaryMsg !== undefined ? { summaryMsg } : {}),
         input: trimInput(request.tool_input),
-        suggestions: (request.permission_suggestions ?? []).map(suggestionLabel),
+        suggestions: suggestions.map((suggestion) => suggestion.label),
+        suggestionMsgs: suggestions.map((suggestion) => suggestion.msg),
         createdAt: now,
         expiresAt: now + Math.min(PERMISSION_TTL_MS, hookBudget),
       },

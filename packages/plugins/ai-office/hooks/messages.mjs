@@ -10,7 +10,8 @@
 //                 early when the server answers `{ skip }` (for instance because no page is open).
 //   SubagentStop  Same as Stop without standby, and only for real subagents (the input must carry `agent_id`).
 //
-// Several queued messages are delivered as a numbered list. Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR,
+// Several queued messages are delivered as a numbered list. The text the agent reads before them is phrased in the
+// language the page reported with the messages (`locale`: pt-BR, en or es; pt-BR when absent). Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR,
 // AI_OFFICE_STANDBY_MIN, AI_OFFICE_HOOK_DEBUG=1. The script never fails a session: every problem ends in exit code 0
 // with empty stdout.
 
@@ -20,12 +21,61 @@ import {
   MAX_POLL_FAILURES,
   POLL_RETRY_DELAY_MS,
   isEntryPoint,
+  normalizeLocale,
   queryString,
   readNumber,
   requestJson,
   runHook,
   sleep,
 } from './lib.mjs';
+
+/**
+ * What the agent is told before the user's messages, in the language the user wrote them in (the page sends it with
+ * each message; pt-BR when it did not). `tool`: delivered while the agent works; `stop`: a new instruction at the end
+ * of the turn. This file imports nothing from @ai-office/shared, hence the small local table.
+ */
+const HEADERS = {
+  'pt-BR': {
+    tool: [
+      'Mensagem do usuário (seu chefe) enviada agora pelo AI Office, enquanto você trabalhava. Leve-a em conta e ajuste o rumo se necessário:',
+      'Mensagens do usuário (seu chefe) enviadas agora pelo AI Office, enquanto você trabalhava. Leve-as em conta e ajuste o rumo se necessário:',
+    ],
+    stop: [
+      'Nova mensagem do usuário (seu chefe) pelo AI Office. Trate-a como uma nova instrução e responda a ela antes de encerrar:',
+      'Novas mensagens do usuário (seu chefe) pelo AI Office. Trate-as como novas instruções e responda a elas antes de encerrar:',
+    ],
+  },
+  en: {
+    tool: [
+      'Message from the user (your boss) sent just now through AI Office while you were working. Take it into account and adjust course if needed:',
+      'Messages from the user (your boss) sent just now through AI Office while you were working. Take them into account and adjust course if needed:',
+    ],
+    stop: [
+      'New message from the user (your boss) through AI Office. Treat it as a new instruction and respond to it before finishing:',
+      'New messages from the user (your boss) through AI Office. Treat them as new instructions and respond to them before finishing:',
+    ],
+  },
+  es: {
+    tool: [
+      'Mensaje del usuario (tu jefe) enviado ahora por AI Office mientras trabajabas. Tenlo en cuenta y ajusta el rumbo si es necesario:',
+      'Mensajes del usuario (tu jefe) enviados ahora por AI Office mientras trabajabas. Tenlos en cuenta y ajusta el rumbo si es necesario:',
+    ],
+    stop: [
+      'Nuevo mensaje del usuario (tu jefe) por AI Office. Trátalo como una nueva instrucción y respóndelo antes de terminar:',
+      'Nuevos mensajes del usuario (tu jefe) por AI Office. Trátalos como nuevas instrucciones y respóndelos antes de terminar:',
+    ],
+  },
+};
+
+/**
+ * @param {'tool' | 'stop'} via
+ * @param {number} count
+ * @param {unknown} locale
+ * @returns {string}
+ */
+function headerFor(via, count, locale) {
+  return HEADERS[normalizeLocale(locale)][via][count === 1 ? 0 : 1];
+}
 
 export const DEFAULT_STANDBY_MINUTES = 10;
 const MAX_STANDBY_MINUTES = 10;
@@ -57,13 +107,11 @@ export function formatMessages(texts) {
 /**
  * PostToolUse output: the messages ride along as additional context of the tool result.
  * @param {string[]} texts
+ * @param {string} [locale]  Language of the preamble (pt-BR when absent or unknown).
  * @returns {Record<string, unknown>}
  */
-export function buildToolOutput(texts) {
-  const header =
-    texts.length === 1
-      ? 'Mensagem do usuário (seu chefe) enviada agora pelo AI Office, enquanto você trabalhava. Leve-a em conta e ajuste o rumo se necessário:'
-      : 'Mensagens do usuário (seu chefe) enviadas agora pelo AI Office, enquanto você trabalhava. Leve-as em conta e ajuste o rumo se necessário:';
+export function buildToolOutput(texts, locale) {
+  const header = headerFor('tool', texts.length, locale);
   return {
     hookSpecificOutput: {
       hookEventName: 'PostToolUse',
@@ -75,31 +123,31 @@ export function buildToolOutput(texts) {
 /**
  * Stop / SubagentStop output: block the stop so the agent keeps going with the message as its next instruction.
  * @param {string[]} texts
+ * @param {string} [locale]  Language of the preamble (pt-BR when absent or unknown).
  * @returns {Record<string, unknown>}
  */
-export function buildStopOutput(texts) {
-  const header =
-    texts.length === 1
-      ? 'Nova mensagem do usuário (seu chefe) pelo AI Office. Trate-a como uma nova instrução e responda a ela antes de encerrar:'
-      : 'Novas mensagens do usuário (seu chefe) pelo AI Office. Trate-as como novas instruções e responda a elas antes de encerrar:';
+export function buildStopOutput(texts, locale) {
+  const header = headerFor('stop', texts.length, locale);
   return { decision: 'block', reason: `${header}\n\n${formatMessages(texts)}` };
 }
 
 /**
  * Extracts the message texts of an inbox/wait response.
  * @param {import('./lib.mjs').HttpResult | null} response
- * @returns {{ texts: string[], skip: boolean, failed: boolean }}
- *   `skip`: the server told us to stop asking; `failed`: no usable answer.
+ * @returns {{ texts: string[], locale?: string, skip: boolean, failed: boolean }}
+ *   `skip`: the server told us to stop asking; `failed`: no usable answer; `locale`: language of the most recent
+ *   message that declared one.
  */
 export function readInbox(response) {
   const json = response?.ok ? response.json : null;
   if (json === null || typeof json !== 'object') return { texts: [], skip: false, failed: true };
   if (typeof json.skip === 'string') return { texts: [], skip: true, failed: false };
   if (!Array.isArray(json.messages)) return { texts: [], skip: false, failed: true };
-  const texts = json.messages
-    .map((/** @type {any} */ message) => message?.text)
-    .filter((/** @type {unknown} */ text) => typeof text === 'string' && text.trim() !== '');
-  return { texts, skip: false, failed: false };
+  const usable = json.messages.filter((/** @type {any} */ message) => typeof message?.text === 'string' && message.text.trim() !== '');
+  const texts = usable.map((/** @type {any} */ message) => message.text);
+  const declared = usable.map((/** @type {any} */ message) => message.locale).filter((/** @type {unknown} */ value) => normalizeLocale(value) === value);
+  const locale = declared.length > 0 ? declared[declared.length - 1] : undefined;
+  return { texts, ...(locale !== undefined ? { locale } : {}), skip: false, failed: false };
 }
 
 /**
@@ -117,7 +165,7 @@ function fetchInbox(ctx, { session, agent, via }) {
  * @param {{ session: string, agent?: string }} target
  * @param {number} totalMs
  * @param {() => number} [now]
- * @returns {Promise<string[]>}  Message texts, empty when none arrived.
+ * @returns {Promise<{ texts: string[], locale?: string }>}  Message texts (and their language), empty when none arrived.
  */
 export async function standby(ctx, { session, agent }, totalMs, now = Date.now) {
   const deadline = now() + totalMs;
@@ -131,20 +179,20 @@ export async function standby(ctx, { session, agent }, totalMs, now = Date.now) 
       { timeoutMs: seconds * 1000 + LONG_POLL_GRACE_MS },
     );
     const result = readInbox(response);
-    if (result.texts.length > 0) return result.texts;
+    if (result.texts.length > 0) return { texts: result.texts, ...(result.locale !== undefined ? { locale: result.locale } : {}) };
     if (result.skip) {
       ctx.debug('standby ended: server said skip');
-      return [];
+      return { texts: [] };
     }
     if (result.failed) {
       failures += 1;
-      if (failures >= MAX_POLL_FAILURES) return [];
+      if (failures >= MAX_POLL_FAILURES) return { texts: [] };
       await sleep(POLL_RETRY_DELAY_MS);
     } else {
       failures = 0;
     }
   }
-  return [];
+  return { texts: [] };
 }
 
 /**
@@ -164,7 +212,7 @@ export async function handleMessageHook(input, ctx) {
   switch (input.hook_event_name) {
     case 'PostToolUse': {
       const inbox = await fetchInbox(ctx, { session, agent, via: 'tool' });
-      return inbox.texts.length > 0 ? buildToolOutput(inbox.texts) : null;
+      return inbox.texts.length > 0 ? buildToolOutput(inbox.texts, inbox.locale) : null;
     }
     case 'SubagentStop': {
       if (agent === undefined) {
@@ -172,15 +220,15 @@ export async function handleMessageHook(input, ctx) {
         return null;
       }
       const inbox = await fetchInbox(ctx, { session, agent, via: 'stop' });
-      return inbox.texts.length > 0 ? buildStopOutput(inbox.texts) : null;
+      return inbox.texts.length > 0 ? buildStopOutput(inbox.texts, inbox.locale) : null;
     }
     case 'Stop': {
       const inbox = await fetchInbox(ctx, { session, agent, via: 'stop' });
-      if (inbox.texts.length > 0) return buildStopOutput(inbox.texts);
+      if (inbox.texts.length > 0) return buildStopOutput(inbox.texts, inbox.locale);
       const standbyMs = resolveStandbyMs(ctx.env);
       if (inbox.skip || inbox.failed || standbyMs === 0) return null;
-      const texts = await standby(ctx, { session, agent }, standbyMs);
-      return texts.length > 0 ? buildStopOutput(texts) : null;
+      const waited = await standby(ctx, { session, agent }, standbyMs);
+      return waited.texts.length > 0 ? buildStopOutput(waited.texts, waited.locale) : null;
     }
     default:
       ctx.debug('ignoring event', input.hook_event_name);

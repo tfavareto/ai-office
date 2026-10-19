@@ -1,7 +1,10 @@
 // Canvas-driven screens: the workstation monitor atlas, room boards, TVs, menu board and the corridor LED ticker.
 import { CanvasTexture, MeshBasicMaterial, RepeatWrapping, SRGBColorSpace } from 'three';
-import type { AgentStatus } from '@ai-office/shared';
+import type { AgentStatus, Msg } from '@ai-office/shared';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 import { Rng } from '../../layout/rng';
+import { boardLine } from '../../world2d/runtime/boards';
+import { fitFont } from './textFit';
 import { canvas2d } from './textures';
 
 export const FONT = '600 {s}px "Inter", "SF Pro Text", system-ui, sans-serif';
@@ -80,6 +83,8 @@ export class WorkstationAtlas {
   readonly material: MeshBasicMaterial;
   private readonly ctx: CanvasRenderingContext2D;
   private static strips: HTMLCanvasElement[] | null = null;
+  /** Text of the amber badge on the first monitor of a waiting agent, upper case. */
+  private waitingLabel = '! AGUARDA';
 
   constructor() {
     const { canvas, ctx } = canvas2d(ATLAS_W, ATLAS_H);
@@ -89,6 +94,11 @@ export class WorkstationAtlas {
     WorkstationAtlas.strips ??= makeStrips();
     for (let d = 0; d < ROWS; d++) for (let s = 0; s < COLS; s++) this.drawCell(d, s, { status: 'empty', seed: 0 }, 0, 1);
     this.texture.needsUpdate = true;
+  }
+
+  /** Language of the badge; the cells repaint at the next `update`. */
+  setText(text: WorldText): void {
+    this.waitingLabel = `! ${text.t('desk.waiting').toLocaleUpperCase(text.locale)}`;
   }
 
   /** UV rectangle of a cell: [u0, v0, u1, v1] (canvas row 0 is at the top; textures here are not flipped). */
@@ -135,9 +145,9 @@ export class WorkstationAtlas {
         ctx.fillStyle = `rgba(255,190,60,${pulse})`;
         ctx.fillRect(x + 12, y + 30, CELL_W - 24, 38);
         ctx.fillStyle = '#2a1a00';
-        ctx.font = font(21, 800);
+        ctx.font = font(fitFont(ctx, this.waitingLabel, (size) => font(size, 800), CELL_W - 40, 21, 12), 800);
         ctx.textAlign = 'center';
-        ctx.fillText('! AGUARDA', x + CELL_W / 2, y + 57);
+        ctx.fillText(this.waitingLabel, x + CELL_W / 2, y + 57);
       }
     }
     ctx.restore();
@@ -188,9 +198,12 @@ export interface BoardInfo {
   tasksTotal: number;
   tasksDone: number;
   current: string | null;
+  currentMsg?: Msg;
 }
 
-export function paintBoard(ctx: CanvasRenderingContext2D, w: number, h: number, name: string, info: BoardInfo, accent: string): void {
+export function paintBoard(
+  ctx: CanvasRenderingContext2D, w: number, h: number, name: string, info: BoardInfo, accent: string, text: WorldText = worldText('pt-BR'),
+): void {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, '#0d1830');
   g.addColorStop(1, '#070d1c');
@@ -200,20 +213,23 @@ export function paintBoard(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.fillRect(0, 0, 10, h);
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#e8f1ff';
+  const agents = text.t('count.agents', { n: info.agents });
+  ctx.font = font(22, 500);
+  const agentsW = ctx.measureText(agents).width;
+  ctx.fillStyle = '#9fb0cc';
+  ctx.textAlign = 'right';
+  ctx.fillText(agents, w - 24, 38);
+  ctx.fillStyle = '#e8f1ff';
   ctx.font = font(34, 700);
   ctx.textAlign = 'left';
-  ctx.fillText(fitText(ctx, name.toUpperCase(), w - 150), 34, 38);
-  ctx.fillStyle = '#9fb0cc';
-  ctx.font = font(22, 500);
-  ctx.textAlign = 'right';
-  ctx.fillText(`${info.agents} ${info.agents === 1 ? 'agente' : 'agentes'}`, w - 24, 38);
+  ctx.fillText(fitText(ctx, name.toUpperCase(), w - 34 - 24 - agentsW - 24), 34, 38);
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.fillRect(34, 68, w - 58, 2);
-  const line = info.current ?? (info.waiting ? 'Aguardando você' : info.working ? 'Trabalhando' : info.agents ? 'Ocioso' : 'Sala vazia');
+  const line = boardLine(info, text);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#6fe0c8';
   ctx.font = font(20, 600);
-  ctx.fillText('EM ANDAMENTO', 34, 104);
+  ctx.fillText(text.t('board.inProgress').toLocaleUpperCase(text.locale), 34, 104);
   ctx.fillStyle = '#e8f1ff';
   ctx.font = font(30, 600);
   ctx.fillText(fitText(ctx, line, w - 70), 34, 144);
@@ -224,15 +240,17 @@ export function paintBoard(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.fillRect(34, h - 62, ((w - 68) * info.tasksDone) / total, 14);
   ctx.fillStyle = '#9fb0cc';
   ctx.font = font(20, 500);
-  ctx.fillText(info.tasksTotal ? `${info.tasksDone}/${info.tasksTotal} tarefas` : 'sem tarefas', 34, h - 28);
+  const tasks = info.tasksTotal ? text.t('board.tasks', { done: info.tasksDone, total: info.tasksTotal }) : text.t('board.noTasks');
+  ctx.fillText(tasks, 34, h - 28);
   if (info.waiting) {
+    const tasksW = ctx.measureText(tasks).width;
     ctx.fillStyle = '#ffbe3c';
     ctx.textAlign = 'right';
-    ctx.fillText(`${info.waiting} precisa de você`, w - 24, h - 28);
+    ctx.fillText(fitText(ctx, text.t('count.needsYou', { n: info.waiting }), w - 34 - 24 - tasksW - 24), w - 24, h - 28);
   }
 }
 
-export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: number, names: readonly string[]): void {
+export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: number, names: readonly string[], text: WorldText = worldText('pt-BR')): void {
   ctx.fillStyle = '#0a1424';
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = '#1d3a63';
@@ -241,7 +259,8 @@ export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: numb
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e8f1ff';
   ctx.font = font(34, 700);
-  ctx.fillText(names.length ? `NA SALA · ${names.length}` : 'SALA LIVRE', 28, 33);
+  const title = (names.length ? text.t('meeting.inRoom3d', { n: names.length }) : text.t('meeting.free')).toLocaleUpperCase(text.locale);
+  ctx.fillText(fitText(ctx, title, w - 56), 28, 33);
   ctx.fillStyle = '#38b6c2';
   ctx.fillRect(0, 64, w, 4);
   ctx.font = font(30, 500);
@@ -259,7 +278,7 @@ export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: numb
   });
 }
 
-export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, text: WorldText = worldText('pt-BR')): void {
   ctx.fillStyle = '#22262b';
   ctx.fillRect(0, 0, w, h);
   ctx.strokeStyle = '#c9a456';
@@ -269,18 +288,22 @@ export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number): 
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
   ctx.font = font(44, 700);
-  ctx.fillText('CAFÉ DA COPA', w / 2, 62);
+  ctx.fillText(fitText(ctx, text.t('menu3d.title').toLocaleUpperCase(text.locale), w - 80), w / 2, 62);
   ctx.textAlign = 'left';
   ctx.font = font(30, 500);
-  const items: [string, string][] = [['Espresso', '4'], ['Cappuccino', '8'], ['Pão de queijo', '6'], ['Suco de laranja', '7'], ['Água com gás', '3']];
-  items.forEach(([n, p], i) => {
+  const items: [Parameters<WorldText['t']>[0], number][] = [
+    ['menu3d.espresso', 4], ['menu3d.cappuccino', 8], ['menu3d.cheeseBread', 6], ['menu3d.orangeJuice', 7], ['menu3d.sparkling', 3],
+  ];
+  items.forEach(([key, price], i) => {
     const y = 130 + i * 50;
-    ctx.fillStyle = '#f2ead8';
-    ctx.fillText(n, 50, y);
+    const cost = text.t('menu3d.price', { price });
     ctx.textAlign = 'right';
+    const costW = ctx.measureText(cost).width;
     ctx.fillStyle = '#e0b86a';
-    ctx.fillText(`R$ ${p}`, w - 50, y);
+    ctx.fillText(cost, w - 50, y);
     ctx.textAlign = 'left';
+    ctx.fillStyle = '#f2ead8';
+    ctx.fillText(fitText(ctx, text.t(key), w - 100 - costW - 24), 50, y);
     ctx.fillStyle = 'rgba(242,234,216,0.2)';
     ctx.fillRect(50, y + 24, w - 100, 1.5);
   });
@@ -351,6 +374,13 @@ export function paintPoster(ctx: CanvasRenderingContext2D, w: number, h: number,
 }
 
 /** Scrolling LED marquee along the corridor: a long strip texture with one text period, scrolled via UV offset. */
+const TICKER_W = 4096;
+const TICKER_PAD = 12;
+const TICKER_FONT = 44;
+const TICKER_MIN_FONT = 28;
+/** The text must leave a gap before the strip repeats, in every language. */
+const TICKER_MAX_TEXT_PX = TICKER_W - TICKER_PAD - 220;
+
 export class TickerStrip {
   readonly texture: CanvasTexture;
   readonly material: MeshBasicMaterial;
@@ -358,7 +388,7 @@ export class TickerStrip {
   private text = '';
 
   constructor() {
-    const { canvas } = canvas2d(4096, 64);
+    const { canvas } = canvas2d(TICKER_W, 64);
     this.texture = new CanvasTexture(canvas);
     this.texture.wrapS = RepeatWrapping;
     this.material = screenMaterial(this.texture);
@@ -374,11 +404,11 @@ export class TickerStrip {
     ctx.fillStyle = 'rgba(14,9,6,0.62)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffb347';
-    ctx.font = font(44, 700);
+    const msg = text.toUpperCase();
+    ctx.font = font(fitFont(ctx, msg, (size) => font(size, 700), TICKER_MAX_TEXT_PX, TICKER_FONT, TICKER_MIN_FONT), 700);
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    const msg = text.toUpperCase();
-    ctx.fillText(msg, 12, 34);
+    ctx.fillText(msg, TICKER_PAD, 34);
     this.texture.needsUpdate = true;
   }
 
@@ -405,15 +435,30 @@ export interface DecorSlot {
   uv: [number, number, number, number];
 }
 
+export type DecorPainter = (ctx: CanvasRenderingContext2D, w: number, h: number, text: WorldText) => void;
+
+interface PlacedDecor {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  painter: DecorPainter;
+  /** Paints words of the viewer's language, so it is redrawn when the language changes. */
+  localized: boolean;
+}
+
 export class DecorAtlas {
   readonly texture: CanvasTexture;
   readonly material: MeshBasicMaterial;
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly placed: PlacedDecor[] = [];
+  private text: WorldText;
   private x = 0;
   private y = 0;
   private rowH = 0;
 
-  constructor() {
+  constructor(text: WorldText = worldText('pt-BR')) {
+    this.text = text;
     const { canvas, ctx } = canvas2d(DECOR_SIZE, DECOR_SIZE);
     this.ctx = ctx;
     this.texture = new CanvasTexture(canvas);
@@ -421,7 +466,7 @@ export class DecorAtlas {
   }
 
   /** Reserves a w x h metre region, paints it and returns its UVs. */
-  add(wMeters: number, hMeters: number, painter: (ctx: CanvasRenderingContext2D, w: number, h: number) => void): DecorSlot {
+  add(wMeters: number, hMeters: number, painter: DecorPainter, localized = false): DecorSlot {
     const w = Math.round(wMeters * DECOR_PX_PER_M);
     const h = Math.round(hMeters * DECOR_PX_PER_M);
     if (this.x + w > DECOR_SIZE) {
@@ -433,16 +478,36 @@ export class DecorAtlas {
     const y = this.y;
     this.x += w + 2;
     this.rowH = Math.max(this.rowH, h);
+    const item: PlacedDecor = { x, y, w, h, painter, localized };
+    this.placed.push(item);
+    this.paint(item);
+    this.texture.needsUpdate = true;
+    return { uv: [x / DECOR_SIZE, y / DECOR_SIZE, (x + w) / DECOR_SIZE, (y + h) / DECOR_SIZE] };
+  }
+
+  /** Switches the language: repaints the regions that hold words and uploads the texture once. */
+  setText(text: WorldText): void {
+    if (text.locale === this.text.locale) return;
+    this.text = text;
+    let changed = false;
+    for (const item of this.placed) {
+      if (!item.localized) continue;
+      this.paint(item);
+      changed = true;
+    }
+    if (changed) this.texture.needsUpdate = true;
+  }
+
+  private paint(item: PlacedDecor): void {
     const { ctx } = this;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(x, y, w, h);
+    ctx.rect(item.x, item.y, item.w, item.h);
     ctx.clip();
-    ctx.translate(x, y);
-    painter(ctx, w, h);
+    ctx.clearRect(item.x, item.y, item.w, item.h);
+    ctx.translate(item.x, item.y);
+    item.painter(ctx, item.w, item.h, this.text);
     ctx.restore();
-    this.texture.needsUpdate = true;
-    return { uv: [x / DECOR_SIZE, y / DECOR_SIZE, (x + w) / DECOR_SIZE, (y + h) / DECOR_SIZE] };
   }
 
   dispose(): void {

@@ -1,5 +1,5 @@
 // Notification center model: immutable list with dedupe, filters, unread counting and "do not disturb".
-import type { Notice, NoticeLevel } from '@ai-office/shared';
+import type { Msg, Notice, NoticeLevel } from '@ai-office/shared';
 
 export type NotificationKind = 'alert' | 'message' | 'info';
 export type NotificationFilter = 'all' | 'alerts' | 'messages';
@@ -11,7 +11,10 @@ export interface NotificationItem {
   at: number;
   level: NoticeLevel;
   kind: NotificationKind;
+  /** pt-BR text (what the server sent); shown through `msg` when there is one. */
   text: string;
+  /** Localizable form of `text`, re-rendered when the language changes. */
+  msg?: Msg;
   agentId?: string;
   projectId?: string;
   count: number;
@@ -30,7 +33,8 @@ export const DEDUPE_WINDOW_MS = 120_000;
 
 export const EMPTY_NOTIFICATIONS: NotificationState = { items: [], dnd: false };
 
-const MESSAGE_PATTERN = /\b(mensagem|mensagens|ordem|ordens|entreg|instru[cç][aã]o)/i;
+// Notices carry their pt-BR text; the English and Spanish words cover notices written by the page itself.
+const MESSAGE_PATTERN = /\b(mensagem|mensagens|ordem|ordens|entreg|instru[cç][aã]o|message|messages|order|orders|deliver|instruction|mensaje|mensajes|orden|órdenes|entreg|instrucci[oó]n)/i;
 
 export function classifyNotice(notice: Pick<Notice, 'level' | 'text'>): NotificationKind {
   if (notice.level === 'alert') return 'alert';
@@ -54,6 +58,7 @@ interface Draft {
   level: NoticeLevel;
   kind: NotificationKind;
   text: string;
+  msg?: Msg;
   agentId?: string;
   projectId?: string;
   id: string;
@@ -68,6 +73,7 @@ function insert(state: NotificationState, draft: Draft, replaceText: boolean): A
       at: draft.at,
       count: replaceText ? existing.count : existing.count + 1,
       text: replaceText ? draft.text : existing.text,
+      msg: replaceText ? draft.msg : existing.msg,
       level: draft.level,
       read: false,
     };
@@ -81,6 +87,7 @@ function insert(state: NotificationState, draft: Draft, replaceText: boolean): A
     level: draft.level,
     kind: draft.kind,
     text: draft.text,
+    msg: draft.msg,
     agentId: draft.agentId,
     projectId: draft.projectId,
     count: 1,
@@ -99,6 +106,7 @@ export function addNotice(state: NotificationState, notice: Notice): AddResult {
       level: notice.level,
       kind: classifyNotice(notice),
       text: notice.text,
+      msg: notice.msg,
       agentId: notice.agentId,
       projectId: notice.projectId,
     },
@@ -109,11 +117,11 @@ export function addNotice(state: NotificationState, notice: Notice): AddResult {
 /** Adds or updates a keyed entry whose text changes over time (e.g. "2 de 3 entregues"). */
 export function upsertGrouped(
   state: NotificationState,
-  entry: { key: string; at: number; level: NoticeLevel; kind: NotificationKind; text: string; agentId?: string; projectId?: string },
+  entry: { key: string; at: number; level: NoticeLevel; kind: NotificationKind; text: string; msg?: Msg; agentId?: string; projectId?: string },
 ): AddResult {
   const existing = state.items.find((item) => item.key === entry.key);
   if (existing) {
-    const updated: NotificationItem = { ...existing, at: entry.at, text: entry.text, level: entry.level, read: existing.text === entry.text ? existing.read : false };
+    const updated: NotificationItem = { ...existing, at: entry.at, text: entry.text, msg: entry.msg, level: entry.level, read: existing.text === entry.text ? existing.read : false };
     return { state: { ...state, items: [updated, ...state.items.filter((item) => item !== existing)] }, item: updated, isNew: false };
   }
   return insert(state, { ...entry, id: `group:${entry.key}` }, true);

@@ -1,10 +1,11 @@
 // Terminal view model: searchable text, match navigation, code-fence splitting, incremental transcript merge.
 import type { TranscriptEntry, TranscriptPage } from '@ai-office/shared';
+import { localized, toolSummary } from '../display';
 
 /** Text of an entry as shown on screen (what search looks at). */
 export function entrySearchText(entry: TranscriptEntry): string {
-  if (entry.kind === 'tool') return [entry.name, entry.summary, entry.result].filter(Boolean).join('\n');
-  return entry.text;
+  if (entry.kind === 'tool') return [entry.name, toolSummary(entry), entry.result].filter(Boolean).join('\n');
+  return entry.kind === 'system' ? localized(entry.msg, entry.text) : entry.text;
 }
 
 export interface TermMatch {

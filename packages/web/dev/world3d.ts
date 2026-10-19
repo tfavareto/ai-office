@@ -1,15 +1,19 @@
-// Dev harness: mounts the 3D world full-screen with a synthetic office. Query: ?daylight=day|night|auto&projects=4
+// Dev harness: mounts the 3D world full-screen with a synthetic office. Query: ?locale=pt-BR|en|es&daylight=day|night|auto&projects=4
 // &agents=10&step=4&hud=1&mode=overview|first-person|shoulder&zoom=1.2&select=agent-0&force=working
 import { createWorld3D } from '../src/world3d';
+import { isLocale } from '@ai-office/shared';
 import { DEFAULT_WORLD_OPTIONS, type CameraMode, type DaylightMode, type WorldApi } from '../src/world/api';
 import { type FixtureOptions, makeFixture } from './fixture';
 
 const params = new URLSearchParams(location.search);
 const num = (key: string, fallback: number): number => Number(params.get(key) ?? fallback);
 const daylight = (params.get('daylight') ?? 'day') as DaylightMode;
+const requestedLocale = params.get('locale');
+const locale = isLocale(requestedLocale) ? requestedLocale : DEFAULT_WORLD_OPTIONS.locale;
 const fixture: FixtureOptions = { projects: num('projects', 4), agents: num('agents', 10), step: num('step', 4) };
 const force = params.get('force');
 if (force) fixture.force = force as FixtureOptions['force'];
+if (params.get('notasks') === '1') fixture.noTasks = true;
 
 declare global {
   interface Window {
@@ -24,7 +28,7 @@ async function main(): Promise<void> {
   const t0 = performance.now();
   const container = document.getElementById('world')!;
   const world = await createWorld3D(container, {
-    options: { ...DEFAULT_WORLD_OPTIONS, daylight, bubbles: 'all' },
+    options: { ...DEFAULT_WORLD_OPTIONS, daylight, locale, bubbles: 'all' },
     insets: { top: 0, right: 0, bottom: 0, left: 0 },
   });
   window.__world = world;
@@ -37,7 +41,7 @@ async function main(): Promise<void> {
   if (params.get('hud') !== '1') hud.style.display = 'none';
   setInterval(() => {
     const s = world.stats();
-    hud.textContent = `fps ${s.fps} · cpu ${s.drawMs} ms · agentes ${s.agents} · calls ${String(s.extra?.drawCalls)} · dpr ${String(s.extra?.pixelRatio)}`;
+    hud.textContent = `fps ${s.fps} · cpu ${s.drawMs} ms · agents ${s.agents} · calls ${String(s.extra?.drawCalls)} · dpr ${String(s.extra?.pixelRatio)}`;
   }, 500);
   const select = params.get('select');
   if (select) world.select({ type: 'agent', id: select }, { focus: params.get('focus') !== '0' });

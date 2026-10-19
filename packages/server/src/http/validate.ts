@@ -1,5 +1,5 @@
 // Defensive validation of request bodies and query parameters.
-import type { PermissionDecision, PermissionHookRequest } from '@ai-office/shared';
+import { type Locale, type PermissionDecision, type PermissionHookRequest, isLocale } from '@ai-office/shared';
 import { asArray, asNumber, asRecord, asString } from '../util/fs-safe';
 import { HttpError } from './respond';
 
@@ -14,6 +14,13 @@ function requiredString(value: unknown, name: string, max = MAX_ID): string {
 function optionalString(value: unknown, name: string, max = MAX_ID): string | undefined {
   if (value === undefined || value === null) return undefined;
   return requiredString(value, name, max);
+}
+
+/** Optional `locale` field: absent is fine, anything but a supported locale is a 400. */
+function optionalLocale(value: unknown): Locale | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!isLocale(value)) throw new HttpError(400, 'invalid-locale');
+  return value;
 }
 
 export function parsePermissionHookRequest(body: unknown): PermissionHookRequest {
@@ -50,15 +57,18 @@ export function parseDecision(body: unknown, suggestionCount: number): Permissio
     if (typeof raw.interrupt !== 'boolean') throw new HttpError(400, 'invalid-interrupt');
     decision.interrupt = raw.interrupt;
   }
+  const locale = optionalLocale(raw.locale);
+  if (locale !== undefined) decision.locale = locale;
   return decision;
 }
 
-export function parseSendMessage(body: unknown, maxAgents: number, maxText: number): { agents: string[]; text: string } {
+export function parseSendMessage(body: unknown, maxAgents: number, maxText: number): { agents: string[]; text: string; locale?: Locale } {
   const raw = asRecord(body);
   const agents = asArray(raw.agents).filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= MAX_ID);
   if (agents.length === 0) throw new HttpError(400, 'invalid-agents');
   const text = requiredString(typeof raw.text === 'string' ? raw.text.trim() : undefined, 'text', maxText);
-  return { agents: agents.slice(0, maxAgents), text };
+  const locale = optionalLocale(raw.locale);
+  return { agents: agents.slice(0, maxAgents), text, ...(locale !== undefined ? { locale } : {}) };
 }
 
 export function parseInboxRequest(body: unknown): { sessionId: string; agentId?: string; via: 'tool' | 'stop' } {

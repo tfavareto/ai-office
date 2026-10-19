@@ -1,5 +1,6 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
 import { createDemoSimulator, type DemoSimulator, type OfficeSnapshot, type PermissionDecision } from '@ai-office/shared';
+import { locale, t } from '../i18n';
 import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
 import type { Transport, TransportHandlers } from './transport';
@@ -59,12 +60,12 @@ class MockBackend implements Backend {
   ) {}
 
   private snapshot(): OfficeSnapshot {
-    if (!this.latest) throw new BackendError('O escritório de demonstração ainda está abrindo.', 503);
+    if (!this.latest) throw new BackendError(t('error.mockOpening'), 503);
     return this.latest;
   }
 
   async sendMessage(agentIds: readonly string[], text: string) {
-    return this.sim.sendMessage(agentIds, text, Date.now());
+    return this.sim.sendMessage(agentIds, text, Date.now(), locale());
   }
 
   async messages(agentId: string) {

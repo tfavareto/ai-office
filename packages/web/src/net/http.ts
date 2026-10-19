@@ -1,5 +1,6 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
 import { API, type PermissionDecision } from '@ai-office/shared';
+import { locale, t } from '../i18n';
 import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
 import { isRecord, parseActivities, parseDay, parseMessages, parseSessions, parseTranscriptPage } from './parse';
 
@@ -26,7 +27,7 @@ export class HttpBackend implements Backend {
       response = await this.fetchImpl(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     } catch (error) {
       if (error instanceof DOMException) throw error;
-      throw new BackendError('Sem conexão com o servidor.', 0);
+      throw new BackendError(t('error.noConnection'), 0);
     }
     const body: unknown = await response.json().catch(() => null);
     return { status: response.status, body };
@@ -50,7 +51,7 @@ export class HttpBackend implements Backend {
   }
 
   async sendMessage(agentIds: readonly string[], text: string) {
-    const { body } = await this.post(API.messages, { agents: agentIds, text });
+    const { body } = await this.post(API.messages, { agents: agentIds, text, locale: locale() });
     return parseMessages(body);
   }
 
@@ -59,7 +60,7 @@ export class HttpBackend implements Backend {
   }
 
   async decidePermission(requestId: string, decision: PermissionDecision): Promise<DecisionResult> {
-    const { status } = await this.post(`${API.permissions}/${encodeURIComponent(requestId)}/decision`, decision, true);
+    const { status } = await this.post(`${API.permissions}/${encodeURIComponent(requestId)}/decision`, { ...decision, locale: locale() }, true);
     return status === 409 ? 'already-answered' : 'ok';
   }
 

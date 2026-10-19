@@ -1,17 +1,28 @@
-// Maps Claude Code tool calls and session events to the pt-BR activity texts shown in the office.
+// Maps Claude Code tool calls and session events to the activity texts shown in the office.
+// Every draft carries a localizable `msg` (shared catalog key + params) and the pt-BR rendering in `text`.
 // Used by the server (real transcripts) and by the demo simulator, so both speak the same language.
 import type { Activity, ActivityKind } from './model';
-import { basename, formatDuration, oneLine, truncate } from './format';
+import { basename, oneLine, truncate } from './format';
+import { type Msg, msg, sourceText } from './i18n';
 
 export const ACTIVITY_TEXT_MAX = 60;
 export const ACTIVITY_DETAIL_MAX = 400;
+/** Longest value carried as a message parameter (the pt-BR `text` is cut to ACTIVITY_TEXT_MAX anyway). */
+const PARAM_MAX = 200;
+const PROMPT_PARAM_MAX = 40;
+const MESSAGE_PARAM_MAX = 45;
 
-/** An activity before it gets an id and a timestamp. */
+/**
+ * An activity before it gets an id and a timestamp. `text` is always `truncate(sourceText(msg), ACTIVITY_TEXT_MAX)`;
+ * `detailMsg` is only present when the detail is generated prose (file names, commands and queries are data).
+ */
 export interface ActivityDraft {
   kind: ActivityKind;
   icon: string;
   text: string;
+  msg: Msg;
   detail?: string;
+  detailMsg?: Msg;
   error?: boolean;
   durationMs?: number;
 }
@@ -24,10 +35,40 @@ function str(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 }
 
-function draft(kind: ActivityKind, icon: string, text: string, detail?: string): ActivityDraft {
-  const result: ActivityDraft = { kind, icon, text: truncate(text, ACTIVITY_TEXT_MAX) };
+/** Bounded copy of a data value (file name, command, query...) to carry as a message parameter. */
+function param(value: string): string {
+  return truncate(value, PARAM_MAX);
+}
+
+function draft(kind: ActivityKind, icon: string, message: Msg, detail?: string, detailMsg?: Msg): ActivityDraft {
+  const result: ActivityDraft = { kind, icon, text: truncate(sourceText(message), ACTIVITY_TEXT_MAX), msg: message };
   if (detail !== undefined && detail.length > 0) result.detail = truncate(detail, ACTIVITY_DETAIL_MAX);
+  if (detailMsg !== undefined) result.detailMsg = detailMsg;
   return result;
+}
+
+/** Replaces the message of a draft (and the pt-BR text that goes with it): used for generated demo content. */
+export function localizeDraft(source: ActivityDraft, message: Msg, detailMsg?: Msg): ActivityDraft {
+  const result: ActivityDraft = { ...source, text: truncate(sourceText(message), ACTIVITY_TEXT_MAX), msg: message };
+  if (detailMsg !== undefined) {
+    result.detailMsg = detailMsg;
+    result.detail = truncate(sourceText(detailMsg), ACTIVITY_DETAIL_MAX);
+  }
+  return result;
+}
+
+/**
+ * Duration as a message ("42 s", "3 min 05 s", "1 h 20 min"): `duration.seconds|minutes|hours` with the numeric
+ * parts `h`, `m` and `s` (the zero-padded ones are strings, so no digit grouping applies). Sentences take it as a
+ * nested message parameter, e.g. `activity.done` = `{ duration: durationMsg(ms) }`.
+ */
+export function durationMsg(ms: number): Msg {
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  if (totalSeconds < 60) return msg('duration.seconds', { s: totalSeconds });
+  const minutes = Math.floor(totalSeconds / 60);
+  if (minutes < 60) return msg('duration.minutes', { m: minutes, s: pad(totalSeconds % 60) });
+  return msg('duration.hours', { h: Math.floor(minutes / 60), m: pad(minutes % 60) });
 }
 
 function hostOf(url: string): string {
@@ -44,9 +85,9 @@ export function parseMcpName(name: string): { server: string; tool: string } | u
   return { server: rest.slice(0, split), tool: rest.slice(split + 2) };
 }
 
-function fileLabel(input: Record<string, unknown>): { label: string; path?: string } {
+function fileLabel(input: Record<string, unknown>): { label: string | Msg; path?: string } {
   const path = str(input.file_path) ?? str(input.path) ?? str(input.notebook_path);
-  return path === undefined ? { label: 'arquivo' } : { label: basename(path), path };
+  return path === undefined ? { label: msg('activity.file.generic') } : { label: param(basename(path)), path };
 }
 
 /** Activity for a tool_use block: `name` is the tool name, `input` its (untrusted) input object. */
@@ -55,103 +96,117 @@ export function describeToolUse(name: string, input: unknown): ActivityDraft {
   switch (name) {
     case 'Read': {
       const file = fileLabel(args);
-      return draft('read', '📖', `Lendo ${file.label}`, file.path);
+      return draft('read', '📖', msg('activity.read', { file: file.label }), file.path);
     }
     case 'Edit':
     case 'MultiEdit':
     case 'NotebookEdit': {
       const file = fileLabel(args);
-      return draft('edit', '✏️', `Editando ${file.label}`, file.path);
+      return draft('edit', '✏️', msg('activity.edit', { file: file.label }), file.path);
     }
     case 'Write': {
       const file = fileLabel(args);
-      return draft('write', '📝', `Escrevendo ${file.label}`, file.path);
+      return draft('write', '📝', msg('activity.write', { file: file.label }), file.path);
     }
     case 'Bash': {
       const command = str(args.command) ?? '';
       const description = str(args.description);
       const head = oneLine(command.split('\n')[0] ?? '');
-      return draft('bash', '💻', description ?? (head || 'Executando um comando'), command);
+      const shown = description ?? (head || undefined);
+      return draft('bash', '💻', shown === undefined ? msg('activity.bash.generic') : msg('activity.bash.run', { text: param(shown) }), command);
     }
     case 'BashOutput':
     case 'TaskOutput':
-      return draft('bash', '📤', 'Lendo a saída de um processo');
+      return draft('bash', '📤', msg('activity.bash.output'));
     case 'KillShell':
     case 'TaskStop':
-      return draft('bash', '⏹️', 'Encerrando um processo');
+      return draft('bash', '⏹️', msg('activity.bash.kill'));
     case 'Monitor': {
-      const label = str(args.description) ?? str(args.command) ?? 'processo';
-      return draft('bash', '👀', `Monitorando: ${label}`, str(args.command));
+      const label = str(args.description) ?? str(args.command);
+      return draft('bash', '👀', msg('activity.monitor', { label: label === undefined ? msg('activity.process.generic') : param(label) }), str(args.command));
     }
     case 'Grep':
     case 'Glob': {
       const pattern = str(args.pattern) ?? '';
-      return draft('search', '🔎', `Buscando “${pattern}”`, [pattern, str(args.path)].filter(Boolean).join(' em '));
+      const path = str(args.path);
+      const detailMsg = pattern.length > 0 && path !== undefined ? msg('activity.search.detail', { pattern: param(pattern), path: param(path) }) : undefined;
+      return draft('search', '🔎', msg('activity.search', { pattern: param(pattern) }), [pattern, path].filter(Boolean).join(' em '), detailMsg);
     }
     case 'WebFetch': {
       const url = str(args.url) ?? '';
-      return draft('web', '🌐', `Consultando ${hostOf(url)}`, url);
+      return draft('web', '🌐', msg('activity.web.fetch', { host: hostOf(url) }), url);
     }
     case 'WebSearch': {
       const query = str(args.query) ?? '';
-      return draft('web', '🌐', `Pesquisando “${query}”`, query);
+      return draft('web', '🌐', msg('activity.web.search', { query: param(query) }), query);
     }
     case 'Task':
     case 'Agent': {
-      const description = str(args.description) ?? str(args.subagent_type) ?? 'uma tarefa';
-      return draft('subagent', '👥', `Delegando: ${description}`, str(args.prompt));
+      const description = str(args.description) ?? str(args.subagent_type);
+      const shown = description === undefined ? msg('activity.task.generic') : param(description);
+      return draft('subagent', '👥', msg('activity.subagent', { description: shown }), str(args.prompt));
     }
     case 'TodoWrite':
     case 'TaskCreate':
     case 'TaskUpdate':
     case 'TaskList':
     case 'TaskGet':
-      return draft('task', '📋', 'Atualizando a lista de tarefas');
+      return draft('task', '📋', msg('activity.todo'));
     case 'AskUserQuestion':
-      return draft('question', '❓', 'Fazendo uma pergunta a você');
+      return draft('question', '❓', msg('activity.question'));
     case 'ExitPlanMode':
-      return draft('question', '🗺️', 'Apresentando o plano para aprovação', str(args.plan));
+      return draft('question', '🗺️', msg('activity.plan.present'), str(args.plan));
     case 'EnterPlanMode':
-      return draft('other', '🗺️', 'Planejando antes de agir');
-    case 'Skill':
-      return draft('other', '🧩', `Usando a skill ${str(args.skill) ?? ''}`.trim());
+      return draft('other', '🗺️', msg('activity.plan.enter'));
+    case 'Skill': {
+      const skill = str(args.skill);
+      return draft('other', '🧩', skill === undefined ? msg('activity.skill.generic') : msg('activity.skill', { skill: param(skill) }));
+    }
     case 'ToolSearch':
-      return draft('other', '🧰', 'Procurando ferramentas', str(args.query));
+      return draft('other', '🧰', msg('activity.tools.search'), str(args.query));
     default: {
       const mcp = parseMcpName(name);
-      if (mcp !== undefined) return draft('mcp', '🔌', `${mcp.server}: ${mcp.tool}`);
-      return draft('other', '⚙️', `Usando ${name}`);
+      if (mcp !== undefined) return draft('mcp', '🔌', msg('activity.mcp', { server: param(mcp.server), tool: param(mcp.tool) }));
+      return draft('other', '⚙️', msg('activity.other', { name: param(name) }));
     }
   }
 }
 
 export function thinkingDraft(): ActivityDraft {
-  return draft('think', '💭', 'Pensando…');
+  return draft('think', '💭', msg('activity.think'));
 }
 
 export function replyDraft(detail?: string): ActivityDraft {
-  return draft('reply', '💬', 'Escrevendo a resposta', detail);
+  return draft('reply', '💬', msg('activity.reply'), detail);
 }
 
-export function promptDraft(prompt: string): ActivityDraft {
+/**
+ * `prompt` is the user's text (data), or a generated prompt of the demo (pt-BR text plus its message): then the
+ * message nests the prompt message, while `text` keeps the pt-BR prompt cut to 40 characters.
+ */
+export function promptDraft(prompt: string | { text: string; msg: Msg }): ActivityDraft {
   // Reserve room for the label and the quotes so the whole text stays within the limit.
-  return draft('prompt', '📨', `Nova tarefa: “${truncate(prompt, 40)}”`, prompt);
+  if (typeof prompt === 'string') return draft('prompt', '📨', msg('activity.prompt', { prompt: truncate(prompt, PROMPT_PARAM_MAX) }), prompt);
+  const cut = draft('prompt', '📨', msg('activity.prompt', { prompt: truncate(prompt.text, PROMPT_PARAM_MAX) }), prompt.text, prompt.msg);
+  return { ...cut, msg: msg('activity.prompt', { prompt: prompt.msg }) };
 }
 
-export function errorDraft(toolName: string, detail?: string): ActivityDraft {
-  return { ...draft('error', '⚠️', `Erro em ${toolName}`, detail), error: true };
+/** `detail` is the tool's error text (data) unless `detailMsg` says it is generated prose. */
+export function errorDraft(toolName: string, detail?: string, detailMsg?: Msg): ActivityDraft {
+  return { ...draft('error', '⚠️', msg('activity.error', { tool: param(toolName) }), detail, detailMsg), error: true };
 }
 
 export function doneDraft(durationMs: number): ActivityDraft {
-  return { ...draft('done', '✅', `Concluiu em ${formatDuration(durationMs)}`), durationMs };
+  return { ...draft('done', '✅', msg('activity.done', { duration: durationMsg(durationMs) })), durationMs };
 }
 
 export function messageDraft(text: string): ActivityDraft {
-  return draft('message', '📨', `Mensagem sua: ${truncate(text, 45)}`, text);
+  return draft('message', '📨', msg('activity.message', { text: truncate(text, MESSAGE_PARAM_MAX) }), text);
 }
 
-export function permissionDraft(summary: string): ActivityDraft {
-  return draft('permission', '🔐', `Pedindo permissão: ${summary}`, summary);
+/** `summary` is the text of the request; pass `summaryMsg` when it is generated prose ("Editar src/a.ts"). */
+export function permissionDraft(summary: string, summaryMsg?: Msg): ActivityDraft {
+  return draft('permission', '🔐', msg('activity.permission', { summary: summaryMsg ?? param(summary) }), summary, summaryMsg);
 }
 
 /** Gives a draft its id and timestamp. */

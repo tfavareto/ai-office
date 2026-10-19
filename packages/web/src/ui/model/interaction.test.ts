@@ -1,5 +1,6 @@
 import type { BossMessage, Notice, TranscriptEntry } from '@ai-office/shared';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { setLocale } from '../../i18n';
 import { agent } from '../../test/fixtures';
 import { aggregateDay } from './day';
 import { summarizeDelivery } from './delivery';
@@ -18,6 +19,10 @@ import {
 } from './notifications';
 import { entrySearchText, findMatches, mergeTranscript, splitFences, splitHighlight, stepMatch, toolPreview } from './terminal';
 import { expireToasts, pushToast, resolveAlertToasts } from './toasts';
+
+// Texts are asserted in pt-BR (the source language); the blocks at the end of the file check English and Spanish.
+beforeEach(() => setLocale('pt-BR'));
+afterEach(() => setLocale('pt-BR'));
 
 const notice = (over: Partial<Notice> = {}): Notice => ({ id: 'n1', at: 1_000, level: 'info', text: 'Pronto', ...over });
 const message = (over: Partial<BossMessage> = {}): BossMessage => ({ id: 'm1', agentId: 'ag1', text: 'oi', createdAt: 1, status: 'queued', ...over });
@@ -215,5 +220,39 @@ describe('aggregateDay', () => {
   it('ignores invalid numbers', () => {
     const view = aggregateDay({ date: 'd', agents: [{ agentId: 'a', name: 'A', projectId: 'p', ms: { working: Number.NaN, waiting: -5, idle: 10, done: 0, offline: 0 } }] });
     expect(view.totals).toEqual({ working: 0, waiting: 0, idle: 10 });
+  });
+});
+
+describe('messages in other languages', () => {
+  const ctx = { nameOf: (id: string) => (id === '1' ? 'Ana' : 'Bruno'), teamLabel: 'loja' };
+  const team = [message({ id: 'a', agentId: '1', group: 'g', status: 'delivered' }), message({ id: 'b', agentId: '2', group: 'g' })];
+
+  it('labels statuses and deliveries in English', () => {
+    setLocale('en');
+    expect(messageStatusLabel(message())).toBe('Queued');
+    expect(messageStatusLabel(message({ status: 'delivered', via: 'stop' }))).toBe('Delivered as a new instruction');
+    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe('Ana received your message during the work.');
+    expect(summarizeDelivery(team, ctx)?.text).toBe('Team loja: 1 of 2 delivered');
+    expect(validateMessageText('   ')).toEqual({ ok: false, error: 'Write a message before sending.' });
+  });
+
+  it('labels statuses and deliveries in Spanish with the right plurals', () => {
+    setLocale('es');
+    expect(messageStatusLabel(message({ status: 'expired' }))).toBe('Expiró');
+    expect(summarizeDelivery(team, ctx)?.text).toBe('Equipo loja: 1 de 2 entregado');
+    const done = team.map((m) => ({ ...m, status: 'delivered' as const }));
+    expect(summarizeDelivery(done, ctx)?.text).toBe('Equipo loja: 2 de 2 entregados');
+  });
+
+  it('keeps the source text of a notice and its localizable message together', () => {
+    const state = addNotice(EMPTY_NOTIFICATIONS, notice({ text: 'Ana chegou', msg: { key: 'notice.arrived', params: { name: 'Ana', project: 'loja' } } })).state;
+    expect(state.items[0].msg).toEqual({ key: 'notice.arrived', params: { name: 'Ana', project: 'loja' } });
+    expect(state.items[0].text).toBe('Ana chegou');
+  });
+
+  it('recognizes message notices written in any language', () => {
+    expect(classifyNotice(notice({ text: 'Message delivered to Ana' }))).toBe('message');
+    expect(classifyNotice(notice({ text: 'Mensaje entregado a Ana' }))).toBe('message');
+    expect(classifyNotice(notice({ text: 'Ana joined' }))).toBe('info');
   });
 });

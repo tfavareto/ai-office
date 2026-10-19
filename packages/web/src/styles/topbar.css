@@ -380,7 +380,7 @@
 @media (max-width: 640px) {
   .ao-topbar-right .ao-iconbtn:nth-child(-n + 3),
   .ao-camera-btn,
-  .ao-topbar-right > .ao-iconbtn[aria-label^='Ajuda'] {
+  .ao-topbar-right > .ao-help-btn {
     display: none;
   }
 }

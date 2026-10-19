@@ -1,4 +1,5 @@
 // HTTP + Server-Sent Events protocol between the AI Office server and the web app / plugin hooks.
+import type { Locale } from './i18n/i18n';
 import type { BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PermissionDecision, RecentSession, TranscriptEntry } from './model';
 
 /** Default port. Override with AI_OFFICE_PORT (server) — the plugin hooks read the same variable. */
@@ -99,16 +100,16 @@ export type PermissionWaitResponse =
   | ({ status: 'decided' } & PermissionDecision)
   | { status: 'expired' | 'cancelled' };
 
-/** POST /api/permissions/:id/decision body = PermissionDecision → 200 { ok: true } | 409 already answered. */
+/** POST /api/permissions/:id/decision body = PermissionDecision (optional `locale`: language of the answer, used by the hook) → 200 { ok: true } | 409 already answered. */
 
-/** POST /api/messages { agents: string[], text } → 201 { messages: BossMessage[] }; GET ?agent=<id> → { messages }. */
+/** POST /api/messages { agents: string[], text, locale?: Locale } → 201 { messages: BossMessage[] }; GET ?agent=<id> → { messages }. */
 export interface MessagesResponse {
   messages: BossMessage[];
 }
 
 /**
- * POST /api/messages/inbox { session, agent?, via: 'tool' | 'stop' } → { messages: { id, text, createdAt }[] } | { skip }.
+ * POST /api/messages/inbox { session, agent?, via: 'tool' | 'stop' } → { messages: { id, text, createdAt, locale? }[] } | { skip }.
  * (A POST because it consumes the queue.)
  * GET /api/messages/wait?session=&agent=&timeout=<s> → same shape; long-poll (≤ 25 s) used by the Stop hook.
  */
-export type InboxResponse = { messages: { id: string; text: string; createdAt: number }[] } | { skip: string };
+export type InboxResponse = { messages: { id: string; text: string; createdAt: number; locale?: Locale }[] } | { skip: string };

@@ -16,7 +16,7 @@ export function registerPermissionRoutes(router: Router, app: AppContext): void 
     const created = app.permissions.create(hook);
     if ('skip' in created) return sendJson(res, 200, created);
     const request = app.permissions.get(created.id);
-    if (request !== undefined) app.office.addExternalActivity(request.agentId, permissionDraft(request.summary));
+    if (request !== undefined) app.office.addExternalActivity(request.agentId, permissionDraft(request.summary, request.summaryMsg));
     sendJson(res, 201, created);
   });
 

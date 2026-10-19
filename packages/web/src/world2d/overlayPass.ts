@@ -1,5 +1,7 @@
+import { areaLabel } from '../i18n/world/areaLabel';
+import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
-import type { Bubble } from '../sim/bubbles';
+import { type Bubble, bubbleText } from '../sim/bubbles';
 import type { Character } from '../sim/types';
 import {
   BUBBLE_MIN_ZOOM,
@@ -162,6 +164,7 @@ export class OverlayPass {
 
   private buildItems(sprites: OverlaySprites, s: FrameState, payloads: Map<string, Payload>, free: Box): LabelItem[] {
     const { cam, sim } = s;
+    const text = worldText(s.options.locale);
     const bubbles = new Map<string, Bubble>();
     for (const b of sim.bubbles) bubbles.set(b.agentId, b);
     const items: LabelItem[] = [];
@@ -180,7 +183,7 @@ export class OverlayPass {
       const bubbleAlphaNow = bubble ? bubbleAlpha(bubble, sim.time) * c.alpha : 0;
       if (bubble && bubbleAlphaNow > 0.02 && (cam.zoom >= BUBBLE_MIN_ZOOM || bubble.sticky)) {
         const tone = bubble.sticky ? 'alert' : bubble.importance >= 60 && bubble.icon === '✅' ? 'good' : 'normal';
-        const sprite = sprites.bubble(bubble.text, bubble.icon, tone);
+        const sprite = sprites.bubble(bubbleText(bubble, text.tm), bubble.icon, tone);
         const priority = bubble.sticky ? Priority.AlertBubble : selected ? Priority.Selected - 1 : Priority.Bubble + bubble.importance;
         const id = `bub:${c.agentId}`;
         const rise = (1 - Math.min(1, (sim.time - bubble.shownAt) / FADE_IN)) * 5;
@@ -232,6 +235,7 @@ export class OverlayPass {
   /** Draws room outlines and pills; returns the pill boxes (obstacles for the other labels). */
   private drawRooms(ctx: CanvasRenderingContext2D, sprites: OverlaySprites, s: FrameState, free: Box): Box[] {
     const { cam, sim } = s;
+    const text = worldText(s.options.locale);
     const selectedRoom = s.selection?.type === 'room' ? s.selection.id : null;
     const pills: Box[] = [];
     for (const area of sim.building.areas) {
@@ -257,11 +261,11 @@ export class OverlayPass {
         ctx.strokeRect(topLeft.x + 1, topLeft.y + 1, size.w - 2, size.h - 2);
       }
       const info = s.roomInfo.get(projectId);
-      const detail = isProject && info ? `${info.agents} ${info.agents === 1 ? 'agente' : 'agentes'}` : '';
+      const detail = isProject && info ? text.t('count.agents', { n: info.agents }) : '';
       const room2 = { x: topLeft.x, y: topLeft.y, w: size.w, h: size.h };
       const slot = roomPillSlot(room2, free, 20, 2 * TILE * cam.zoom);
       if (!slot) continue;
-      const label = sprites.roomLabel(area.label, detail, area.theme.accent, slot.maxWidth);
+      const label = sprites.roomLabel(areaLabel(area, text), detail, area.theme.accent, slot.maxWidth);
       const x = Math.round(slot.cx - label.w / 2);
       ctx.globalAlpha = (isProject ? 1 : 0.85) * (room ? Math.min(1, room.progress * 2) : 1);
       ctx.drawImage(label.canvas, x, Math.round(slot.y), label.w, label.h);

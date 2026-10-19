@@ -1,5 +1,7 @@
 // Small reusable UI pieces: buttons, chips, avatars, segmented controls, switches, live-updating times.
 import type { Account, Agent } from '@ai-office/shared';
+import { t } from '../i18n';
+import { accountInitial, accountLabel } from './display';
 import { compact, h, setAttr, toggleClass } from './dom';
 import { formatAgo, formatDuration, formatElapsed, initials } from './format';
 import { icon, type IconName } from './icons';
@@ -78,8 +80,8 @@ export function accountChip(account: Account | undefined, withLabel = false): HT
 export function updateAccountChip(chip: HTMLElement, account: Account | undefined, withLabel = false): void {
   const color = account?.color ?? '#8d99ad';
   chip.style.setProperty('--account', color);
-  chip.title = account ? `Conta ${account.label}` : 'Conta desconhecida';
-  chip.replaceChildren(...compact(h('span', { class: 'ao-account-initial' }, account?.initial ?? '?'), withLabel ? h('span', { class: 'ao-account-label' }, account?.label ?? '') : null));
+  chip.title = account ? t('account.chip', { label: accountLabel(account) }) : t('account.unknown');
+  chip.replaceChildren(...compact(h('span', { class: 'ao-account-initial' }, account ? accountInitial(account) : '?'), withLabel ? h('span', { class: 'ao-account-label' }, account ? accountLabel(account) : '') : null));
 }
 
 export interface Avatar {

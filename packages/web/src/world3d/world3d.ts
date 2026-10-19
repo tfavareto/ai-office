@@ -3,13 +3,15 @@ import { Box3, Frustum, Group, Matrix4, Vector3, type Material, type Mesh, type 
 import { BUILDING_H } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import { nearestWalkable } from '../layout/grid';
+import { worldText } from '../i18n/world/translate';
+import { bubbleText } from '../sim/bubbles';
 import { OfficeSim } from '../sim/sim';
 import {
   DEFAULT_WORLD_OPTIONS, type CameraMode, type HoverInfo, type Selection, type ViewInsets, type WorldApi, type WorldFactoryOptions, type WorldOptions,
 } from '../world/api';
 import { DayNight } from '../world2d/lighting';
 import { summarizeRoom } from '../world2d/runtime/boards';
-import { tickerText } from '../world2d/runtime/ticker';
+import { type TickerStats, tickerFromSnapshot, tickerText } from '../world2d/runtime/ticker';
 import { CameraRig } from './camera/cameraRig';
 import { pickCapsule, targetInSight, type ScreenCapsule, type SightTarget } from './camera/picking';
 import { stepWalker, RUN_FACTOR } from './camera/walker';
@@ -81,6 +83,8 @@ export class World3D implements WorldApi {
   private accountColors = new Map<string, string>();
   private roomInfo = new Map<string, ReturnType<typeof summarizeRoom>>();
   private ticker = '';
+  private tickerStats: TickerStats | null = null;
+  private readonly canvas: HTMLCanvasElement;
   private minimap = false;
   private fpHint: string | null = null;
   private fpTarget: string | null = null;
@@ -113,12 +117,15 @@ export class World3D implements WorldApi {
     const canvas = document.createElement('canvas');
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
     canvas.tabIndex = 0;
-    canvas.setAttribute('aria-label', 'Escritório 3D');
+    this.canvas = canvas;
+    this.updateAriaLabel();
+    this.overlay.setText(worldText(this.options.locale));
     if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
     container.append(canvas, this.overlay.canvas);
     const query = new URLSearchParams(location.search);
     this.stage = new Stage(canvas, query.get('glcheck') === '1', query.get('aa') !== '0');
     this.areas = new AreaManager({ m: parts.materials, models: parts.models }, this.sim);
+    this.areas.setText(worldText(this.options.locale));
     this.crowd = new Crowd(parts.library, this.sim);
     this.city = new CityScene(parts.materials, parts.city);
     this.portraits = new PortraitRenderer(this.stage.renderer, parts.library);
@@ -190,17 +197,39 @@ export class World3D implements WorldApi {
     }
     this.roomInfo = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
     for (const p of snapshot.projects) if (!this.roomInfo.has(p.id)) this.roomInfo.set(p.id, summarizeRoom([]));
-    const live = snapshot.agents.filter((a) => a.status !== 'done' && a.status !== 'offline');
-    this.ticker = tickerText(
-      snapshot.projects.length, live.length, live.filter((a) => a.status === 'working').length, live.filter((a) => a.status === 'waiting').length,
-      live.reduce((n, a) => n + a.shells.filter((s) => !s.background).length, 0),
-    );
+    this.tickerStats = tickerFromSnapshot(snapshot);
+    this.refreshTicker();
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
   }
 
   setOptions(options: Partial<WorldOptions>): void {
+    const previous = this.options.locale;
     this.options = { ...this.options, ...options };
     this.applyOptions();
+    if (this.options.locale !== previous) this.onLocaleChanged();
+  }
+
+  private refreshTicker(): void {
+    const stats = this.tickerStats;
+    if (!stats) return;
+    this.ticker = tickerText(stats.rooms, stats.agents, stats.working, stats.waiting, stats.shells, worldText(this.options.locale));
+  }
+
+  private updateAriaLabel(): void {
+    this.canvas.setAttribute('aria-label', worldText(this.options.locale).t('world.aria3d'));
+  }
+
+  /**
+   * Texts drawn in the world follow `options.locale`: the canvas textures (boards, TV, menu, monitor badge, ticker) and
+   * the overlay sprites are repainted in place; meshes, camera and selection are untouched.
+   */
+  private onLocaleChanged(): void {
+    const text = worldText(this.options.locale);
+    this.updateAriaLabel();
+    this.areas.setText(text);
+    this.overlay.setText(text);
+    this.refreshTicker();
+    this.fpHint = null;
   }
 
   private applyOptions(): void {
@@ -542,7 +571,7 @@ export class World3D implements WorldApi {
     const id = targetInSight({ x: w.x, y: 1.58, z: w.z }, dir, targets);
     this.fpTarget = id;
     const agent = id ? this.agents.get(id) : undefined;
-    this.fpHint = agent ? `E · abrir ${agent.name}` : null;
+    this.fpHint = agent ? worldText(this.options.locale).t('overlay.openAgent', { name: agent.name }) : null;
   }
 
   private shoulderSubject(): { x: number; z: number; yaw: number } | null {
@@ -574,6 +603,7 @@ export class World3D implements WorldApi {
     const first = this.rig.mode === 'first-person';
     const nameZoom = this.rig.mode !== 'overview' || this.rig.zoom >= NAME_MIN_ZOOM;
     const bubbles = new Map(this.sim.bubbles.map((b) => [b.agentId, b]));
+    const text = worldText(this.options.locale);
     for (const c of this.sim.characters) {
       if (c.alpha < 0.5) continue;
       const head = this.crowd.headTop(c.id, this.tmpA);
@@ -587,7 +617,7 @@ export class World3D implements WorldApi {
       items.push({
         id: c.id, sx: this.screenA.x, sy: this.screenA.y, name: agent?.name ?? c.name, accent: this.accountColors.get(c.accountId) ?? '#8d99ad',
         status: c.status, sub: c.kind === 'sub', emphasis, alert: c.alert && !b,
-        bubble: b ? { text: b.text, icon: b.icon, sticky: b.sticky } : null,
+        bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky } : null,
       });
     }
     items.sort((p, q) => p.sy - q.sy);

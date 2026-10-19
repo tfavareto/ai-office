@@ -20,7 +20,9 @@ import {
   type ActivityDraft,
   describeToolUse,
   doneDraft,
+  durationMsg,
   errorDraft,
+  localizeDraft,
   messageDraft,
   permissionDraft,
   promptDraft,
@@ -29,13 +31,14 @@ import {
   toActivity,
 } from '../activities';
 import { fnv1a, mulberry32, pick, randInt } from '../hash';
-import { formatDuration } from '../format';
+import { type Locale, type Msg, msg, sourceText } from '../i18n';
 import { pickName } from '../names';
 import {
   DEMO_ACCOUNTS,
   DEMO_BRANCHES,
   DEMO_COMMANDS,
   DEMO_ERRORS,
+  DEMO_GENERIC_PROMPT,
   DEMO_LONG_SHELLS,
   DEMO_MCP,
   DEMO_MODELS,
@@ -46,7 +49,10 @@ import {
   DEMO_SUBAGENTS,
   DEMO_TASK_PLAN,
   DEMO_WEB,
+  type DemoCommand,
+  type DemoError,
   type DemoProjectSpec,
+  type DemoText,
 } from './content';
 import { EventQueue } from './event-queue';
 
@@ -90,6 +96,17 @@ interface ProjectEntry {
   spec: DemoProjectSpec;
   order: number;
   accountIndex: number;
+}
+
+/** Title fields of an agent: a generated text carries its message, a user's text (a delivered message) does not. */
+function titleOf(title: DemoText | string): { title: string; titleMsg: Msg | undefined } {
+  return typeof title === 'string' ? { title, titleMsg: undefined } : { title: title.text, titleMsg: title.msg };
+}
+
+/** A shell command whose description is generated (demo) text, so it has a localizable message. */
+function commandDraft(command: DemoCommand): ActivityDraft {
+  const description = msg('activity.bash.run', { text: command.description.msg });
+  return localizeDraft(describeToolUse('Bash', { command: command.command }), description);
 }
 
 class Simulator implements DemoSimulator {
@@ -185,7 +202,7 @@ class Simulator implements DemoSimulator {
     return false;
   }
 
-  sendMessage(agentIds: readonly string[], text: string, now: number): BossMessage[] {
+  sendMessage(agentIds: readonly string[], text: string, now: number, locale?: Locale): BossMessage[] {
     this.advance(now);
     const targets = agentIds.filter((id) => this.agentMap.has(id));
     const group = targets.length > 1 ? this.nextId('demo-group') : undefined;
@@ -197,6 +214,7 @@ class Simulator implements DemoSimulator {
         createdAt: now,
         status: 'queued',
         ...(group !== undefined ? { group } : {}),
+        ...(locale !== undefined ? { locale } : {}),
       };
       this.storeMessage(message);
       this.queue.push(now + this.scale(MESSAGE_DELIVERY_MS), (at) => this.deliverMessage(message.id, agentId, at));
@@ -212,7 +230,7 @@ class Simulator implements DemoSimulator {
     const spec = this.specFor(opts.project);
     const index = Math.max(0, DEMO_PROJECTS.findIndex((candidate) => candidate.path === spec.path));
     const id = this.createMain(spec, index, this.clock, false, 1);
-    this.noticeFor(id, 'info', `${this.nameOf(id)} abriu uma sessão em ${spec.name}`, this.clock);
+    this.noticeFor(id, 'info', msg('notice.opened', { name: this.nameOf(id), project: spec.name }), this.clock);
     const status = opts.status ?? 'working';
     if (status === 'idle') {
       this.beginIdle(id, this.clock);
@@ -285,7 +303,7 @@ class Simulator implements DemoSimulator {
     if (known !== undefined) return known;
     const path = project.includes('/') ? project : `/Users/demo/projetos/${project}`;
     const name = path.split('/').filter(Boolean).pop() ?? project;
-    return { name, path, files: [`${path}/src/index.ts`, `${path}/README.md`, `${path}/package.json`], prompts: ['Revisar o projeto e sugerir melhorias'] };
+    return { name, path, files: [`${path}/src/index.ts`, `${path}/README.md`, `${path}/package.json`], prompts: [DEMO_GENERIC_PROMPT] };
   }
 
   private ensureProject(spec: DemoProjectSpec, accountIndex: number): void {
@@ -314,8 +332,9 @@ class Simulator implements DemoSimulator {
       accountId: (DEMO_ACCOUNTS[accountIndex] ?? DEMO_ACCOUNTS[0]).id,
       projectId: spec.path,
       name: person.name,
-      role: 'Principal',
-      title: pick(rng, spec.prompts),
+      role: sourceText(msg('agent.role.main')),
+      roleMsg: msg('agent.role.main'),
+      ...titleOf(pick(rng, spec.prompts)),
       look: person.look,
       seed: fnv1a(id),
       status: 'idle',
@@ -434,19 +453,20 @@ class Simulator implements DemoSimulator {
     this.pendingFeed.push({ id: activity.id, agentId: id, agentName: agent.name, projectId: agent.projectId, activity });
   }
 
-  private notice(level: NoticeLevel, text: string, at: number, agentId?: string, projectId?: string): void {
+  private notice(level: NoticeLevel, message: Msg, at: number, agentId?: string, projectId?: string): void {
     this.pendingNotices.push({
       id: this.nextId('demo-notice'),
       at,
       level,
-      text,
+      text: sourceText(message),
+      msg: message,
       ...(agentId !== undefined ? { agentId } : {}),
       ...(projectId !== undefined ? { projectId } : {}),
     });
   }
 
-  private noticeFor(id: string, level: NoticeLevel, text: string, at: number): void {
-    this.notice(level, text, at, id, this.agentMap.get(id)?.projectId);
+  private noticeFor(id: string, level: NoticeLevel, message: Msg, at: number): void {
+    this.notice(level, message, at, id, this.agentMap.get(id)?.projectId);
   }
 
   /** A believable tool call for the agent's project. */
@@ -459,8 +479,7 @@ class Simulator implements DemoSimulator {
     if (roll < 66) return describeToolUse('Edit', { file_path: pick(rng, spec.files) });
     if (roll < 72) return describeToolUse('Write', { file_path: pick(rng, spec.files) });
     if (roll < 86) {
-      const command = pick(rng, DEMO_COMMANDS);
-      return describeToolUse('Bash', { command: command.command, description: command.description });
+      return commandDraft(pick(rng, DEMO_COMMANDS));
     }
     if (roll < 90) return describeToolUse('WebFetch', { url: pick(rng, DEMO_WEB).url });
     if (roll < 93) return describeToolUse(pick(rng, DEMO_MCP), {});
@@ -475,8 +494,10 @@ class Simulator implements DemoSimulator {
     const done = Math.min(count - 1, Math.floor(progress * count));
     return DEMO_TASK_PLAN.slice(0, count).map((task, index): TaskItem => ({
       id: `t${index + 1}`,
-      title: task.title,
-      activeForm: task.activeForm,
+      title: task.title.text,
+      titleMsg: task.title.msg,
+      activeForm: task.activeForm.text,
+      activeFormMsg: task.activeForm.msg,
       status: index < done ? 'completed' : index === done ? 'in_progress' : 'pending',
     }));
   }
@@ -498,15 +519,15 @@ class Simulator implements DemoSimulator {
   private startTurn(id: string, at: number, prompt?: string): void {
     const runtime = this.runtimes.get(id);
     if (runtime === undefined || runtime.phase !== 'idle') return;
-    const text = prompt ?? pick(runtime.rng, runtime.spec.prompts);
+    const source: DemoText | string = prompt ?? pick(runtime.rng, runtime.spec.prompts);
     runtime.phase = 'working';
     runtime.turnStartedAt = at;
     runtime.stepsLeft = randInt(runtime.rng, 8, 15);
     runtime.stepsTotal = runtime.stepsLeft;
     runtime.turnsLeft--;
-    this.update(id, (agent) => ({ ...agent, title: prompt ?? text, tasks: this.planTasks(runtime, 0) }));
+    this.update(id, (agent) => ({ ...agent, ...titleOf(source), tasks: this.planTasks(runtime, 0) }));
     this.setStatus(id, 'working', at);
-    this.emit(id, promptDraft(text), at);
+    this.emit(id, promptDraft(source), at);
     this.scheduleStep(id, at + this.dwell(runtime.rng, 900, 2200));
   }
 
@@ -549,7 +570,7 @@ class Simulator implements DemoSimulator {
       delay = Math.max(delay, this.runCommand(id, runtime, at));
     } else if (roll < 0.32 && (this.agentMap.get(id)?.shells.length ?? 0) === 0) {
       const shell = pick(runtime.rng, DEMO_LONG_SHELLS);
-      this.emit(id, describeToolUse('Bash', { command: shell.command, description: shell.label, run_in_background: true }), at);
+      this.emit(id, localizeDraft(describeToolUse('Bash', { command: shell.command, run_in_background: true }), msg('activity.bash.run', { text: shell.label.msg })), at);
       this.startLongShell(id, at, randInt(runtime.rng, 60, 240) * 1000, shell);
     } else {
       this.emit(id, this.workDraft(runtime), at);
@@ -564,12 +585,13 @@ class Simulator implements DemoSimulator {
   /** Runs a shell command; slow ones show up as foreground shells. Returns how long the agent is busy. */
   private runCommand(id: string, runtime: Runtime, at: number): number {
     const command = pick(runtime.rng, DEMO_COMMANDS);
-    this.emit(id, describeToolUse('Bash', { command: command.command, description: command.description }), at);
+    this.emit(id, commandDraft(command), at);
     const duration = this.scale(command.durationMs);
     if (command.durationMs > 10_000) {
       const job: ShellJob = {
         id: this.nextId('demo-shell'),
-        label: command.description,
+        label: command.description.text,
+        labelMsg: command.description.msg,
         command: command.command,
         background: false,
         kind: 'shell',
@@ -580,17 +602,17 @@ class Simulator implements DemoSimulator {
     }
     if (runtime.rng() < 0.22) {
       const failure = pick(runtime.rng, DEMO_ERRORS);
-      this.queue.push(at + duration, (when) => this.fail(id, runtime, failure.tool, failure.detail, when));
+      this.queue.push(at + duration, (when) => this.fail(id, runtime, failure, when));
     }
     return duration;
   }
 
-  private fail(id: string, runtime: Runtime, tool: string, detail: string, at: number): void {
+  private fail(id: string, runtime: Runtime, failure: DemoError, at: number): void {
     if (runtime.phase === 'gone') return;
-    this.emit(id, errorDraft(tool, detail), at);
+    this.emit(id, errorDraft(failure.tool, failure.detail, failure.message), at);
     if (at - runtime.lastErrorAt < this.scale(ERROR_NOTICE_GAP_MS)) return;
     runtime.lastErrorAt = at;
-    this.noticeFor(id, 'warn', `${this.nameOf(id)}: erro em ${tool}`, at);
+    this.noticeFor(id, 'warn', msg('notice.error', { name: this.nameOf(id), tool: failure.tool }), at);
   }
 
   private removeShell(id: string, shellId: string): void {
@@ -600,7 +622,8 @@ class Simulator implements DemoSimulator {
   private startLongShell(id: string, startedAt: number, durationMs: number, preset = pick(this.rng, DEMO_LONG_SHELLS)): void {
     const job: ShellJob = {
       id: this.nextId('demo-shell'),
-      label: preset.label,
+      label: preset.label.text,
+      labelMsg: preset.label.msg,
       command: preset.command,
       background: true,
       kind: 'shell',
@@ -620,7 +643,7 @@ class Simulator implements DemoSimulator {
       tasks: agent.tasks.map((task): TaskItem => ({ ...task, status: 'completed' })),
       shells: agent.shells.filter((shell) => shell.background),
     }));
-    this.noticeFor(id, 'success', `${this.nameOf(id)} concluiu em ${formatDuration(duration)}`, at);
+    this.noticeFor(id, 'success', msg('notice.done', { name: this.nameOf(id), duration: durationMsg(duration) }), at);
     this.beginIdle(id, at);
     if (runtime.turnsLeft <= 0) {
       this.queue.push(at + this.dwell(runtime.rng, 4000, 9000), (when) => this.leave(id, when));
@@ -647,16 +670,18 @@ class Simulator implements DemoSimulator {
       agentId: id,
       toolName: spec.toolName,
       summary: spec.summary,
+      ...(spec.summaryMsg !== undefined ? { summaryMsg: spec.summaryMsg } : {}),
       input: spec.input,
-      suggestions: [...spec.suggestions],
+      suggestions: spec.suggestions.map((suggestion) => suggestion.text),
+      suggestionMsgs: spec.suggestions.map((suggestion) => suggestion.msg),
       createdAt: at,
       expiresAt: at + this.scale(PERMISSION_TIMEOUT_MS),
     };
     runtime.phase = 'blocked';
     const episode = ++runtime.episode;
-    this.setStatus(id, 'waiting', at, { permission: request, waitingFor: undefined });
-    this.emit(id, permissionDraft(spec.summary), at);
-    this.noticeFor(id, 'alert', `${this.nameOf(id)} precisa de você: ${spec.summary}`, at);
+    this.setStatus(id, 'waiting', at, { permission: request, waitingFor: undefined, waitingForMsg: undefined });
+    this.emit(id, permissionDraft(spec.summary, spec.summaryMsg), at);
+    this.noticeFor(id, 'alert', msg('notice.needs.detail', { name: this.nameOf(id), detail: spec.summaryMsg ?? spec.summary }), at);
     this.queue.push(request.expiresAt, (when) => this.resolveBlock(id, episode, { behavior: 'terminal' }, when));
   }
 
@@ -665,9 +690,9 @@ class Simulator implements DemoSimulator {
     if (runtime === undefined || runtime.phase === 'gone') return;
     runtime.phase = 'blocked';
     const episode = ++runtime.episode;
-    this.setStatus(id, 'waiting', at, { waitingFor: DEMO_QUESTION, permission: undefined });
+    this.setStatus(id, 'waiting', at, { waitingFor: DEMO_QUESTION.text, waitingForMsg: DEMO_QUESTION.msg, permission: undefined });
     this.emit(id, describeToolUse('AskUserQuestion', {}), at);
-    this.noticeFor(id, 'alert', `${this.nameOf(id)} tem uma pergunta para você`, at);
+    this.noticeFor(id, 'alert', msg('notice.question', { name: this.nameOf(id) }), at);
     this.queue.push(at + this.dwell(runtime.rng, 18000, 40000), (when) => this.resolveBlock(id, episode, { behavior: 'terminal' }, when));
   }
 
@@ -676,9 +701,10 @@ class Simulator implements DemoSimulator {
     if (runtime === undefined || runtime.phase !== 'blocked' || runtime.episode !== episode) return;
     runtime.phase = 'working';
     runtime.episode++;
-    this.setStatus(id, 'working', at, { permission: undefined, waitingFor: undefined });
+    this.setStatus(id, 'working', at, { permission: undefined, waitingFor: undefined, waitingForMsg: undefined });
     if (decision.behavior === 'deny') {
-      this.emit(id, { kind: 'other', icon: '🚫', text: 'Pedido recusado por você', detail: decision.message }, at);
+      const denied = msg('activity.denied');
+      this.emit(id, { kind: 'other', icon: '🚫', text: sourceText(denied), msg: denied, detail: decision.message }, at);
       if (decision.interrupt === true) {
         this.finishTurn(id, at);
         return;
@@ -695,14 +721,15 @@ class Simulator implements DemoSimulator {
     if (parent === undefined || runtime === undefined || runtime.phase === 'gone') return;
     for (let i = 0; i < count; i++) {
       const spec = pick(runtime.rng, DEMO_SUBAGENTS);
-      this.emit(parentId, describeToolUse('Agent', { description: spec.description, subagent_type: spec.type }), at + i * 80);
+      const delegated = localizeDraft(describeToolUse('Agent', { description: spec.description.text, subagent_type: spec.type }), msg('activity.subagent', { description: spec.description.msg }));
+      this.emit(parentId, delegated, at + i * 80);
       this.update(parentId, (agent) => ({ ...agent, stats: { ...agent.stats, subagents: agent.stats.subagents + 1 } }));
       runtime.pendingSubs++;
       this.createSub(parent, runtime, spec, at + i * 80);
     }
   }
 
-  private createSub(parent: Agent, parentRuntime: Runtime, spec: { type: string; description: string }, at: number): void {
+  private createSub(parent: Agent, parentRuntime: Runtime, spec: { type: string; description: DemoText }, at: number): void {
     const id = this.nextId('demo');
     const person = pickName(`${this.seed}:${id}`, this.takenNames());
     const rng = mulberry32(fnv1a(`${this.seed}:${id}`));
@@ -715,7 +742,7 @@ class Simulator implements DemoSimulator {
       parentId: parent.id,
       name: person.name,
       role: spec.type,
-      title: spec.description,
+      ...titleOf(spec.description),
       look: person.look,
       seed: fnv1a(id),
       status: 'working',
@@ -770,8 +797,8 @@ class Simulator implements DemoSimulator {
     const agent = this.agentMap.get(id);
     if (runtime === undefined || agent === undefined || runtime.phase === 'gone') return;
     runtime.phase = 'gone';
-    this.setStatus(id, 'offline', at, { permission: undefined, waitingFor: undefined });
-    this.noticeFor(id, 'info', `${agent.name} saiu do escritório (${runtime.spec.name})`, at);
+    this.setStatus(id, 'offline', at, { permission: undefined, waitingFor: undefined, waitingForMsg: undefined });
+    this.noticeFor(id, 'info', msg('notice.left.in', { name: agent.name, project: runtime.spec.name }), at);
     for (const other of this.agentMap.values()) {
       if (other.parentId === id) this.queue.push(at + this.scale(SUB_LINGER_MS), () => this.remove(other.id));
     }
@@ -791,7 +818,7 @@ class Simulator implements DemoSimulator {
     const index = Math.floor(this.rng() * Math.min(DEMO_PROJECTS.length, MAX_PROJECTS));
     const spec = DEMO_PROJECTS[index] as DemoProjectSpec;
     const id = this.createMain(spec, index, at, true, randInt(this.rng, 1, 2));
-    this.noticeFor(id, 'info', `${this.nameOf(id)} abriu uma sessão em ${spec.name}`, at);
+    this.noticeFor(id, 'info', msg('notice.opened', { name: this.nameOf(id), project: spec.name }), at);
     this.queue.push(at + this.scale(1500), (when) => this.startTurn(id, when));
   }
 

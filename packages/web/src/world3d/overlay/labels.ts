@@ -1,6 +1,7 @@
 // 2D canvas overlay above the WebGL canvas: name tags, speech bubbles, alert badges and the first-person prompt. Sprites
 // are cached per text so a frame is just a few drawImage calls.
 import type { AgentStatus } from '@ai-office/shared';
+import { type WorldText, worldText } from '../../i18n/world/translate';
 
 export interface TagItem {
   id: string;
@@ -39,12 +40,20 @@ export class LabelOverlay {
   private readonly ctx: CanvasRenderingContext2D;
   private dpr = 1;
   private readonly cache = new Map<string, Sprite>();
+  private text: WorldText = worldText('pt-BR');
 
   constructor() {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) throw new Error('2D canvas unavailable');
     this.ctx = ctx;
     this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+  }
+
+  /** Language of the "SUB" badge; sprites are cached per text, so only the badge sprites need to be dropped. */
+  setText(text: WorldText): void {
+    if (text.locale === this.text.locale) return;
+    this.text = text;
+    this.cache.clear();
   }
 
   resize(width: number, height: number, dpr: number): void {
@@ -78,9 +87,10 @@ export class LabelOverlay {
   private tag(item: TagItem): Sprite {
     const font = `600 11px ${FONT}`;
     const textW = Math.ceil(this.measure(font, item.name));
+    const subLabel = this.text.t('overlay.sub');
     const w = textW + 28 + (item.sub ? 30 : 0);
     const h = 20;
-    return this.sprite(`tag|${item.name}|${item.accent}|${item.status}|${item.sub}|${item.emphasis}`, w, h, (ctx) => {
+    return this.sprite(`tag|${item.name}|${item.accent}|${item.status}|${item.sub}|${item.emphasis}|${this.text.locale}`, w, h, (ctx) => {
       roundRect(ctx, 0.5, 0.5, w - 1, h - 1, 10);
       ctx.fillStyle = item.emphasis ? 'rgba(20,28,44,0.94)' : 'rgba(14,19,30,0.74)';
       ctx.fill();
@@ -104,7 +114,7 @@ export class LabelOverlay {
         ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.font = `700 8px ${FONT}`;
-        ctx.fillText('SUB', w - 36, h / 2 + 0.5);
+        ctx.fillText(subLabel, w - 36, h / 2 + 0.5);
       }
     });
   }

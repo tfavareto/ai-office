@@ -4,9 +4,11 @@ import { HttpBackend } from './net/http';
 import { createMockEnvironment } from './net/mock';
 import { Store } from './net/store';
 import { SseTransport } from './net/transport';
+import { t } from './i18n';
 import { PrefsStore } from './prefs/prefs';
 import { App } from './ui/app';
 import { h } from './ui/dom';
+import { applyLanguagePref } from './ui/language';
 import { WorldHost } from './ui/world-host';
 
 interface AiOfficeDebug {
@@ -42,15 +44,17 @@ async function main(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;
   root.classList.add('ao-root');
+  const prefs = new PrefsStore();
+  // Before anything is built: every text of the UI is written in the language of the preference (or the browser's).
+  applyLanguagePref(prefs.get());
   let store: Store;
   try {
     store = createStore();
   } catch (error) {
-    showFatal(root, error instanceof Error ? error.message : 'Não foi possível iniciar o AI Office.');
+    showFatal(root, error instanceof Error ? error.message : t('app.startFailed'));
     return;
   }
 
-  const prefs = new PrefsStore();
   const worldContainer = h('div', { class: 'ao-world', 'aria-hidden': 'true' });
   const world = new WorldHost(worldContainer);
   const app = new App(root, store, prefs, world, worldContainer);

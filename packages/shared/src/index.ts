@@ -6,5 +6,6 @@ export * from './names';
 export * from './colors';
 export * from './format';
 export * from './activities';
+export * from './i18n';
 export { DEMO_ACCOUNTS, DEMO_PROJECTS } from './demo/content';
 export { createDemoSimulator } from './demo/simulator';

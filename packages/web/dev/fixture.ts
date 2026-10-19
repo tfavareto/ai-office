@@ -17,6 +17,8 @@ export interface FixtureOptions {
   skip?: number[];
   /** Force every agent into one status. */
   force?: AgentStatus;
+  /** Agents without tasks: boards show the room state instead of a task. */
+  noTasks?: boolean;
 }
 
 function activity(i: number, now: number): Activity {
@@ -59,7 +61,7 @@ export function makeFixture(opts: FixtureOptions, now: number): OfficeSnapshot {
       statusSince: now - 5000,
       activity: status === 'working' ? activity(tick + i, now) : undefined,
       recent: [],
-      tasks: sub ? [] : [
+      tasks: sub || opts.noTasks ? [] : [
         { id: 't1', title: 'Criar a loja', status: 'completed' },
         { id: 't2', title: 'Ligar o carrinho', activeForm: 'Ligando o carrinho', status: 'in_progress' },
         { id: 't3', title: 'Publicar', status: 'pending' },

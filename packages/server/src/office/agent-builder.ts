@@ -1,7 +1,7 @@
 // Builds Agent objects (the shared model) from session records, registry data and overlays.
-import { type Agent, type AgentStatus, type PermissionRequest, fnv1a } from '@ai-office/shared';
+import { type Agent, type AgentStatus, type PermissionRequest, fnv1a, msg, sourceText } from '@ai-office/shared';
 import type { TranscriptState } from '../claude/transcript-state';
-import { deriveStatus } from './status';
+import { NEEDS_YOU_MSG, NEEDS_YOU_TEXT, deriveStatus } from './status';
 import { type SessionRecord, type SubRecord, isSubDone } from './records';
 
 export interface Overlay {
@@ -41,7 +41,7 @@ function statusFields(
   now: number,
   overlay: Overlay,
   registry: { status?: string; at?: number } | undefined,
-): Pick<Agent, 'status' | 'waitingFor' | 'permission'> {
+): Pick<Agent, 'status' | 'waitingFor' | 'waitingForMsg' | 'permission'> {
   const blocking = state.oldestBlockingTool();
   const userTool = state.pendingUserTool();
   const derived = deriveStatus({
@@ -52,12 +52,15 @@ function statusFields(
     ...(registry?.at !== undefined ? { registryStatusAt: registry.at } : {}),
     permissionPending: overlay.permission !== undefined,
     ...(overlay.attention !== undefined ? { attentionMessage: overlay.attention } : {}),
-    ...(userTool !== undefined ? { pendingUserTool: userTool.waitingFor } : {}),
+    // Attention marks only ever carry the generic "needs you" text.
+    ...(overlay.attention === NEEDS_YOU_TEXT ? { attentionMsg: NEEDS_YOU_MSG } : {}),
+    ...(userTool !== undefined ? { pendingUserTool: userTool.waitingFor, pendingUserToolMsg: userTool.waitingForMsg } : {}),
     ...(blocking !== undefined ? { blockingTool: { name: blocking.name, at: blocking.at } } : {}),
   });
   return {
     status: derived.status,
     ...(derived.waitingFor !== undefined ? { waitingFor: derived.waitingFor } : {}),
+    ...(derived.waitingForMsg !== undefined ? { waitingForMsg: derived.waitingForMsg } : {}),
     ...(overlay.permission !== undefined ? { permission: overlay.permission } : {}),
   };
 }
@@ -79,7 +82,8 @@ export function buildMainAgent(record: SessionRecord, projectId: string, person:
     accountId: record.account.id,
     projectId,
     name: person.name,
-    role: 'Principal',
+    role: sourceText(msg('agent.role.main')),
+    roleMsg: msg('agent.role.main'),
     ...(title !== undefined ? { title } : {}),
     look: person.look,
     seed: fnv1a(id),
@@ -91,7 +95,7 @@ export function buildMainAgent(record: SessionRecord, projectId: string, person:
   };
 }
 
-function subStatus(sub: SubRecord, done: boolean, overlay: Overlay, now: number): Pick<Agent, 'status' | 'waitingFor' | 'permission'> {
+function subStatus(sub: SubRecord, done: boolean, overlay: Overlay, now: number): Pick<Agent, 'status' | 'waitingFor' | 'waitingForMsg' | 'permission'> {
   if (done) return { status: 'done' };
   const needsUser = overlay.permission !== undefined || overlay.attention !== undefined || sub.state.pendingUserTool() !== undefined;
   return needsUser ? statusFields(sub.state, now, overlay, undefined) : { status: 'working' };
@@ -104,6 +108,7 @@ export function buildSubAgent(record: SessionRecord, sub: SubRecord, projectId: 
   const id = subAgentId(record, sub.agentId);
   const title = sub.meta?.description ?? spawn?.description;
   const derived = subStatus(sub, done, overlay, now);
+  const role = sub.meta?.agentType ?? spawn?.subagentType;
   return {
     id,
     kind: 'sub',
@@ -112,7 +117,8 @@ export function buildSubAgent(record: SessionRecord, sub: SubRecord, projectId: 
     projectId,
     parentId,
     name: person.name,
-    role: sub.meta?.agentType ?? spawn?.subagentType ?? 'Subagente',
+    role: role ?? sourceText(msg('agent.role.sub')),
+    ...(role === undefined ? { roleMsg: msg('agent.role.sub') } : {}),
     ...(title !== undefined ? { title } : {}),
     look: person.look,
     seed: fnv1a(id),

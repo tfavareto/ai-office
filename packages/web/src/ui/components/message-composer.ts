@@ -1,9 +1,10 @@
 // Composer for orders to one agent or to a whole room: quick chips, Cmd/Ctrl+Enter, inline errors, per-target drafts.
+import { t } from '../../i18n';
 import type { AppContext, Component } from '../context';
-import { LOCAL_ONLY_HINT } from '../context';
+import { localOnlyHint } from '../context';
 import { h, setText } from '../dom';
 import { describeError } from '../../net/backend';
-import { MAX_MESSAGE_LENGTH, QUICK_MESSAGES, validateMessageText } from '../model/messages';
+import { MAX_MESSAGE_LENGTH, quickMessages, validateMessageText } from '../model/messages';
 import { icon } from '../icons';
 import { setDisabled } from '../widgets';
 
@@ -52,10 +53,10 @@ export class MessageComposer implements Component {
     });
     this.chips = h(
       'div',
-      { class: 'ao-quick', role: 'group', 'aria-label': 'Mensagens rápidas' },
-      ...QUICK_MESSAGES.map((text) => h('button', { type: 'button', class: 'ao-quick-chip', title: text, onclick: () => this.insertQuick(text) }, text)),
+      { class: 'ao-quick', role: 'group', 'aria-label': t('composer.quick') },
+      ...quickMessages().map((text) => h('button', { type: 'button', class: 'ao-quick-chip', title: text, onclick: () => this.insertQuick(text) }, text)),
     );
-    this.sendLabel = h('span', null, 'Enviar');
+    this.sendLabel = h('span', null, t('common.send'));
     this.sendBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--primary', onclick: () => void this.send() }, icon('send', 16), this.sendLabel);
     this.hint = h('span', { class: 'ao-hint' }, this.shortcutHint());
     this.error = h('p', { class: 'ao-error', role: 'alert', hidden: true });
@@ -66,7 +67,7 @@ export class MessageComposer implements Component {
 
   private shortcutHint(): string {
     const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-    return `${mac ? '⌘' : 'Ctrl'}+Enter para enviar`;
+    return t('composer.hint', { key: mac ? '⌘' : 'Ctrl' });
   }
 
   setTarget(target: ComposerTarget): void {
@@ -108,7 +109,7 @@ export class MessageComposer implements Component {
   private updateSendState(): void {
     const target = this.target;
     const empty = this.textarea.value.trim().length === 0;
-    const reason = !this.ctx.isLocal ? LOCAL_ONLY_HINT : undefined;
+    const reason = !this.ctx.isLocal ? localOnlyHint() : undefined;
     setDisabled(this.sendBtn, this.sending || empty || !target || target.agentIds.length === 0 || !this.ctx.isLocal, reason);
     setDisabled(this.textarea, !this.ctx.isLocal, reason);
   }

@@ -1,20 +1,22 @@
 // Drawer content for a selected agent: hero, status row with actions, urgent cards, tabs.
 import type { Agent } from '@ai-office/shared';
-import { LOCAL_ONLY_HINT, type AppContext, type Component } from '../context';
+import { t, type UiKey } from '../../i18n';
+import { localOnlyHint, type AppContext, type Component } from '../context';
+import { agentKindLabel, agentTitle } from '../display';
 import { h, setText, toggleClass } from '../dom';
 import { icon, type IconName } from '../icons';
-import { STATUS_HINT, STATUS_LABEL, displayStatus } from '../model/status';
+import { displayStatus, statusHint, statusLabel } from '../model/status';
 import type { DrawerTab } from '../state';
 import { accountChip, createAvatar, emptyNote, liveText, setDisabled, setLive, setPressed, setStatusDot, statusDot, updateAccountChip } from '../widgets';
 import { ActivityTab, DataTab, MessagesTab, SummaryTab, type AgentTab } from './agent-tabs';
 import { closeButton } from './overlay';
 import { PermissionCard, ShellCard, WaitingCard } from './urgent-cards';
 
-const TABS: readonly { id: DrawerTab; label: string }[] = [
-  { id: 'summary', label: 'Resumo' },
-  { id: 'messages', label: 'Mensagens' },
-  { id: 'activity', label: 'Atividade' },
-  { id: 'data', label: 'Dados' },
+const TABS: readonly { id: DrawerTab; label: UiKey }[] = [
+  { id: 'summary', label: 'drawer.tab.summary' },
+  { id: 'messages', label: 'drawer.tab.messages' },
+  { id: 'activity', label: 'drawer.tab.activity' },
+  { id: 'data', label: 'drawer.tab.data' },
 ];
 
 interface ActionButton {
@@ -37,7 +39,7 @@ export class AgentView implements Component {
   private readonly since = liveText('ago', 0, 'ao-status-since');
   private readonly statusDotEl = statusDot('idle');
   private readonly urgent = h('div', { class: 'ao-urgent-stack' });
-  private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote('Este agente saiu do escritório.'));
+  private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote(t('agent.left')));
   private readonly body = h('div', { class: 'ao-agent-body' });
   private readonly tabButtons = new Map<DrawerTab, HTMLButtonElement>();
   private readonly tabBadges = new Map<DrawerTab, HTMLElement>();
@@ -60,10 +62,10 @@ export class AgentView implements Component {
       data: new DataTab(ctx),
     };
     this.actions = {
-      message: this.action('message', 'Mensagem', () => this.openMessage()),
-      follow: this.action('follow', 'Seguir', () => ctx.toggleFollow()),
-      center: this.action('target', 'Centralizar', () => ctx.world.focusSelection()),
-      terminal: this.action('terminal', 'Terminal', () => this.toggleTerminal()),
+      message: this.action('message', t('agent.action.message'), () => this.openMessage()),
+      follow: this.action('follow', t('agent.action.follow'), () => ctx.toggleFollow()),
+      center: this.action('target', t('agent.action.center'), () => ctx.world.focusSelection()),
+      terminal: this.action('terminal', t('agent.action.terminal'), () => this.toggleTerminal()),
     };
     this.roomLink.append(icon('folder', 14), this.roomName);
     this.roomLink.addEventListener('click', () => this.agentId && ctx.selectRoom(this.ctx.agent(this.agentId)?.projectId ?? '', { focus: true }));
@@ -73,7 +75,7 @@ export class AgentView implements Component {
       { class: 'ao-hero' },
       h('div', { class: 'ao-hero-avatar' }, this.avatar.el, this.dot),
       h('div', { class: 'ao-hero-info' }, this.name, h('div', { class: 'ao-hero-tags' }, this.kindChip, this.account), this.roomLink),
-      closeButton('Fechar detalhes (Esc)', () => ctx.clearSelection()),
+      closeButton(t('drawer.close'), () => ctx.clearSelection()),
     );
     const statusRow = h(
       'div',
@@ -81,10 +83,10 @@ export class AgentView implements Component {
       h('div', { class: 'ao-status-info' }, this.statusDotEl, this.statusText, this.since),
       h('div', { class: 'ao-actions' }, ...Object.values(this.actions).map((a) => a.el)),
     );
-    const tablist = h('div', { class: 'ao-tabs', role: 'tablist', 'aria-label': 'Seções do agente' });
+    const tablist = h('div', { class: 'ao-tabs', role: 'tablist', 'aria-label': t('drawer.tabs') });
     for (const tab of TABS) {
       const badge = h('span', { class: 'ao-tab-badge', hidden: true });
-      const btn = h('button', { type: 'button', role: 'tab', id: `ao-tab-${tab.id}`, 'aria-controls': `ao-panel-${tab.id}`, class: 'ao-tab', onclick: () => ctx.ui.set({ drawerTab: tab.id }) }, h('span', null, tab.label), badge);
+      const btn = h('button', { type: 'button', role: 'tab', id: `ao-tab-${tab.id}`, 'aria-controls': `ao-panel-${tab.id}`, class: 'ao-tab', onclick: () => ctx.ui.set({ drawerTab: tab.id }) }, h('span', null, t(tab.label)), badge);
       this.tabButtons.set(tab.id, btn);
       this.tabBadges.set(tab.id, badge);
       tablist.appendChild(btn);
@@ -153,25 +155,26 @@ export class AgentView implements Component {
     this.avatar.update(agent, this.ctx.world.portrait(agent.id, 112));
     setStatusDot(this.dot, ds);
     setText(this.name, agent.name);
-    setText(this.kindChip, agent.kind === 'main' ? 'Principal' : agent.role);
+    setText(this.kindChip, agentKindLabel(agent));
     updateAccountChip(this.account, this.ctx.account(agent.accountId), true);
-    setText(this.roomName, this.ctx.project(agent.projectId)?.name ?? 'Sala');
-    this.title.hidden = !agent.title;
-    setText(this.title, agent.title ?? '');
+    setText(this.roomName, this.ctx.project(agent.projectId)?.name ?? t('agent.room'));
+    const title = agentTitle(agent);
+    this.title.hidden = !title;
+    setText(this.title, title ?? '');
   }
 
   private renderStatus(agent: Agent): void {
     const ds = displayStatus(agent);
     setStatusDot(this.statusDotEl, ds);
-    setText(this.statusText, STATUS_LABEL[ds]);
-    this.statusText.title = STATUS_HINT[ds];
+    setText(this.statusText, statusLabel(ds));
+    this.statusText.title = statusHint(ds);
     this.statusText.className = `ao-status-text ao-text--${ds}`;
     setLive(this.since, 'ago', agent.statusSince);
 
     const local = this.ctx.isLocal;
     const live = ds !== 'offline' && ds !== 'done';
-    setDisabled(this.actions.message.el, !local || !live, !local ? LOCAL_ONLY_HINT : 'Este agente já saiu do escritório.');
-    setDisabled(this.actions.terminal.el, !local, LOCAL_ONLY_HINT);
+    setDisabled(this.actions.message.el, !local || !live, !local ? localOnlyHint() : t('agent.gone'));
+    setDisabled(this.actions.terminal.el, !local, localOnlyHint());
     const ui = this.ctx.ui.get();
     setPressed(this.actions.follow.el, ui.following);
     setPressed(this.actions.terminal.el, ui.terminal?.officeAgentId === agent.id);

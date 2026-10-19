@@ -11,15 +11,15 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
 
   router.add('POST', base, async ({ req, res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
-    const { agents, text } = parseSendMessage(await readJsonBody(req), MAX_TEAM_SIZE, MAX_MESSAGE_LENGTH);
+    const { agents, text, locale } = parseSendMessage(await readJsonBody(req), MAX_TEAM_SIZE, MAX_MESSAGE_LENGTH);
     const demoIds = new Set((app.office.demoSimulator?.agents() ?? []).map((agent) => agent.id));
     const known = new Set(app.office.state().agents.map((agent) => agent.id));
     const realTargets = agents.filter((id) => known.has(id) && !demoIds.has(id));
     const demoTargets = agents.filter((id) => demoIds.has(id));
     if (realTargets.length === 0 && demoTargets.length === 0) return sendError(res, 404, 'no-agents');
     const messages: BossMessage[] = [
-      ...(realTargets.length > 0 ? app.messages.send(realTargets, text) : []),
-      ...(demoTargets.length > 0 ? (app.office.demoSimulator?.sendMessage(demoTargets, text, app.now()) ?? []) : []),
+      ...(realTargets.length > 0 ? app.messages.send(realTargets, text, locale) : []),
+      ...(demoTargets.length > 0 ? (app.office.demoSimulator?.sendMessage(demoTargets, text, app.now(), locale) ?? []) : []),
     ];
     sendJson(res, 201, { messages });
   });

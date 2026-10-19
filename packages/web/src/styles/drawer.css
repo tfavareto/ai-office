@@ -659,7 +659,7 @@
 
 .ao-tl-item {
   display: grid;
-  grid-template-columns: 58px 20px 1fr;
+  grid-template-columns: 74px 20px 1fr; /* fits "12:29:17 PM" */
   gap: 8px;
   padding: 6px 4px;
   border-radius: 8px;
@@ -675,6 +675,7 @@
 
 .ao-tl-time {
   padding-top: 2px;
+  white-space: nowrap;
   color: var(--faint);
   font-size: 11px;
 }
