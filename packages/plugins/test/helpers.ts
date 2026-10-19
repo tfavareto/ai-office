@@ -1,5 +1,8 @@
 import { spawn } from 'node:child_process';
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createHmac } from 'node:crypto';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { createServer, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,8 +11,28 @@ export const PLUGIN_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'a
 export const HOOKS_DIR = join(PLUGIN_DIR, 'hooks');
 export const REPO_ROOT = join(PLUGIN_DIR, '..', '..', '..');
 
+/** Token the fake office and the hooks share by default. */
+export const TEST_TOKEN = 'ab'.repeat(32);
+const HEALTH_PROOF_PREFIX = 'ai-office/health/v1:';
+
+/** State dir (AI_OFFICE_STATE_DIR) holding `token`, removed when the test process exits. */
+export function makeStateDir(token: string | null = TEST_TOKEN): string {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-office-hooks-'));
+  if (token !== null) writeFileSync(join(dir, 'token'), `${token}\n`, { mode: 0o600 });
+  stateDirs.push(dir);
+  return dir;
+}
+
+const stateDirs: string[] = [];
+process.on('exit', () => {
+  for (const dir of stateDirs) rmSync(dir, { recursive: true, force: true });
+});
+
+const DEFAULT_STATE_DIR = makeStateDir();
+
 export interface RecordedRequest {
   method: string;
+  headers: IncomingHttpHeaders;
   path: string;
   query: URLSearchParams;
   body: unknown;
@@ -18,9 +41,28 @@ export interface RecordedRequest {
 
 export type RouteHandler = (request: RecordedRequest, res: ServerResponse) => void | Promise<void>;
 
-/** Tiny in-process HTTP server standing in for the AI Office server. Routes are `"METHOD /path"` keys. */
+export interface FakeOfficeOptions {
+  /** Token the fake server knows (default TEST_TOKEN). */
+  token?: string;
+  /** Answer the identity challenge on /api/health like the real server (default true). */
+  proveIdentity?: boolean;
+  /** Require `Authorization: Bearer <token>` on every other route (default true). */
+  requireAuth?: boolean;
+}
+
+/**
+ * Tiny in-process HTTP server standing in for the AI Office server. Routes are `"METHOD /path"` keys. Like the real
+ * one it answers the health challenge and rejects requests without the bearer token with 401. Health checks are not
+ * recorded in `requests`; they go to `challenges`.
+ */
 export class FakeOffice {
   readonly requests: RecordedRequest[] = [];
+  readonly challenges: string[] = [];
+  private readonly options: Required<FakeOfficeOptions>;
+  constructor(options: FakeOfficeOptions = {}) {
+    this.options = { token: TEST_TOKEN, proveIdentity: true, requireAuth: true, ...options };
+  }
+
   private readonly routes = new Map<string, RouteHandler>();
   private server: Server = createServer((req, res) => void this.handle(req, res));
   port = 0;
@@ -56,7 +98,14 @@ export class FakeOffice {
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const raw = Buffer.concat(chunks);
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/api/health') {
+      const nonce = url.searchParams.get('challenge');
+      if (nonce !== null) this.challenges.push(nonce);
+      const proof = nonce !== null && this.options.proveIdentity ? createHmac('sha256', this.options.token).update(HEALTH_PROOF_PREFIX + nonce).digest('hex') : undefined;
+      return sendJson(res, { ok: true, ...(proof !== undefined ? { proof } : {}) });
+    }
     const recorded: RecordedRequest = {
+      headers: req.headers,
       method: req.method ?? 'GET',
       path: url.pathname,
       query: url.searchParams,
@@ -64,6 +113,7 @@ export class FakeOffice {
       bodyBytes: raw.length,
     };
     this.requests.push(recorded);
+    if (this.options.requireAuth && req.headers.authorization !== `Bearer ${this.options.token}`) return sendJson(res, { error: 'unauthorized' }, 401);
     const handler = this.routes.get(`${recorded.method} ${recorded.path}`);
     if (!handler) return sendJson(res, { error: 'not found' }, 404);
     await handler(recorded, res);
@@ -103,7 +153,7 @@ export function runHookProcess(
   const started = Date.now();
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [join(HOOKS_DIR, `${script}.mjs`)], {
-      env: { PATH: process.env.PATH ?? '', ...env },
+      env: { PATH: process.env.PATH ?? '', AI_OFFICE_STATE_DIR: DEFAULT_STATE_DIR, ...env },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let stdout = '';

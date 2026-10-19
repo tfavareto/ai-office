@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><title>probe</title></head><body><script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+const loader = new GLTFLoader();
+const out = {};
+for (const n of ['m1_lod','f1']) {
+  const g = await loader.loadAsync(`/assets/3d/humans/${n}.gltf`);
+  g.scene.updateMatrixWorld(true);
+  const wp = (name) => { const o = g.scene.getObjectByName(name); const v = new THREE.Vector3(); o.getWorldPosition(v); return v; };
+  const dir = (a, b) => wp(b).sub(wp(a)).normalize().toArray().map(x => +x.toFixed(2));
+  const wq = (name) => { const o = g.scene.getObjectByName(name); const q = new THREE.Quaternion(); o.getWorldQuaternion(q); return q.toArray().map(x => +x.toFixed(3)); };
+  out[n] = {
+    clav_l: dir('clavicle_l','upperarm_l'), uparm_l: dir('upperarm_l','lowerarm_l'), loarm_l: dir('lowerarm_l','hand_l'), hand_l: dir('hand_l','middle_01_l'),
+    thigh_l: dir('thigh_l','calf_l'), calf_l: dir('calf_l','foot_l'), foot_l: dir('foot_l','ball_l'),
+    spine: dir('pelvis','spine_03'), neck: dir('spine_03','neck_01'), head: dir('neck_01','head'),
+    pos: { pelvis: wp('pelvis').toArray(), head: wp('head').toArray(), hand_l: wp('hand_l').toArray(), foot_l: wp('foot_l').toArray(), ball_l: wp('ball_l').toArray(), upperarm_l: wp('upperarm_l').toArray(), thigh_l: wp('thigh_l').toArray(), calf_l: wp('calf_l').toArray() },
+    q: { pelvis: wq('pelvis'), upperarm_l: wq('upperarm_l'), hand_l: wq('hand_l'), foot_l: wq('foot_l'), thigh_l: wq('thigh_l') },
+  };
+}
+window.__out = out;
+</script></body></html>

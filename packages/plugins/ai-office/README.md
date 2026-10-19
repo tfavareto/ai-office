@@ -36,6 +36,7 @@ Environment variables, read by the hooks:
 | Variable                       | Default | Meaning                                                                   |
 | ------------------------------ | ------- | ------------------------------------------------------------------------- |
 | `AI_OFFICE_PORT`               | `4848`  | Port of the AI Office server.                                             |
+| `AI_OFFICE_STATE_DIR`          | `~/.ai-office` | Folder with the server's access `token`. Without a readable token the hooks act as if AI Office were offline. Set it if the server uses `--state-dir`. |
 | `AI_OFFICE_PERMISSION_TIMEOUT` | `300`   | Seconds to wait for a permission answer (clamped to 5-1800).              |
 | `AI_OFFICE_STANDBY_MIN`        | `10`    | Minutes the `Stop` hook waits for a message (0-10; `0` disables standby). |
 | `AI_OFFICE_HOOK_DEBUG`         | unset   | `1` logs what each hook does to stderr.                                   |

@@ -1,7 +1,7 @@
 // Message delivery hook: hands the user's messages from the AI Office web app to the agent that should read them.
 // One script serves three Claude Code events and dispatches on `hook_event_name`:
 //
-//   PostToolUse   While the agent is working. GET /api/messages/inbox?via=tool returns queued messages, which are
+//   PostToolUse   While the agent is working. POST /api/messages/inbox (via=tool) returns queued messages, which are
 //                 injected as `additionalContext` of the hook output ("Entregue durante o trabalho").
 //   Stop          The agent is about to finish its turn. Queued messages (inbox via=stop) are delivered by blocking
 //                 the stop with the text as the reason, so the agent continues with it as a new instruction. When
@@ -10,7 +10,7 @@
 //                 early when the server answers `{ skip }` (for instance because no page is open).
 //   SubagentStop  Same as Stop without standby, and only for real subagents (the input must carry `agent_id`).
 //
-// Several queued messages are delivered as a numbered list. Environment: AI_OFFICE_PORT (default 4848),
+// Several queued messages are delivered as a numbered list. Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR,
 // AI_OFFICE_STANDBY_MIN, AI_OFFICE_HOOK_DEBUG=1. The script never fails a session: every problem ends in exit code 0
 // with empty stdout.
 
@@ -107,7 +107,7 @@ export function readInbox(response) {
  * @param {{ session: string, agent?: string, via: 'tool' | 'stop' }} target
  */
 function fetchInbox(ctx, { session, agent, via }) {
-  return requestJson(ctx, 'GET', `/api/messages/inbox${queryString({ session, agent, via })}`).then(readInbox);
+  return requestJson(ctx, 'POST', '/api/messages/inbox', { body: { session, ...(agent !== undefined ? { agent } : {}), via } }).then(readInbox);
 }
 
 /**

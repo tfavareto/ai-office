@@ -138,7 +138,9 @@ export class Renderer {
     const { cam } = s;
     const dpr = cam.dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = false;
+    // Below one device pixel per art pixel nearest-neighbour would drop rows/columns: average them instead.
+    ctx.imageSmoothingEnabled = cam.zoom * dpr < 1;
+    ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#12151c';
     ctx.fillRect(0, 0, cam.view.width * dpr, cam.view.height * dpr);
     this.sync(s.sim);

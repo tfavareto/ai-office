@@ -13,7 +13,23 @@ export interface StreamEvents {
   notice: Notice;
 }
 
+/**
+ * Local authentication. The server keeps a random token in `<stateDir>/token` (mode 0600). Every /api/* route except
+ * GET /api/health requires it: hooks send `Authorization: Bearer <token>`, the web app gets the HttpOnly,
+ * SameSite=Strict cookie below when it loads the page.
+ */
+export const AUTH_COOKIE = 'ai_office_token';
+/** File name of the token inside the state dir (AI_OFFICE_STATE_DIR, default ~/.ai-office). */
+export const TOKEN_FILE_NAME = 'token';
+/**
+ * Server identity proof: `GET /api/health?challenge=<nonce>` answers `{ ok: true, proof }` with
+ * `proof = hex(HMAC-SHA256(token, HEALTH_PROOF_PREFIX + nonce))`. Hooks check it before they send the token anywhere.
+ */
+export const HEALTH_CHALLENGE_PARAM = 'challenge';
+export const HEALTH_PROOF_PREFIX = 'ai-office/health/v1:';
+
 export const API = {
+  /** GET → HealthResponse when authenticated, PublicHealthResponse otherwise (no token needed). */
   health: '/api/health',
   stream: '/api/stream',
   /** GET ?agent=<id> → { activities: Activity[] } (long history, up to 300). */
@@ -28,7 +44,7 @@ export const API = {
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */
   permissions: '/api/permissions',
-  /** Messages (local access only). Page: POST send + GET history. Hook: GET inbox + GET wait. */
+  /** Messages (local access only). Page: POST send + GET history. Hook: POST inbox (consumes) + GET wait. */
   messages: '/api/messages',
   /** POST { session_id, agent_id?, message? } from the Notification hook: the agent needs the user (local only). */
   attention: '/api/attention',
@@ -42,7 +58,14 @@ export interface HealthResponse {
   accounts: { id: string; dir: string; sessions: number }[];
 }
 
+/** What GET /api/health reveals without the token. `proof` is present when a valid `challenge` was sent. */
+export interface PublicHealthResponse {
+  ok: true;
+  proof?: string;
+}
+
 export interface TranscriptPage {
+  /** At most 500 entries per page (the last 500 without `after`, the next 500 with it). */
   entries: TranscriptEntry[];
   /** Pass as `after` to get only newer entries. */
   next: number;
@@ -84,7 +107,8 @@ export interface MessagesResponse {
 }
 
 /**
- * GET /api/messages/inbox?session=&agent=&via=tool|stop → { messages: { id, text, createdAt }[] } | { skip }.
+ * POST /api/messages/inbox { session, agent?, via: 'tool' | 'stop' } → { messages: { id, text, createdAt }[] } | { skip }.
+ * (A POST because it consumes the queue.)
  * GET /api/messages/wait?session=&agent=&timeout=<s> → same shape; long-poll (≤ 25 s) used by the Stop hook.
  */
 export type InboxResponse = { messages: { id: string; text: string; createdAt: number }[] } | { skip: string };

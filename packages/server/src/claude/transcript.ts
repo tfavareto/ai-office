@@ -9,8 +9,13 @@ import type { ParsedLine } from './types';
 
 const INITIAL_BYTES = 8 * 1024 * 1024;
 const MAX_ENTRIES = 4000;
-const MAX_TEXT = 20_000;
-const MAX_RESULT = 4000;
+/** Entries a single page of GET /api/transcript carries. */
+export const PAGE_SIZE = 500;
+/** Longest text/result kept per entry. */
+export const MAX_TEXT = 4096;
+const MAX_RESULT = 4096;
+/** Approximate memory (serialized size) a cached view may hold; the oldest entries are dropped beyond it. */
+export const MAX_VIEW_BYTES = 8 * 1024 * 1024;
 
 type ToolEntry = Extract<TranscriptEntry, { kind: 'tool' }>;
 
@@ -22,6 +27,9 @@ export interface RenderedPage {
 export class TranscriptView {
   private readonly tailer: JsonlTailer;
   private entries: TranscriptEntry[] = [];
+  /** Approximate serialized size of each entry (parallel to `entries`). */
+  private sizes: number[] = [];
+  private bytes = 0;
   /** Global index of entries[0]. */
   private base = 0;
   private readonly toolIndex = new Map<string, number>();
@@ -44,29 +52,53 @@ export class TranscriptView {
     return true;
   }
 
-  /** Entries with index >= `after` (all retained entries when `after` is undefined). */
+  /**
+   * At most PAGE_SIZE entries: the newest ones when `after` is undefined, otherwise the first ones with index >=
+   * `after`. `next` is where the caller continues: after a truncated page it is the end of the page; when caught up it
+   * stays at the oldest tool still waiting for its result, but never more than a page behind, so a tool that never
+   * finishes cannot stall the paging.
+   */
   page(after: number | undefined): RenderedPage {
-    const from = Math.max(0, (after ?? 0) - this.base);
-    const smallestUnresolved = this.unresolved.size > 0 ? Math.min(...this.unresolved) : undefined;
-    return { entries: this.entries.slice(from), next: smallestUnresolved ?? this.base + this.entries.length };
+    const from = after === undefined ? Math.max(0, this.entries.length - PAGE_SIZE) : Math.max(0, Math.min(after - this.base, this.entries.length));
+    const entries = this.entries.slice(from, from + PAGE_SIZE);
+    const end = this.base + from + entries.length;
+    if (from + entries.length < this.entries.length) return { entries, next: end };
+    const smallestUnresolved = this.unresolved.size > 0 ? Math.min(...this.unresolved) : end;
+    return { entries, next: Math.max(Math.min(smallestUnresolved, end), end - PAGE_SIZE + 1, 0) };
+  }
+
+  /** Approximate bytes held (for tests and diagnostics). */
+  get size(): number {
+    return this.bytes;
   }
 
   private clear(): void {
     this.base += this.entries.length;
     this.entries = [];
+    this.sizes = [];
+    this.bytes = 0;
     this.toolIndex.clear();
     this.unresolved.clear();
   }
 
   private push(entry: TranscriptEntry): number {
+    const size = JSON.stringify(entry).length;
     this.entries.push(entry);
+    this.sizes.push(size);
+    this.bytes += size;
     return this.base + this.entries.length - 1;
   }
 
   private trim(): void {
-    const excess = this.entries.length - MAX_ENTRIES;
+    let excess = Math.max(0, this.entries.length - MAX_ENTRIES);
+    let kept = this.bytes;
+    for (let i = 0; i < excess; i++) kept -= this.sizes[i] ?? 0;
+    // Keep at least the newest entry, however big.
+    while (kept > MAX_VIEW_BYTES && excess < this.entries.length - 1) kept -= this.sizes[excess++] ?? 0;
     if (excess <= 0) return;
     this.entries = this.entries.slice(excess);
+    this.sizes = this.sizes.slice(excess);
+    this.bytes = kept;
     this.base += excess;
     for (const [id, index] of this.toolIndex) if (index < this.base) this.toolIndex.delete(id);
     for (const index of this.unresolved) if (index < this.base) this.unresolved.delete(index);
@@ -117,7 +149,12 @@ export class TranscriptView {
     if (index === undefined) return;
     const current = this.entries[index - this.base];
     if (current?.kind !== 'tool') return;
-    this.entries[index - this.base] = { ...current, result: text.slice(0, MAX_RESULT), ...(isError ? { error: true } : {}) };
+    const updated: ToolEntry = { ...current, result: text.slice(0, MAX_RESULT), ...(isError ? { error: true } : {}) };
+    const slot = index - this.base;
+    const size = JSON.stringify(updated).length;
+    this.bytes += size - (this.sizes[slot] ?? 0);
+    this.entries[slot] = updated;
+    this.sizes[slot] = size;
     this.unresolved.delete(index);
   }
 }

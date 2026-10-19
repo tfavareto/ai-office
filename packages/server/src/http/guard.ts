@@ -1,5 +1,6 @@
-// Request guard: Host allowlist (DNS rebinding), JSON-only and same-origin POSTs, local-only detection.
+// Request guard: Host allowlist (DNS rebinding), Sec-Fetch-Site, JSON-only and same-origin POSTs, local-only detection.
 import type { IncomingMessage } from 'node:http';
+import { isIP } from 'node:net';
 import { isLoopbackHost, isWildcardHost } from '../config';
 
 export interface GuardOptions {
@@ -10,6 +11,8 @@ export interface GuardOptions {
 export type GuardResult = { ok: true; local: boolean } | { ok: false; status: number; error: string };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
+/** Sec-Fetch-Site values of requests made by the page itself or typed in the address bar. */
+const TRUSTED_FETCH_SITES = new Set(['same-origin', 'none']);
 
 /** Splits a Host header into hostname and port ("[::1]:4848" -> "::1", "4848"). */
 export function parseHostHeader(value: string): { hostname: string; port: string | undefined } {
@@ -28,8 +31,10 @@ function isHostAllowed(header: string, options: GuardOptions): boolean {
   if (port !== undefined && port !== String(options.port)) return false;
   if (port === undefined && options.port !== 80) return false;
   if (isLoopbackHost(hostname)) return true;
-  if (isWildcardHost(options.bindHost)) return true;
-  return hostname === options.bindHost.toLowerCase().replace(/^\[|\]$/g, '');
+  const bound = options.bindHost.toLowerCase().replace(/^\[|\]$/g, '');
+  // A wildcard bind accepts IP literals only: DNS rebinding needs a name, so arbitrary names are never trusted.
+  if (isWildcardHost(options.bindHost)) return isIP(hostname) !== 0;
+  return hostname === bound;
 }
 
 function isLoopbackAddress(address: string | undefined): boolean {
@@ -40,7 +45,8 @@ function isLoopbackAddress(address: string | undefined): boolean {
 export function guardRequest(req: IncomingMessage, options: GuardOptions): GuardResult {
   const host = req.headers.host;
   if (host === undefined || !isHostAllowed(host, options)) return { ok: false, status: 403, error: 'host-not-allowed' };
-  if (req.headers['sec-fetch-site'] === 'cross-site') return { ok: false, status: 403, error: 'cross-site' };
+  const fetchSite = req.headers['sec-fetch-site'];
+  if (fetchSite !== undefined && !TRUSTED_FETCH_SITES.has(String(fetchSite).toLowerCase())) return { ok: false, status: 403, error: 'cross-site' };
   const method = req.method ?? 'GET';
   if (!SAFE_METHODS.has(method)) {
     if (method !== 'POST') return { ok: false, status: 405, error: 'method-not-allowed' };

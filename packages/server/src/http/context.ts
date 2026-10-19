@@ -8,6 +8,7 @@ import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
 import type { MessageRegistry } from '../registries/messages';
 import type { PermissionRegistry } from '../registries/permissions';
+import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
 import type { SnapshotPublisher } from '../office/snapshot';
 
@@ -15,6 +16,7 @@ export interface AppContext {
   config: ServerConfig;
   version: string;
   log: Logger;
+  auth: TokenAuth;
   now: () => number;
   office: Office;
   engine: Engine;

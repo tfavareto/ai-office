@@ -12,7 +12,7 @@
 //        deny     -> { behavior: "deny", message, interrupt }
 //        terminal / expired / any error -> no output (the terminal dialog stays in charge; first answer wins).
 //
-// Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_PERMISSION_TIMEOUT, AI_OFFICE_HOOK_DEBUG=1.
+// Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR (token location), AI_OFFICE_PERMISSION_TIMEOUT, AI_OFFICE_HOOK_DEBUG=1.
 // The script never fails a session: every problem ends in exit code 0 with empty stdout.
 
 import {

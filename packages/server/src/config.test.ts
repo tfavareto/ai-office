@@ -8,6 +8,7 @@ describe('loadConfig', () => {
     expect(load({})).toMatchObject({
       port: 4848,
       host: '127.0.0.1',
+      allowRemote: false,
       claudeDirs: undefined,
       stateDir: '/home/u/.ai-office',
       demo: false,
@@ -17,8 +18,8 @@ describe('loadConfig', () => {
   });
 
   test('reads environment variables', () => {
-    const config = load({ AI_OFFICE_PORT: '4899', AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_CLAUDE_DIRS: '~/.claude, /tmp/c2 ,', AI_OFFICE_STATE_DIR: '/tmp/state', AI_OFFICE_DEMO: '1', AI_OFFICE_LOG: 'debug' });
-    expect(config).toMatchObject({ port: 4899, host: '0.0.0.0', claudeDirs: ['/home/u/.claude', '/tmp/c2'], stateDir: '/tmp/state', demo: true, logLevel: 'debug' });
+    const config = load({ AI_OFFICE_PORT: '4899', AI_OFFICE_HOST: 'localhost', AI_OFFICE_CLAUDE_DIRS: '~/.claude, /tmp/c2 ,', AI_OFFICE_STATE_DIR: '/tmp/state', AI_OFFICE_DEMO: '1', AI_OFFICE_LOG: 'debug' });
+    expect(config).toMatchObject({ port: 4899, host: 'localhost', claudeDirs: ['/home/u/.claude', '/tmp/c2'], stateDir: '/tmp/state', demo: true, logLevel: 'debug' });
   });
 
   test('flags win over the environment', () => {
@@ -35,6 +36,16 @@ describe('loadConfig', () => {
 
   test('AI_OFFICE_DEMO=0 keeps demo off', () => {
     expect(load({ AI_OFFICE_DEMO: '0' }).demo).toBe(false);
+  });
+
+  test('refuses a non-loopback host unless remote access is explicitly allowed', () => {
+    expect(() => load({ AI_OFFICE_HOST: '0.0.0.0' })).toThrow(ConfigError);
+    expect(() => load({ AI_OFFICE_HOST: '192.168.1.5' }, [])).toThrow(/AI_OFFICE_ALLOW_REMOTE/);
+    expect(() => load({}, ['--host', '::'])).toThrow(ConfigError);
+    expect(() => load({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_ALLOW_REMOTE: '0' })).toThrow(ConfigError);
+    expect(load({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_ALLOW_REMOTE: '1' })).toMatchObject({ host: '0.0.0.0', allowRemote: true });
+    expect(load({ AI_OFFICE_HOST: '10.0.0.2' }, ['--allow-remote'])).toMatchObject({ host: '10.0.0.2', allowRemote: true });
+    expect(load({ AI_OFFICE_HOST: '::1' })).toMatchObject({ allowRemote: false });
   });
 
   test('host classification', () => {

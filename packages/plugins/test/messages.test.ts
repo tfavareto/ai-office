@@ -68,29 +68,27 @@ describe('messages.mjs as a child process', () => {
     const input = { session_id: 's1', hook_event_name: 'PostToolUse', tool_name: 'Read' };
 
     test('delivers a queued message as additionalContext (via=tool)', async () => {
-      office.json('GET /api/messages/inbox', { messages: [message('use pnpm')] });
+      office.json('POST /api/messages/inbox', { messages: [message('use pnpm')] });
       const run = await runHookProcess('messages', input, env());
 
       expect(run.code).toBe(0);
       expect(run.output.hookSpecificOutput.hookEventName).toBe('PostToolUse');
       expect(run.output.hookSpecificOutput.additionalContext).toContain('use pnpm');
-      const [inbox] = office.requestsTo('GET /api/messages/inbox');
-      expect(inbox.query.get('via')).toBe('tool');
-      expect(inbox.query.get('session')).toBe('s1');
-      expect(inbox.query.has('agent')).toBe(false);
+      const [inbox] = office.requestsTo('POST /api/messages/inbox');
+      expect(inbox.body).toEqual({ session: 's1', via: 'tool' });
     });
 
     test('passes agent_id when a subagent runs the tool, and numbers several messages', async () => {
-      office.json('GET /api/messages/inbox', { messages: [message('um'), message('dois')] });
+      office.json('POST /api/messages/inbox', { messages: [message('um'), message('dois')] });
       const run = await runHookProcess('messages', { ...input, agent_id: 'ag-7' }, env());
-      expect(office.requestsTo('GET /api/messages/inbox')[0].query.get('agent')).toBe('ag-7');
+      expect(office.requestsTo('POST /api/messages/inbox')[0].body).toMatchObject({ agent: 'ag-7' });
       expect(run.output.hookSpecificOutput.additionalContext).toContain('1. um\n2. dois');
     });
 
     test('empty inbox or skip: no output', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       expect((await runHookProcess('messages', input, env())).stdout).toBe('');
-      office.json('GET /api/messages/inbox', { skip: 'unknown session' });
+      office.json('POST /api/messages/inbox', { skip: 'unknown session' });
       expect((await runHookProcess('messages', input, env())).stdout).toBe('');
     });
   });
@@ -99,17 +97,17 @@ describe('messages.mjs as a child process', () => {
     const input = { session_id: 's1', hook_event_name: 'Stop', stop_hook_active: false };
 
     test('blocks with the queued message as reason (via=stop) without waiting', async () => {
-      office.json('GET /api/messages/inbox', { messages: [message('finalize e resuma')] });
+      office.json('POST /api/messages/inbox', { messages: [message('finalize e resuma')] });
       const run = await runHookProcess('messages', input, env());
 
       expect(run.output.decision).toBe('block');
       expect(run.output.reason).toContain('finalize e resuma');
-      expect(office.requestsTo('GET /api/messages/inbox')[0].query.get('via')).toBe('stop');
+      expect(office.requestsTo('POST /api/messages/inbox')[0].body).toMatchObject({ via: 'stop' });
       expect(office.requestsTo('GET /api/messages/wait')).toHaveLength(0);
     });
 
     test('standby wake-up: waits, then blocks with the message that arrives', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       let waits = 0;
       office.on('GET /api/messages/wait', async (_req, res) => {
         waits += 1;
@@ -127,7 +125,7 @@ describe('messages.mjs as a child process', () => {
     });
 
     test('standby respects its total budget and then exits silently', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       office.on('GET /api/messages/wait', async (_req, res) => {
         await sleep(100);
         sendJson(res, { messages: [] });
@@ -142,7 +140,7 @@ describe('messages.mjs as a child process', () => {
     }, 15_000);
 
     test('standby disabled (AI_OFFICE_STANDBY_MIN=0): never waits', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       const run = await runHookProcess('messages', input, env({ AI_OFFICE_STANDBY_MIN: '0' }));
       expect(run.stdout).toBe('');
       expect(run.elapsedMs).toBeLessThan(1_500);
@@ -150,7 +148,7 @@ describe('messages.mjs as a child process', () => {
     });
 
     test('no viewers: a skip from the wait endpoint ends the standby at once', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       office.json('GET /api/messages/wait', { skip: 'no viewers' });
       const run = await runHookProcess('messages', input, env());
       expect(run.stdout).toBe('');
@@ -159,7 +157,7 @@ describe('messages.mjs as a child process', () => {
     });
 
     test('a skip from the inbox skips the standby entirely', async () => {
-      office.json('GET /api/messages/inbox', { skip: 'unknown session' });
+      office.json('POST /api/messages/inbox', { skip: 'unknown session' });
       const run = await runHookProcess('messages', input, env());
       expect(run.stdout).toBe('');
       expect(office.requestsTo('GET /api/messages/wait')).toHaveLength(0);
@@ -168,14 +166,14 @@ describe('messages.mjs as a child process', () => {
 
   describe('SubagentStop', () => {
     test('without agent_id nothing is requested', async () => {
-      office.json('GET /api/messages/inbox', { messages: [message('x')] });
+      office.json('POST /api/messages/inbox', { messages: [message('x')] });
       const run = await runHookProcess('messages', { session_id: 's1', hook_event_name: 'SubagentStop' }, env());
       expect(run.stdout).toBe('');
       expect(office.requests).toHaveLength(0);
     });
 
     test('with agent_id delivers via=stop for that agent and never stands by', async () => {
-      office.json('GET /api/messages/inbox', { messages: [message('ajuste o plano')] });
+      office.json('POST /api/messages/inbox', { messages: [message('ajuste o plano')] });
       const run = await runHookProcess(
         'messages',
         { session_id: 's1', hook_event_name: 'SubagentStop', agent_id: 'ag-3' },
@@ -183,13 +181,12 @@ describe('messages.mjs as a child process', () => {
       );
       expect(run.output.decision).toBe('block');
       expect(run.output.reason).toContain('ajuste o plano');
-      const [inbox] = office.requestsTo('GET /api/messages/inbox');
-      expect(inbox.query.get('agent')).toBe('ag-3');
-      expect(inbox.query.get('via')).toBe('stop');
+      const [inbox] = office.requestsTo('POST /api/messages/inbox');
+      expect(inbox.body).toEqual({ session: 's1', agent: 'ag-3', via: 'stop' });
     });
 
     test('empty inbox: exits without standby', async () => {
-      office.json('GET /api/messages/inbox', { messages: [] });
+      office.json('POST /api/messages/inbox', { messages: [] });
       const run = await runHookProcess(
         'messages',
         { session_id: 's1', hook_event_name: 'SubagentStop', agent_id: 'ag-3' },

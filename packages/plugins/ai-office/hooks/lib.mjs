@@ -3,19 +3,30 @@
 // Claude Code copies only the plugin folder into its cache, so this file sits next to the scripts and imports nothing
 // but `node:*` modules. It provides the pieces every hook needs:
 //
-//   - configuration from the environment (AI_OFFICE_PORT, AI_OFFICE_HOOK_DEBUG);
+//   - configuration from the environment (AI_OFFICE_PORT, AI_OFFICE_STATE_DIR, AI_OFFICE_HOOK_DEBUG);
+//   - the access token (`<state dir>/token`, written by the server). Without it the hooks behave as if AI Office were
+//     offline. Before the token is sent anywhere the server must prove it knows it (challenge on /api/health), so a
+//     stranger listening on the port never sees it, and a 401 is treated as "offline" too: never auto-approve;
 //   - a size- and time-bounded stdin reader;
 //   - a tiny JSON-over-HTTP client that only ever talks to 127.0.0.1 and never throws;
 //   - `runHook`, the entry-point wrapper that enforces the golden rule of the plugin: a hook must never fail or stall
 //     a Claude Code session. Any error, timeout or "AI Office is not running" ends in `exit 0` with no output.
 
-import { realpathSync } from 'node:fs';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { readFileSync, realpathSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /** Same default as `DEFAULT_PORT` in @ai-office/shared (the plugin cannot import it at runtime). */
 export const DEFAULT_PORT = 4848;
 /** Hooks only ever talk to the local machine. */
 export const HOST = '127.0.0.1';
+
+/** Same values as `TOKEN_FILE_NAME` / `HEALTH_PROOF_PREFIX` in @ai-office/shared. */
+export const TOKEN_FILE_NAME = 'token';
+export const HEALTH_PROOF_PREFIX = 'ai-office/health/v1:';
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
 
 export const STDIN_TIMEOUT_MS = 5_000;
 export const STDIN_MAX_BYTES = 4 * 1024 * 1024;
@@ -57,9 +68,37 @@ export function resolvePort(env) {
 }
 
 /**
+ * Path of the token file: `$AI_OFFICE_STATE_DIR/token`, else `~/.ai-office/token`.
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {string}
+ */
+export function resolveTokenPath(env) {
+  const home = env.HOME || homedir();
+  const dir = typeof env.AI_OFFICE_STATE_DIR === 'string' && env.AI_OFFICE_STATE_DIR !== '' ? env.AI_OFFICE_STATE_DIR : join(home, '.ai-office');
+  const expanded = dir === '~' ? home : dir.startsWith('~/') ? join(home, dir.slice(2)) : dir;
+  return join(expanded, TOKEN_FILE_NAME);
+}
+
+/**
+ * Reads the access token. `null` when the file is missing, unreadable or malformed ("AI Office offline").
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {string | null}
+ */
+export function readToken(env) {
+  try {
+    const token = readFileSync(resolveTokenPath(env), 'utf8').trim();
+    return TOKEN_PATTERN.test(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @typedef {object} HookContext
  * @property {NodeJS.ProcessEnv} env
  * @property {string} baseUrl  e.g. http://127.0.0.1:4848
+ * @property {string | null} token  Access token, or null when it cannot be read (then no request is ever made).
+ * @property {Promise<boolean>} [serverVerified]  Cached result of the server identity check.
  * @property {(...parts: unknown[]) => void} debug  Writes to stderr when AI_OFFICE_HOOK_DEBUG=1.
  */
 
@@ -74,6 +113,7 @@ export function createContext(env, scope, writeLine = (line) => process.stderr.w
   return {
     env,
     baseUrl: `http://${HOST}:${resolvePort(env)}`,
+    token: readToken(env),
     debug: (...parts) => {
       if (!enabled) return;
       const text = parts.map((part) => (part instanceof Error ? part.message : String(part))).join(' ');
@@ -159,8 +199,37 @@ export function queryString(params) {
  */
 
 /**
- * Sends a request to the local AI Office server. Never throws: network errors, timeouts and aborted bodies all yield
- * `null`, which callers treat as "AI Office unavailable".
+ * Checks, once per process, that the server on the port knows the token: it must answer a random challenge with the
+ * HMAC of the token. The token itself is not sent for this check.
+ * @param {HookContext} ctx
+ * @returns {Promise<boolean>}
+ */
+export function verifyServer(ctx) {
+  if (ctx.token === null) return Promise.resolve(false);
+  ctx.serverVerified ??= (async () => {
+    const token = /** @type {string} */ (ctx.token);
+    try {
+      const nonce = randomBytes(16).toString('hex');
+      const response = await fetch(`${ctx.baseUrl}/api/health?challenge=${nonce}`, { signal: AbortSignal.timeout(QUICK_REQUEST_TIMEOUT_MS) });
+      /** @type {any} */
+      const json = response.ok ? await response.json() : null;
+      const expected = createHmac('sha256', token).update(HEALTH_PROOF_PREFIX + nonce).digest();
+      const proof = typeof json?.proof === 'string' && /^[0-9a-f]{64}$/.test(json.proof) ? Buffer.from(json.proof, 'hex') : null;
+      const verified = proof !== null && timingSafeEqual(proof, expected);
+      if (!verified) ctx.debug('server did not prove it knows the token, treating AI Office as offline');
+      return verified;
+    } catch (error) {
+      ctx.debug('server check failed:', error);
+      return false;
+    }
+  })();
+  return ctx.serverVerified;
+}
+
+/**
+ * Sends a request to the local AI Office server with the access token. Never throws: network errors, timeouts,
+ * aborted bodies, a missing token, an unverified server and a 401 all yield `null`, which callers treat as
+ * "AI Office unavailable".
  * @param {HookContext} ctx
  * @param {'GET' | 'POST'} method
  * @param {string} path  Path plus optional query string.
@@ -169,13 +238,22 @@ export function queryString(params) {
  */
 export async function requestJson(ctx, method, path, { body, timeoutMs = QUICK_REQUEST_TIMEOUT_MS } = {}) {
   try {
+    if (ctx.token === null) {
+      ctx.debug('no access token, AI Office is offline');
+      return null;
+    }
+    if (!(await verifyServer(ctx))) return null;
     const hasBody = body !== undefined;
     const response = await fetch(`${ctx.baseUrl}${path}`, {
       method,
-      headers: hasBody ? { 'content-type': 'application/json' } : undefined,
+      headers: { authorization: `Bearer ${ctx.token}`, ...(hasBody ? { 'content-type': 'application/json' } : {}) },
       body: hasBody ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(timeoutMs),
     });
+    if (response.status === 401) {
+      ctx.debug(method, path, '-> 401, token rejected');
+      return null;
+    }
     const text = await response.text();
     /** @type {any} */
     let json = null;

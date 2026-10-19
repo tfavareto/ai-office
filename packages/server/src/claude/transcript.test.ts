@@ -1,7 +1,7 @@
 import { appendFile } from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { type FakeClaudeDir, assistantLine, jsonl, makeFakeClaude, text, thinking, toolResultLine, toolUse, userLine } from '../test-helpers';
-import { TranscriptCache, TranscriptView } from './transcript';
+import { MAX_TEXT, MAX_VIEW_BYTES, PAGE_SIZE, TranscriptCache, TranscriptView } from './transcript';
 import { scanRecentSessions } from './sessions-scan';
 
 let fake: FakeClaudeDir;
@@ -71,6 +71,84 @@ describe('TranscriptView', () => {
     const view = new TranscriptView(path);
     await view.update();
     expect(view.page(undefined).entries).toHaveLength(1);
+  });
+
+  test('entry text and tool results are capped at 4 KB', async () => {
+    const path = await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('u'.repeat(50_000), 0),
+        assistantLine([text('a'.repeat(50_000)), thinking('t'.repeat(50_000)), toolUse('t1', 'Bash', { command: 'ls' })], 10),
+        toolResultLine('t1', 'r'.repeat(50_000), 20),
+      ),
+    );
+    const view = new TranscriptView(path);
+    await view.update();
+    const { entries } = view.page(undefined);
+    expect(entries).toHaveLength(4);
+    expect(MAX_TEXT).toBe(4096);
+    for (const entry of entries) {
+      if (entry.kind === 'user' || entry.kind === 'assistant' || entry.kind === 'thinking') expect(entry.text.length).toBeLessThanOrEqual(4096);
+      if (entry.kind === 'tool') expect(entry.result?.length).toBe(4096);
+    }
+  });
+
+  test('a view keeps its memory under the byte budget by dropping the oldest entries', async () => {
+    const chunk = (round: number): string => jsonl(...Array.from({ length: 200 }, (_, i) => assistantLine([text(`${round}:${i} ${'x'.repeat(10_000)}`)], round * 1000 + i, { id: `m${round}-${i}` })));
+    const path = await fake.writeTranscript('big', chunk(0));
+    const view = new TranscriptView(path);
+    await view.update();
+    for (let round = 1; round <= 14; round++) {
+      await appendFile(path, chunk(round));
+      await view.update();
+    }
+    expect(view.size).toBeLessThanOrEqual(MAX_VIEW_BYTES);
+    expect(view.size).toBeGreaterThan(MAX_VIEW_BYTES * 0.9);
+    const all = view.page(0);
+    const last = view.page(undefined).entries.at(-1);
+    expect(last?.kind === 'assistant' && last.text.startsWith('14:199 ')).toBe(true);
+    expect(all.next).toBeGreaterThan(all.entries.length); // indices keep counting from the dropped entries
+  });
+
+  test('pages carry at most 500 entries: the newest without `after`, then onwards in order with a stable `next`', async () => {
+    const lines = Array.from({ length: 1200 }, (_, i) => userLine(`p${i}`, i));
+    const path = await fake.writeTranscript('many', jsonl(...lines));
+    const view = new TranscriptView(path);
+    await view.update();
+    expect(PAGE_SIZE).toBe(500);
+
+    const newest = view.page(undefined);
+    expect(newest.entries).toHaveLength(500);
+    expect(newest.entries[0]).toMatchObject({ text: 'p700' });
+    expect(newest.entries.at(-1)).toMatchObject({ text: 'p1199' });
+    expect(newest.next).toBe(1200);
+
+    const first = view.page(0);
+    expect(first.entries).toHaveLength(500);
+    expect(first.next).toBe(500);
+    const second = view.page(first.next);
+    expect(second.entries[0]).toMatchObject({ text: 'p500' });
+    expect(second.next).toBe(1000);
+    const third = view.page(second.next);
+    expect(third.entries).toHaveLength(200);
+    expect(third.next).toBe(1200);
+    expect(view.page(third.next).entries).toEqual([]);
+  });
+
+  test('a pending tool holds `next` back, but never more than a page, so paging cannot stall', async () => {
+    const lines = [userLine('go', 0), assistantLine([toolUse('t1', 'Bash', { command: 'sleep 9' })], 1), ...Array.from({ length: 700 }, (_, i) => assistantLine([text(`m${i}`)], 10 + i, { id: `a${i}` }))];
+    const view = new TranscriptView(await fake.writeTranscript('pending', jsonl(...lines)));
+    await view.update();
+    const newest = view.page(undefined); // entries 202..701
+    expect(newest.entries).toHaveLength(500);
+    expect(newest.next).toBe(203);
+    const again = view.page(newest.next);
+    expect(again.entries).toHaveLength(499);
+    expect(again.next).toBe(203);
+    const catchUp = view.page(1); // a client that is far behind moves forward page by page
+    expect(catchUp.entries).toHaveLength(500);
+    expect(catchUp.next).toBe(501);
+    expect(view.page(catchUp.next).next).toBe(203);
   });
 
   test('TranscriptCache reuses views and evicts the oldest', async () => {

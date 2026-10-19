@@ -5,6 +5,8 @@ import type { FeedItem, Notice, OfficeSnapshot } from '@ai-office/shared';
 export const HEARTBEAT_MS = 15_000;
 export const RETRY_MS = 2000;
 const MAX_BUFFERED_BYTES = 4 * 1024 * 1024;
+/** Simultaneous streams (open pages). Beyond this the route answers 503. */
+export const MAX_CLIENTS = 20;
 
 interface Client {
   res: ServerResponse;
@@ -42,7 +44,13 @@ export class SseHub {
     return this.clients.size;
   }
 
+  isFull(): boolean {
+    return this.clients.size >= MAX_CLIENTS;
+  }
+
   connect(req: IncomingMessage, res: ServerResponse, local: boolean): void {
+    // A stream is long-lived by design: never let a socket idle timeout cut it (the heartbeat keeps it warm anyway).
+    req.socket.setTimeout(0);
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',

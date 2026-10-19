@@ -12,11 +12,11 @@ import {
   type WorldFactoryOptions,
   type WorldOptions,
 } from '../world/api';
-import { Camera, type Bounds } from './camera';
+import { Camera, fitZoom, overviewZoom, type Bounds } from './camera';
 import { portraitDataUrl } from './chars/portrait';
 import { DayNight } from './lighting';
 import { OverlaySprites } from './overlay';
-import { drawOverlay } from './overlayPass';
+import { OverlayPass } from './overlayPass';
 import { pickCharacter, pickRoom } from './picking';
 import { Renderer, type FrameState } from './renderer';
 import { type RoomInfo, summarizeRoom } from './runtime/boards';
@@ -25,8 +25,9 @@ import { type TickerStrip, renderTicker, tickerText } from './runtime/ticker';
 const PAN_SPEED = 360;
 const DRAG_THRESHOLD = 4;
 const WHEEL_STEP = 50;
-const OVERVIEW_MARGIN_TILES = 4;
 const MAX_DPR = 3;
+const ROOM_FOCUS_PAD = 24;
+const ROOM_FOCUS_MAX_ZOOM = 4;
 
 /** Canvas2D renderer of the office: pixel-art layers, simulation-driven characters, day/night and overlay. */
 export class World2D implements WorldApi {
@@ -38,6 +39,7 @@ export class World2D implements WorldApi {
   private readonly cam = new Camera();
   private readonly dayNight = new DayNight();
   private readonly sprites = new OverlaySprites();
+  private readonly overlay = new OverlayPass();
   private readonly resizeObserver: ResizeObserver;
 
   private options: WorldOptions;
@@ -57,6 +59,8 @@ export class World2D implements WorldApi {
   private drawMs = 0;
   private disposed = false;
   private fitted = false;
+  /** Building width (tiles) the overview was last fitted to: a growing/shrinking building refits an untouched camera. */
+  private fittedWidth = 0;
   private userMoved = false;
   private followPause = 0;
 
@@ -158,10 +162,11 @@ export class World2D implements WorldApi {
 
   overview(animate = true): void {
     const b = this.sim.building;
-    const m = OVERVIEW_MARGIN_TILES * TILE;
-    const bounds: Bounds = { x: -m, y: -m, w: b.width * TILE + m * 2, h: b.height * TILE + m * 2 };
-    this.cam.fit(bounds, !animate || !this.fitted);
+    const size = { w: b.width * TILE, h: b.height * TILE };
+    const zoom = overviewZoom(size, this.cam.view, this.cam.dpr);
+    this.cam.frame({ x: size.w / 2, y: size.h / 2 }, zoom, !animate || !this.fitted);
     this.fitted = true;
+    this.fittedWidth = b.width;
     this.userMoved = false;
   }
 
@@ -183,16 +188,21 @@ export class World2D implements WorldApi {
     if (sel.type === 'agent') {
       const c = this.sim.character(sel.id);
       if (!c) return;
-      if (this.cam.zoom < 3) this.cam.setZoom(this.cam.levels.includes(3) ? 3 : 2);
-      this.cam.focus(c.x * TILE, c.y * TILE - 8);
+      const zoom = this.cam.zoom < 3 ? (this.cam.levels.includes(3) ? 3 : 2) : this.cam.zoom;
+      this.cam.frame({ x: c.x * TILE, y: c.y * TILE - 8 }, zoom, false);
       return;
     }
     const room = this.sim.rooms.live(sel.id);
     const area = room && this.sim.building.areas.find((a) => a.id === room.areaId);
     if (!area) return;
-    const bounds: Bounds = { x: area.rect.x * TILE, y: area.rect.y * TILE, w: area.rect.w * TILE, h: area.rect.h * TILE };
-    this.cam.fit({ x: bounds.x - 24, y: bounds.y - 24, w: bounds.w + 48, h: bounds.h + 48 }, false);
-    if (this.cam.zoom > 4) this.cam.setZoom(4);
+    const bounds: Bounds = {
+      x: area.rect.x * TILE - ROOM_FOCUS_PAD,
+      y: area.rect.y * TILE - ROOM_FOCUS_PAD,
+      w: area.rect.w * TILE + ROOM_FOCUS_PAD * 2,
+      h: area.rect.h * TILE + ROOM_FOCUS_PAD * 2,
+    };
+    const zoom = Math.min(ROOM_FOCUS_MAX_ZOOM, fitZoom(bounds, this.cam.view, this.cam.levels));
+    this.cam.frame({ x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 }, zoom, false);
   }
 
   cameraModes(): readonly CameraMode[] {
@@ -250,7 +260,6 @@ export class World2D implements WorldApi {
     this.canvas.height = Math.round(height * dpr);
     this.cam.dpr = dpr;
     this.cam.view = { width, height, insets: this.insets };
-    if (!this.cam.levels.includes(this.cam.zoom)) this.cam.zoom = this.cam.levels.reduce((b, z) => (Math.abs(z - this.cam.zoom) < Math.abs(b - this.cam.zoom) ? z : b), 1);
     if (this.fitted && !this.userMoved) this.overview(false);
   }
 
@@ -286,7 +295,7 @@ export class World2D implements WorldApi {
     this.ctx.save();
     const state = this.frameState(dt);
     this.renderer.draw(this.ctx, state);
-    drawOverlay(this.ctx, this.sprites, state);
+    this.overlay.draw(this.ctx, this.sprites, state);
     this.ctx.restore();
     this.drawMs += (performance.now() - t0 - this.drawMs) * 0.1;
   }
@@ -314,8 +323,8 @@ export class World2D implements WorldApi {
     if (ex) this.cam.limits = { x: ex.x + 160, y: ex.y + 160, w: ex.canvas.width - 320, h: ex.canvas.height - 320 };
     if (!this.fitted && this.sim.characters.length + b.areas.length > 0 && this.cam.view.width > 10) {
       this.overview(false);
-      this.cam.focus(b.width * TILE * 0.5, b.height * TILE * 0.5, true);
-      this.overview(false);
+    } else if (this.fitted && !this.userMoved && b.width !== this.fittedWidth) {
+      this.overview(true);
     }
     const pan = this.keyPan();
     if (pan.x || pan.y) {

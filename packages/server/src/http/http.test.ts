@@ -44,16 +44,20 @@ async function seedSession(sessionId = 's1', pid = 100): Promise<void> {
   await fake.writeSubagent(sessionId, 'sub1', jsonl(userLine('ok', 58_600, { agentId: 'sub1' }), assistantLine([text('achei')], 58_700, { extra: { agentId: 'sub1' } })), { agentType: 'Explore', description: 'Explorar', toolUseId: 'tu1' });
 }
 
+/** fetch with the access token, like the page (cookie) or a hook (bearer) would send it. */
+const apiFetch = (url: string, init: RequestInit = {}): Promise<Response> =>
+  fetch(url, { ...init, headers: { authorization: `Bearer ${app.context.auth.value}`, ...(init.headers as Record<string, string> | undefined) } });
+
 const json = (body: unknown, headers: Record<string, string> = {}): RequestInit => ({ method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
 const get = async <T>(path: string): Promise<{ status: number; body: T }> => {
-  const response = await fetch(`${base}${path}`);
+  const response = await apiFetch(`${base}${path}`);
   return { status: response.status, body: (await response.json()) as T };
 };
 
 /** Opens the SSE stream and resolves with the chunks received until `done` returns true. */
 function openStream(done: (text: string) => boolean): Promise<{ text: string; close: () => void }> {
   return new Promise((resolve, reject) => {
-    const req = request(`${base}/api/stream`, (res) => {
+    const req = request(`${base}/api/stream`, { headers: { authorization: `Bearer ${app.context.auth.value}` } }, (res) => {
       let received = '';
       res.setEncoding('utf8');
       res.on('data', (chunk: string) => {
@@ -87,17 +91,17 @@ describe('basic routes and static files', () => {
       request({ host: '127.0.0.1', port, path: '/api/health', headers: { host: 'evil.example:80' } }, (res) => resolve(res.statusCode ?? 0)).end();
     });
     expect(evil).toBe(403);
-    expect((await fetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' })).status).toBe(415);
-    expect((await fetch(`${base}/api/demo`, json({ on: true }, { origin: 'http://evil.example' }))).status).toBe(403);
-    const big = await fetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on: true, pad: 'x'.repeat(300_000) }) });
+    expect((await apiFetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' })).status).toBe(415);
+    expect((await apiFetch(`${base}/api/demo`, json({ on: true }, { origin: 'http://evil.example' }))).status).toBe(403);
+    const big = await apiFetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on: true, pad: 'x'.repeat(300_000) }) });
     expect(big.status).toBe(413);
-    expect((await fetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{oops' })).status).toBe(400);
-    expect((await fetch(`${base}/api/nope`)).status).toBe(404);
+    expect((await apiFetch(`${base}/api/demo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{oops' })).status).toBe(400);
+    expect((await apiFetch(`${base}/api/nope`)).status).toBe(404);
   });
 
   test('serves a short note while the web app is not built', async () => {
     await boot();
-    const response = await fetch(`${base}/`);
+    const response = await apiFetch(`${base}/`);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
     expect(await response.text()).toContain('npm run build');
@@ -109,20 +113,20 @@ describe('basic routes and static files', () => {
     await writeFile(join(web, 'assets', 'app-Ab12Cd34.js'), 'console.log(1)');
     await writeFile(join(web, 'plain.css'), 'a{}');
     await boot();
-    const index = await fetch(`${base}/`);
+    const index = await apiFetch(`${base}/`);
     expect(index.headers.get('cache-control')).toBe('no-cache');
     expect(await index.text()).toContain('AI Office');
-    const asset = await fetch(`${base}/assets/app-Ab12Cd34.js`);
+    const asset = await apiFetch(`${base}/assets/app-Ab12Cd34.js`);
     expect(asset.headers.get('content-type')).toContain('text/javascript');
     expect(asset.headers.get('cache-control')).toContain('immutable');
-    expect((await fetch(`${base}/plain.css`)).headers.get('content-type')).toContain('text/css');
-    expect(await (await fetch(`${base}/sala/123`)).text()).toContain('AI Office');
-    expect((await fetch(`${base}/missing.js`)).status).toBe(404);
+    expect((await apiFetch(`${base}/plain.css`)).headers.get('content-type')).toContain('text/css');
+    expect(await (await apiFetch(`${base}/sala/123`)).text()).toContain('AI Office');
+    expect((await apiFetch(`${base}/missing.js`)).status).toBe(404);
     const traversal = await new Promise<number>((resolve) => {
       request({ host: '127.0.0.1', port, path: '/..%2f..%2fetc/passwd' }, (res) => resolve(res.statusCode ?? 0)).end();
     });
     expect([400, 404]).toContain(traversal);
-    const head = await fetch(`${base}/`, { method: 'HEAD' });
+    const head = await apiFetch(`${base}/`, { method: 'HEAD' });
     expect(head.status).toBe(200);
     const snapshot = await openStream((t) => t.includes('event: feed'));
     expect(snapshotOf(snapshot.text).meta.build).toMatch(/^[0-9a-f]+$/);
@@ -170,9 +174,9 @@ describe('permissions', () => {
     await seedSession();
     await boot();
     await app.context.engine.scan();
-    expect(await (await fetch(`${base}/api/permissions`, json(hookBody))).json()).toEqual({ skip: 'no-viewer' });
+    expect(await (await apiFetch(`${base}/api/permissions`, json(hookBody))).json()).toEqual({ skip: 'no-viewer' });
     const stream = await openStream((t) => t.includes('event: feed'));
-    expect(await (await fetch(`${base}/api/permissions`, json({ ...hookBody, session_id: 'ghost' }))).json()).toEqual({ skip: 'unknown-session' });
+    expect(await (await apiFetch(`${base}/api/permissions`, json({ ...hookBody, session_id: 'ghost' }))).json()).toEqual({ skip: 'unknown-session' });
     stream.close();
   });
 
@@ -181,7 +185,7 @@ describe('permissions', () => {
     await boot();
     await app.context.engine.scan();
     const stream = await openStream((t) => t.includes('event: feed'));
-    const created = await fetch(`${base}/api/permissions`, json(hookBody));
+    const created = await apiFetch(`${base}/api/permissions`, json(hookBody));
     expect(created.status).toBe(201);
     const { id } = (await created.json()) as { id: string };
     expect(app.context.office.agentById('claude:s1')).toMatchObject({ status: 'waiting', permission: { id, summary: 'npm install zod', suggestions: ['Sempre permitir Bash(npm install:*) neste projeto'] } });
@@ -189,10 +193,10 @@ describe('permissions', () => {
     expect((await get<{ status: string }>(`/api/permissions/${id}/wait?timeout=0`)).body).toEqual({ status: 'pending' });
 
     const waiting = get<{ status: string }>(`/api/permissions/${id}/wait?timeout=5`);
-    const decision = await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'allow', suggestion: 0 }));
+    const decision = await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'allow', suggestion: 0 }));
     expect(decision.status).toBe(200);
     expect((await waiting).body).toEqual({ status: 'decided', behavior: 'allow', suggestion: 0 });
-    expect((await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny' }))).status).toBe(409);
+    expect((await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny' }))).status).toBe(409);
     expect(app.context.office.agentById('claude:s1')?.status).not.toBe('waiting');
     stream.close();
   });
@@ -202,13 +206,13 @@ describe('permissions', () => {
     await boot();
     await app.context.engine.scan();
     const stream = await openStream((t) => t.includes('event: feed'));
-    const { id } = (await (await fetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
-    expect((await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'maybe' }))).status).toBe(400);
-    expect((await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'allow', suggestion: 5 }))).status).toBe(400);
-    expect((await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny', suggestion: 0 }))).status).toBe(400);
-    expect((await fetch(`${base}/api/permissions/zzz/decision`, json({ behavior: 'allow' }))).status).toBe(404);
-    expect((await fetch(`${base}/api/permissions`, json({ tool_name: 'Bash' }))).status).toBe(400);
-    expect((await fetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny', message: 'Não', interrupt: true }))).status).toBe(200);
+    const { id } = (await (await apiFetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
+    expect((await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'maybe' }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'allow', suggestion: 5 }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny', suggestion: 0 }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/permissions/zzz/decision`, json({ behavior: 'allow' }))).status).toBe(404);
+    expect((await apiFetch(`${base}/api/permissions`, json({ tool_name: 'Bash' }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/permissions/${id}/decision`, json({ behavior: 'deny', message: 'Não', interrupt: true }))).status).toBe(200);
     stream.close();
   });
 
@@ -217,7 +221,7 @@ describe('permissions', () => {
     await boot();
     await app.context.engine.scan();
     const stream = await openStream((t) => t.includes('event: feed'));
-    const { id } = (await (await fetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
+    const { id } = (await (await apiFetch(`${base}/api/permissions`, json(hookBody))).json()) as { id: string };
     await fake.appendTranscript('s1', jsonl(assistantLine([text('Seguindo em frente')], 62_000, { id: 'next-message' })));
     await app.context.engine.scan();
     expect((await get<{ status: string }>(`/api/permissions/${id}/wait?timeout=0`)).body).toEqual({ status: 'cancelled' });
@@ -230,14 +234,14 @@ describe('messages and attention', () => {
     await seedSession();
     await boot();
     await app.context.engine.scan();
-    const sent = await fetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: 'Rode os testes antes de continuar.' }));
+    const sent = await apiFetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: 'Rode os testes antes de continuar.' }));
     expect(sent.status).toBe(201);
     const { messages } = (await sent.json()) as { messages: { id: string; status: string }[] };
     expect(messages).toHaveLength(1);
     expect((await get<{ messages: unknown[] }>('/api/messages?agent=claude:s1')).body.messages).toHaveLength(1);
-    const inbox = await get<{ messages: { text: string }[] }>('/api/messages/inbox?session=s1&via=tool');
-    expect(inbox.body.messages.map((m) => m.text)).toEqual(['Rode os testes antes de continuar.']);
-    expect((await get<{ messages: unknown[] }>('/api/messages/inbox?session=s1&via=tool')).body.messages).toEqual([]);
+    const take = async (): Promise<{ messages: { text: string }[] }> => (await (await apiFetch(`${base}/api/messages/inbox`, json({ session: 's1', via: 'tool' }))).json()) as { messages: { text: string }[] };
+    expect((await take()).messages.map((m) => m.text)).toEqual(['Rode os testes antes de continuar.']);
+    expect((await take()).messages).toEqual([]);
     const list = (await get<{ messages: { status: string; via: string }[] }>('/api/messages?agent=claude:s1')).body.messages;
     expect(list[0]).toMatchObject({ status: 'delivered', via: 'tool' });
     expect(app.context.office.recentFeed().some((item) => item.activity.kind === 'message')).toBe(true);
@@ -247,13 +251,13 @@ describe('messages and attention', () => {
     await seedSession();
     await boot();
     await app.context.engine.scan();
-    const both = await fetch(`${base}/api/messages`, json({ agents: ['claude:s1', 'claude:s1:sub1', 'ghost'], text: 'Time, atenção' }));
+    const both = await apiFetch(`${base}/api/messages`, json({ agents: ['claude:s1', 'claude:s1:sub1', 'ghost'], text: 'Time, atenção' }));
     const { messages } = (await both.json()) as { messages: { group?: string }[] };
     expect(messages).toHaveLength(2);
     expect(messages[0]?.group).toBe(messages[1]?.group);
-    expect((await fetch(`${base}/api/messages`, json({ agents: ['ghost'], text: 'oi' }))).status).toBe(404);
-    expect((await fetch(`${base}/api/messages`, json({ agents: [], text: 'oi' }))).status).toBe(400);
-    expect((await fetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: '   ' }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/messages`, json({ agents: ['ghost'], text: 'oi' }))).status).toBe(404);
+    expect((await apiFetch(`${base}/api/messages`, json({ agents: [], text: 'oi' }))).status).toBe(400);
+    expect((await apiFetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: '   ' }))).status).toBe(400);
   });
 
   test('the Stop hook long-poll wakes up with a new message, and skips without a page', async () => {
@@ -265,7 +269,7 @@ describe('messages and attention', () => {
     const stream = await openStream((t) => t.includes('event: feed'));
     const waiting = get<{ messages: { text: string }[] }>('/api/messages/wait?session=s1&timeout=10');
     await new Promise((resolve) => setTimeout(resolve, 50));
-    await fetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: 'Pode finalizar' }));
+    await apiFetch(`${base}/api/messages`, json({ agents: ['claude:s1'], text: 'Pode finalizar' }));
     expect((await waiting).body.messages.map((m) => m.text)).toEqual(['Pode finalizar']);
     expect((await get<{ messages: unknown[] }>('/api/messages/wait?session=s1&timeout=0.2')).body.messages).toEqual([]);
     stream.close();
@@ -275,11 +279,11 @@ describe('messages and attention', () => {
     await seedSession();
     await boot();
     await app.context.engine.scan();
-    const marked = await fetch(`${base}/api/attention`, json({ session_id: 's1', message: 'Claude needs your permission to use Bash' }));
+    const marked = await apiFetch(`${base}/api/attention`, json({ session_id: 's1', message: 'Claude needs your permission to use Bash' }));
     expect(await marked.json()).toEqual({ ok: true });
     expect(app.context.office.agentById('claude:s1')).toMatchObject({ status: 'waiting', waitingFor: 'Precisa de você' });
-    expect(await (await fetch(`${base}/api/attention`, json({ session_id: 's1', message: 'Claude is waiting for your input' }))).json()).toEqual({ skip: 'idle-prompt' });
-    expect(await (await fetch(`${base}/api/attention`, json({ session_id: 'ghost' }))).json()).toEqual({ skip: 'unknown-session' });
+    expect(await (await apiFetch(`${base}/api/attention`, json({ session_id: 's1', message: 'Claude is waiting for your input' }))).json()).toEqual({ skip: 'idle-prompt' });
+    expect(await (await apiFetch(`${base}/api/attention`, json({ session_id: 'ghost' }))).json()).toEqual({ skip: 'unknown-session' });
     await fake.appendTranscript('s1', jsonl(assistantLine([text('voltei')], 62_000, { id: 'x1' })));
     await app.context.engine.scan();
     expect(app.context.office.agentById('claude:s1')?.status).not.toBe('waiting');
@@ -301,6 +305,25 @@ describe('transcript, sessions, history and day', () => {
     expect(raw.body.entries).toHaveLength(2);
     const later = await get<{ entries: unknown[] }>(`/api/transcript?session=s1&account=claude&after=${main.body.next}`);
     expect(later.body.entries.length).toBeLessThanOrEqual(1);
+  });
+
+  test('returns at most 500 entries per page and `next` walks through the rest', async () => {
+    await fake.writeRegistry(100, { sessionId: 's9', name: 'Longa', status: 'busy', statusUpdatedAt: T0 + 59_000 });
+    await fake.writeTranscript('s9', jsonl(...Array.from({ length: 1100 }, (_, i) => userLine(`p${i}`, i))));
+    await boot();
+    await app.context.engine.scan();
+    type Page = { entries: { text: string }[]; next: number };
+    const newest = (await get<Page>('/api/transcript?session=s9&account=claude')).body;
+    expect(newest.entries).toHaveLength(500);
+    expect(newest.entries[0]?.text).toBe('p600');
+    expect(newest.next).toBe(1100);
+    const first = (await get<Page>('/api/transcript?session=s9&account=claude&after=0')).body;
+    expect(first.entries).toHaveLength(500);
+    const second = (await get<Page>(`/api/transcript?session=s9&account=claude&after=${first.next}`)).body;
+    expect(second.entries[0]?.text).toBe('p500');
+    const third = (await get<Page>(`/api/transcript?session=s9&account=claude&after=${second.next}`)).body;
+    expect(third.entries.map((e) => e.text)).toHaveLength(100);
+    expect(third.next).toBe(1100);
   });
 
   test('validates transcript queries', async () => {
@@ -334,7 +357,7 @@ describe('demo mode', () => {
   test('toggles fake agents that can be messaged and whose permissions can be answered', async () => {
     await boot();
     expect((await get<{ demo: boolean }>('/api/demo')).body).toEqual({ demo: false });
-    expect(await (await fetch(`${base}/api/demo`, json({ on: true }))).json()).toEqual({ demo: true });
+    expect(await (await apiFetch(`${base}/api/demo`, json({ on: true }))).json()).toEqual({ demo: true });
     expect((await get<{ demo: boolean }>('/api/health')).body.demo).toBe(true);
     const { office } = app.context;
     const demoAgents = office.state().agents.filter((a) => a.demo === true);
@@ -343,7 +366,7 @@ describe('demo mode', () => {
     expect(office.state().projects.map((p) => p.order)).toEqual([...office.state().projects.map((p) => p.order)].sort((a, b) => a - b));
 
     const target = demoAgents.find((a) => a.kind === 'main') as (typeof demoAgents)[number];
-    const sent = await fetch(`${base}/api/messages`, json({ agents: [target.id], text: 'Como está indo?' }));
+    const sent = await apiFetch(`${base}/api/messages`, json({ agents: [target.id], text: 'Como está indo?' }));
     expect(sent.status).toBe(201);
     expect((await get<{ messages: unknown[] }>(`/api/messages?agent=${encodeURIComponent(target.id)}`)).body.messages).toHaveLength(1);
 
@@ -353,9 +376,9 @@ describe('demo mode', () => {
     }
     const waiting = office.state().agents.find((a) => a.demo === true && a.permission !== undefined);
     if (waiting?.permission !== undefined) {
-      expect((await fetch(`${base}/api/permissions/${waiting.permission.id}/decision`, json({ behavior: 'allow' }))).status).toBe(200);
+      expect((await apiFetch(`${base}/api/permissions/${waiting.permission.id}/decision`, json({ behavior: 'allow' }))).status).toBe(200);
     }
-    expect(await (await fetch(`${base}/api/demo`, json({ on: false }))).json()).toEqual({ demo: false });
+    expect(await (await apiFetch(`${base}/api/demo`, json({ on: false }))).json()).toEqual({ demo: false });
     expect(office.state().agents.filter((a) => a.demo === true)).toHaveLength(0);
   });
 

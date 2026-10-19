@@ -8,6 +8,8 @@ export interface RequestContext {
   params: Record<string, string>;
   /** Loopback bind + loopback Host + loopback peer. */
   local: boolean;
+  /** The request carried a valid token (always true except on the public health route). */
+  authed: boolean;
 }
 
 export type Handler = (ctx: RequestContext) => Promise<void> | void;

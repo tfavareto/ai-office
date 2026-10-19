@@ -1,5 +1,6 @@
 // Composition root: wires the office, registries, ingest engine, SSE hub and HTTP server together.
-import { mkdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDemoSimulator, messageDraft } from '@ai-office/shared';
@@ -8,8 +9,9 @@ import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
 import { TranscriptCache } from './claude/transcript';
 import type { ServerConfig } from './config';
+import { TokenAuth } from './http/auth';
 import type { AppContext } from './http/context';
-import { createHttpServer } from './http/server';
+import { type HttpLimits, createHttpServer } from './http/server';
 import { SseHub } from './http/sse';
 import type { Logger } from './log';
 import { DayRecorder, RECORD_INTERVAL_MS } from './office/day-recorder';
@@ -32,10 +34,14 @@ export interface AppOptions {
   /** Value of CLAUDE_CONFIG_DIR. */
   envDir?: string;
   version?: string;
+  /** Overrides the HTTP request timeouts (tests). */
+  httpLimits?: HttpLimits;
 }
 
 export interface App {
   context: AppContext;
+  /** The underlying HTTP server (tests). */
+  server: Server;
   start(): Promise<void>;
   stop(): Promise<void>;
   /** Port the server listens on (useful when started with port 0 in tests). */
@@ -68,6 +74,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   let demoOn = false;
   let build: string | undefined;
 
+  const auth = new TokenAuth();
   const names = NameStore.forStateDir(config.stateDir, log);
   const usage = new UsageTracker();
   const day = new DayRecorder(config.stateDir, log);
@@ -129,6 +136,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     config,
     version,
     log,
+    auth,
     now,
     office,
     engine,
@@ -142,7 +150,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     isDemo: () => demoOn,
     setDemo,
   };
-  const http = createHttpServer(context);
+  const http = createHttpServer(context, undefined, options.httpLimits);
   let ticker: NodeJS.Timeout | undefined;
   let buildTimer: NodeJS.Timeout | undefined;
   let ticks = 0;
@@ -170,12 +178,14 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
 
   return {
     context,
+    server: http.server,
     port: () => {
       const address = http.server.address();
       return typeof address === 'object' && address !== null ? address.port : config.port;
     },
     async start() {
-      await mkdir(config.stateDir, { recursive: true });
+      // Creates the state dir (0700) and the access token (0600) before anything is served.
+      await auth.load(config.stateDir);
       await names.load();
       setDemo(config.demo);
       await refreshBuild();

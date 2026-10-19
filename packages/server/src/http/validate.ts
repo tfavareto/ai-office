@@ -61,6 +61,12 @@ export function parseSendMessage(body: unknown, maxAgents: number, maxText: numb
   return { agents: agents.slice(0, maxAgents), text };
 }
 
+export function parseInboxRequest(body: unknown): { sessionId: string; agentId?: string; via: 'tool' | 'stop' } {
+  const raw = asRecord(body);
+  const agentId = optionalString(raw.agent, 'agent');
+  return { sessionId: requiredString(raw.session, 'session'), ...(agentId !== undefined ? { agentId } : {}), via: raw.via === 'stop' ? 'stop' : 'tool' };
+}
+
 export function parseAttention(body: unknown): { sessionId: string; agentId?: string; message?: string; type?: string } {
   const raw = asRecord(body);
   const result: { sessionId: string; agentId?: string; message?: string; type?: string } = { sessionId: requiredString(raw.session_id, 'session_id') };

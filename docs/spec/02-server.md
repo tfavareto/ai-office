@@ -3,7 +3,9 @@
 ## Configuration (env)
 AI_OFFICE_PORT (4848), AI_OFFICE_HOST (127.0.0.1), AI_OFFICE_CLAUDE_DIRS (comma-separated config dirs; default:
 every `~/.claude*` directory containing `projects/`, plus CLAUDE_CONFIG_DIR), AI_OFFICE_STATE_DIR (~/.ai-office),
-AI_OFFICE_DEMO=1 (start with demo on). CLI flags may mirror these (`--port`, `--demo`).
+AI_OFFICE_DEMO=1 (start with demo on), AI_OFFICE_ALLOW_REMOTE=1 (accept a non-loopback AI_OFFICE_HOST; refused
+otherwise). CLI flags may mirror these (`--port`, `--demo`, `--allow-remote`). The state dir also holds `token`
+(random 32 bytes hex, mode 0600) that every `/api/*` route but `GET /api/health` requires (see 01-architecture Security).
 
 ## Claude Code data sources (public on-disk formats, per config dir `<dir>`)
 - `<dir>/sessions/<pid>.json`: registry of running sessions: `{ pid, sessionId, cwd, startedAt, kind, entrypoint,
@@ -59,14 +61,15 @@ haiku, fable; input/output/cache), flagged as estimate.
 Office emits change events; the snapshot builder throttles to 4/s max; `rev` increments; feed items pushed immediately
 (batched per tick); notices on transitions: agent needs you (alert, cleared when resolved), turn completed (success),
 tool error (warn, rate-limited), session opened/closed (info). SSE: `retry: 2000`, heartbeat comment every 15 s,
-initial snapshot + last 100 feed items on connect. Count local viewers (loopback connections) so hooks know whether a
+initial snapshot + last 100 feed items on connect, at most 20 clients (503 beyond). Count local viewers (loopback connections) so hooks know whether a
 page is open.
 
 ## REST (see shared/protocol.ts)
-health, stream, history, transcript (TranscriptEntry list rendered from JSONL, paginated by `after`), sessions (scan
+health, stream, history, transcript (TranscriptEntry list rendered from JSONL, paginated by `after`, at most 500 entries per page, text ≤ 4 KB,
+view cache ≤ ~8 MB), sessions (scan
 projects dirs for sessions modified in 7 days; title from custom-title or first prompt), day (day recorder), demo
 toggle, permissions (create from hook into a pending map with 5 min expiry; wait long-poll 25 s max; detail;
-decision; auto-cancel when the agent's session moves on), messages (queue per agent, TTL 2 h, keep 50; inbox; wait
+decision; auto-cancel when the agent's session moves on), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
 long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity).
 
 ## Day recorder

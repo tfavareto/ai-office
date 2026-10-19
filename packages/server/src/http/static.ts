@@ -73,7 +73,8 @@ export class StaticServer {
     }
   }
 
-  async handle(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
+  /** `indexHeaders` are added to responses that serve index.html (the session cookie). */
+  async handle(req: IncomingMessage, res: ServerResponse, pathname: string, indexHeaders: Record<string, string> = {}): Promise<void> {
     const head = req.method === 'HEAD';
     const target = resolveInside(this.root, pathname === '/' ? '/index.html' : pathname);
     if (target === undefined) return this.reply(res, 400, 'text/plain; charset=utf-8', 'Caminho inválido', head);
@@ -87,6 +88,7 @@ export class StaticServer {
       'Content-Type': mimeFor(file.path),
       'Content-Length': file.size,
       'Cache-Control': this.cacheControl(file.path),
+      ...(file.path === join(this.root, 'index.html') ? indexHeaders : {}),
     });
     if (head) {
       res.end();

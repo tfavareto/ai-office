@@ -4,7 +4,7 @@
 // `{ session_id, agent_id?, message }` to /api/attention and prints nothing. The office then marks the agent as
 // "needs you" until its next transcript event. If AI Office is offline the script exits silently and quickly.
 //
-// Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_HOOK_DEBUG=1.
+// Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR (token location), AI_OFFICE_HOOK_DEBUG=1.
 
 import { isEntryPoint, requestJson, runHook } from './lib.mjs';
 

@@ -1,5 +1,5 @@
 // health, stream, history, day and demo routes.
-import { API, type HealthResponse } from '@ai-office/shared';
+import { API, HEALTH_CHALLENGE_PARAM, type HealthResponse, type PublicHealthResponse } from '@ai-office/shared';
 import { asRecord } from '../../util/fs-safe';
 import { localDateString } from '../../util/ids';
 import type { AppContext } from '../context';
@@ -9,7 +9,12 @@ import type { Router } from '../router';
 const HISTORY_LIMIT = 300;
 
 export function registerSystemRoutes(router: Router, app: AppContext): void {
-  router.add('GET', API.health, ({ res, local }) => {
+  router.add('GET', API.health, ({ res, url, local, authed }) => {
+    if (!authed) {
+      // Without the token: only that a server is here, plus the proof hooks use to check its identity.
+      const proof = app.auth.proof(url.searchParams.get(HEALTH_CHALLENGE_PARAM));
+      return sendJson(res, 200, { ok: true, ...(proof !== undefined ? { proof } : {}) } satisfies PublicHealthResponse);
+    }
     const counts = app.engine.sessionCounts();
     const body: HealthResponse = {
       ok: true,
@@ -22,6 +27,10 @@ export function registerSystemRoutes(router: Router, app: AppContext): void {
   });
 
   router.add('GET', API.stream, ({ req, res, local }) => {
+    if (app.hub.isFull()) {
+      res.setHeader('Retry-After', '5');
+      return sendError(res, 503, 'too-many-streams');
+    }
     app.hub.connect(req, res, local);
   });
 

@@ -7,6 +7,8 @@ import type { LogLevel } from './log';
 export interface ServerConfig {
   port: number;
   host: string;
+  /** AI_OFFICE_ALLOW_REMOTE=1: allow a non-loopback `host`. Browsers still cannot sign in remotely (no cookie is issued). */
+  allowRemote: boolean;
   /** Explicit Claude config dirs (AI_OFFICE_CLAUDE_DIRS); undefined means auto-discovery. */
   claudeDirs: string[] | undefined;
   stateDir: string;
@@ -19,8 +21,8 @@ export interface ServerConfig {
 
 export class ConfigError extends Error {}
 
-const FLAG_NAMES = new Set(['--port', '--host', '--demo', '--state-dir', '--claude-dirs', '--web-dir', '--quiet', '--debug']);
-const BOOLEAN_FLAGS = new Set(['--demo', '--quiet', '--debug']);
+const FLAG_NAMES = new Set(['--port', '--host', '--demo', '--state-dir', '--claude-dirs', '--web-dir', '--quiet', '--debug', '--allow-remote']);
+const BOOLEAN_FLAGS = new Set(['--demo', '--quiet', '--debug', '--allow-remote']);
 
 /** Parses `--flag value`, `--flag=value` and boolean flags. Unknown flags are rejected. */
 export function parseFlags(argv: readonly string[]): Map<string, string> {
@@ -70,9 +72,15 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
   let logLevel: LogLevel = 'info';
   if (isTruthy(flags.get('--quiet')) || env.AI_OFFICE_LOG === 'quiet') logLevel = 'quiet';
   if (isTruthy(flags.get('--debug')) || env.AI_OFFICE_LOG === 'debug') logLevel = 'debug';
+  const host = flags.get('--host') ?? env.AI_OFFICE_HOST ?? '127.0.0.1';
+  const allowRemote = flags.has('--allow-remote') ? isTruthy(flags.get('--allow-remote')) : isTruthy(env.AI_OFFICE_ALLOW_REMOTE);
+  if (!isLoopbackHost(host) && !allowRemote) {
+    throw new ConfigError(`Recusando escutar em ${host}: só endereços locais são permitidos. Defina AI_OFFICE_ALLOW_REMOTE=1 para aceitar outro endereço (acesso remoto pelo navegador não é suportado).`);
+  }
   return {
     port: parsePort(flags.get('--port') ?? env.AI_OFFICE_PORT),
-    host: flags.get('--host') ?? env.AI_OFFICE_HOST ?? '127.0.0.1',
+    host,
+    allowRemote,
     claudeDirs: claudeDirs !== undefined && claudeDirs.length > 0 ? claudeDirs : undefined,
     stateDir: expandHome(flags.get('--state-dir') ?? env.AI_OFFICE_STATE_DIR ?? join(homeDir, '.ai-office'), homeDir),
     demo: flags.has('--demo') ? isTruthy(flags.get('--demo')) : isTruthy(env.AI_OFFICE_DEMO),

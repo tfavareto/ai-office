@@ -4,6 +4,7 @@ import { type Ctx, context2d, makeCanvas } from './paint/ctx';
 import { mix } from './color';
 import { NIGHT_COLORS } from './lighting';
 import { intersects } from './blit';
+import { PLAZA, tileRect } from './paint/exteriorUtil';
 import type { AreaCanvas } from './layers/areaLayer';
 import type { CarDraw } from './runtime/cars';
 import type { FrameState, Renderer } from './renderer';
@@ -79,6 +80,8 @@ export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordere
       ctx.fillRect(x - 2, y + 2, 4, 1);
     }
   }
+  const plaza = tileRect(PLAZA);
+  pool(ctx, warm, plaza.x + plaza.w / 2, plaza.y + plaza.h / 2, 46, night * 0.55);
   for (const car of cars) {
     if (car.x < vis.x - 60 || car.x > vis.x + vis.w + 60 || car.y < vis.y - 60 || car.y > vis.y + vis.h + 60) continue;
     pool(ctx, warm, car.light.x + car.light.dx * 9, car.light.y + car.light.dy * 9, 18, night * 0.7);

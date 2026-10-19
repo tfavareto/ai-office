@@ -4,7 +4,7 @@ import { MAX_MESSAGE_LENGTH, MAX_TEAM_SIZE, MAX_WAIT_MS } from '../../registries
 import type { AppContext } from '../context';
 import { closeSignal, readJsonBody, sendError, sendJson } from '../respond';
 import type { Router } from '../router';
-import { parseAttention, parseSendMessage, parseTimeoutMs } from '../validate';
+import { parseAttention, parseInboxRequest, parseSendMessage, parseTimeoutMs } from '../validate';
 
 export function registerMessageRoutes(router: Router, app: AppContext): void {
   const base = API.messages;
@@ -33,12 +33,13 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
     sendJson(res, 200, { messages });
   });
 
-  router.add('GET', `${base}/inbox`, ({ res, url, local }) => {
+  // A POST because it consumes the queue.
+  router.add('POST', `${base}/inbox`, async ({ req, res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
-    const agent = app.office.findAgent(url.searchParams.get('session') ?? '', url.searchParams.get('agent') ?? undefined);
+    const input = parseInboxRequest(await readJsonBody(req));
+    const agent = app.office.findAgent(input.sessionId, input.agentId);
     if (agent === undefined) return sendJson(res, 200, { skip: 'unknown-session' } satisfies InboxResponse);
-    const via = url.searchParams.get('via') === 'stop' ? 'stop' : 'tool';
-    sendJson(res, 200, { messages: app.messages.take(agent.id, via) } satisfies InboxResponse);
+    sendJson(res, 200, { messages: app.messages.take(agent.id, input.via) } satisfies InboxResponse);
   });
 
   router.add('GET', `${base}/wait`, async ({ req, res, url, local }) => {

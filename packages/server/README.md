@@ -11,7 +11,11 @@ npm start                               # node dist/index.js
 
 Configuration (env or flags; flags win): `AI_OFFICE_PORT`/`--port`, `AI_OFFICE_HOST`/`--host`,
 `AI_OFFICE_CLAUDE_DIRS`/`--claude-dirs`, `AI_OFFICE_STATE_DIR`/`--state-dir`, `AI_OFFICE_DEMO=1`/`--demo`,
-`AI_OFFICE_WEB_DIR`/`--web-dir`, `AI_OFFICE_LOG=quiet|debug` (`--quiet`, `--debug`).
+`AI_OFFICE_WEB_DIR`/`--web-dir`, `AI_OFFICE_LOG=quiet|debug` (`--quiet`, `--debug`), `AI_OFFICE_ALLOW_REMOTE=1`/`--allow-remote`
+(required for any non-loopback `AI_OFFICE_HOST`; browsers still cannot sign in remotely).
+
+Access: the server writes a random token to `<state dir>/token` (mode 0600). All `/api/*` routes except `GET /api/health`
+need it (`Authorization: Bearer`, or the cookie the server sets when it serves the page). See `docs/spec/01-architecture.md`.
 
 ## Layout
 

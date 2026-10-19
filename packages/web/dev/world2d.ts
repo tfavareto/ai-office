@@ -1,5 +1,5 @@
 // Dev harness: mounts the 2D world full-screen with a synthetic office. Query: ?daylight=day|night|auto
-// &projects=4&agents=10&step=4&zoom=2&hud=1&overview=1
+// &projects=4&agents=10&step=4&zoom=2&hud=1&insets=top,right,bottom,left (CSS px, like the app shell)
 import { createWorld2D } from '../src/world2d';
 import type { DaylightMode, WorldApi } from '../src/world/api';
 import { DEFAULT_WORLD_OPTIONS } from '../src/world/api';
@@ -9,6 +9,7 @@ const params = new URLSearchParams(location.search);
 const num = (key: string, fallback: number): number => Number(params.get(key) ?? fallback);
 const daylight = (params.get('daylight') ?? 'day') as DaylightMode;
 const fixture: FixtureOptions = { projects: num('projects', 4), agents: num('agents', 10), step: num('step', 4) };
+const [top = 0, right = 0, bottom = 0, left = 0] = (params.get('insets') ?? '').split(',').map(Number);
 const force = params.get('force');
 if (force) fixture.force = force as FixtureOptions['force'];
 
@@ -24,7 +25,7 @@ async function main(): Promise<void> {
   const container = document.getElementById('world')!;
   const world = await createWorld2D(container, {
     options: { ...DEFAULT_WORLD_OPTIONS, daylight, bubbles: 'all' },
-    insets: { top: 0, right: 0, bottom: 0, left: 0 },
+    insets: { top, right, bottom, left },
   });
   window.__world = world;
   window.__stats = () => world.stats();

@@ -4,7 +4,7 @@ import { Rng } from '../../layout/rng';
 import { shade } from '../color';
 import { type Ctx, context2d, makeCanvas, rect } from '../paint/ctx';
 
-const CAR_COLORS = ['#c0392b', '#2f6fed', '#e8e2d2', '#2d3139', '#e0b43a', '#3b8a52', '#8a8f99', '#6b3fa0'];
+export const CAR_COLORS = ['#c0392b', '#2f6fed', '#e8e2d2', '#2d3139', '#e0b43a', '#3b8a52', '#8a8f99', '#6b3fa0'];
 
 interface Car {
   lane: Lane;
@@ -25,7 +25,7 @@ export interface CarDraw {
 
 const sprites = new Map<string, HTMLCanvasElement>();
 
-function carSprite(color: string, horizontal: boolean, forward: boolean): HTMLCanvasElement {
+export function carSprite(color: string, horizontal: boolean, forward: boolean): HTMLCanvasElement {
   const key = `${color}${horizontal}${forward}`;
   const hit = sprites.get(key);
   if (hit) return hit;
