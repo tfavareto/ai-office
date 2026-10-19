@@ -2,23 +2,24 @@ import type { FurnitureItem } from '../../layout/types';
 import { mix, noise2, shade } from '../color';
 import { BRASS, EBONY, GRAPHITE, LED, OAK, PLANT, WALNUT, WOODS } from '../palette';
 import { type Ctx, bevel, ellipse, hline, pixel, rect, vline } from './ctx';
+import { BEZEL, CHIN, FRAME_H, FRAME_W, deskScreenRects } from './deskLayout';
 
-/** Position of the 4 screens of a desk, relative to the desk footprint's top-left (px). */
-export const DESK_SCREENS = [0, 1, 2, 3].map((i) => ({ x: 2 + i * 15, y: -8, w: 12, h: 7 }));
+/** Live screens of a workstation's monitor pair, relative to the desk footprint's top-left (px). */
+export const DESK_SCREENS = deskScreenRects();
 
 const wood = (i: number): (typeof WOODS)[number] => WOODS[i % WOODS.length];
 
 export function desk(ctx: Ctx, it: FurnitureItem): void {
   const w = it.w * 16;
   const top = wood(it.variant % 2 === 0 ? 0 : 1);
-  // monitors
-  for (let i = 0; i < 4; i++) {
-    const x = 1 + i * 15;
-    rect(ctx, x + 5, 0, 4, 3, GRAPHITE.mid);
-    rect(ctx, x + 3, 2, 8, 1, GRAPHITE.dark);
-    bevel(ctx, x, -9, 14, 10, GRAPHITE.deep, GRAPHITE.mid, '#0b0d11');
-    rect(ctx, x + 1, -8, 12, 7, '#10151f');
-    pixel(ctx, x + 12, 0, LED.teal);
+  // monitor pair centred on the seat: stand, then a bezel around the live screen (drawn by the renderer)
+  for (const m of deskScreenRects(w)) {
+    const cx = m.frameX + Math.floor(FRAME_W / 2);
+    rect(ctx, cx - 1, 0, 3, 3, GRAPHITE.mid);
+    rect(ctx, cx - 4, 2, 9, 1, GRAPHITE.dark);
+    bevel(ctx, m.frameX, m.frameY, FRAME_W, FRAME_H, GRAPHITE.deep, GRAPHITE.mid, '#0b0d11');
+    rect(ctx, m.x, m.y, FRAME_W - BEZEL * 2, FRAME_H - BEZEL - CHIN, '#10151f');
+    pixel(ctx, m.frameX + FRAME_W - 3, m.frameY + FRAME_H - 2, LED.teal);
   }
   // desk top and front panel
   rect(ctx, 0, 2, w, 10, top.mid);
@@ -32,22 +33,24 @@ export function desk(ctx: Ctx, it: FurnitureItem): void {
   rect(ctx, w - 22, 13, 18, 3, shade(top.dark, -0.12));
   hline(ctx, w - 22, 14, 18, shade(top.dark, 0.18));
   hline(ctx, w - 14, 13, 4, BRASS.base);
-  // accessories vary per workstation
-  rect(ctx, 22, 7, 14, 3, '#cfd3da');
-  hline(ctx, 22, 7, 14, '#eef0f4');
-  for (let k = 0; k < 4; k++) vline(ctx, 24 + k * 3, 8, 1, '#9aa1ad');
-  rect(ctx, 38, 8, 2, 2, '#e5e8ee');
+  // accessories: keyboard and mouse on the seat's centre line, notes to the left, a mug and a pot plant to the right
+  const mid = w / 2;
+  rect(ctx, mid - 7, 7, 14, 3, '#cfd3da');
+  hline(ctx, mid - 7, 7, 14, '#eef0f4');
+  for (let k = 0; k < 4; k++) vline(ctx, mid - 5 + k * 3, 8, 1, '#9aa1ad');
+  rect(ctx, mid + 9, 8, 2, 2, '#e5e8ee');
   const cups = ['#e0795a', '#4f86f7', '#e8e2d2', '#3b8a52'];
-  rect(ctx, 50, 5, 4, 4, cups[it.variant % 4]);
-  pixel(ctx, 54, 6, cups[it.variant % 4]);
-  hline(ctx, 50, 5, 4, shade(cups[it.variant % 4], 0.35));
+  const cup = cups[it.variant % 4];
+  rect(ctx, w - 12, 5, 4, 4, cup);
+  pixel(ctx, w - 8, 6, cup);
+  hline(ctx, w - 12, 5, 4, shade(cup, 0.35));
   rect(ctx, 4, 6, 8, 5, '#efe6cf');
   hline(ctx, 4, 6, 8, '#fffaf0');
   for (let k = 0; k < 3; k++) hline(ctx, 5, 7 + k * 1, 5 - (k % 2), '#9a8f78');
   if (it.variant % 3 === 1) {
-    rect(ctx, 41, 4, 4, 4, PLANT.pot);
-    rect(ctx, 41, 2, 4, 3, PLANT.base);
-    pixel(ctx, 42, 1, PLANT.light);
+    rect(ctx, w - 7, 5, 4, 4, PLANT.pot);
+    rect(ctx, w - 7, 3, 4, 3, PLANT.base);
+    pixel(ctx, w - 6, 2, PLANT.light);
   }
 }
 
@@ -102,66 +105,6 @@ export function bin(ctx: Ctx): void {
   rect(ctx, 5, 7, 6, 1, GRAPHITE.deep);
   vline(ctx, 4, 7, 8, GRAPHITE.light);
   vline(ctx, 11, 7, 8, GRAPHITE.dark);
-}
-
-function leaf(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, base: string, light: string): void {
-  ellipse(ctx, cx, cy, rx, ry, base);
-  ellipse(ctx, cx - 1, cy - 1, Math.max(1, rx - 2), Math.max(1, ry - 2), light);
-}
-
-export function plant(ctx: Ctx, it: FurnitureItem): void {
-  const kind = it.variant % 4;
-  const pots = [PLANT.pot, '#2d3139', '#b98557', '#e8e2d2'];
-  const pot = pots[(it.variant + 1) % 4];
-  rect(ctx, 4, 10, 8, 6, pot);
-  hline(ctx, 3, 9, 10, shade(pot, 0.2));
-  hline(ctx, 4, 15, 8, shade(pot, -0.35));
-  rect(ctx, 5, 10, 6, 1, '#3a2a1c');
-  if (kind === 0) {
-    leaf(ctx, 8, 3, 6, 6, PLANT.base, PLANT.mid);
-    leaf(ctx, 5, 5, 3, 3, PLANT.dark, PLANT.base);
-    leaf(ctx, 11, 1, 3, 3, PLANT.mid, PLANT.light);
-  } else if (kind === 1) {
-    for (let i = 0; i < 5; i++) {
-      vline(ctx, 4 + i * 2, 1 - (i % 2) * 2, 9 + (i % 2) * 2, i % 2 ? PLANT.mid : PLANT.base);
-      vline(ctx, 5 + i * 2, 2 - (i % 2) * 2, 8, PLANT.dark);
-    }
-  } else if (kind === 2) {
-    leaf(ctx, 5, 4, 4, 3, PLANT.base, PLANT.light);
-    leaf(ctx, 11, 3, 4, 4, PLANT.mid, PLANT.hi);
-    leaf(ctx, 8, -1, 4, 3, PLANT.dark, PLANT.mid);
-  } else {
-    vline(ctx, 8, -2, 11, WALNUT.base);
-    for (let i = 0; i < 4; i++) {
-      hline(ctx, 8 - 5 + i, -2 + i, 5 - i, PLANT.mid);
-      hline(ctx, 9, -2 + i, 5 - i, PLANT.base);
-    }
-    pixel(ctx, 4, 3, PLANT.light);
-    pixel(ctx, 12, 3, PLANT.light);
-  }
-}
-
-export function plantTall(ctx: Ctx, it: FurnitureItem): void {
-  rect(ctx, 3, 9, 10, 7, '#e8e2d2');
-  hline(ctx, 2, 8, 12, '#fffaf0');
-  hline(ctx, 3, 15, 10, '#aaa294');
-  rect(ctx, 3, 12, 10, 1, BRASS.base);
-  rect(ctx, 4, 8, 8, 1, '#3a2a1c');
-  if (it.variant % 2 === 0) {
-    vline(ctx, 8, -8, 17, WALNUT.base);
-    leaf(ctx, 8, -12, 7, 5, PLANT.base, PLANT.mid);
-    leaf(ctx, 4, -6, 4, 4, PLANT.dark, PLANT.base);
-    leaf(ctx, 12, -6, 4, 4, PLANT.mid, PLANT.light);
-    leaf(ctx, 8, -2, 5, 3, PLANT.base, PLANT.light);
-  } else {
-    for (let i = 0; i < 7; i++) {
-      const x = 3 + i * 2;
-      const top = -14 + Math.abs(3 - i) * 3;
-      vline(ctx, x, top, 22 - (top + 14) - 6, i % 2 ? PLANT.base : PLANT.mid);
-      vline(ctx, x + 1, top + 1, 14 - (top + 14), PLANT.dark);
-    }
-    pixel(ctx, 8, -15, PLANT.hi);
-  }
 }
 
 export function lamp(ctx: Ctx): void {

@@ -57,13 +57,24 @@ export function paintBench(ctx: Ctx, x: number, y: number): void {
   hline(ctx, x, y, 20, '#b08658');
 }
 
+/** Width of a planter and how far its shrub rises above the trough's top edge. */
+export const PLANTER_W = 14;
+export const PLANTER_RISE = 7;
+
+/** Stone trough with a rounded shrub. The shrub is painted first so the trough's rim covers its base. */
 export function paintPlanter(ctx: Ctx, x: number, y: number): void {
-  rect(ctx, x + 1, y + 7, 14, 2, 'rgba(8,10,18,0.22)');
-  rect(ctx, x, y, 14, 7, '#8c8578');
-  hline(ctx, x, y, 14, '#b9b2a4');
-  disc(ctx, x + 4, y - 1, 3, PLANT.base);
-  disc(ctx, x + 10, y - 2, 3, PLANT.mid);
-  disc(ctx, x + 7, y - 4, 3, PLANT.light);
+  rect(ctx, x + 1, y + 6, PLANTER_W, 3, 'rgba(8,10,18,0.22)');
+  disc(ctx, x + 7, y - 1, 6, PLANT.dark);
+  disc(ctx, x + 6, y - 2, 5, PLANT.base);
+  disc(ctx, x + 4, y - 3, 3, PLANT.mid);
+  disc(ctx, x + 9, y - 3, 2, PLANT.mid);
+  for (const [px, py] of [[3, -5], [5, -6], [9, -5], [11, -2]] as const) rect(ctx, x + px, y + py, 1, 1, PLANT.light);
+  rect(ctx, x + 5, y - 6, 1, 1, PLANT.hi);
+  rect(ctx, x, y, PLANTER_W, 7, '#8c8578');
+  hline(ctx, x, y, PLANTER_W, '#b9b2a4');
+  vline(ctx, x, y + 1, 6, '#a39d90');
+  vline(ctx, x + PLANTER_W - 1, y + 1, 6, '#6f695e');
+  hline(ctx, x, y + 6, PLANTER_W, '#6f695e');
 }
 
 /** Entrance plaza in front of the reception: warm stone paving, brass inlay, door mat, planters and a name plate. */
@@ -85,7 +96,7 @@ export function paintPlaza(ctx: Ctx, plaza: Rect): void {
   for (let y = midY - 32; y < midY + 32; y += 3) hline(ctx, p.x + 7, y, 24, '#7a6c58');
   rect(ctx, p.x + 38, midY - 30, 3, 60, BRASS.base);
   rect(ctx, p.x + 38, midY - 30, 1, 60, BRASS.hi);
-  paintPlanter(ctx, p.x + 18, p.y + 10);
+  paintPlanter(ctx, p.x + 18, p.y + 20);
   paintPlanter(ctx, p.x + 18, p.y + p.h - 18);
   rect(ctx, p.x + 8, p.y + 4, 24, 5, BRASS.dark);
   rect(ctx, p.x + 9, p.y + 5, 22, 3, BRASS.light);

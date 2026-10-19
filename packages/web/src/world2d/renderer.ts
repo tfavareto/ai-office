@@ -273,7 +273,7 @@ export class Renderer {
       const here = actor && spot ? Math.hypot(actor.x - spot.x, actor.y - spot.y) < 2.2 && !actor.moving : false;
       const agent = actor?.agent;
       const kinds = desksScreens(here && agent ? agent.status : actor ? 'idle' : null, agent?.activity?.kind, !!agent?.shells.some((x) => !x.background));
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < DESK_SCREENS.length; i++) {
         const r = DESK_SCREENS[i];
         ctx.drawImage(screenSprite(kinds[i], frameBase + i * 2), desk.x + r.x, desk.y + r.y, SCREEN_W, SCREEN_H);
       }

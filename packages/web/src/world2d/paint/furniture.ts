@@ -2,6 +2,7 @@ import type { FurnitureItem, FurnitureKind } from '../../layout/types';
 import { type Ctx, context2d, makeCanvas } from './ctx';
 import * as office from './furnOffice';
 import * as social from './furnSocial';
+import * as plants from './plants';
 
 type Draw = (ctx: Ctx, item: FurnitureItem) => void;
 
@@ -17,8 +18,8 @@ const PAINTERS: Partial<Record<FurnitureKind, Painter>> = {
   shelf: { rise: 10, draw: office.shelf },
   copier: { rise: 2, draw: office.copier },
   bin: { rise: 0, draw: office.bin },
-  plant: { rise: 4, draw: office.plant },
-  plantTall: { rise: 18, draw: office.plantTall },
+  plant: { rise: 4, draw: plants.plant },
+  plantTall: { rise: 18, draw: plants.plantTall },
   lamp: { rise: 14, draw: office.lamp },
   sideTable: { rise: 2, draw: office.sideTable },
   bench: { rise: 4, draw: office.bench },

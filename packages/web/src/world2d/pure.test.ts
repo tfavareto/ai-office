@@ -62,11 +62,12 @@ describe('looks', () => {
 });
 
 describe('monitor screens', () => {
-  it('shows live content only while somebody sits at the desk', () => {
-    expect(desksScreens(null, undefined, false)).toEqual(['off', 'off', 'off', 'off']);
-    expect(desksScreens('working', 'edit', false)).toContain('code');
+  it('shows live content only while somebody sits at the desk, on exactly two monitors', () => {
+    expect(desksScreens(null, undefined, false)).toEqual(['off', 'off']);
+    expect(desksScreens('working', 'edit', false)).toEqual(['code', 'term']);
     expect(desksScreens('working', 'bash', false)[1]).toBe('term');
     expect(desksScreens('working', 'edit', true)[1]).toBe('term');
+    expect(desksScreens('working', 'web', false)).toEqual(['code', 'web']);
     expect(desksScreens('waiting', undefined, false)).toContain('wait');
     expect(desksScreens('idle', undefined, false)).toContain('idle');
   });
