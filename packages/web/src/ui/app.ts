@@ -1,0 +1,577 @@
+// Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
+import type { Account, Agent, BossMessage, Notice, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import { describeError } from '../net/backend';
+import { buildChanged } from '../net/reducers';
+import type { Store } from '../net/store';
+import { toWorldOptions, type PrefsStore } from '../prefs/prefs';
+import type { Selection } from '../world/api';
+import { notifyPermission, showBrowserNotification } from './browser-notify';
+import { Drawer } from './components/drawer';
+import { DayDialog } from './components/day-dialog';
+import { EmptyState } from './components/empty-state';
+import { Feed } from './components/feed';
+import { HelpDialog } from './components/help-dialog';
+import { HoverTip } from './components/hover-tip';
+import { NotificationCenter } from './components/notification-center';
+import { SessionHistory } from './components/session-history';
+import { Settings } from './components/settings';
+import { Sidebar } from './components/sidebar';
+import { ConnectionBanner, Splash } from './components/splash';
+import { TerminalPanel } from './components/terminal-panel';
+import { Toasts } from './components/toasts';
+import { TopBar } from './components/topbar';
+import { LOCAL_ONLY_HINT, type AppContext, type Component } from './context';
+import { h, isEditable, toggleClass } from './dom';
+import { computeInsets, layoutVariables, sameInsets } from './layout';
+import { MessageCenter } from './message-center';
+import { agentsNeedingYou, agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
+import { shouldInterrupt } from './model/notifications';
+import { NotificationsStore, ToastStore } from './notification-stores';
+import { resolveShortcut, type ShortcutAction } from './shortcuts';
+import { SoundPlayer, type CueKind } from './sound';
+import { NARROW_BREAKPOINT, UiState, initialUiData, type DialogId, type DrawerTab, type PopoverId, type TerminalTarget } from './state';
+import { tickLive } from './widgets';
+import type { WorldHost } from './world-host';
+import type { ViewInsets } from '../world/api';
+
+const CLOCK_MS = 1000;
+const NBSP = String.fromCharCode(160);
+const RELOAD_GUARD_KEY = 'ai-office:reload-at';
+const RELOAD_GUARD_MS = 15_000;
+
+const CUE_BY_LEVEL: Record<NoticeLevel, CueKind> = { alert: 'alert', warn: 'info', info: 'info', success: 'success' };
+
+export class App implements AppContext {
+  readonly ui: UiState;
+  readonly notifications = new NotificationsStore();
+  readonly toasts = new ToastStore();
+  readonly messages: MessageCenter;
+  private readonly sound = new SoundPlayer();
+  private readonly root: HTMLElement;
+  private readonly components: Component[] = [];
+  private readonly sidebar: Sidebar;
+  private readonly terminal: TerminalPanel;
+  private readonly hoverTip: HoverTip;
+  private readonly scrim = h('div', { class: 'ao-scrim ao-panel-scrim' });
+  private readonly liveRegion = h('div', { class: 'ao-visually-hidden', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
+  private frame = 0;
+  private pendingSnapshot: OfficeSnapshot | null = null;
+  private appliedInsets: ViewInsets | null = null;
+  private appliedFollow: boolean | null = null;
+  private lastTitle = '';
+  private lastNeeds = 0;
+  private buildId: string | undefined;
+  private localId = 0;
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  constructor(
+    host: HTMLElement,
+    readonly store: Store,
+    readonly prefs: PrefsStore,
+    readonly world: WorldHost,
+    worldContainer: HTMLElement,
+  ) {
+    this.root = host;
+    const narrow = window.innerWidth < NARROW_BREAKPOINT;
+    const initial = prefs.get();
+    this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
+    this.notifications.setDnd(initial.dnd);
+    this.messages = new MessageCenter({
+      backend: store.backend,
+      nameOf: (id) => this.agent(id)?.name ?? 'Agente',
+      now: () => this.now(),
+      onDelivery: (summary, agentId, final) => {
+        this.notifications.upsertGrouped({ key: summary.key, at: this.now(), level: summary.level, kind: 'message', text: summary.text, agentId });
+        if (final) this.flash(summary.level, summary.text, { agentId });
+        if (final && shouldInterrupt(this.notifications.get(), summary.level)) this.cue(CUE_BY_LEVEL[summary.level]);
+      },
+    });
+
+    this.sidebar = new Sidebar(this);
+    this.terminal = new TerminalPanel(this);
+    this.hoverTip = new HoverTip(this);
+    const topbar = new TopBar(this);
+    const drawer = new Drawer(this);
+    const feed = new Feed(this);
+    const toasts = new Toasts(this);
+    const popovers = [new NotificationCenter(this), new SessionHistory(this), new Settings(this)];
+    const dialogs = [new DayDialog(this), new HelpDialog(this)];
+    const empty = new EmptyState(this);
+    const banner = new ConnectionBanner(this);
+    const splash = new Splash(this);
+    this.components.push(topbar, this.sidebar, drawer, this.terminal, feed, toasts, ...popovers, ...dialogs, empty, banner, splash);
+
+    for (const [key, value] of Object.entries(layoutVariables())) host.style.setProperty(key, value);
+    host.classList.add('ao-root');
+    host.replaceChildren(
+      worldContainer,
+      topbar.el,
+      banner.el,
+      this.sidebar.el,
+      drawer.el,
+      this.terminal.el,
+      feed.el,
+      toasts.el,
+      empty.el,
+      this.scrim,
+      ...popovers.map((p) => p.el),
+      ...dialogs.map((d) => d.el),
+      this.hoverTip.el,
+      splash.el,
+      this.liveRegion,
+    );
+    this.wire();
+  }
+
+  // --- AppContext: data ----------------------------------------------------------------------------------------------
+
+  get snapshot(): OfficeSnapshot | null {
+    return this.store.snapshot;
+  }
+
+  get isLocal(): boolean {
+    return this.store.isLocal;
+  }
+
+  now(): number {
+    return this.store.now();
+  }
+
+  agent(id: string): Agent | undefined {
+    return this.snapshot?.agents.find((agent) => agent.id === id);
+  }
+
+  account(id: string): Account | undefined {
+    return this.snapshot?.accounts.find((account) => account.id === id);
+  }
+
+  project(id: string): Project | undefined {
+    return this.snapshot?.projects.find((project) => project.id === id);
+  }
+
+  // --- AppContext: navigation ----------------------------------------------------------------------------------------
+
+  selectAgent(id: string, opts?: { focus?: boolean; tab?: DrawerTab }): void {
+    const selection: Selection = { type: 'agent', id };
+    this.ui.set({ selection, drawerTab: opts?.tab ?? this.ui.get().drawerTab, ...(this.ui.get().narrow ? { sidebarOpen: false } : {}) });
+    this.world.select(selection, { focus: opts?.focus });
+  }
+
+  selectRoom(id: string, opts?: { focus?: boolean }): void {
+    const selection: Selection = { type: 'room', id };
+    this.ui.set({ selection, ...(this.ui.get().narrow ? { sidebarOpen: false } : {}) });
+    this.world.select(selection, { focus: opts?.focus });
+  }
+
+  clearSelection(): void {
+    this.ui.set({ selection: null, following: false });
+    this.world.select(null);
+  }
+
+  openTerminalForAgent(agent: Agent): void {
+    const project = this.project(agent.projectId);
+    const target: TerminalTarget = {
+      sessionId: agent.sessionId,
+      accountId: agent.accountId,
+      agentId: agent.kind === 'sub' ? agent.id : undefined,
+      title: agent.name,
+      subtitle: [project?.name, agent.kind === 'sub' ? agent.role : agent.title].filter(Boolean).join(' · '),
+      officeAgentId: agent.id,
+    };
+    this.ui.set({ terminal: target });
+  }
+
+  openTerminalForSession(session: RecentSession): void {
+    const agent = session.agentId ? this.agent(session.agentId) : undefined;
+    if (agent) {
+      this.selectAgent(agent.id, { focus: true });
+      this.openTerminalForAgent(agent);
+      return;
+    }
+    this.ui.set({
+      terminal: { sessionId: session.sessionId, accountId: session.accountId, title: session.projectName, subtitle: session.title ?? 'Sessão encerrada' },
+    });
+  }
+
+  closeTerminal(): void {
+    this.ui.set({ terminal: null });
+  }
+
+  toggleFollow(): void {
+    const selection = this.ui.get().selection;
+    if (selection?.type !== 'agent') {
+      this.announce('Selecione um agente para seguir com a câmera.');
+      return;
+    }
+    const following = !this.ui.get().following;
+    this.ui.set({ following });
+    this.announce(following ? 'Seguindo o agente.' : 'Parou de seguir.');
+  }
+
+  focusComposer(): void {
+    const ui = this.ui.get();
+    this.ui.set({ composerFocus: ui.composerFocus + 1 });
+  }
+
+  togglePopover(id: PopoverId): void {
+    const current = this.ui.get().popover;
+    this.ui.set({ popover: current === id ? null : id, dialog: null });
+  }
+
+  closePopover(): void {
+    this.ui.set({ popover: null });
+  }
+
+  openDialog(id: DialogId): void {
+    this.ui.set({ dialog: this.ui.get().dialog === id ? null : id, popover: null });
+  }
+
+  closeDialog(): void {
+    this.ui.set({ dialog: null });
+  }
+
+  jumpToNeedsYou(): void {
+    const agents = this.snapshot?.agents ?? [];
+    const current = this.ui.get().selection;
+    const next = nextAfter(agentsNeedingYou(agents), current?.type === 'agent' ? current.id : null);
+    if (next) this.selectAgent(next.id, { focus: true, tab: 'summary' });
+    else this.announce('Nenhum agente precisa de você agora.');
+  }
+
+  jumpToShell(): void {
+    const agents = this.snapshot?.agents ?? [];
+    const current = this.ui.get().selection;
+    const next = nextAfter(agentsWithShells(agents), current?.type === 'agent' ? current.id : null);
+    if (next) this.selectAgent(next.id, { focus: true, tab: 'activity' });
+    else this.announce('Nenhum shell rodando agora.');
+  }
+
+  // --- AppContext: feedback ------------------------------------------------------------------------------------------
+
+  refresh(): void {
+    if (this.frame !== 0) return;
+    this.frame = requestAnimationFrame(() => {
+      this.frame = 0;
+      this.renderAll();
+    });
+  }
+
+  announce(text: string): void {
+    // Toggling the content makes screen readers repeat identical messages.
+    this.liveRegion.textContent = this.liveRegion.textContent === text ? `${text}${NBSP}` : text;
+  }
+
+  /** Toast only (no entry in the notification center): for lightweight confirmations. */
+  private flash(level: NoticeLevel, text: string, opts?: { agentId?: string; projectId?: string }): void {
+    this.toasts.push({ id: `local-${++this.localId}`, at: this.now(), level, text, ...opts }, this.now());
+  }
+
+  notifyLocal(level: NoticeLevel, text: string, opts?: { agentId?: string; projectId?: string }): void {
+    this.handleNotice({ id: `local-${++this.localId}`, at: this.now(), level, text, ...opts });
+  }
+
+  copy(text: string, label: string): void {
+    const done = (): void => this.flash('success', label);
+    const fail = (): void => this.flash('warn', 'Não foi possível copiar. Selecione o texto e copie manualmente.');
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, fail);
+    else fail();
+  }
+
+  cue(kind: CueKind): void {
+    const prefs = this.prefs.get();
+    if (prefs.sounds) this.sound.play(kind, prefs.volume);
+  }
+
+  // --- AppContext: actions -------------------------------------------------------------------------------------------
+
+  async decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean> {
+    const permission = agent.permission;
+    if (!permission) return false;
+    try {
+      const result = await this.store.backend.decidePermission(permission.id, decision);
+      if (result === 'already-answered') this.flash('info', 'Esta solicitação já foi respondida (a primeira resposta vale).');
+      else this.announce(decision.behavior === 'allow' ? 'Permissão aprovada.' : decision.behavior === 'deny' ? 'Permissão recusada.' : 'Resposta passada para o terminal.');
+      return true;
+    } catch (error) {
+      this.notifyLocal('warn', describeError(error), { agentId: agent.id });
+      return false;
+    }
+  }
+
+  async sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]> {
+    if (!this.isLocal) throw new Error(LOCAL_ONLY_HINT);
+    const sent = await this.store.backend.sendMessage(agentIds, text);
+    this.messages.track(sent, teamLabel);
+    this.cue('sent');
+    this.announce(agentIds.length > 1 ? 'Mensagem enviada à equipe.' : 'Mensagem enviada.');
+    return sent;
+  }
+
+  async setDemo(on: boolean): Promise<void> {
+    await this.store.backend.setDemo(on);
+  }
+
+  // --- wiring --------------------------------------------------------------------------------------------------------
+
+  private wire(): void {
+    this.store.subscribe((event) => {
+      if (event.type === 'snapshot') this.onSnapshot(event.snapshot);
+      else if (event.type === 'notice') this.handleNotice(event.notice);
+      this.refresh();
+    });
+    for (const observable of [this.ui, this.notifications, this.toasts, this.messages]) observable.subscribe(() => this.refresh());
+    this.ui.subscribe((data) => {
+      if (!data.narrow) this.prefs.set({ sidebarOpen: data.sidebarOpen });
+      this.prefs.set({ feedOpen: data.feedOpen });
+    });
+
+    this.world.onSelect((selection) => {
+      this.ui.set({ selection, ...(selection && this.ui.get().narrow ? { sidebarOpen: false } : {}) });
+    });
+    this.world.onHover((hover) => this.hoverTip.setHover(hover));
+    this.world.onCameraMode(() => this.refresh());
+
+    this.prefs.subscribe((prefs, changed) => {
+      if (changed.includes('dnd')) this.notifications.setDnd(prefs.dnd);
+      if (changed.includes('visual')) void this.switchVisual(prefs.visual);
+      this.applyWorldOptions();
+      this.refresh();
+    });
+    this.reducedMotion.addEventListener('change', () => {
+      this.applyWorldOptions();
+      this.refresh();
+    });
+
+    document.addEventListener('keydown', (event) => this.onKeyDown(event));
+    document.addEventListener('pointerdown', (event) => this.onPointerDown(event), true);
+    window.addEventListener('resize', () => {
+      this.ui.set({ narrow: window.innerWidth < NARROW_BREAKPOINT });
+      this.refresh();
+    });
+    window.addEventListener('online', () => this.store.retryNow());
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this.store.retryNow();
+      this.refresh();
+    });
+    this.scrim.addEventListener('click', () => {
+      this.ui.set({ sidebarOpen: false });
+      this.clearSelection();
+    });
+    window.setInterval(() => {
+      if (document.hidden) return;
+      this.toasts.tick(this.now());
+      this.refresh();
+    }, CLOCK_MS);
+    this.applyWorldOptions();
+  }
+
+  private applyWorldOptions(): void {
+    const following = this.ui.get().following && this.ui.get().selection?.type === 'agent';
+    this.world.setOptions(toWorldOptions(this.prefs.get(), { followSelected: following, reducedMotion: this.reducedMotion.matches }));
+    toggleClass(this.root, 'is-reduced-motion', this.reducedMotion.matches);
+  }
+
+  /** Loads the renderer chosen in settings. If it had to fall back, the preference follows what is really shown. */
+  async switchVisual(kind: '2d' | '3d'): Promise<void> {
+    const notice = await this.world.load(kind);
+    if (this.world.kind !== kind) this.prefs.set({ visual: this.world.kind });
+    if (notice) this.notifyLocal('warn', notice);
+    this.world.setInsets(this.currentInsets());
+    this.refresh();
+  }
+
+  private onSnapshot(snapshot: OfficeSnapshot): void {
+    this.pendingSnapshot = snapshot;
+    this.toasts.resolve(snapshot.agents, this.now());
+    const selection = this.ui.get().selection;
+    if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id)) this.clearSelection();
+    if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id)) this.clearSelection();
+    this.checkBuild(snapshot.meta.build);
+  }
+
+  private checkBuild(build: string | undefined): void {
+    if (this.buildId === undefined) {
+      this.buildId = build;
+      return;
+    }
+    if (!buildChanged(this.buildId, build)) return;
+    try {
+      const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) ?? 0);
+      if (Date.now() - last < RELOAD_GUARD_MS) return;
+      sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+    } catch {
+      // Storage unavailable: reload anyway, once per page load because buildId is updated below.
+    }
+    this.buildId = build;
+    window.location.reload();
+  }
+
+  private handleNotice(notice: Notice): void {
+    const result = this.notifications.addNotice(notice);
+    const interrupt = shouldInterrupt(this.notifications.get(), notice.level);
+    if (!interrupt) return;
+    if (result.isNew || notice.level === 'alert') this.toasts.push(notice, this.now());
+    if (result.isNew) {
+      this.cue(CUE_BY_LEVEL[notice.level]);
+      if (notice.level === 'alert' && this.prefs.get().browserNotifications && notifyPermission() === 'granted') {
+        showBrowserNotification(notice.text, () => notice.agentId && this.agent(notice.agentId) && this.selectAgent(notice.agentId, { focus: true }));
+      }
+    }
+    if (notice.level === 'alert' || notice.level === 'warn') this.announce(notice.text);
+  }
+
+  // --- rendering -----------------------------------------------------------------------------------------------------
+
+  private currentInsets(): ViewInsets {
+    const ui = this.ui.get();
+    return computeInsets({ sidebarOpen: ui.sidebarOpen, drawerOpen: ui.selection !== null, feedOpen: ui.feedOpen, narrow: ui.narrow });
+  }
+
+  private renderAll(): void {
+    if (this.pendingSnapshot) {
+      this.world.setSnapshot(this.pendingSnapshot, this.store.now());
+      this.pendingSnapshot = null;
+    }
+    const insets = this.currentInsets();
+    if (!this.appliedInsets || !sameInsets(this.appliedInsets, insets)) {
+      this.appliedInsets = insets;
+      this.world.setInsets(insets);
+    }
+    const ui = this.ui.get();
+    const following = ui.following && ui.selection?.type === 'agent';
+    if (following !== this.appliedFollow) {
+      this.appliedFollow = following;
+      this.world.setOptions({ followSelected: following });
+    }
+    toggleClass(this.root, 'is-narrow', ui.narrow);
+    toggleClass(this.root, 'has-drawer', ui.selection !== null);
+    toggleClass(this.root, 'has-sidebar', ui.sidebarOpen);
+    toggleClass(this.root, 'has-terminal', ui.terminal !== null);
+    toggleClass(this.root, 'feed-open', ui.feedOpen);
+    toggleClass(this.scrim, 'is-open', ui.narrow && (ui.sidebarOpen || ui.selection !== null));
+
+    for (const component of this.components) component.render();
+    tickLive(this.root, this.now());
+    this.updateTitle();
+  }
+
+  private updateTitle(): void {
+    const needs = computeCounters(this.snapshot).needsYou;
+    const title = needs > 0 ? `(${needs}) AI Office` : 'AI Office';
+    if (title !== this.lastTitle) {
+      this.lastTitle = title;
+      document.title = title;
+    }
+    if (needs > this.lastNeeds) this.announce(`${needs} ${needs === 1 ? 'agente precisa' : 'agentes precisam'} de você.`);
+    this.lastNeeds = needs;
+  }
+
+  // --- input ---------------------------------------------------------------------------------------------------------
+
+  private onPointerDown(event: PointerEvent): void {
+    this.sound.unlock();
+    if (this.ui.get().popover === null) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.ao-popover') || target.closest('[data-popover-trigger]')) return;
+    this.closePopover();
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    this.sound.unlock();
+    if (event.defaultPrevented) return;
+    const action = resolveShortcut(event, isEditable(event.target), this.ui.get().terminal !== null);
+    if (!action) return;
+    if (action !== 'escape') event.preventDefault();
+    this.runShortcut(action);
+    this.refresh();
+  }
+
+  private runShortcut(action: ShortcutAction): void {
+    const ui = this.ui.get();
+    switch (action) {
+      case 'search':
+        this.ui.set({ sidebarOpen: true });
+        this.refresh();
+        requestAnimationFrame(() => this.sidebar.focusSearch());
+        return;
+      case 'follow':
+        this.toggleFollow();
+        return;
+      case 'terminal':
+        this.toggleTerminalShortcut();
+        return;
+      case 'message':
+        this.messageShortcut();
+        return;
+      case 'permission':
+        this.jumpToPermission();
+        return;
+      case 'day':
+        this.openDialog('day');
+        return;
+      case 'overview':
+        this.world.overview();
+        return;
+      case 'sidebar':
+        this.ui.set({ sidebarOpen: !ui.sidebarOpen });
+        return;
+      case 'feed':
+        this.ui.set({ feedOpen: !ui.feedOpen });
+        return;
+      case 'help':
+        this.openDialog('help');
+        return;
+      case 'find':
+        this.terminal.openSearch();
+        return;
+      case 'escape':
+        this.escape();
+        return;
+    }
+  }
+
+  private toggleTerminalShortcut(): void {
+    const ui = this.ui.get();
+    if (ui.terminal) {
+      this.closeTerminal();
+      return;
+    }
+    const agent = ui.selection?.type === 'agent' ? this.agent(ui.selection.id) : undefined;
+    if (!agent) this.announce('Selecione um agente para abrir o terminal.');
+    else if (!this.isLocal) this.announce(LOCAL_ONLY_HINT);
+    else this.openTerminalForAgent(agent);
+  }
+
+  private messageShortcut(): void {
+    const ui = this.ui.get();
+    if (!ui.selection) {
+      this.announce('Selecione um agente ou uma sala para enviar uma mensagem.');
+      return;
+    }
+    if (!this.isLocal) {
+      this.announce(LOCAL_ONLY_HINT);
+      return;
+    }
+    this.ui.set({ drawerTab: ui.selection.type === 'agent' ? 'messages' : ui.drawerTab, composerFocus: ui.composerFocus + 1 });
+  }
+
+  private jumpToPermission(): void {
+    const agents = this.snapshot?.agents ?? [];
+    const current = this.ui.get().selection;
+    const next = nextAfter(agentsWithPermission(agents), current?.type === 'agent' ? current.id : null);
+    if (next) this.selectAgent(next.id, { focus: true, tab: 'summary' });
+    else this.announce('Nenhum pedido de permissão pendente.');
+  }
+
+  /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, then the selection. */
+  private escape(): void {
+    const ui = this.ui.get();
+    if (this.terminal.handleEscape()) return;
+    if (ui.dialog) this.closeDialog();
+    else if (ui.popover) this.closePopover();
+    else if (ui.terminal) this.closeTerminal();
+    else if (ui.selection) this.clearSelection();
+    else if (ui.narrow && ui.sidebarOpen) this.ui.set({ sidebarOpen: false });
+  }
+}

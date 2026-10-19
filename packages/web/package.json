@@ -1,0 +1,14 @@
+{
+  "name": "@ai-office/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-office/shared": "0.1.0"
+  }
+}

@@ -1,0 +1,50 @@
+// Small tip that follows the pointer over the world: who/what is under the cursor.
+import type { HoverInfo } from '../../world/api';
+import type { AppContext, Component } from '../context';
+import { h, setText } from '../dom';
+import { STATUS_LABEL, displayStatus } from '../model/status';
+import { agentsOfProject } from '../model/rooms';
+
+const OFFSET_PX = 14;
+
+export class HoverTip implements Component {
+  readonly el = h('div', { class: 'ao-hovertip', role: 'tooltip', hidden: true });
+  private readonly title = h('strong');
+  private readonly line = h('span');
+  private readonly extra = h('span', { class: 'ao-hovertip-extra' });
+  private hover: HoverInfo | null = null;
+
+  constructor(private readonly ctx: AppContext) {
+    this.el.append(this.title, this.line, this.extra);
+  }
+
+  /** Called by the world on pointer movement; updates immediately, outside the main render pass. */
+  setHover(hover: HoverInfo | null): void {
+    this.hover = hover;
+    this.render();
+  }
+
+  render(): void {
+    const hover = this.hover;
+    const agent = hover?.agentId ? this.ctx.agent(hover.agentId) : undefined;
+    const project = hover?.roomId ? this.ctx.project(hover.roomId) : undefined;
+    if (!hover || (!agent && !project)) {
+      this.el.hidden = true;
+      return;
+    }
+    if (agent) {
+      setText(this.title, agent.name);
+      setText(this.line, `${agent.kind === 'sub' ? agent.role : 'Principal'} · ${STATUS_LABEL[displayStatus(agent)]}`);
+      setText(this.extra, agent.activity ? `${agent.activity.icon} ${agent.activity.text}` : (agent.title ?? ''));
+    } else if (project) {
+      const agents = agentsOfProject(this.ctx.snapshot, project.id);
+      setText(this.title, project.name);
+      setText(this.line, `${agents.length} ${agents.length === 1 ? 'pessoa' : 'pessoas'} na sala`);
+      setText(this.extra, project.path);
+    }
+    this.el.hidden = false;
+    const x = Math.min(hover.x + OFFSET_PX, window.innerWidth - 280);
+    const y = Math.min(hover.y + OFFSET_PX, window.innerHeight - 100);
+    this.el.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, y)}px)`;
+  }
+}

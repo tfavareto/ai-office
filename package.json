@@ -1,0 +1,47 @@
+{
+  "name": "ai-office",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Office: a live virtual office where your Claude Code sessions work as people.",
+  "license": "MIT",
+  "author": "Thiago Salazar Favareto",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/web",
+    "packages/plugins"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @ai-office/server & npm run dev -w @ai-office/web",
+    "build": "npm run build -w @ai-office/web && npm run build -w @ai-office/server",
+    "start": "npm run start -w @ai-office/server",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "plugin:install": "node packages/plugins/scripts/install.mjs install",
+    "plugin:uninstall": "node packages/plugins/scripts/install.mjs uninstall",
+    "plugin:status": "node packages/plugins/scripts/install.mjs status"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.186.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
+    "three": "^0.186.1",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

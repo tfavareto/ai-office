@@ -1,0 +1,3 @@
+Characters generated with MPFB (MakeHuman for Blender) from the "makehuman_system_assets" pack (CC0 1.0).
+https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html
+CC0 1.0 Universal: free to use, no attribution required.

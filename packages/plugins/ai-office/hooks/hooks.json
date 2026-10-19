@@ -1,0 +1,64 @@
+{
+  "description": "AI Office: permission answers, message delivery and attention flags. Every hook exits silently when AI Office is not running.",
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/permission.mjs\"",
+            "timeout": 330,
+            "statusMessage": "Aguardando resposta no AI Office"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/messages.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/messages.mjs\"",
+            "timeout": 660,
+            "statusMessage": "De plantão: aguardando ordens no AI Office"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/messages.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/notify.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ai-office",
+  "version": "0.1.0",
+  "description": "Connects Claude Code sessions to the AI Office web app: answer permission requests, send messages to agents and flag when an agent needs you.",
+  "author": {
+    "name": "Thiago Salazar Favareto"
+  },
+  "license": "MIT",
+  "keywords": ["hooks", "permissions", "messages", "dashboard", "ai-office"]
+}

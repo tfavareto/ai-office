@@ -1,0 +1,244 @@
+/* Read-only terminal panel. */
+.ao-terminal {
+  position: absolute;
+  top: calc(var(--topbar-h) + var(--gap));
+  right: var(--panel-right);
+  bottom: calc(var(--feed-h) + 2 * var(--gap));
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100% - var(--panel-left) - var(--panel-right) - var(--gap)));
+  min-width: 320px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--bg-solid);
+  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease), right var(--t-base) var(--ease);
+}
+
+.ao-terminal:not(.is-open) {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
+.ao-terminal-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-terminal-heading {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-terminal-title,
+.ao-terminal-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-terminal-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-terminal-search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-soft);
+}
+
+.ao-terminal-count {
+  flex: none;
+  min-width: 70px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ao-terminal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font: 12.5px/1.55 var(--mono);
+}
+
+.ao-terminal-end {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.ao-term-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ao-term-prompt,
+.ao-term-bullet {
+  flex: none;
+  width: 14px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.ao-term-bullet {
+  color: var(--text);
+  font-size: 9px;
+  line-height: 2.2;
+}
+
+.ao-term-bullet.is-error {
+  color: var(--error);
+}
+
+.ao-term-user {
+  align-items: flex-start;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(110, 162, 255, 0.1);
+}
+
+.ao-term-user .ao-term-text {
+  flex: 1;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ao-term-time {
+  flex: none;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-term-text {
+  min-width: 0;
+}
+
+.ao-term-para {
+  margin: 0 0 6px;
+  font-family: var(--font);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ao-term-code {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  white-space: pre;
+}
+
+.ao-term-thinking,
+.ao-term-tool {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ao-term-thinking .ao-term-text {
+  padding-left: 18px;
+  color: var(--muted);
+  font-style: italic;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ao-term-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 11.5px;
+}
+
+.ao-term-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ao-term-tool-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ao-term-tool-name {
+  flex: none;
+}
+
+.ao-term-tool-summary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-term-result {
+  margin: 0 0 0 22px;
+  padding-left: 10px;
+  overflow-x: auto;
+  border-left: 2px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ao-term-tool.is-error .ao-term-result {
+  border-left-color: var(--error);
+  color: #ffb4b4;
+}
+
+.ao-term-system {
+  color: var(--faint);
+  font-style: italic;
+}
+
+.ao-terminal-body mark {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: rgba(245, 181, 68, 0.35);
+  color: inherit;
+}
+
+.ao-terminal-body mark.is-active {
+  background: var(--waiting);
+  color: #1a1203;
+}
+
+@media (max-width: 899px) {
+  .ao-terminal {
+    top: var(--topbar-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 48;
+    width: auto;
+    min-width: 0;
+    border-radius: 0;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "ai-office",
+  "owner": {
+    "name": "Thiago Salazar Favareto"
+  },
+  "metadata": {
+    "description": "Marketplace for the AI Office Claude Code plugin."
+  },
+  "plugins": [
+    {
+      "name": "ai-office",
+      "source": "./packages/plugins/ai-office",
+      "description": "Answer permission requests and send messages to Claude Code sessions from the AI Office web app.",
+      "category": "productivity",
+      "author": {
+        "name": "Thiago Salazar Favareto"
+      },
+      "license": "MIT",
+      "keywords": ["hooks", "permissions", "messages", "dashboard"]
+    }
+  ]
+}
