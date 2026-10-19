@@ -14,6 +14,7 @@ import {
   planInstall,
   planUninstall,
   readPluginVersion,
+  resolveClaudeCommand,
 } from '../scripts/install.mjs';
 import { REPO_ROOT } from './helpers';
 
@@ -79,6 +80,33 @@ describe('detectAccounts', () => {
 
   test('returns nothing when no account exists', () => {
     expect(detectAccounts({ env: {}, home: join(home, 'nowhere') })).toEqual([]);
+  });
+});
+
+describe('resolveClaudeCommand', () => {
+  const home = '/home/u';
+  const onDisk = (...paths: string[]) => (path: string) => paths.includes(path);
+
+  test('keeps an explicit --claude command untouched', () => {
+    expect(resolveClaudeCommand({ command: '/opt/claude', env: { PATH: '' }, home, isExecutable: onDisk() })).toBe('/opt/claude');
+  });
+
+  test('uses the PATH lookup when claude is on PATH', () => {
+    const env = { PATH: '/usr/bin:/home/u/bin' };
+    expect(resolveClaudeCommand({ command: 'claude', env, home, isExecutable: onDisk('/home/u/bin/claude', '/home/u/.local/bin/claude') })).toBe('claude');
+  });
+
+  test('falls back to the native installer location when claude is not on PATH', () => {
+    expect(resolveClaudeCommand({ command: 'claude', env: { PATH: '/usr/bin' }, home, isExecutable: onDisk('/home/u/.local/bin/claude') })).toBe(
+      '/home/u/.local/bin/claude',
+    );
+    expect(resolveClaudeCommand({ command: 'claude', env: {}, home, isExecutable: onDisk('/home/u/.claude/local/claude') })).toBe(
+      '/home/u/.claude/local/claude',
+    );
+  });
+
+  test('returns the bare command when nothing is found (the run reports the error)', () => {
+    expect(resolveClaudeCommand({ command: 'claude', env: { PATH: '/usr/bin' }, home, isExecutable: onDisk() })).toBe('claude');
   });
 });
 

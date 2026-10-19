@@ -20,9 +20,9 @@
 // The planning functions are pure and exported for tests; the `claude` runner is injectable.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import { accessSync, constants as fsConstants, existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -367,6 +367,33 @@ function defaultDeps() {
   };
 }
 
+/** Where the native Claude Code installer puts the CLI (often missing from PATH in GUI-launched shells). */
+const CLAUDE_FALLBACKS = ['.local/bin/claude', '.claude/local/claude'];
+
+/** @param {string} path */
+const isExecutableFile = (path) => {
+  try {
+    if (!statSync(path).isFile()) return false;
+    accessSync(path, fsConstants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The `claude` command to run: an explicit `--claude` is kept; the default `claude` is used when it is on PATH,
+ * otherwise the first native install location that exists.
+ * @param {{ command: string, env: NodeJS.ProcessEnv, home: string, isExecutable?: (path: string) => boolean }} options
+ * @returns {string}
+ */
+export function resolveClaudeCommand({ command, env, home, isExecutable = isExecutableFile }) {
+  if (command !== 'claude') return command;
+  const onPath = (env.PATH ?? '').split(delimiter).some((dir) => dir !== '' && isExecutable(join(dir, command)));
+  if (onPath) return command;
+  return CLAUDE_FALLBACKS.map((rel) => join(home, rel)).find((path) => isExecutable(path)) ?? command;
+}
+
 /** Raised when the `claude` executable cannot be started. */
 class ClaudeNotFoundError extends Error {
   /** @param {string} command */
@@ -455,11 +482,12 @@ export function main(argv, overrides = {}) {
     return 1;
   }
 
+  const claude = resolveClaudeCommand({ command: args.claude, env: deps.env, home: deps.home });
   let failed = false;
   for (const account of accounts) {
     deps.log(`Account ${account.dir}${account.isDefault ? ' (default)' : ''}`);
     try {
-      const state = probeAccount({ runner: deps.runner, claude: args.claude, env: accountEnv(deps.env, account) });
+      const state = probeAccount({ runner: deps.runner, claude, env: accountEnv(deps.env, account) });
       if (args.command === 'status') {
         for (const line of describeStatus(state, pluginVersion)) deps.log(`  ${line}`);
         continue;
@@ -472,7 +500,7 @@ export function main(argv, overrides = {}) {
         deps.log(args.command === 'install' ? `  already up to date (${pluginVersion})` : '  nothing to remove');
         continue;
       }
-      if (!executeSteps({ steps, account, deps, claude: args.claude, dryRun: args.dryRun })) failed = true;
+      if (!executeSteps({ steps, account, deps, claude, dryRun: args.dryRun })) failed = true;
     } catch (error) {
       if (error instanceof ClaudeNotFoundError) {
         deps.error(error.message);
