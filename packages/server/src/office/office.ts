@@ -250,13 +250,15 @@ export class Office {
     const agents = real.map((agent) => this.withStatusSince(agent, now, memoIds));
     for (const id of this.memo.keys()) if (!memoIds.has(id)) this.memo.delete(id);
     if (this.demo === undefined) return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [] };
+    // One snapshot: it advances the simulator first, so agents, projects and usage describe the same instant.
+    const demo = this.demo.snapshot(now);
     const nextOrder = realProjects.reduce((max, project) => Math.max(max, project.order + 1), 0);
-    const demoProjects = this.demo.projects().map((project): Project => ({ ...project, order: project.order + nextOrder }));
+    const demoProjects = demo.projects.map((project): Project => ({ ...project, order: project.order + nextOrder }));
     return {
       accounts: [...this.accounts, ...DEMO_ACCOUNTS],
       projects: [...realProjects, ...demoProjects],
-      agents: [...agents, ...this.demo.agents()],
-      demoUsage: this.demo.snapshot(now).usage,
+      agents: [...agents, ...demo.agents],
+      demoUsage: demo.usage,
     };
   }
 
