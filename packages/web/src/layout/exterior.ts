@@ -41,10 +41,22 @@ export interface ExteriorLayout {
   grass: Rect[];
 }
 
-const MARGIN_X = 24;
-const MARGIN_Y = 22;
+/**
+ * City margin around the building, in tiles. The camera may never show anything outside the drawn world, so the
+ * margin has to be large enough that the world still covers a wide or tall window at the zoom of the overview: three
+ * rows of neighbouring blocks to the north and south, two columns to the west and a wide park to the east.
+ */
+export const EXTERIOR_MARGIN_X = 34;
+export const EXTERIOR_MARGIN_Y = 46;
+const MARGIN_X = EXTERIOR_MARGIN_X;
+const MARGIN_Y = EXTERIOR_MARGIN_Y;
 const SIDEWALK = 3;
 const STREET = 6;
+const BLOCK_H = 10;
+const BLOCK_ROWS = 3;
+const BLOCK_COLS = 2;
+const ALLEY = 2;
+const BLOCK_STRIDE = 14;
 
 /**
  * Street frame around the building: sidewalks, a street along the north and south sides and the west entrance,
@@ -100,18 +112,24 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
   const lampsFiltered = lamps.filter((l) => l.x > -SIDEWALK && l.x < w + SIDEWALK + 3);
 
   const rooftops: Rooftop[] = [];
-  const blockH = MARGIN_Y - STREET - SIDEWALK * 2;
-  for (let cell = -3; cell * 14 < w + MARGIN_X; cell++) {
-    const hh = hash32(cell + 2000, 91);
-    const width = 9 + (hh % 5);
-    const x = cell * 14 + (hh % 3);
-    if (x + width < bounds.x || x > bounds.x + bounds.w) continue;
-    rooftops.push({ rect: { x, y: farNorth.y - blockH, w: width, h: blockH }, variant: hh % 4 });
-    rooftops.push({ rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK, w: width, h: blockH }, variant: (hh >>> 4) % 4 });
+  for (let row = 0; row < BLOCK_ROWS; row++) {
+    const lift = row * (BLOCK_H + ALLEY);
+    for (let cell = -4; cell * BLOCK_STRIDE < w + MARGIN_X; cell++) {
+      const hh = hash32(cell + 2000 + row * 500, 91 + row);
+      const width = 9 + (hh % 5);
+      const x = cell * BLOCK_STRIDE + (hh % 3) + row * 7;
+      if (x + width < bounds.x || x > bounds.x + bounds.w) continue;
+      rooftops.push({ rect: { x, y: farNorth.y - BLOCK_H - lift, w: width, h: BLOCK_H }, variant: hh % 4 });
+      rooftops.push({ rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK + lift, w: width, h: BLOCK_H }, variant: (hh >>> 4) % 4 });
+    }
   }
-  for (let i = 0; i < 4; i++) {
-    const hh = hash32(i + 3000, 13);
-    rooftops.push({ rect: { x: farWest.x - 10 - (hh % 3), y: farWest.y + i * 12, w: 10 + (hh % 3), h: 10 }, variant: hh % 4 });
+  for (let col = 0; col < BLOCK_COLS; col++) {
+    for (let i = 0; i < 3; i++) {
+      const hh = hash32(i + 3000 + col * 500, 13 + col);
+      const width = 10 + (hh % 3);
+      const right = farWest.x - col * (12 + ALLEY);
+      rooftops.push({ rect: { x: right - width, y: farWest.y + i * 12, w: width, h: 10 }, variant: hh % 4 });
+    }
   }
 
   const grass: Rect[] = [{ x: w + SIDEWALK + 4, y: farWest.y, w: bounds.x + bounds.w - (w + SIDEWALK + 4), h: farWest.h }];

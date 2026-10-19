@@ -2,8 +2,8 @@
 
 ## Art direction
 Premium corporate office in crisp **pixel art**, three-quarter top-down view (floors seen from above, north walls show
-their face, south walls are low cut-away ledges so rooms stay visible). Integer zoom only (1x-6x, nearest-neighbour),
-base tile 16 px. Palette: warm walnut wood, white/beige marble, brushed brass/bronze accents, graphite metal, glass
+their face, south walls are low cut-away ledges so rooms stay visible). Nearest-neighbour rendering (never smoothed above one device pixel per art
+pixel), base tile 16 px. Zoom is continuous from the cover zoom up to 6x; buttons and keys step through crisp levels. Palette: warm walnut wood, white/beige marble, brushed brass/bronze accents, graphite metal, glass
 partitions with a frosted band, soft green plants, warm 3000 K lighting at night, navy/teal LED accents. Calm, rich,
 detailed, never cartoon-cheap. Everything is drawn procedurally in code (no external sprite sheets) into cached
 offscreen canvases.
@@ -66,3 +66,16 @@ as a thin ring at the feet / name tag accent.
 ## World API
 Implement `createWorld2D(container, opts): WorldApi` from `packages/web/src/world/api.ts` (do not change that file
 without updating every implementation).
+
+## Camera
+- The visible area is always covered by the drawn world: the minimum zoom is the zoom at which the world (the building plus
+  its city frame) covers the whole canvas, and panning is clamped to the world edge. The city frame is large enough
+  (several rows of blocks, a wide park) for that to hold on wide and tall windows and for wide buildings.
+- Wheel and trackpad pinch zoom continuously around the cursor and ease toward the target (exponential, frame-rate
+  independent). Buttons and `+`/`-` step through the crisp levels around the middle of the free area in about 200 ms.
+  `prefers-reduced-motion` makes every camera move instant. The camera translation snaps to device pixels.
+- The overview ("Visão geral", `O`) frames the building inside the free area (between sidebar, drawer, top bar and feed).
+- Selecting an agent (sidebar, map click) pins that person to the middle of the free area at a comfortable zoom. The pin
+  is resolved every frame with the insets of that frame (eased), so a drawer opening after the focus started cannot leave
+  the person off-centre. The camera tracks the person while the focus settles and while Follow is on; dragging or key
+  panning stops the tracking until Follow is toggled or something else is selected.

@@ -13,7 +13,7 @@ import {
   type WorldFactoryOptions,
   type WorldOptions,
 } from '../world/api';
-import { Camera, fitZoom, overviewZoom, type Bounds } from './camera';
+import { Camera, fitZoom, focusZoom, overviewZoom, wheelFactor, type Bounds } from './camera';
 import { portraitDataUrl } from './chars/portrait';
 import { DayNight } from './lighting';
 import { OverlaySprites } from './overlay';
@@ -25,10 +25,14 @@ import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, t
 
 const PAN_SPEED = 360;
 const DRAG_THRESHOLD = 4;
-const WHEEL_STEP = 50;
 const MAX_DPR = 3;
 const ROOM_FOCUS_PAD = 24;
 const ROOM_FOCUS_MAX_ZOOM = 4;
+
+/** The point of a person the camera frames: the middle of the body, a little above the feet. */
+function agentFocusPoint(c: { x: number; y: number }): { x: number; y: number } {
+  return { x: c.x * TILE, y: c.y * TILE - 8 };
+}
 
 /** Canvas2D renderer of the office: pixel-art layers, simulation-driven characters, day/night and overlay. */
 export class World2D implements WorldApi {
@@ -64,10 +68,12 @@ export class World2D implements WorldApi {
   /** Building width (tiles) the overview was last fitted to: a growing/shrinking building refits an untouched camera. */
   private fittedWidth = 0;
   private userMoved = false;
-  private followPause = 0;
+  /** The camera is bringing the selection into view: it tracks the person until it settles and re-frames a room when the panels change. */
+  private focusing = false;
+  /** The user moved the camera by hand: the follow switch stays inert until it is toggled or something else is selected. */
+  private followBroken = false;
 
   private pointer: { id: number; x: number; y: number; startX: number; startY: number; dragging: boolean } | null = null;
-  private wheelAccum = 0;
   private keys = new Set<string>();
 
   private readonly selectListeners = new Set<(s: Selection) => void>();
@@ -92,7 +98,6 @@ export class World2D implements WorldApi {
     window.addEventListener('resize', this.onWindowResize);
     this.bind();
     this.resize();
-    this.cam.zoom = 2;
     this.raf = requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -163,12 +168,15 @@ export class World2D implements WorldApi {
 
   setInsets(insets: ViewInsets): void {
     this.insets = { ...insets };
-    this.cam.view = { ...this.cam.view, insets: this.insets };
+    this.cam.setInsets(this.insets, !this.fitted || this.options.reducedMotion);
     if (!this.userMoved && this.fitted) this.overview(true);
+    else if (this.focusing && this.selection?.type === 'room') this.focusSelection();
   }
 
   select(selection: Selection, opts?: { focus?: boolean }): void {
     this.selection = selection;
+    this.followBroken = false;
+    if (!selection) this.focusing = false;
     if (opts?.focus) this.focusSelection();
   }
 
@@ -185,38 +193,40 @@ export class World2D implements WorldApi {
   overview(animate = true): void {
     const b = this.sim.building;
     const size = { w: b.width * TILE, h: b.height * TILE };
-    const zoom = overviewZoom(size, this.cam.view, this.cam.dpr);
+    const zoom = overviewZoom(size, this.cam.view, this.cam.dpr, this.cam.minZoom);
     this.cam.frame({ x: size.w / 2, y: size.h / 2 }, zoom, !animate || !this.fitted);
+    this.focusing = false;
+    if (animate && this.fitted) this.followBroken = true;
     this.fitted = true;
     this.fittedWidth = b.width;
     this.userMoved = false;
   }
 
+  /** Buttons and keys: the next zoom level in or out, eased around the middle of the free area. */
   zoomBy(factor: number): void {
-    const fc = { x: (this.insets.left + this.cam.view.width - this.insets.right) / 2, y: (this.insets.top + this.cam.view.height - this.insets.bottom) / 2 };
     if (factor === 1) return;
     this.userMoved = true;
-    this.zoomAtScreen(factor > 1 ? 1 : -1, fc.x, fc.y);
-  }
-
-  private zoomAtScreen(direction: 1 | -1, sx: number, sy: number): void {
-    this.cam.zoomAt(direction, sx, sy);
+    this.cam.step(factor > 1 ? 1 : -1);
   }
 
   focusSelection(): void {
     const sel = this.selection;
     if (!sel) return;
     this.userMoved = true;
+    this.followBroken = false;
+    this.focusing = true;
     if (sel.type === 'agent') {
       const c = this.sim.character(sel.id);
       if (!c) return;
-      const zoom = this.cam.zoom < 3 ? (this.cam.levels.includes(3) ? 3 : 2) : this.cam.zoom;
-      this.cam.frame({ x: c.x * TILE, y: c.y * TILE - 8 }, zoom, false);
+      this.cam.frame(agentFocusPoint(c), focusZoom(this.cam.tz, this.cam.levels), false);
       return;
     }
     const room = this.sim.rooms.live(sel.id);
     const area = room && this.sim.building.areas.find((a) => a.id === room.areaId);
-    if (!area) return;
+    if (!area) {
+      this.focusing = false;
+      return;
+    }
     const bounds: Bounds = {
       x: area.rect.x * TILE - ROOM_FOCUS_PAD,
       y: area.rect.y * TILE - ROOM_FOCUS_PAD,
@@ -264,7 +274,10 @@ export class World2D implements WorldApi {
       agents: live,
       extra: {
         zoom: this.cam.zoom,
-        camera: { cx: Math.round(this.cam.cx), cy: Math.round(this.cam.cy), tx: Math.round(this.cam.tx), ty: Math.round(this.cam.ty) },
+        targetZoom: this.cam.tz,
+        minZoom: this.cam.minZoom,
+        pinned: this.cam.isPinned,
+        camera: { cx: Math.round(this.cam.cx), cy: Math.round(this.cam.cy), pin: this.cam.pin && { x: Math.round(this.cam.pin.x), y: Math.round(this.cam.pin.y) } },
         rooms: this.sim.roomStates.length,
         bubbles: this.sim.bubbles.length,
         night: Math.round(this.dayNight.night * 100) / 100,
@@ -341,8 +354,9 @@ export class World2D implements WorldApi {
 
   private updateCamera(dt: number): void {
     const b = this.sim.building;
+    this.renderer.sync(this.sim, this.options.locale);
     const ex = this.renderer.layers.exterior;
-    if (ex) this.cam.limits = { x: ex.x + 160, y: ex.y + 160, w: ex.canvas.width - 320, h: ex.canvas.height - 320 };
+    this.cam.world = ex ? { x: ex.x, y: ex.y, w: ex.canvas.width, h: ex.canvas.height } : null;
     if (!this.fitted && this.sim.characters.length + b.areas.length > 0 && this.cam.view.width > 10) {
       this.overview(false);
     } else if (this.fitted && !this.userMoved && b.width !== this.fittedWidth) {
@@ -351,20 +365,29 @@ export class World2D implements WorldApi {
     const pan = this.keyPan();
     if (pan.x || pan.y) {
       const speed = (PAN_SPEED * (this.keys.has('shift') ? 2.2 : 1) * dt) / this.cam.zoom;
-      this.cam.cx += pan.x * speed;
-      this.cam.cy += pan.y * speed;
-      this.cam.tx = this.cam.cx;
-      this.cam.ty = this.cam.cy;
-      this.cam.clamp();
+      this.cam.nudge(pan.x * speed, pan.y * speed);
       this.userMoved = true;
-      this.followPause = 2;
+      this.takeOverByHand();
     }
-    this.followPause = Math.max(0, this.followPause - dt);
-    if (this.options.followSelected && this.selection?.type === 'agent' && this.followPause === 0) {
-      const c = this.sim.character(this.selection.id);
-      if (c) this.cam.focus(c.x * TILE, c.y * TILE - 8);
-    }
-    this.cam.update(dt, this.options.reducedMotion ? 30 : 8);
+    const tracked = this.trackedPoint();
+    if (tracked) this.cam.follow(tracked);
+    const moving = this.cam.update(dt, this.options.reducedMotion);
+    if (this.focusing && !moving) this.focusing = false;
+  }
+
+  /** World point of the selected person while the camera should keep them framed (follow switch on, or a focus in progress). */
+  private trackedPoint(): { x: number; y: number } | null {
+    const sel = this.selection;
+    if (sel?.type !== 'agent') return null;
+    if (!this.focusing && !(this.options.followSelected && !this.followBroken)) return null;
+    const c = this.sim.character(sel.id);
+    return c ? agentFocusPoint(c) : null;
+  }
+
+  /** The user moved the view by hand: stop tracking and leave the follow switch inert until it is toggled or a new selection is made. */
+  private takeOverByHand(): void {
+    this.focusing = false;
+    if (this.options.followSelected) this.followBroken = true;
   }
 
   private keyPan(): { x: number; y: number } {
@@ -417,7 +440,7 @@ export class World2D implements WorldApi {
       if (ptr.dragging) {
         this.cam.pan(p.x - ptr.x, p.y - ptr.y);
         this.userMoved = true;
-        this.followPause = 2;
+        this.takeOverByHand();
       }
       ptr.x = p.x;
       ptr.y = p.y;
@@ -449,7 +472,9 @@ export class World2D implements WorldApi {
   private click(p: { x: number; y: number }): void {
     const picked = this.pickAt(p);
     this.selection = picked;
+    this.followBroken = false;
     for (const cb of this.selectListeners) cb(picked);
+    if (picked?.type === 'agent') this.focusSelection();
   }
 
   private onDoubleClick = (e: MouseEvent): void => {
@@ -481,16 +506,12 @@ export class World2D implements WorldApi {
     for (const cb of this.hoverListeners) cb(info);
   }
 
+  /** Wheel and trackpad pinch (ctrlKey) zoom continuously around the cursor; the camera eases to the target zoom. */
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault();
-    const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
-    this.wheelAccum += e.deltaY * unit * (e.ctrlKey ? 4 : 1);
-    if (Math.abs(this.wheelAccum) < WHEEL_STEP) return;
-    const direction = this.wheelAccum < 0 ? 1 : -1;
-    this.wheelAccum = 0;
     const p = this.local(e);
     this.userMoved = true;
-    this.zoomAtScreen(direction, p.x, p.y);
+    this.cam.zoomBy(wheelFactor(e.deltaY, e.deltaMode, e.ctrlKey), p.x, p.y, this.trackedPoint() !== null);
   };
 
   private typing(e: KeyboardEvent): boolean {
