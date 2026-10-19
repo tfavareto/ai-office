@@ -1,0 +1,18 @@
+import type { FurnCtx } from './furnitureContext';
+export declare function buildCounter(f: FurnCtx): void;
+export declare function buildCoffeeMachine(f: FurnCtx): void;
+export declare function buildFridge(f: FurnCtx): void;
+export declare function buildVending(f: FurnCtx): void;
+export declare function buildHighTable(f: FurnCtx): void;
+export declare function buildStool(f: FurnCtx): void;
+export declare function buildRoundTable(f: FurnCtx): void;
+export declare function buildCafeChair(f: FurnCtx): void;
+export declare function buildStall(f: FurnCtx): void;
+export declare function buildSink(f: FurnCtx): void;
+export declare function buildPingPong(f: FurnCtx): void;
+export declare function buildArcade(f: FurnCtx): void;
+export declare function buildBeanbag(f: FurnCtx): void;
+export declare function buildBookshelf(f: FurnCtx): void;
+export declare function buildDeckChair(f: FurnCtx): void;
+export declare function buildDeckTable(f: FurnCtx): void;
+export declare function buildRailing(f: FurnCtx): void;

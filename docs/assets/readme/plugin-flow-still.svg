@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 640" width="1600" height="640" role="img" aria-labelledby="t d">
+<title id="t">Plugin flow: permissions and messages</title>
+<desc id="d">Two lanes. Permission lane: an agent asks to use a tool, the plugin hook posts the request to the local server, a card appears in the office, you choose Aprovar or Recusar, the decision returns to the hook and the agent resumes; the terminal dialog still works and the first answer wins. Message lane: you write a message, it is queued, and it is delivered either after the agent's next tool call or as a new instruction when its turn ends, whichever comes first; then the agent reads it and acts on it.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#111827"/></linearGradient>
+<linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f86f7"/><stop offset="1" stop-color="#2f6fed"/></linearGradient>
+<pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse"><rect x="15" y="15" width="2" height="2" fill="#94a3b8" opacity=".10"/></pattern>
+</defs>
+<style>
+text,tspan{font-family:-apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif}
+
+.t1{fill:#e7ecf3} .m{fill:#9aa6b8} .b{font-weight:700} .sb{font-weight:600}
+.in{animation:in .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes in{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+.flow{animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-20}}
+
+.t1{fill:#e7ecf3}
+.sc{fill:rgba(11,16,32,.78);stroke:rgba(148,163,184,.26)}
+.cv{opacity:.7}
+.in{animation:none}
+
+</style>
+<rect width="1600" height="640" fill="url(#bg)"/>
+<rect width="1600" height="640" fill="url(#dots)"/>
+<text x="34" y="52" font-size="38" font-weight="700" class="t1">Plugin flow</text>
+<text x="1566" y="50" font-size="24" text-anchor="end" class="m">two small hooks make the office interactive</text>
+<g class="in"><rect x="26" y="84" width="1548" height="232" rx="14" fill="rgba(15,20,30,.88)" stroke="rgba(148,163,184,.24)"/>
+<circle cx="60" cy="124" r="9" fill="#f5b544"/>
+<text x="82" y="133" font-size="30" font-weight="700" class="t1">Permission</text>
+<text x="1550" y="131" font-size="22" text-anchor="end" class="m">terminal dialog still works · first answer wins</text></g><g class="st"><rect class="sc" style="animation-delay:0s" x="50" y="152" width="216" height="140" rx="12"/>
+<rect x="68" y="152" width="180" height="3" rx="1.5" fill="#f5b544"/>
+<text x="68" y="194" font-size="25" class="t1 sb">Agent asks</text><text x="68" y="226" font-size="22" class="m">a tool needs</text><text x="68" y="254" font-size="22" class="m">approval</text></g><path class="cv" style="animation-delay:0.55s" d="M274 211l14 11l-14 11z" fill="#f5b544"/><g class="st"><rect class="sc" style="animation-delay:1.1s" x="296" y="152" width="216" height="140" rx="12"/>
+<rect x="314" y="152" width="180" height="3" rx="1.5" fill="#f5b544"/>
+<text x="314" y="194" font-size="25" class="t1 sb">Plugin hook</text><text x="314" y="226" font-size="22" class="m">posts it to the</text><text x="314" y="254" font-size="22" class="m">local server</text></g><path class="cv" style="animation-delay:1.6500000000000001s" d="M520 211l14 11l-14 11z" fill="#f5b544"/><g class="st"><rect class="sc" style="animation-delay:2.2s" x="542" y="152" width="216" height="140" rx="12"/>
+<rect x="560" y="152" width="180" height="3" rx="1.5" fill="#f5b544"/>
+<text x="560" y="194" font-size="25" class="t1 sb">Office card</text><text x="560" y="226" font-size="22" class="m">request shown</text><text x="560" y="254" font-size="22" class="m">on the agent</text></g><path class="cv" style="animation-delay:2.75s" d="M766 211l14 11l-14 11z" fill="#f5b544"/><g class="st"><rect class="sc" style="animation-delay:3.3000000000000003s" x="788" y="152" width="262" height="140" rx="12"/>
+<rect x="806" y="152" width="226" height="3" rx="1.5" fill="#f5b544"/>
+<text x="806" y="194" font-size="25" class="t1 sb">You decide</text><g><rect x="802" y="214" width="112" height="38" rx="8" fill="#3ecf8e" fill-opacity=".16" stroke="#3ecf8e" stroke-opacity=".9"/><text x="858" y="240" font-size="22" font-weight="600" text-anchor="middle" fill="#3ecf8e">Aprovar</text></g><g><rect x="924" y="214" width="112" height="38" rx="8" fill="#ef6b6b" fill-opacity=".16" stroke="#ef6b6b" stroke-opacity=".9"/><text x="980" y="240" font-size="22" font-weight="600" text-anchor="middle" fill="#ef6b6b">Recusar</text></g></g><path class="cv" style="animation-delay:3.8500000000000005s" d="M1058 211l14 11l-14 11z" fill="#f5b544"/><g class="st"><rect class="sc" style="animation-delay:4.4s" x="1080" y="152" width="216" height="140" rx="12"/>
+<rect x="1098" y="152" width="180" height="3" rx="1.5" fill="#f5b544"/>
+<text x="1098" y="194" font-size="25" class="t1 sb">Reply sent</text><text x="1098" y="226" font-size="22" class="m">decision goes</text><text x="1098" y="254" font-size="22" class="m">back to the hook</text></g><path class="cv" style="animation-delay:4.95s" d="M1304 211l14 11l-14 11z" fill="#f5b544"/><g class="st"><rect class="sc" style="animation-delay:5.5s" x="1326" y="152" width="216" height="140" rx="12"/>
+<rect x="1344" y="152" width="180" height="3" rx="1.5" fill="#f5b544"/>
+<text x="1344" y="194" font-size="25" class="t1 sb">Agent resumes</text><text x="1344" y="226" font-size="22" class="m">runs the tool</text><text x="1344" y="254" font-size="22" class="m">or adapts</text></g>
+<g class="in"><rect x="26" y="336" width="1548" height="232" rx="14" fill="rgba(15,20,30,.88)" stroke="rgba(148,163,184,.24)"/>
+<circle cx="60" cy="376" r="9" fill="#6ea2ff"/>
+<text x="82" y="385" font-size="30" font-weight="700" class="t1">Message</text>
+</g><text x="232" y="385" font-size="22" class="m">queued in the office, delivered by the hooks</text><g class="st"><rect class="sc" style="animation-delay:0s" x="50" y="404" width="250" height="140" rx="12"/>
+<rect x="68" y="404" width="214" height="3" rx="1.5" fill="#6ea2ff"/>
+<text x="68" y="446" font-size="25" class="t1 sb">You write</text><text x="68" y="478" font-size="22" class="m">composer · key N</text><text x="68" y="506" font-size="22" class="m">to one agent or</text><text x="68" y="534" font-size="22" class="m">a whole room</text></g><path class="cv" style="animation-delay:0.55s" d="M320 463l14 11l-14 11z" fill="#6ea2ff"/><g class="st"><rect class="sc" style="animation-delay:1.1s" x="362" y="404" width="250" height="140" rx="12"/>
+<rect x="380" y="404" width="214" height="3" rx="1.5" fill="#6ea2ff"/>
+<text x="380" y="446" font-size="25" class="t1 sb">Queued</text><text x="380" y="478" font-size="22" class="m">status "Na fila"</text><text x="380" y="506" font-size="22" class="m">until a hook</text><text x="380" y="534" font-size="22" class="m">asks for it</text></g><path class="cv" style="animation-delay:1.6500000000000001s" d="M632 463l14 11l-14 11z" fill="#6ea2ff"/><g class="in"><rect x="674" y="368" width="568" height="190" rx="14" fill="none" stroke="#c9a35a" stroke-opacity=".6" stroke-dasharray="8 8"/>
+<text x="958" y="392" font-size="22" text-anchor="middle" fill="#c9a35a">whichever comes first</text></g><g class="st"><rect class="sc" style="animation-delay:2.2s" x="688" y="404" width="250" height="140" rx="12"/>
+<rect x="706" y="404" width="214" height="3" rx="1.5" fill="#6ea2ff"/>
+<text x="706" y="446" font-size="25" class="t1 sb">Next tool call</text><text x="706" y="478" font-size="22" class="m">delivered while</text><text x="706" y="506" font-size="22" class="m">it works, as</text><text x="706" y="534" font-size="22" class="m">extra context</text></g><text x="958" y="482" font-size="22" font-weight="700" text-anchor="middle" fill="#c9a35a">or</text><g class="st"><rect class="sc" style="animation-delay:3.3000000000000003s" x="978" y="404" width="250" height="140" rx="12"/>
+<rect x="996" y="404" width="214" height="3" rx="1.5" fill="#6ea2ff"/>
+<text x="996" y="446" font-size="25" class="t1 sb">Turn ends</text><text x="996" y="478" font-size="22" class="m">arrives as a new</text><text x="996" y="506" font-size="22" class="m">instruction, with</text><text x="996" y="534" font-size="22" class="m">10 min stand-by</text></g><path class="cv" style="animation-delay:3.8500000000000005s" d="M1262 463l14 11l-14 11z" fill="#6ea2ff"/><g class="st"><rect class="sc" style="animation-delay:4.4s" x="1304" y="404" width="220" height="140" rx="12"/>
+<rect x="1322" y="404" width="184" height="3" rx="1.5" fill="#6ea2ff"/>
+<text x="1322" y="446" font-size="25" class="t1 sb">Agent reads it</text><text x="1322" y="478" font-size="22" class="m">and acts on it</text></g>
+<text x="800" y="616" font-size="22" text-anchor="middle" class="m">Hooks exit silently when AI Office is not running, so Claude Code works as usual.</text>
+</svg>

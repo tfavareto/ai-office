@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 560" width="1600" height="560" role="img" aria-labelledby="t d">
+<title id="t">Everything stays on 127.0.0.1</title>
+<desc id="d">A loopback boundary at 127.0.0.1 contains Claude Code session files (read-only), the AI Office server, your browser, the Claude Code plugin hooks, the random access token file at ~/.ai-office/token with mode 0600, and the HttpOnly SameSite=Strict page cookie. Outside the boundary, the internet is crossed out: nothing leaves your computer.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#111827"/></linearGradient>
+<linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f86f7"/><stop offset="1" stop-color="#2f6fed"/></linearGradient>
+<pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse"><rect x="15" y="15" width="2" height="2" fill="#94a3b8" opacity=".10"/></pattern>
+</defs>
+<style>
+text,tspan{font-family:-apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif}
+
+.t1{fill:#e7ecf3} .m{fill:#9aa6b8} .b{font-weight:700} .sb{font-weight:600}
+.in{animation:in .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes in{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+.flow{animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-20}}
+
+.t1{fill:#e7ecf3}
+
+.wall{stroke-dasharray:14 10}
+.in{animation:none}.flow{animation:none}
+
+</style>
+<rect width="1600" height="560" fill="url(#bg)"/>
+<rect width="1600" height="560" fill="url(#dots)"/>
+<text x="34" y="58" font-size="38" font-weight="700" class="t1">Everything stays on 127.0.0.1</text>
+<rect class="wall" x="26" y="92" width="1068" height="420" rx="18" fill="rgba(47,111,237,.05)" stroke="#6ea2ff" stroke-width="3" stroke-opacity=".8"/>
+<rect x="56" y="76" width="332" height="36" rx="18" fill="#2f6fed"/>
+<text x="222" y="102" font-size="24" font-weight="700" text-anchor="middle" fill="#fff">127.0.0.1 · loopback only</text>
+<line x1="356" y1="238" x2="414" y2="238" stroke="#c9a35a" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/><line x1="706" y1="238" x2="764" y2="238" stroke="#6ea2ff" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/><line x1="414" y1="402" x2="356" y2="402" stroke="#f5b544" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/><line x1="560" y1="300" x2="560" y2="328" stroke="#f5b544" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/><line x1="910" y1="300" x2="910" y2="328" stroke="#6ea2ff" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/><g class="in " style="animation-delay:0.1s"><rect x="70" y="168" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="88" y="168" width="244" height="3" rx="1.5" fill="#c9a35a"/><text x="90" y="212" font-size="26" class="t1 sb">~/.claude*/ files</text><text x="90" y="246" font-size="22" class="m">sessions, transcripts</text><text x="90" y="274" font-size="22" class="m">read-only</text></g><g class="in " style="animation-delay:0.25s"><rect x="420" y="168" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="438" y="168" width="244" height="3" rx="1.5" fill="#6ea2ff"/><text x="440" y="212" font-size="26" class="t1 sb">AI Office server</text><text x="440" y="246" font-size="22" class="m">loopback bind only</text><text x="440" y="274" font-size="22" class="m">default port 4848</text></g><g class="in " style="animation-delay:0.4s"><rect x="770" y="168" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="788" y="168" width="244" height="3" rx="1.5" fill="#3ecf8e"/><text x="790" y="212" font-size="26" class="t1 sb">Your browser</text><text x="790" y="246" font-size="22" class="m">2D or 3D office</text><text x="790" y="274" font-size="22" class="m">served locally</text></g><g class="in " style="animation-delay:0.55s"><rect x="70" y="332" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="88" y="332" width="244" height="3" rx="1.5" fill="#38c9d3"/><text x="90" y="376" font-size="26" class="t1 sb">Plugin hooks</text><text x="90" y="410" font-size="22" class="m">Bearer token +</text><text x="90" y="438" font-size="22" class="m">HMAC challenge</text></g><g class="in key" style="animation-delay:0.7s"><rect x="420" y="332" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="438" y="332" width="244" height="3" rx="1.5" fill="#f5b544"/><text x="440" y="376" font-size="26" class="t1 sb">~/.ai-office/token</text><text x="440" y="410" font-size="22" class="m">file mode 0600</text><text x="440" y="438" font-size="22" class="m">owner-only access</text></g><g class="in " style="animation-delay:0.85s"><rect x="770" y="332" width="280" height="128" rx="12" fill="rgba(11,16,32,.8)" stroke="rgba(148,163,184,.24)"/><rect x="788" y="332" width="244" height="3" rx="1.5" fill="#6ea2ff"/><text x="790" y="376" font-size="26" class="t1 sb">Page cookie</text><text x="790" y="410" font-size="22" class="m">HttpOnly,</text><text x="790" y="438" font-size="22" class="m">SameSite=Strict</text></g><g class="in" style="animation-delay:1s"><line x1="1100" y1="196" x2="1274" y2="196" stroke="#ef6b6b" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/>
+<circle cx="1190" cy="196" r="21" fill="#2a1218" stroke="#ef6b6b" stroke-width="3"/><path d="M1176 188l16 16m0-16l-16 16" stroke="#ef6b6b" stroke-width="4" stroke-linecap="round"/></g><g class="in" style="animation-delay:1.2s"><line x1="1100" y1="340" x2="1274" y2="340" stroke="#ef6b6b" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="9 9" class="flow" opacity=".85"/>
+<circle cx="1190" cy="340" r="21" fill="#2a1218" stroke="#ef6b6b" stroke-width="3"/><path d="M1176 332l16 16m0-16l-16 16" stroke="#ef6b6b" stroke-width="4" stroke-linecap="round"/></g>
+<g class="in" style="animation-delay:.9s"><g transform="translate(1386 218)" fill="#4f5f7d"><circle cx="-44" cy="8" r="34"/><circle cx="-4" cy="-18" r="46"/><circle cx="48" cy="6" r="36"/><rect x="-78" y="8" width="160" height="36" rx="18"/><path d="M-30 -38a46 46 0 0 1 60 6" fill="none" stroke="#7d8dab" stroke-width="5" stroke-linecap="round" opacity=".7"/></g>
+<circle cx="1386" cy="218" r="92" fill="none" stroke="#ef6b6b" stroke-width="12"/><path d="M1321 283L1451 153" stroke="#ef6b6b" stroke-width="12" stroke-linecap="round"/>
+<text x="1386" y="368" font-size="28" text-anchor="middle" class="m">Internet · cloud</text>
+<text x="1386" y="414" font-size="32" font-weight="700" text-anchor="middle" class="t1">nothing leaves</text>
+<text x="1386" y="454" font-size="32" font-weight="700" text-anchor="middle" class="t1">your computer</text></g>
+</svg>

@@ -1,0 +1,12 @@
+import type { Activity, BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, RecentSession, TranscriptPage } from '@ai-office/shared';
+export declare function isRecord(value: unknown): value is Record<string, unknown>;
+export declare function isActivity(value: unknown): value is Activity;
+export declare function isNotice(value: unknown): value is Notice;
+export declare function parseSnapshot(data: unknown): OfficeSnapshot | null;
+export declare function parseFeed(data: unknown): FeedItem[];
+export declare function parseNotice(data: unknown): Notice | null;
+export declare function parseMessages(data: unknown): BossMessage[];
+export declare function parseActivities(data: unknown): Activity[];
+export declare function parseTranscriptPage(data: unknown): TranscriptPage;
+export declare function parseSessions(data: unknown): RecentSession[];
+export declare function parseDay(data: unknown): DayStats;
