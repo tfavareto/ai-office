@@ -14,18 +14,23 @@ export interface PoseContext {
   /** Rest height of the pelvis in this model (metres). */
   pelvisRest: number;
   seated: boolean;
+  /** Height of the seat surface (metres) when seated. */
+  seatHeight: number;
   /** Shell wait stage 0-3. */
   shellStage: number;
 }
 
 const TAU = Math.PI * 2;
 const s = (t: number, hz: number, phase = 0): number => Math.sin(t * hz * TAU + phase);
-const SEAT_PELVIS = 0.52;
 const STAND_ARM_Z = 30;
+const SHIN = 0.45;
 
+/** Lower body on a seat of the given height: hips on the seat, shins vertical, knees as far forward as needed. */
 function sitBase(w: PoseWriter, c: PoseContext): void {
-  w.offset(0, SEAT_PELVIS - c.pelvisRest, -0.1);
-  w.pair('thigh', -88, 4, 0).pair('calf', 88).pair('foot', 2);
+  const hip = c.seatHeight + 0.05;
+  const phi = (Math.acos(Math.min(1, Math.max(-1, (hip - SHIN) / SHIN))) * 180) / Math.PI;
+  w.offset(0, hip - c.pelvisRest, -0.1);
+  w.pair('thigh', -phi, 4, 0).pair('calf', phi).pair('foot', 2);
 }
 
 function breathe(w: PoseWriter, c: PoseContext): void {
@@ -62,7 +67,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   sit(w, c) {
-    sitBase(w, c);
     armsRelaxed(w, 12);
     w.pair('lowerarm', -40);
     breathe(w, c);
@@ -70,7 +74,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   type(w, c) {
-    sitBase(w, c);
     const k = s(c.t, 3.2, c.phase);
     const k2 = s(c.t, 2.3, c.phase + 1.7);
     w.rot('spine_01', 3).rot('spine_02', 4).rot('spine_03', 3);
@@ -110,7 +113,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   sleep(w, c) {
-    sitBase(w, c);
     const b = s(c.t, 0.2, c.phase);
     w.rot('spine_01', 14).rot('spine_02', 16).rot('spine_03', 12).rot('head', 20 + b * 1.5);
     w.pair('upperarm', -55, 0, -14).pair('lowerarm', -80);
@@ -118,7 +120,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   lean(w, c) {
-    sitBase(w, c);
     breathe(w, c);
     w.rot('spine_01', -8).rot('spine_02', -8).rot('head', 6);
     w.pair('upperarm', 10, 55, -40).pair('lowerarm', -95);
@@ -126,7 +127,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   stretch(w, c) {
-    sitBase(w, c);
     const b = s(c.t, 0.25, c.phase);
     w.rot('spine_02', -8 - b * 3).rot('spine_03', -6).rot('head', 8);
     w.pair('upperarm', -10, 0, 165).pair('lowerarm', -10);
@@ -134,7 +134,6 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   popcorn(w, c) {
-    sitBase(w, c);
     const eat = Math.max(0, s(c.t, 0.45, c.phase));
     w.rot('spine_02', 8).rot('head', -6);
     w.pair('upperarm', -45, 0, -14).pair('lowerarm', -80);
@@ -201,7 +200,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
 /** Fills `out` with the target pose for a named pose. */
 export function solvePose(out: PoseVec, pose: Pose, c: PoseContext): PoseVec {
   out.fill(0);
-  solvers[pose](new PoseWriter(out), c);
+  const w = new PoseWriter(out);
+  solvers[pose](w, c);
+  if (c.seated) sitBase(w, c);
   return out;
 }
 
