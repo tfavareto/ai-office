@@ -30,7 +30,7 @@ You are an agent with terminal access on the user's computer (macOS or Linux). A
 - An account is a Claude Code config folder. The server auto-detects `~/.claude` and every `~/.claude-<name>` folder that contains a `projects/` subfolder, plus the folder in `CLAUDE_CONFIG_DIR` if set. It re-checks about every 10 seconds.
 - If `AI_OFFICE_CLAUDE_DIRS` (comma-separated folders) is set, it replaces auto-detection completely: list every account, including `~/.claude`.
 - The plugin installer (`npm run plugin:install`) detects accounts the same way. It also reads `AI_OFFICE_CLAUDE_DIRS`, and accepts `--account <dir>` (repeatable), which replaces detection.
-- In the office, `~/.claude` is labeled "Pessoal"; another folder is labeled with the text after `claude-`.
+- In the office, `~/.claude` is labeled "Personal" ("Pessoal" in the Portuguese interface); another folder is labeled with the text after `claude-`.
 
 ## Authorization and limits
 

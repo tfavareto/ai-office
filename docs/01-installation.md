@@ -31,11 +31,11 @@ npm start
 
 If port 4848 is taken, start with another one: `AI_OFFICE_PORT=4900 npm start`. Prefer environment variables with `npm start`: flags do not pass through `npm start --`, so to use a flag run the bundle directly (`node packages/server/dist/index.js --port 4900`). See [configuration](04-configuration.md).
 
-With no Claude Code session open, the page shows **Nenhuma sessão aberta** (no open session). Start `claude` in any project folder and the room appears within a few seconds.
+With no Claude Code session open, the page shows **No open sessions**. Start `claude` in any project folder and the room appears within a few seconds.
 
 ## Install the plugin
 
-The office already shows every session without the plugin. The plugin adds permission answers, messages to agents and the **Precisa de você** flag from Claude Code's notifications. From the repository folder:
+The office already shows every session without the plugin. The plugin adds permission answers, messages to agents and the **Needs you** flag from Claude Code's notifications. From the repository folder:
 
 ```sh
 npm run plugin:install -- --dry-run   # optional: show what would run
@@ -74,22 +74,22 @@ See [plugin](03-plugin.md#install-and-manage-the-plugin) for the manual commands
 
    Each account prints `marketplace: added` and `plugin: installed 0.1.0 (up to date)`.
 
-3. In the browser, the top bar shows the green connection pill **Ao vivo** (live) and the counters (**salas**, **agentes**, ...). Open a Claude Code session in a project and a room with a person appears.
+3. In the browser, the top bar shows the green connection pill **Live** and the counters (**rooms**, **agents**, ...). Open a Claude Code session in a project and a room with a person appears.
 
-4. To test permissions end to end, keep the office page open, start a session, and ask Claude Code to do something that needs approval. A **Pedido de permissão** (permission request) card appears in that agent's drawer. See [using the office](02-using-the-office.md).
+4. To test permissions end to end, keep the office page open, start a session, and ask Claude Code to do something that needs approval. A **Permission request** card appears in that agent's drawer. See [using the office](02-using-the-office.md).
 
 Something off? See [troubleshooting](08-troubleshooting.md).
 
 ## Demo mode
 
-Demo mode adds fictitious agents so you can explore the office without any Claude Code session. It does not touch real sessions: demo agents are shown alongside them and are excluded from **Meu dia**.
+Demo mode adds fictitious agents so you can explore the office without any Claude Code session. It does not touch real sessions: demo agents are shown alongside them and are excluded from **My day**.
 
 | How | Effect |
 | --- | --- |
 | Start the server with `AI_OFFICE_DEMO=1 npm start` (or `node packages/server/dist/index.js --demo`) | Demo starts on. |
-| **Configurações** (settings), switch **Modo demonstração** (demo mode) | Turns it on or off while running. Needs the page opened on this computer. |
-| The **Ver em modo demonstração** (see in demo mode) button on the empty screen | Same as the switch. |
-| Open `http://127.0.0.1:4848/?mock=1` | A simulation that runs entirely in the browser, with no server data. The pill reads **Demonstração local**. |
+| **Settings**, switch **Demo mode** | Turns it on or off while running. Needs the page opened on this computer. |
+| The **View in demo mode** button on the empty screen | Same as the switch. |
+| Open `http://127.0.0.1:4848/?mock=1` | A simulation that runs entirely in the browser, with no server data. The pill reads **Local demo**. |
 
 ## Update
 
@@ -205,7 +205,7 @@ Do these in order. The plugin step must come first because the installer lives i
 
 1. **Plugin.** From the repository folder: `npm run plugin:uninstall`. It removes the plugin and the `ai-office` marketplace from every detected account. Restart running Claude Code sessions.
 2. **Service.** If you set up run at login, stop and remove it: `launchctl bootout "gui/$(id -u)/com.ai-office.server"` and delete the plist (macOS), or `systemctl --user disable --now ai-office.service` and delete the unit (Linux).
-3. **State directory.** `~/.ai-office` holds the access token, agent names and the daily **Meu dia** records. Delete it if you want a clean slate; it is recreated with a new token on the next start.
+3. **State directory.** `~/.ai-office` holds the access token, agent names and the daily **My day** records. Delete it if you want a clean slate; it is recreated with a new token on the next start.
 4. **The folder.** Delete the clone.
 
 AI Office never modifies Claude Code's own files, so nothing else needs cleaning. [Prompt 06](prompts/06-uninstall.md) asks for confirmation before each destructive step.

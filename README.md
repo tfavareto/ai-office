@@ -41,6 +41,8 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
   <strong>Claude Code</strong> CLI + desktop / several accounts / <strong>macOS + Linux</strong>
   <br />
   <strong>2D pixel art</strong> by default / optional <strong>3D</strong> / 100% local
+  <br />
+  Interface in <strong>English</strong>, <strong>Português</strong> and <strong>Español</strong>
 </p>
 
 ---
@@ -106,14 +108,14 @@ Sessions that were already open pick the plugin up after `/reload-plugins` or a 
 AI_OFFICE_DEMO=1 npm start
 ```
 
-Demo mode fills the office with realistic simulated sessions: people walk in, work, ask for permissions and finish. You can also turn it on later in **Configurações** (settings).
+Demo mode fills the office with realistic simulated sessions: people walk in, work, ask for permissions and finish. You can also turn it on later in **Settings**.
 
 <a id="watch"></a>
 
 ## 02 / See every agent at a glance
 
 <p align="center">
-  <img src="docs/assets/readme/office-demo.gif" alt="The 2D office in demo mode: agents walk between rooms, sit at their desks and change status." width="1200" />
+  <img src="docs/assets/readme/en/office-demo.gif" alt="The 2D office in demo mode: agents walk between rooms, sit at their desks and change status." width="1200" />
 </p>
 
 The office reads what Claude Code already writes to disk and keeps up as it changes. There is nothing to configure per project.
@@ -130,13 +132,13 @@ Statuses are always shown with text as well as color:
 
 | Status | Meaning |
 |---|---|
-| 🟢 **Trabalhando** (working) | The turn is in progress |
-| 🟠 **Precisa de você** (needs you) | A permission, a question or a plan is waiting for you |
-| 🔵 **Esperando o shell** (waiting on the shell) | A command is still running |
-| ⚪ **Ocioso** (idle) | The turn ended; the session is open |
-| 🔷 **Concluído** (done) | A subagent finished and is leaving the office |
+| 🟢 **Working** | The turn is in progress |
+| 🟠 **Needs you** | A permission, a question or a plan is waiting for you |
+| 🔵 **Waiting for the shell** | A command is still running |
+| ⚪ **Idle** | The turn ended; the session is open |
+| 🔷 **Done** | A subagent finished and is leaving the office |
 
-Click a person to see their summary, tasks, subagents, activity and session data. **Meu dia** (my day) shows how long each agent spent in each status today, and the session history keeps the last seven days. The [user guide](docs/02-using-the-office.md) covers every panel and keyboard shortcut.
+Click a person to see their summary, tasks, subagents, activity and session data. **My day** shows how long each agent spent in each status today, and the session history keeps the last seven days. The [user guide](docs/02-using-the-office.md) covers every panel and keyboard shortcut.
 
 <a id="direct"></a>
 
@@ -153,18 +155,18 @@ The `ai-office` plugin adds Claude Code hooks that talk to the local server. If 
 
 | You want to | In the office | What reaches Claude Code |
 |---|---|---|
-| **Approve a tool** | **Aprovar** or **Aprovar e não perguntar de novo** (approve and remember) | The decision, as if you had answered in the terminal |
-| **Refuse a tool** | **Recusar**, with an optional reason and interrupt | The refusal and your reason |
-| **Steer an agent** | Type in **Mensagens** (messages), or pick a quick message | Your text after its next tool call, or as a new instruction when its turn ends |
-| **Talk to a whole room** | The room's team message | One message per agent, tracked as "2 de 3 entregues" (2 of 3 delivered) |
+| **Approve a tool** | **Approve**, or **Approve and don't ask again** | The decision, as if you had answered in the terminal |
+| **Refuse a tool** | **Deny**, with an optional reason and interrupt | The refusal and your reason, in your language |
+| **Steer an agent** | Type in **Messages**, or pick a quick message | Your text after its next tool call, or as a new instruction when its turn ends |
+| **Talk to a whole room** | The room's team message | One message per agent, tracked as "2 of 3 delivered" |
 | **Follow the conversation** | The read-only terminal (`T`) | Nothing: it only reads |
 
-The terminal dialog keeps working: whichever answer comes first wins. Every message shows its state: **Na fila** (queued), **Entregue durante o trabalho** (delivered while working), **Entregue como nova instrução** (delivered as a new instruction) or **Expirou** (expired after 2 hours).
+The terminal dialog keeps working: whichever answer comes first wins. Every message shows its state: **Queued**, **Delivered while working**, **Delivered as a new instruction** or **Expired** (after 2 hours).
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/agent-drawer.png" alt="Agent drawer with a pending permission card and the Approve, Approve and remember, Refuse and Answer in the terminal buttons." /></td>
-    <td width="50%"><img src="docs/assets/readme/terminal.png" alt="Read-only terminal panel showing a session's prompts, replies and tool calls." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/agent-drawer.png" alt="Agent drawer with a pending permission card and the Approve, Approve and don't ask again, Deny and Answer in the terminal buttons." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/terminal.png" alt="Read-only terminal panel showing a session's prompts, replies and tool calls." /></td>
   </tr>
   <tr>
     <td align="center"><sub>Permission requests appear on top of the agent's card</sub></td>
@@ -180,8 +182,8 @@ The [plugin guide](docs/03-plugin.md) details each hook, the delivery paths and 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/office-2d-day.png" alt="The 2D pixel-art office by day: reception, café, meeting room, lounge, restrooms and one room per project." /></td>
-    <td width="50%"><img src="docs/assets/readme/office-3d-night.png" alt="The 3D office at night: an isometric view of the floor on top of a lit tower in a city." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/office-2d-day.png" alt="The 2D pixel-art office by day: reception, pantry, meeting room, lounge, restrooms and one room per project." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/office-3d-night.png" alt="The 3D office at night: an isometric view of the floor on top of a lit tower in a city." /></td>
   </tr>
   <tr>
     <td align="center"><sub>2D pixel art, the default</sub></td>
@@ -189,12 +191,12 @@ The [plugin guide](docs/03-plugin.md) details each hook, the delivery paths and 
   </tr>
 </table>
 
-Both views share the same building, the same people and the same interface; only the rendering changes. Switch in **Configurações → Visual**, and it applies at once.
+Both views share the same building, the same people and the same interface; only the rendering changes. Switch in **Settings → Visual**, and it applies at once.
 
 | | 2D (default) | 3D (optional) |
 |---|---|---|
 | **Look** | Hand-made pixel art: walnut, marble, brass, plants and a city around the building | Lit 3D tower with real-time shadows, glass, city traffic and 3D characters |
-| **Camera** | Pan, zoom and overview | **Visão geral** (overview), **Primeira pessoa** (first person) and **Sobre o ombro** (over the shoulder) |
+| **Camera** | Pan, zoom and overview | **Overview**, **First person** and **Over the shoulder** |
 | **Day and night** | Follows your local time, or fixed day or night | Same, with night glow on the windows and signs |
 | **Cost** | Very light: hundreds of frames per second of headroom | Heavier, mainly at night: [measured numbers](docs/06-validation.md) |
 | **Loads** | Immediately | On demand, the first time you switch |
@@ -278,7 +280,15 @@ Defaults work for most people. Set environment variables (or the matching flags)
 | `AI_OFFICE_DEMO` | off | Start with demo sessions |
 | `AI_OFFICE_LOG` | normal | `quiet` or `debug` |
 
-Interface preferences (2D or 3D, day and night, names, speech bubbles, animation, sounds, browser notifications) live in **Configurações** and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
+Interface preferences (language, 2D or 3D, day and night, names, speech bubbles, animation, sounds, browser notifications) live in **Settings** and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
+
+<a id="language"></a>
+
+### Your language
+
+The whole interface (panels, statuses, activities, notifications, room names and the signs inside the office) is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → Language**, or leave **Automatic (system)** to follow your browser. The switch is instant and keeps your selection, open panels and camera.
+
+Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written. When you answer a permission or send a message, the plugin tells the agent in your language.
 
 <a id="evidence"></a>
 
@@ -287,7 +297,7 @@ Interface preferences (2D or 3D, day and night, names, speech bubbles, animation
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 600+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 1200+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |

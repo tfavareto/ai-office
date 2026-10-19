@@ -45,6 +45,12 @@ need it (`Authorization: Bearer`, or the cookie the server sets when it serves t
   `agent` accepts the subagent's `Agent.id` or its raw id.
 - **Local-only endpoints** (transcript, sessions, permissions, messages, attention) require a loopback bind, a loopback
   `Host` and a loopback peer.
+- **Localization**: the server never knows the page's language. Generated texts (activities, notices, waiting reasons,
+  permission summaries, demo content) are emitted as `Msg { key, params }` in `*Msg` fields next to the pt-BR text
+  fallback; the catalogs live in `packages/shared/src/i18n/messages/`. `POST /api/messages` and
+  `POST /api/permissions/:id/decision` accept an optional `locale` (`pt-BR`, `en` or `es`; anything else is a 400
+  `invalid-locale`); it is kept with the queued message and returned by the inbox so the plugin hooks can phrase their
+  output in the sender's language.
 - **Notification hook** (`POST /api/attention`): `{ session_id, agent_id?, message?, notification_type? }`; idle-prompt
   notifications are ignored, anything else marks the agent as waiting until its next transcript event.
 

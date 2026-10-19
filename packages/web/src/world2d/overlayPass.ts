@@ -1,6 +1,6 @@
 import { areaLabel } from '../i18n/world/areaLabel';
 import { worldText } from '../i18n/world/translate';
-import { TILE } from '../layout/constants';
+import { TILE, WALL_ROWS } from '../layout/constants';
 import { type Bubble, bubbleText } from '../sim/bubbles';
 import type { Character } from '../sim/types';
 import {
@@ -15,6 +15,7 @@ import {
   type Pos,
 } from './labels';
 import type { Viewport } from './camera';
+import { WALL_ITEMS_TOP } from './paint/wallitems';
 import type { OverlaySprites, Sprite } from './overlay';
 import { STATUS_COLORS } from './palette';
 import { FOOT_OFFSET } from './picking';
@@ -263,7 +264,7 @@ export class OverlayPass {
       const info = s.roomInfo.get(projectId);
       const detail = isProject && info ? text.t('count.agents', { n: info.agents }) : '';
       const room2 = { x: topLeft.x, y: topLeft.y, w: size.w, h: size.h };
-      const slot = roomPillSlot(room2, free, 20, 2 * TILE * cam.zoom);
+      const slot = roomPillSlot(room2, free, 20, WALL_ROWS * TILE * cam.zoom, WALL_ITEMS_TOP * cam.zoom);
       if (!slot) continue;
       const label = sprites.roomLabel(areaLabel(area, text), detail, area.theme.accent, slot.maxWidth);
       const x = Math.round(slot.cx - label.w / 2);

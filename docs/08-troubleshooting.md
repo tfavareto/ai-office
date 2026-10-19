@@ -10,26 +10,27 @@ Prefer an agent? [Prompt 05](prompts/05-troubleshoot.md) runs a read-only diagno
 | --- | --- | --- |
 | Browser cannot connect to `http://127.0.0.1:4848` | The server is not running, or uses another port. | Start it (`npm start`, or restart your service). Check `curl -s http://127.0.0.1:4848/api/health`. |
 | Page is blank or "not found" | The web app was never built. | Run `npm run build` in the repository, then restart the server. |
-| Pill reads **Reconectando…** (reconnecting) | The server stopped or restarted. | Wait a few seconds; the page reconnects by itself. If it persists, the server is down. |
-| **Nenhuma sessão aberta** while sessions are open | Sessions are in a directory the server does not watch. | [Page shows no sessions](#the-page-shows-no-sessions). |
+| Pill reads **Reconnecting…** | The server stopped or restarted. | Wait a few seconds; the page reconnects by itself. If it persists, the server is down. |
+| **No open sessions** while sessions are open | Sessions are in a directory the server does not watch. | [Page shows no sessions](#the-page-shows-no-sessions). |
 | `A porta 4848 já está em uso` | Another process (maybe an older AI Office) holds the port. | [Port 4848 is in use](#port-4848-is-in-use). |
 | `Could not run "claude"` from the installer | The `claude` CLI is not on `PATH`. | [Could not run "claude"](#could-not-run-claude). |
-| No **Pedido de permissão** card appears | No local page open, plugin not loaded, or port or token mismatch. | [Permissions do not show](#permissions-do-not-show). |
-| Message stays **Na fila** (queued) | The agent has not run a hook yet, or the plugin is not loaded. | [Messages stay queued](#messages-stay-na-fila). |
-| Buttons say "Disponível apenas quando o AI Office é aberto neste computador (localhost)" | The page was opened with a non-local address. | Open `http://127.0.0.1:4848` or `http://localhost:4848` on the same computer. |
+| No **Permission request** card appears | No local page open, plugin not loaded, or port or token mismatch. | [Permissions do not show](#permissions-do-not-show). |
+| Message stays **Queued** | The agent has not run a hook yet, or the plugin is not loaded. | [Messages stay queued](#messages-stay-queued). |
+| Buttons say "Only available when AI Office is opened on this computer (localhost)" | The page was opened with a non-local address. | Open `http://127.0.0.1:4848` or `http://localhost:4848` on the same computer. |
+| The interface is in the wrong language | **Settings → Language** is set to a fixed language, or **Automatic (system)** follows a browser language you did not expect. | [The interface is in the wrong language](#the-interface-is-in-the-wrong-language). |
 | 3D is slow or stutters | 3D is heavy at night, especially on laptops. | [3D is slow](#3d-is-slow). |
 | A second account is missing | Its folder name or location is not auto-detected. | [Accounts not detected](#multiple-accounts-are-not-detected). |
 | Hooks logged `401` or "token rejected" | An old plugin version or a token or state dir mismatch. | [Hooks get 401](#hooks-get-401-after-an-update). |
 
 ## The page shows no sessions
 
-The pill says **Ao vivo** but the office is empty or lacks a project.
+The pill says **Live** but the office is empty or lacks a project.
 
 1. **No session is actually open.** A session counts as open while Claude Code's file `<config dir>/sessions/<pid>.json` exists and its process is alive. Start `claude` in a project and wait a few seconds. Closed sessions leave after a short walk to the elevator.
 2. **The account is not watched.** The server auto-detects `~/.claude` and `~/.claude-<name>` directories that contain `projects/`. A directory with another name or location is ignored. Set `AI_OFFICE_CLAUDE_DIRS` (it replaces auto-detection, so list every account) and restart the server. See [configuration](04-configuration.md#multiple-accounts).
 3. **The server runs as a different user or with a different `HOME`.** A service started from another environment may look in another home folder. Check the account directories in the authenticated health output (see [how to collect diagnostics](#how-to-collect-diagnostics)).
 4. **Older Claude Code without the session registry.** Accounts without a `sessions/` directory fall back to transcripts modified in the last 30 minutes. A session idle for longer than that disappears.
-5. **Demo mode hides nothing, but adds noise.** If you see fictitious agents, turn **Modo demonstração** off in **Configurações**.
+5. **Demo mode hides nothing, but adds noise.** If you see fictitious agents, turn **Demo mode** off in **Settings**.
 
 ## Hooks get 401 after an update
 
@@ -77,19 +78,19 @@ A permission request is routed to the office only when all of these hold:
 | The session **loaded the plugin**: it started after the install, or ran `/reload-plugins`. | Run `/reload-plugins` in the session, or restart it. |
 | The hooks reach the server: same port and same token. | Match `AI_OFFICE_PORT` and `AI_OFFICE_STATE_DIR` between server and Claude Code. See [hooks get 401](#hooks-get-401-after-an-update). |
 | The agent is known to the office. | The session must appear in the office. A request from an unknown session is skipped. |
-| It is not a question. `AskUserQuestion` is a question, not a permission; answer it in the terminal. The **Precisa de você** card offers **Responder no terminal**. | None needed. |
+| It is not a question. `AskUserQuestion` is a question, not a permission; answer it in the terminal. The **Needs you** card offers **Answer in the terminal**. | None needed. |
 | It was not already answered. If you answered in the terminal first, the card is withdrawn. | None needed. |
 
 A request also expires: after 5 minutes (or `AI_OFFICE_PERMISSION_TIMEOUT` if lower) the terminal dialog takes over.
 
-## Messages stay Na fila
+## Messages stay queued
 
-**Na fila** means no hook has asked for the message yet.
+**Queued** means no hook has asked for the message yet.
 
 - **The plugin is not loaded** in that session: install it, then restart the session. See [plugin](03-plugin.md#install-and-manage-the-plugin).
 - **The agent is idle and not on stand-by.** Messages are delivered after a tool call, when a turn ends, or during stand-by. Stand-by only runs when a page is open on this computer, lasts at most `AI_OFFICE_STANDBY_MIN` minutes (default 10, `0` disables) and ends early if the server says skip. After it ends, an idle agent will not ask again until it does something, such as a new prompt.
 - **No local page.** Stand-by waits only while a page is connected, and the composer only works on a local page.
-- **The message expired.** Queued messages expire after 2 hours and show **Expirou**.
+- **The message expired.** Queued messages expire after 2 hours and show **Expired**.
 
 To wake an idle agent, send the message while its turn is ending or during stand-by, or give it a prompt in the terminal; the queued message is delivered at the next hook.
 
@@ -97,10 +98,20 @@ To wake an idle agent, send the message while its turn is ending or during stand
 
 3D draws a full lit scene, so it needs far more from your GPU than 2D. The night scene is the most expensive (bloom plus anti-aliasing at a high pixel ratio). See [evidence and limits](06-validation.md#frame-rate-measurements).
 
-- Switch to **2D**: **Configurações**, **Visual**, **2D**. It is the default and stays smooth even on modest hardware.
-- Set **Dia e noite** to **Dia** (day) instead of **Automático** (automatic) in the evening.
+- Switch to **2D**: **Settings**, **Visual**, **2D**. It is the default and stays smooth even on modest hardware.
+- Set **Day and night** to **Day** instead of **Automatic** in the evening.
 - On a laptop, plug in and turn off Low Power Mode, which caps the display at 30 fps.
 - Close other GPU-heavy tabs and prefer a Chromium-based browser, the one the measurements used.
+
+## The interface is in the wrong language
+
+The language is a per-browser preference, so a different browser, a private window or cleared site data can show another language than the one you chose.
+
+1. Open **Settings** (the gear in the top bar) and look at **Language**. The change is instant, and the panels, the signs inside the office and the notifications all follow it.
+2. If it says **Automatic (system)**, the page uses the first supported language in your browser's language list: Portuguese gives Português, Spanish gives Español, anything else gives English. Reorder or add languages in the browser settings, or pick a fixed language in **Settings → Language**.
+3. Text from your own sessions (prompts, task titles, commands, file names) is shown as written and is never translated, so it can differ from the interface language. The same goes for the conversation in the terminal panel.
+4. A few messages stay in Portuguese on purpose: the status lines Claude Code shows while a plugin hook waits ("Aguardando resposta no AI Office", "De plantão: aguardando ordens no AI Office") and the server's command-line messages such as "A porta 4848 já está em uso".
+5. The wording the agent receives (the reason added to a denial and the preamble before your messages) follows the language the page had when you answered or sent. If it is in Portuguese while the interface is not, a plugin version from before the language support is probably still cached: refresh it (the steps in [hooks get 401](#hooks-get-401-after-an-update)) and restart the sessions.
 
 ## Multiple accounts are not detected
 

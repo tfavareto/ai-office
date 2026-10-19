@@ -198,19 +198,24 @@ export interface PillSlot {
 const PILL_SIDE_PAD = 4;
 const MIN_PILL_ROOM = 24;
 const PILL_MIN_TOP = 2;
-const PILL_MAX_TOP = 8;
+const PILL_WALL_GAP = 1;
 
 /**
- * Where a room's pill goes: centred in the part of the room that is inside the free area, in the room's top band, and
- * never wider than that part. Null when too little of the room is visible to hold a label.
+ * Where a room's pill goes: centred in the part of the room that is inside the free area, never wider than that part.
+ * It sits on the room's top edge, just above the wall decoration (`itemsTop` px below the room's top), so it never
+ * covers the signs, boards, TVs and menus hung on the wall. Once the wall has scrolled under the top of the free area
+ * the pill stays visible on the floor instead. Null when too little of the room is visible to hold a label.
+ * `wallH` is the wall's height in px.
  */
-export function roomPillSlot(room: Box, free: Box, pillH: number, bandH: number): PillSlot | null {
+export function roomPillSlot(room: Box, free: Box, pillH: number, wallH: number, itemsTop: number): PillSlot | null {
   const left = Math.max(room.x, free.x);
   const right = Math.min(room.x + room.w, free.x + free.w);
   const visibleW = right - left;
   if (visibleW < MIN_PILL_ROOM || room.y > free.y + free.h || room.y + room.h < free.y) return null;
-  const inset = Math.max(PILL_MIN_TOP, Math.min(PILL_MAX_TOP, (bandH - pillH) / 2));
+  const aboveWall = room.y + itemsTop - pillH - PILL_WALL_GAP;
+  const stickyY = free.y + PILL_MIN_TOP;
   const lowest = room.y + room.h - pillH - PILL_MIN_TOP;
-  const y = Math.max(room.y + inset, Math.min(free.y + PILL_MIN_TOP, lowest));
+  const wallIsGone = room.y + wallH < stickyY;
+  const y = wallIsGone ? Math.min(stickyY, lowest) : aboveWall;
   return { cx: (left + right) / 2, maxWidth: visibleW - PILL_SIDE_PAD * 2, y };
 }

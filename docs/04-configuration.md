@@ -2,7 +2,7 @@
 
 This guide lists every setting of the server and the plugin hooks, explains how accounts are discovered, what lives in the state directory, and how demo and development modes work.
 
-AI Office needs no configuration file. Settings come from environment variables or command-line flags; a flag wins over its environment variable. Interface preferences (2D or 3D, day and night, sounds) are not server settings: they live in your browser. See [using the office](02-using-the-office.md#configurações).
+AI Office needs no configuration file. Settings come from environment variables or command-line flags; a flag wins over its environment variable. Interface preferences (language, 2D or 3D, day and night, sounds) are not server settings: they live in your browser. See [interface preferences](#interface-preferences) below.
 
 ## Server settings
 
@@ -17,7 +17,7 @@ Flags do not pass through `npm start --`; use environment variables with `npm st
 
 | Environment variable | Flag | Default | Meaning |
 | --- | --- | --- | --- |
-| `AI_OFFICE_PORT` | `--port <n>` | `4848` | TCP port (1 to 65535). An invalid value stops the server with "Porta inválida". |
+| `AI_OFFICE_PORT` | `--port <n>` | `4848` | TCP port (1 to 65535). An invalid value stops the server with "Porta inválida" (the server's command-line messages are in Portuguese). |
 | `AI_OFFICE_HOST` | `--host <addr>` | `127.0.0.1` | Address to bind. Anything that is not a loopback address is refused unless remote access is allowed (below). |
 | `AI_OFFICE_ALLOW_REMOTE` | `--allow-remote` | off | Accept a non-loopback `AI_OFFICE_HOST`. Even then, browsers cannot sign in remotely. See [privacy and security](05-privacy-and-security.md#remote-access). |
 | `AI_OFFICE_CLAUDE_DIRS` | `--claude-dirs <list>` | auto-discovery | Comma-separated Claude config directories to watch. Replaces auto-discovery entirely. `~` is expanded. |
@@ -57,6 +57,22 @@ The hooks run inside Claude Code, so these variables must be set in the environm
 
 The hooks always connect to `127.0.0.1`; there is no host setting. Details of each hook are in [plugin](03-plugin.md).
 
+## Interface preferences
+
+The interface settings in **Settings** are saved by the page in your browser's `localStorage` under the key `ai-office:prefs`. The server never sees or stores them, so each browser keeps its own. Each field is validated when it is loaded; anything invalid falls back to its default.
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `language` | `auto`, `pt-BR`, `en`, `es` | `auto` |
+| `visual` | `2d`, `3d` | `2d` |
+| `daylight` | `auto`, `day`, `night` | `auto` |
+| `showNames`, `sounds`, `browserNotifications`, `dnd` | `true` or `false` | names on, sounds on, the rest off |
+| `bubbles` | `all`, `important`, `none` | `important` |
+| `animation` | `calm`, `normal`, `lively` | `normal` |
+| `volume` | 0 to 1 | `0.5` |
+
+**Language.** The `language` preference is what **Settings → Language** edits. With `auto` (**Automatic (system)**) the page reads the list of languages your browser reports (`navigator.languages`, in order of preference) and takes the first one it supports, looking only at the language part of the tag: `pt`, `pt-BR` or `pt-PT` gives **Português (Brasil)**, `es` or `es-MX` gives **Español**, and `en` or anything unsupported gives **English**. A fixed choice (`pt-BR`, `en` or `es`) ignores the browser. The page also sets `<html lang>` to the language in use. Changing it applies at once, without a reload, and the same language is what the page sends along with the permission answers and messages it posts so the plugin hooks can phrase their output ([plugin](03-plugin.md#messages-to-agents)). To start over, clear the site's data in your browser or delete the `ai-office:prefs` key.
+
 ## Multiple accounts
 
 An account is a Claude config directory. The server finds them like this:
@@ -64,7 +80,7 @@ An account is a Claude config directory. The server finds them like this:
 1. If `AI_OFFICE_CLAUDE_DIRS` (or `--claude-dirs`) is set, exactly those directories are used and nothing else is searched. Include `~/.claude` in the list if you want it.
 2. Otherwise it scans your home folder for `~/.claude` and every `~/.claude-<name>` directory that contains a `projects/` folder, and adds `CLAUDE_CONFIG_DIR` if that is set and exists.
 
-Accounts are re-discovered about every 10 seconds, so a new one shows up without a restart. In the office, `~/.claude` is labeled **Pessoal** (personal); any other directory is labeled with the text after `claude-` (for `~/.claude-work`, "work"). The default account comes first, and each account gets a stable color.
+Accounts are re-discovered about every 10 seconds, so a new one shows up without a restart. In the office, `~/.claude` is labeled **Personal** (**Pessoal** in Portuguese); any other directory is labeled with the text after `claude-` (for `~/.claude-work`, "work"). The default account comes first, and each account gets a stable color.
 
 The plugin installer uses the same rules (including `AI_OFFICE_CLAUDE_DIRS`) and also honors `--account <dir>` (repeatable, replaces detection). Name extra accounts `~/.claude-<name>`, or list them explicitly in `AI_OFFICE_CLAUDE_DIRS`.
 
@@ -78,7 +94,7 @@ The server keeps its own files in the state directory, `~/.ai-office` by default
 | --- | --- |
 | `token` | The access token: 32 random bytes as 64 hex characters, mode 0600. Created on first start and reused afterwards. See [privacy and security](05-privacy-and-security.md#access-token). |
 | `names.json` | The name given to each agent, keyed by account, session and subagent, so a person keeps the same name across restarts. At most 3000 entries are kept. |
-| `days/YYYY-MM-DD.json` | The **Meu dia** record for that day: per agent, milliseconds in each status. Written every 5 seconds, flushed to disk every 30 seconds. Demo agents are not recorded. |
+| `days/YYYY-MM-DD.json` | The **My day** record for that day: per agent, milliseconds in each status. Written every 5 seconds, flushed to disk every 30 seconds. Demo agents are not recorded. |
 
 To rotate the token, stop the server, delete `token`, start it again and reload the page. Hooks read the file on every run and pick up the new token.
 
@@ -86,15 +102,15 @@ To reset everything, delete the directory while the server is stopped.
 
 ## Demo mode
 
-Demo mode adds fictitious agents (by default four projects across two fictitious accounts, **Pessoal** and **Trabalho**, with subagents, shells, permission requests you can answer and occasional errors) alongside any real sessions. Real sessions are never altered.
+Demo mode adds fictitious agents (by default four projects across two fictitious accounts, **Personal** and **Work**, with subagents, shells, permission requests you can answer and occasional errors) alongside any real sessions. Real sessions are never altered.
 
 | Switch | How |
 | --- | --- |
 | Server | `AI_OFFICE_DEMO=1` or `--demo` starts with it on. |
-| Page | **Configurações**, **Modo demonstração**, or the button on the empty screen. Works only on a page opened on this computer. |
-| Browser only | Add `?mock=1` to the page URL: `http://127.0.0.1:4848/?mock=1`. The same simulator runs inside the page with no server data and no network calls; the pill reads **Demonstração local**. |
+| Page | **Settings**, **Demo mode**, or the button on the empty screen. Works only on a page opened on this computer. |
+| Browser only | Add `?mock=1` to the page URL: `http://127.0.0.1:4848/?mock=1`. The same simulator runs inside the page with no server data and no network calls; the pill reads **Local demo**. |
 
-Demo agents are not saved to **Meu dia**.
+Demo agents are not saved to **My day**. The demo's prompts, tasks and activities are shown in the interface language.
 
 ## Development mode
 

@@ -25,7 +25,7 @@ page, page decisions go back to the hooks.
   transcripts).
 - Web: no UI framework; small component classes with `el` + `render()`; render batched per animation frame; DOM built
   with a tiny `h()` helper; text via textContent (never innerHTML with user data).
-- Visible text in pt-BR. Code identifiers/comments in English.
+- Visible text lives in catalogs (pt-BR source, en, es); texts the server generates are `Msg {key, params}` next to a pt-BR `text` fallback. Code identifiers/comments in English.
 
 ## Security
 - Bind 127.0.0.1. A non-loopback `AI_OFFICE_HOST` is refused at startup unless `AI_OFFICE_ALLOW_REMOTE=1`

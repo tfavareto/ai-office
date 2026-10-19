@@ -41,6 +41,8 @@ Você vê quem está trabalhando, quem precisa de você e quem está esperando u
   <strong>Claude Code</strong> CLI + desktop / várias contas / <strong>macOS + Linux</strong>
   <br />
   <strong>Pixel art 2D</strong> por padrão / <strong>3D</strong> opcional / 100% local
+  <br />
+  Interface em <strong>English</strong>, <strong>Português</strong> e <strong>Español</strong>
 </p>
 
 ---
@@ -113,7 +115,7 @@ O modo demo enche o escritório de sessões simuladas e realistas: as pessoas ch
 ## 02 / Veja cada agente num relance
 
 <p align="center">
-  <img src="docs/assets/readme/office-demo.gif" alt="O escritório 2D no modo demo: os agentes andam entre as salas, sentam em suas mesas e mudam de status." width="1200" />
+  <img src="docs/assets/readme/pt-BR/office-demo.gif" alt="O escritório 2D no modo demo: os agentes andam entre as salas, sentam em suas mesas e mudam de status." width="1200" />
 </p>
 
 O escritório lê o que o Claude Code já grava em disco e acompanha as mudanças. Não há nada para configurar por projeto.
@@ -154,7 +156,7 @@ O plugin `ai-office` adiciona hooks do Claude Code que conversam com o servidor 
 | Você quer | No escritório | O que chega ao Claude Code |
 |---|---|---|
 | **Aprovar uma ferramenta** | **Aprovar** ou **Aprovar e não perguntar de novo** | A decisão, como se você tivesse respondido no terminal |
-| **Recusar uma ferramenta** | **Recusar**, com motivo opcional e interrupção | A recusa e o seu motivo |
+| **Recusar uma ferramenta** | **Recusar**, com motivo opcional e interrupção | A recusa e o seu motivo, no seu idioma |
 | **Orientar um agente** | Digite em **Mensagens** ou escolha uma mensagem rápida | O seu texto depois da próxima chamada de ferramenta, ou como nova instrução quando o turno terminar |
 | **Falar com uma sala inteira** | A mensagem para a equipe da sala | Uma mensagem por agente, acompanhada como "2 de 3 entregues" |
 | **Acompanhar a conversa** | O terminal somente leitura (`T`) | Nada: ele só lê |
@@ -163,8 +165,8 @@ O diálogo do terminal continua funcionando: vale a resposta que chegar primeiro
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/agent-drawer.png" alt="Painel do agente com um cartão de permissão pendente e os botões Aprovar, Aprovar e não perguntar de novo, Recusar e Responder no terminal." /></td>
-    <td width="50%"><img src="docs/assets/readme/terminal.png" alt="Painel de terminal somente leitura mostrando os prompts, as respostas e as chamadas de ferramenta de uma sessão." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/agent-drawer.png" alt="Painel do agente com um cartão de permissão pendente e os botões Aprovar, Aprovar e não perguntar de novo, Recusar e Responder no terminal." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/terminal.png" alt="Painel de terminal somente leitura mostrando os prompts, as respostas e as chamadas de ferramenta de uma sessão." /></td>
   </tr>
   <tr>
     <td align="center"><sub>Os pedidos de permissão aparecem no topo do cartão do agente</sub></td>
@@ -180,8 +182,8 @@ O [guia do plugin](docs/03-plugin.md) detalha cada hook, os caminhos de entrega 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/office-2d-day.png" alt="O escritório 2D em pixel art de dia: recepção, café, sala de reunião, lounge, banheiros e uma sala por projeto." /></td>
-    <td width="50%"><img src="docs/assets/readme/office-3d-night.png" alt="O escritório 3D à noite: uma vista isométrica do andar no topo de uma torre iluminada em uma cidade." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/office-2d-day.png" alt="O escritório 2D em pixel art de dia: recepção, café, sala de reunião, lounge, banheiros e uma sala por projeto." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/office-3d-night.png" alt="O escritório 3D à noite: uma vista isométrica do andar no topo de uma torre iluminada em uma cidade." /></td>
   </tr>
   <tr>
     <td align="center"><sub>Pixel art 2D, o padrão</sub></td>
@@ -278,7 +280,15 @@ Os padrões servem para a maioria das pessoas. Defina variáveis de ambiente (ou
 | `AI_OFFICE_DEMO` | desligado | Iniciar com sessões de demonstração |
 | `AI_OFFICE_LOG` | normal | `quiet` ou `debug` |
 
-As preferências da interface (2D ou 3D, dia e noite, nomes, balões de fala, animação, sons, notificações do navegador) ficam em **Configurações** e são salvas no seu navegador. O [guia de configuração](docs/04-configuration.md) lista tudo, inclusive os ajustes dos hooks.
+As preferências da interface (idioma, 2D ou 3D, dia e noite, nomes, balões de fala, animação, sons, notificações do navegador) ficam em **Configurações** e são salvas no seu navegador. O [guia de configuração](docs/04-configuration.md) lista tudo, inclusive os ajustes dos hooks.
+
+<a id="language"></a>
+
+### Seu idioma
+
+A interface inteira (painéis, status, atividades, notificações, nomes das salas e as placas dentro do escritório) está disponível em **English**, **Português (Brasil)** e **Español**. Escolha um em **Configurações → Idioma**, ou deixe **Automático (sistema)** para seguir o seu navegador. A troca é instantânea e mantém a sua seleção, os painéis abertos e a câmera.
+
+O texto que vem das suas próprias sessões (prompts, títulos de tarefas, comandos, nomes de arquivos) aparece como foi escrito. Quando você responde a uma permissão ou envia uma mensagem, o plugin fala com o agente no seu idioma.
 
 <a id="evidence"></a>
 
@@ -287,7 +297,7 @@ As preferências da interface (2D ou 3D, dia e noite, nomes, balões de fala, an
 | Verificação | Como |
 |---|---|
 | **Tipos** | TypeScript em modo strict nos quatro pacotes: `npm run typecheck` |
-| **Comportamento** | Mais de 600 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
+| **Comportamento** | Mais de 1200 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
 | **Estilo** | ESLint e Prettier: `npm run lint` |
 | **Build** | Bundle web e bundle do servidor: `npm run build` |
 | **Documentação** | Todo link local, âncora e tradução do README verificados: `npm run docs:check` |

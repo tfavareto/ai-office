@@ -12,7 +12,7 @@ lives in [AGENTS.md](../../AGENTS.md); the workflow for people in [CONTRIBUTING.
 - No dead code, no leftover TODOs, no console noise in production paths.
 - Errors are handled explicitly and external input (HTTP bodies, JSONL lines, hook stdin) is validated defensively.
 - The server never throws on bad data: skip the line, log once at debug level.
-- Visible UI text is Brazilian Portuguese; code, comments, docs, prompts and commit messages are English.
+- Visible UI text lives in the catalogs, with every key present in pt-BR, en and es; code, comments, docs, prompts and commit messages are English.
 
 ## Checks
 

@@ -41,6 +41,8 @@ Ves quién está trabajando, quién te necesita y quién espera un comando en el
   <strong>Claude Code</strong> CLI + desktop / varias cuentas / <strong>macOS + Linux</strong>
   <br />
   <strong>Pixel art 2D</strong> por defecto / <strong>3D</strong> opcional / 100% local
+  <br />
+  Interfaz en <strong>English</strong>, <strong>Português</strong> y <strong>Español</strong>
 </p>
 
 ---
@@ -106,14 +108,14 @@ Las sesiones que ya estaban abiertas toman el plugin después de `/reload-plugin
 AI_OFFICE_DEMO=1 npm start
 ```
 
-El modo demo llena la oficina de sesiones simuladas y realistas: las personas llegan, trabajan, piden permisos y terminan. También puedes activarlo después en **Configurações** (configuración).
+El modo demo llena la oficina de sesiones simuladas y realistas: las personas llegan, trabajan, piden permisos y terminan. También puedes activarlo después en **Configuración**.
 
 <a id="watch"></a>
 
 ## 02 / Mira a cada agente de un vistazo
 
 <p align="center">
-  <img src="docs/assets/readme/office-demo.gif" alt="La oficina 2D en modo demo: los agentes caminan entre las salas, se sientan en sus escritorios y cambian de estado." width="1200" />
+  <img src="docs/assets/readme/es/office-demo.gif" alt="La oficina 2D en modo demo: los agentes caminan entre las salas, se sientan en sus escritorios y cambian de estado." width="1200" />
 </p>
 
 La oficina lee lo que Claude Code ya escribe en disco y sigue los cambios. No hay nada que configurar por proyecto.
@@ -130,13 +132,13 @@ Los estados siempre se muestran con texto además del color:
 
 | Estado | Significado |
 |---|---|
-| 🟢 **Trabalhando** (trabajando) | El turno está en curso |
-| 🟠 **Precisa de você** (te necesita) | Un permiso, una pregunta o un plan te está esperando |
-| 🔵 **Esperando o shell** (esperando al shell) | Un comando sigue ejecutándose |
-| ⚪ **Ocioso** (inactivo) | El turno terminó; la sesión sigue abierta |
-| 🔷 **Concluído** (terminado) | Un subagente terminó y está saliendo de la oficina |
+| 🟢 **Trabajando** | El turno está en curso |
+| 🟠 **Te necesita** | Un permiso, una pregunta o un plan te está esperando |
+| 🔵 **Esperando el shell** | Un comando sigue ejecutándose |
+| ⚪ **Inactivo** | El turno terminó; la sesión sigue abierta |
+| 🔷 **Terminado** | Un subagente terminó y está saliendo de la oficina |
 
-Haz clic en una persona para ver su resumen, tareas, subagentes, actividad y datos de la sesión. **Meu dia** (mi día) muestra cuánto tiempo pasó cada agente en cada estado hoy, y el historial de sesiones guarda los últimos siete días. La [guía de usuario](docs/02-using-the-office.md) cubre cada panel y atajo de teclado.
+Haz clic en una persona para ver su resumen, tareas, subagentes, actividad y datos de la sesión. **Mi día** muestra cuánto tiempo pasó cada agente en cada estado hoy, y el historial de sesiones guarda los últimos siete días. La [guía de usuario](docs/02-using-the-office.md) cubre cada panel y atajo de teclado.
 
 <a id="direct"></a>
 
@@ -153,18 +155,18 @@ El plugin `ai-office` agrega hooks de Claude Code que hablan con el servidor loc
 
 | Quieres | En la oficina | Lo que llega a Claude Code |
 |---|---|---|
-| **Aprobar una herramienta** | **Aprovar** (aprobar) o **Aprovar e não perguntar de novo** (aprobar y no volver a preguntar) | La decisión, como si hubieras respondido en la terminal |
-| **Rechazar una herramienta** | **Recusar** (rechazar), con motivo opcional e interrupción | El rechazo y tu motivo |
-| **Dirigir a un agente** | Escribe en **Mensagens** (mensajes) o elige un mensaje rápido | Tu texto después de su próxima llamada a una herramienta, o como nueva instrucción cuando termine su turno |
-| **Hablar con una sala entera** | El mensaje de equipo de la sala | Un mensaje por agente, con seguimiento como "2 de 3 entregues" (2 de 3 entregados) |
+| **Aprobar una herramienta** | **Aprobar** o **Aprobar y no volver a preguntar** | La decisión, como si hubieras respondido en la terminal |
+| **Rechazar una herramienta** | **Rechazar**, con motivo opcional e interrupción | El rechazo y tu motivo, en tu idioma |
+| **Dirigir a un agente** | Escribe en **Mensajes** o elige un mensaje rápido | Tu texto después de su próxima llamada a una herramienta, o como nueva instrucción cuando termine su turno |
+| **Hablar con una sala entera** | El mensaje de equipo de la sala | Un mensaje por agente, con seguimiento como "2 de 3 entregados" |
 | **Seguir la conversación** | La terminal de solo lectura (`T`) | Nada: solo lee |
 
-El diálogo de la terminal sigue funcionando: gana la respuesta que llegue primero. Cada mensaje muestra su estado: **Na fila** (en cola), **Entregue durante o trabalho** (entregado mientras trabaja), **Entregue como nova instrução** (entregado como nueva instrucción) o **Expirou** (expiró tras 2 horas).
+El diálogo de la terminal sigue funcionando: gana la respuesta que llegue primero. Cada mensaje muestra su estado: **En cola**, **Entregado durante el trabajo**, **Entregado como nueva instrucción** o **Expiró** (tras 2 horas).
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/agent-drawer.png" alt="Panel del agente con una tarjeta de permiso pendiente y los botones Aprovar, Aprovar e não perguntar de novo, Recusar y Responder no terminal." /></td>
-    <td width="50%"><img src="docs/assets/readme/terminal.png" alt="Panel de terminal de solo lectura que muestra los prompts, las respuestas y las llamadas a herramientas de una sesión." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/agent-drawer.png" alt="Panel del agente con una tarjeta de permiso pendiente y los botones Aprobar, Aprobar y no volver a preguntar, Rechazar y Responder en el terminal." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/terminal.png" alt="Panel de terminal de solo lectura que muestra los prompts, las respuestas y las llamadas a herramientas de una sesión." /></td>
   </tr>
   <tr>
     <td align="center"><sub>Las solicitudes de permiso aparecen sobre la tarjeta del agente</sub></td>
@@ -180,8 +182,8 @@ La [guía del plugin](docs/03-plugin.md) detalla cada hook, las vías de entrega
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/office-2d-day.png" alt="La oficina 2D en pixel art de día: recepción, café, sala de reuniones, lounge, baños y una sala por proyecto." /></td>
-    <td width="50%"><img src="docs/assets/readme/office-3d-night.png" alt="La oficina 3D de noche: una vista isométrica del piso sobre una torre iluminada en una ciudad." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/office-2d-day.png" alt="La oficina 2D en pixel art de día: recepción, café, sala de reuniones, lounge, baños y una sala por proyecto." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/office-3d-night.png" alt="La oficina 3D de noche: una vista isométrica del piso sobre una torre iluminada en una ciudad." /></td>
   </tr>
   <tr>
     <td align="center"><sub>Pixel art 2D, la opción por defecto</sub></td>
@@ -189,12 +191,12 @@ La [guía del plugin](docs/03-plugin.md) detalla cada hook, las vías de entrega
   </tr>
 </table>
 
-Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfaz; solo cambia el renderizado. Cambia en **Configurações → Visual** (configuración → visual) y se aplica al instante.
+Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfaz; solo cambia el renderizado. Cambia en **Configuración → Visual** y se aplica al instante.
 
 | | 2D (por defecto) | 3D (opcional) |
 |---|---|---|
 | **Aspecto** | Pixel art hecho a mano: nogal, mármol, latón, plantas y una ciudad alrededor del edificio | Torre 3D iluminada con sombras en tiempo real, vidrio, tráfico urbano y personajes 3D |
-| **Cámara** | Desplazar, zoom y vista general | **Visão geral** (vista general), **Primeira pessoa** (primera persona) y **Sobre o ombro** (sobre el hombro) |
+| **Cámara** | Desplazar, zoom y vista general | **Vista general**, **Primera persona** y **Sobre el hombro** |
 | **Día y noche** | Sigue tu hora local, o día o noche fijos | Igual, con brillo nocturno en las ventanas y los letreros |
 | **Costo** | Muy ligero: cientos de fps de margen | Más pesado, sobre todo de noche: [cifras medidas](docs/06-validation.md) |
 | **Carga** | Inmediata | Bajo demanda, la primera vez que cambias |
@@ -278,7 +280,15 @@ Los valores por defecto sirven para la mayoría de las personas. Define variable
 | `AI_OFFICE_DEMO` | desactivado | Iniciar con sesiones de demostración |
 | `AI_OFFICE_LOG` | normal | `quiet` o `debug` |
 
-Las preferencias de la interfaz (2D o 3D, día y noche, nombres, globos de diálogo, animación, sonidos, notificaciones del navegador) viven en **Configurações** y se guardan en tu navegador. La [guía de configuración](docs/04-configuration.md) lo lista todo, incluidos los ajustes de los hooks.
+Las preferencias de la interfaz (idioma, 2D o 3D, día y noche, nombres, globos de diálogo, animación, sonidos, notificaciones del navegador) viven en **Configuración** y se guardan en tu navegador. La [guía de configuración](docs/04-configuration.md) lo lista todo, incluidos los ajustes de los hooks.
+
+<a id="language"></a>
+
+### Tu idioma
+
+Toda la interfaz (paneles, estados, actividades, notificaciones, nombres de las salas y los letreros dentro de la oficina) está disponible en **English**, **Português (Brasil)** y **Español**. Elige uno en **Configuración → Idioma**, o deja **Automático (sistema)** para seguir tu navegador. El cambio es instantáneo y conserva tu selección, los paneles abiertos y la cámara.
+
+El texto que viene de tus propias sesiones (prompts, títulos de tareas, comandos, nombres de archivos) se muestra tal como fue escrito. Cuando respondes a un permiso o envías un mensaje, el plugin le habla al agente en tu idioma.
 
 <a id="evidence"></a>
 
@@ -287,7 +297,7 @@ Las preferencias de la interfaz (2D o 3D, día y noche, nombres, globos de diál
 | Verificación | Cómo |
 |---|---|
 | **Tipos** | TypeScript estricto en los cuatro paquetes: `npm run typecheck` |
-| **Comportamiento** | Más de 600 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
+| **Comportamiento** | Más de 1200 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
 | **Estilo** | ESLint y Prettier: `npm run lint` |
 | **Build** | Bundle web y bundle del servidor: `npm run build` |
 | **Documentación** | Todo enlace local, ancla y traducción del README verificados: `npm run docs:check` |

@@ -41,13 +41,14 @@ needed for state (last ~2 MB); long history is read lazily for `/api/history` an
 ## Status derivation
 - `working`: a prompt/tool_result is being processed, an assistant line has pending tool_use, or registry says busy.
 - `waiting`: a permission request is pending (plugin), or a Notification hook said it needs input, or an
-  `AskUserQuestion` tool_use is pending (waitingFor "Responder uma pergunta"), or a tool_use has been pending over 8 s
-  while the registry says idle (waitingFor "Aprovar <ferramenta>").
+  `AskUserQuestion` tool_use is pending (waitingFor "Responder uma pergunta", the pt-BR source of `waiting.answerQuestion`), or a tool_use has been pending over 8 s
+  while the registry says idle (waitingFor "Aprovar <ferramenta>", the pt-BR source of `waiting.approve`).
 - `idle`: turn finished (stop_reason end_turn or registry idle) and session open.
 - Shells: Bash tool_use with `run_in_background`, or running over 10 s without result, becomes a ShellJob; removed on
   result / KillShell / BashOutput completion. Monitor-like tools use kind 'monitor'.
 
-## Activities (pt-BR text, one emoji)
+## Activities (one emoji)
+Texts are emitted as `Msg` (shared catalogs, key + params) next to a pt-BR `text` fallback; the examples below are the pt-BR source texts, which the web app renders in the user's language.
 Read: "📖 Lendo <file>"; Edit/MultiEdit: "✏️ Editando <file>"; Write: "📝 Escrevendo <file>"; Bash: "💻 <description or
 command head>"; Grep/Glob: "🔎 Buscando “<pattern>”"; WebFetch/WebSearch: "🌐 ..."; Task/Agent: "👥 Delegando:
 <description>"; TodoWrite: "📋 Atualizando a lista de tarefas"; mcp__x__y: "🔌 <server>: <tool>"; AskUserQuestion: "❓
@@ -70,7 +71,7 @@ view cache ≤ ~8 MB), sessions (scan
 projects dirs for sessions modified in 7 days; title from custom-title or first prompt), day (day recorder), demo
 toggle, permissions (create from hook into a pending map with 5 min expiry; wait long-poll 25 s max; detail;
 decision; auto-cancel when the agent's session moves on), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
-long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity).
+long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity). `POST /api/messages` and `POST /api/permissions/:id/decision` accept an optional `locale` (`pt-BR`, `en` or `es`; anything else is a 400 `invalid-locale`); the server keeps it with the queued message and returns it from the inbox so the hooks can phrase their output in that language.
 
 ## Day recorder
 Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD.json` (flush every 30 s).

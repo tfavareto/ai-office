@@ -16,6 +16,7 @@ import { HoverTip } from './components/hover-tip';
 import { NotificationCenter } from './components/notification-center';
 import { SessionHistory } from './components/session-history';
 import { FOCUS_KEY_ATTR, Settings } from './components/settings';
+import { UsagePopover } from './components/usage-popover';
 import { Sidebar } from './components/sidebar';
 import { ConnectionBanner, Splash } from './components/splash';
 import { TerminalPanel } from './components/terminal-panel';
@@ -119,7 +120,7 @@ export class App implements AppContext {
     const drawer = new Drawer(this);
     const feed = new Feed(this);
     const toasts = new Toasts(this);
-    const popovers = [new NotificationCenter(this), new SessionHistory(this), new Settings(this)];
+    const popovers = [new NotificationCenter(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
     const dialogs = [new DayDialog(this), new HelpDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);

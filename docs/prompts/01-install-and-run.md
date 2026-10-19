@@ -87,7 +87,7 @@ If a step fails, stop, show the last relevant lines of the error and say what yo
 
 10. Tell the user, in plain words:
    - In every Claude Code session that was already open (including this one, if you are running in Claude Code), type `/reload-plugins` or restart the session so it loads the plugin hooks.
-   - The page should show a green **Ao vivo** pill; each open project becomes a room. Keep the tab open to answer permission requests there.
+   - The page should show a green **Live** pill (the interface follows the browser language, so it may read **Ao vivo** or **En vivo**); each open project becomes a room. Keep the tab open to answer permission requests there.
    - The server you started stops when the computer restarts or the process is killed (`kill $(cat ~/.ai-office/server.pid)` stops it).
    - To start it automatically at login, run prompt 02: Read https://raw.githubusercontent.com/tfavareto/ai-office/main/docs/prompts/02-run-at-login.md and execute the entire block in the "Prompt" section.
    Do not set up run at login unless the user asks.

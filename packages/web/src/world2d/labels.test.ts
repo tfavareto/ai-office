@@ -147,26 +147,39 @@ describe('room pill slot', () => {
   const free: Box = { x: 320, y: 56, w: 1000, h: 800 };
 
   it('centres the pill in the room and caps its width to the room', () => {
-    const slot = roomPillSlot({ x: 500, y: 200, w: 160, h: 190 }, free, 20, 32)!;
+    const slot = roomPillSlot({ x: 500, y: 200, w: 160, h: 190 }, free, 20, 32, 4)!;
     expect(slot.cx).toBe(580);
     expect(slot.maxWidth).toBe(152);
-    expect(slot.y).toBe(206);
+    expect(slot.y).toBe(183);
+  });
+
+  it('keeps the pill above the wall decoration at every zoom', () => {
+    for (const zoom of [0.4, 0.9, 1.5, 2.5]) {
+      const room: Box = { x: 500, y: 200, w: 160, h: 190 * zoom };
+      const slot = roomPillSlot(room, free, 20, 32 * zoom, 4 * zoom)!;
+      expect(slot.y + 20, `zoom ${zoom}`).toBeLessThanOrEqual(room.y + 4 * zoom);
+    }
   });
 
   it('uses only the part of a room that is outside the side panels', () => {
-    const slot = roomPillSlot({ x: 250, y: 200, w: 160, h: 190 }, free, 20, 32)!;
+    const slot = roomPillSlot({ x: 250, y: 200, w: 160, h: 190 }, free, 20, 32, 4)!;
     expect(slot.cx).toBe(365);
     expect(slot.maxWidth).toBe(82);
   });
 
   it('is null when the room is hidden by a panel or off screen', () => {
-    expect(roomPillSlot({ x: 100, y: 200, w: 160, h: 190 }, free, 20, 32)).toBeNull();
-    expect(roomPillSlot({ x: 500, y: 900, w: 160, h: 190 }, free, 20, 32)).toBeNull();
+    expect(roomPillSlot({ x: 100, y: 200, w: 160, h: 190 }, free, 20, 32, 4)).toBeNull();
+    expect(roomPillSlot({ x: 500, y: 900, w: 160, h: 190 }, free, 20, 32, 4)).toBeNull();
   });
 
   it('keeps the pill visible below the top bar when the room starts above it', () => {
-    const slot = roomPillSlot({ x: 500, y: 20, w: 160, h: 190 }, free, 20, 32)!;
+    const slot = roomPillSlot({ x: 500, y: 20, w: 160, h: 190 }, free, 20, 32, 4)!;
     expect(slot.y).toBe(58);
+  });
+
+  it('follows the wall instead of covering it while part of the wall is still visible', () => {
+    const slot = roomPillSlot({ x: 500, y: 40, w: 160, h: 190 }, free, 20, 32, 4)!;
+    expect(slot.y).toBe(23);
   });
 });
 

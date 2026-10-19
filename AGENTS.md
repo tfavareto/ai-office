@@ -54,12 +54,17 @@ Before handing work back, run `npm run typecheck`, `npm run lint`, `npm test`, `
   pure functions. Handle errors explicitly; validate external input (HTTP bodies, JSONL lines, hook stdin).
 - Every logic change comes with tests (Vitest, Arrange-Act-Assert, descriptive names, synthetic fixtures next to the
   code). No console noise in production paths.
-- UI text is Brazilian Portuguese. Code, comments, docs, prompts and commit messages are English. Only
-  `README.pt-BR.md` and `README.es.md` are localized; keep them aligned with `README.md` (same sections and anchors).
+- UI text lives in the catalogs (`packages/web/src/i18n/{ui,world}/` and `packages/shared/src/i18n/messages/`). Every
+  new user-visible string gets a key in pt-BR, en and es; pt-BR is the source, and types and catalog tests enforce
+  parity. Never hardcode visible text, and never concatenate translated fragments (use parameters and plural forms).
+  Texts the server or the demo generate are emitted as a `Msg` (`{ key, params }`) next to a pt-BR fallback `text`.
+  Text from the user's own sessions is shown as written. Code, comments, docs, prompts and commit messages are English.
+  Only `README.pt-BR.md` and `README.es.md` are localized; keep them aligned with `README.md` (same sections, anchors
+  and screenshots in `docs/assets/readme/<lang>/`).
 - Keep public paths and file names in English. When a contract changes, update docs, links and prompts together, then
   run `npm run docs:check`.
 - Local-only and private: never commit real session content, transcripts, tokens, personal paths or e-mails.
-  Screenshots come from demo mode only (`AI_OFFICE_DEMO=1` or `--demo`).
+  Screenshots, in any language, come from demo mode only (`AI_OFFICE_DEMO=1` or `--demo`).
 - Never weaken a security guard (token, Host/Origin/Sec-Fetch-Site checks, CSP, loopback-only features, size and time
   limits). Treat a change near them as security-sensitive and test it.
 - Hooks must never block Claude Code: they exit fast and silently when AI Office is not running.

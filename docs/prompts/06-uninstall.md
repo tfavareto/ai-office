@@ -59,7 +59,7 @@ If a step fails, stop and show the error with a proposal.
    - If a background process listens on 4848: show `ps -o pid,command -p <pid>`; only if the command line ends in `packages/server/dist/index.js`, confirm and stop it with `kill <pid>`. Never stop anything else.
    - Check that `curl -s -m 3 http://127.0.0.1:4848/api/health` no longer answers.
 
-4. State folder `~/.ai-office`. It holds the access token, agent names, daily "Meu dia" records and possibly `server.log` and `server.pid`. If the user wants it deleted:
+4. State folder `~/.ai-office`. It holds the access token, agent names, daily "My day" records and possibly `server.log` and `server.pid`. If the user wants it deleted:
    - list it with `ls -la ~/.ai-office` (never read the token);
    - confirm that the server is stopped;
    - ask the user to confirm deleting exactly that path;

@@ -47,7 +47,7 @@ Run these and keep the results. Skip a check that does not apply and say so.
 6. Plugin per account: `npm run plugin:status` in `<dir>` (add `--claude <path>` if the CLI is off PATH). Expected for each account: `marketplace: added` and `plugin: installed ... (up to date)`.
 7. Service, if any: macOS `launchctl print "gui/$(id -u)/com.ai-office.server" | head -n 20`; Linux `systemctl --user status ai-office.service --no-pager`. And the last log lines: `tail -n 30 ~/.ai-office/server.log`, `tail -n 30 ~/Library/Logs/ai-office.log`, or `journalctl --user -u ai-office -n 30 --no-pager`. Look for `Porta` / `porta`, `EADDRINUSE`, `Recusando`, `[erro]`.
 8. Environment that affects the plugin: `printenv AI_OFFICE_PORT AI_OFFICE_STATE_DIR AI_OFFICE_CLAUDE_DIRS AI_OFFICE_STANDBY_MIN AI_OFFICE_PERMISSION_TIMEOUT AI_OFFICE_HOOK_DEBUG` (it is fine if they are empty).
-9. Browser hints (ask the user, do not drive their browser): is the pill green "Ao vivo"? What does the browser console show? Does `http://127.0.0.1:4848/?mock=1` render an office (it runs without the server)? Is the tab opened through `127.0.0.1` or `localhost`, not a hostname or LAN address? Which visual (2D or 3D) is selected, and is the laptop in Low Power Mode?
+9. Browser hints (ask the user, do not drive their browser): is the pill green "Live" (or "Ao vivo" / "En vivo", the interface follows the browser language, which can be changed in Settings → Language)? What does the browser console show? Does `http://127.0.0.1:4848/?mock=1` render an office (it runs without the server)? Is the tab opened through `127.0.0.1` or `localhost`, not a hostname or LAN address? Which visual (2D or 3D) is selected, and is the laptop in Low Power Mode?
 
 ## Phase B: explain
 
@@ -58,7 +58,7 @@ Summarize in plain words what is healthy, what is wrong and the most likely caus
 - Plugin missing or stale in an account, or sessions started before it was installed (restart them).
 - Hooks cannot authenticate: token or state folder mismatch (`AI_OFFICE_STATE_DIR`), port mismatch (`AI_OFFICE_PORT`), or an old cached plugin version (hooks log 401).
 - Permissions not shown: no AI Office page open on this computer, or the page opened through a non-local address.
-- Messages stay "Na fila": plugin not loaded in that session, or the agent is idle with no stand-by (stand-by needs an open local page and lasts at most 10 minutes).
+- Messages stay "Queued" (the status label depends on the interface language): plugin not loaded in that session, or the agent is idle with no stand-by (stand-by needs an open local page and lasts at most 10 minutes).
 - 3D slow: 3D at night is heavy, especially in Low Power Mode; 2D is the default.
 
 ## Phase C: propose and apply fixes

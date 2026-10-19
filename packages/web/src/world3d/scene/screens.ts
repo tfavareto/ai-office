@@ -4,6 +4,7 @@ import type { AgentStatus, Msg } from '@ai-office/shared';
 import { type WorldText, worldText } from '../../i18n/world/translate';
 import { Rng } from '../../layout/rng';
 import { boardLine } from '../../world2d/runtime/boards';
+import { menuLayout } from './menuLayout';
 import { fitFont } from './textFit';
 import { canvas2d } from './textures';
 
@@ -279,33 +280,43 @@ export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: numb
 }
 
 export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, text: WorldText = worldText('pt-BR')): void {
-  ctx.fillStyle = '#22262b';
-  ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = '#c9a456';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(10, 10, w - 20, h - 20);
-  ctx.fillStyle = '#f2ead8';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.font = font(44, 700);
-  ctx.fillText(fitText(ctx, text.t('menu3d.title').toLocaleUpperCase(text.locale), w - 80), w / 2, 62);
-  ctx.textAlign = 'left';
-  ctx.font = font(30, 500);
   const items: [Parameters<WorldText['t']>[0], number][] = [
     ['menu3d.espresso', 4], ['menu3d.cappuccino', 8], ['menu3d.cheeseBread', 6], ['menu3d.orangeJuice', 7], ['menu3d.sparkling', 3],
   ];
+  const layout = menuLayout(w, h, items.length);
+  ctx.fillStyle = '#22262b';
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = '#c9a456';
+  ctx.lineWidth = Math.max(3, Math.round(h * 0.0235));
+  const inset = Math.round(h * 0.039);
+  ctx.strokeRect(inset, inset, w - 2 * inset, h - 2 * inset);
+  ctx.fillStyle = '#f2ead8';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  const title = text.t('menu3d.title').toLocaleUpperCase(text.locale);
+  const titleMax = w - 2 * layout.left;
+  ctx.font = font(fitFont(ctx, title, (size) => font(size, 700), titleMax, layout.titleSize, Math.round(layout.titleSize * 0.6)), 700);
+  ctx.fillText(fitText(ctx, title, titleMax), w / 2, layout.titleY);
+  ctx.fillStyle = 'rgba(201,164,86,0.55)';
+  ctx.fillRect(layout.left, layout.titleRuleY, layout.right - layout.left, 1.5);
   items.forEach(([key, price], i) => {
-    const y = 130 + i * 50;
+    const y = layout.rowY[i];
     const cost = text.t('menu3d.price', { price });
+    const name = text.t(key);
+    ctx.font = font(layout.rowSize, 500);
     ctx.textAlign = 'right';
     const costW = ctx.measureText(cost).width;
     ctx.fillStyle = '#e0b86a';
-    ctx.fillText(cost, w - 50, y);
+    ctx.fillText(cost, layout.right, y);
+    const nameMax = layout.right - layout.left - costW - layout.rowSize;
+    ctx.font = font(fitFont(ctx, name, (size) => font(size, 500), nameMax, layout.rowSize, layout.rowMinSize), 500);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f2ead8';
-    ctx.fillText(fitText(ctx, text.t(key), w - 100 - costW - 24), 50, y);
+    ctx.fillText(fitText(ctx, name, nameMax), layout.left, y);
+    const ruleY = layout.ruleY[i];
+    if (ruleY === undefined) return;
     ctx.fillStyle = 'rgba(242,234,216,0.2)';
-    ctx.fillRect(50, y + 24, w - 100, 1.5);
+    ctx.fillRect(layout.left, ruleY, layout.right - layout.left, 1.5);
   });
 }
 

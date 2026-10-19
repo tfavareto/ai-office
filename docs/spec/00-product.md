@@ -3,10 +3,11 @@
 AI Office is a local web app that turns the Claude Code sessions running on this computer into a live corporate
 office. Every open project is a room; every session is a person working in it; subagents are colleagues who arrive,
 work and leave. The user watches what each agent is doing in real time, answers permission requests, sends messages
-("ordens") to agents and reviews the day.
+("orders") to agents and reviews the day.
 
-Audience: developers using Claude Code (CLI or desktop) on macOS/Linux, often with more than one account. UI language:
-**Brazilian Portuguese** (all visible text). Code, comments and docs in the repo: English.
+Audience: developers using Claude Code (CLI or desktop) on macOS/Linux, often with more than one account. UI languages:
+**English, Brazilian Portuguese and Spanish** (all visible text), chosen in Settings or taken from the browser; pt-BR is
+the source catalog the other two are translated from. Code, comments and docs in the repo: English.
 
 ## Principles
 - **Local and private.** The server reads Claude Code files on this machine and binds to 127.0.0.1 by default. Nothing
@@ -15,49 +16,56 @@ Audience: developers using Claude Code (CLI or desktop) on macOS/Linux, often wi
 - **Never break Claude Code.** Hooks exit fast and silently when AI Office is not running; they never block a session.
 - **Smooth.** 60 fps target in the default (2D) view on a MacBook; no main-thread stalls over 100 ms after load. 3D is
   an optional visual.
+- **Speaks your language.** Every visible string comes from a catalog with the same keys in pt-BR, en and es; the
+  language switches live and never changes text that comes from the user's own sessions.
 - **Delightful.** Premium corporate look (warm walnut, marble, brass, glass, plants), lively but calm characters,
   readable at a glance.
 
 ## Feature list (all required for 1.0)
-1. **Office view (2D default, 3D optional)**: building with core areas (Recepção, Copa, Sala de reunião, Banheiros,
+1. **Office view (2D default, 3D optional)**: building with core areas (Reception, Pantry, Meeting room, Restrooms,
    Lounge) and one room per open project; people walk, sit at desks, gather, react to status. Day/night cycle by local
    time (auto/day/night setting). Click a person or room to open details; double-click focuses camera. Pan (drag/WASD/
-   arrows), zoom (wheel/+/-), "visão geral" (O).
-2. **Top bar**: brand "AI Office" (logo + wordmark), connection pill, counters (salas, agentes, trabalhando,
-   subagentes, shells rodando, precisam de você; the last two clickable to jump to the next one), usage cards per
-   account (tokens and estimated cost: 5h window, week, today), buttons: visão geral, zoom, notifications (bell with
-   unread badge), Meu dia, histórico de sessões, feed, configurações, ajuda.
+   arrows), zoom (wheel/+/-), "Overview" (O).
+2. **Top bar**: brand "AI Office" (logo + wordmark), connection pill, counters (rooms, agents, working,
+   subagents, shells running, need you; the last two clickable to jump to the next one), usage cards per
+   account (tokens and estimated cost: 5h window, week, today; they shrink to a compact form when space is short and
+   collapse into a "+N" button that opens a popover with all of them), buttons: overview, zoom, notifications (bell with
+   unread badge), My day, session history, feed, settings, help.
 3. **Sidebar**: search (agent, project, account; "/" focuses), account filter chips, list of rooms with their agents
    and subagents (avatar, name, account chip, role, current activity, status dot, elapsed time for long shells), room
    task progress.
 4. **Details drawer** (agent): hero (avatar, name, role, account, room link), title, status row (status + since,
-   actions: Mensagem, Seguir, Centralizar, Terminal), urgent cards always on top (permission request card with
-   Aprovar / Aprovar e não perguntar de novo / Recusar (reason, interrupt) / Responder no terminal; "Precisa de você"
-   alert; "Esperando o shell" card), then tabs: **Resumo** (KPI tiles in a 2x2 grid: ferramentas, tokens, tempo na
-   sessão, custo; Agora; Tarefas; Subagentes/Responsável), **Mensagens** (composer + history), **Atividade** (running
-   shells, timeline), **Dados** (stats list, model, branch, permission mode, session id copy, start, duration). Room
+   actions: Message, Follow, Center, Terminal), urgent cards always on top (permission request card with
+   Approve / Approve and don't ask again / Deny (reason, interrupt) / Answer in the terminal; "Needs you"
+   alert; "Waiting for the shell" card), then tabs: **Summary** (KPI tiles in a 2x2 grid: tools, tokens, time in
+   session, cost; Now; Tasks; Subagents/Owner), **Messages** (composer + history), **Activity** (running
+   shells, timeline), **Data** (stats list, model, branch, permission mode, session id copy, start, duration). Room
    drawer: hero (color, name, path copy), accounts, agents list, team message composer, tasks, recent activity.
 5. **Feed**: collapsible bottom panel with the latest activities of the whole office.
 6. **Toasts + notification center**: toasts for notices (alerts persist until resolved; dedupe repeats); bell popover
-   with history, filters (Tudo / Precisa de você / Mensagens), unread badge, "Não perturbe" (only alerts toast/sound),
+   with history, filters (All / Needs you / Messages), unread badge, "Do not disturb" (only alerts toast/sound),
    clear. Optional browser notifications for alerts when the tab is hidden. Tab title shows "(n) AI Office" when n
    agents need the user.
-7. **Messages to agents**: composer with quick chips ("Como está indo? Me dê um resumo rápido.", "Pare e me explique o
-   plano antes de seguir.", "Rode os testes antes de continuar.", "Pode finalizar e me mandar um resumo."), Cmd/Ctrl+
-   Enter sends, status per message (Na fila / Entregue durante o trabalho / Entregue como nova instrução / Expirou),
-   team message to all agents of a room (grouped history "2 de 3 entregues"), key N opens it. Delivery via plugin hooks
-   (PostToolUse adds additionalContext; Stop blocks with the message as reason; Stop waits up to 10 min "de plantão"
-   when a page is open).
+7. **Messages to agents**: composer with quick chips ("How is it going? Give me a quick summary.", "Stop and explain the plan to me before
+   continuing.", "Run the tests before continuing.", "You can wrap up and send me a summary."), Cmd/Ctrl+
+   Enter sends, status per message (Queued / Delivered while working / Delivered as a new instruction / Expired),
+   team message to all agents of a room (grouped history "2 of 3 delivered"), key N opens it. Delivery via plugin hooks
+   (PostToolUse adds additionalContext; Stop blocks with the message as reason; Stop waits up to 10 min "on standby"
+   when a page is open). The page sends its language (`locale`) with each message, and the hook phrases its preamble in
+   it; the message text itself is delivered untouched.
 8. **Permission answers**: the plugin's PermissionRequest hook sends requests; the page shows them (P jumps to next);
-   the terminal dialog still works (first answer wins).
+   the terminal dialog still works (first answer wins). The page sends its language (`locale`) with the decision, and
+   the hook phrases the fixed part of a denial message in it.
 9. **Read-only terminal**: panel that renders a session's conversation like the terminal (user prompts, assistant
    text, collapsed thinking, tool calls with summaries and results), live-updating, search (Ctrl/Cmd+F). T toggles for
    the selected agent. Session history popover: sessions of the last 7 days grouped by day, searchable; opens closed
    sessions read-only.
-10. **Meu dia**: dialog with time per status per agent today (bar per agent + totals), from the server's day recorder.
-11. **Settings**: visual (2D/3D; applies immediately), dia e noite (auto/dia/noite), nomes sobre as pessoas, balões
-    (todos/importantes/nenhum), animação (calma/normal/animada), sons (on/off + volume), notificações do navegador,
-    modo demonstração (fake agents), sobre (version).
+10. **My day**: dialog with time per status per agent today (bar per agent + totals), from the server's day recorder.
+11. **Settings**: language (Automatic (system) / English / Português (Brasil) / Español; switches live, keeping
+    selection, panels and camera; "Automatic" resolves from the browser languages: pt → Português, es → Español,
+    otherwise English), visual (2D/3D; applies immediately), day and night (automatic/day/night), names above people,
+    bubbles (all/important/none), animation (calm/normal/lively), sounds (on/off + volume), browser notifications,
+    demo mode (fake agents), about (version). Preferences live in the browser.
 12. **Help**: legend (statuses, icons), shortcuts, how to install the plugin.
 13. **Demo mode**: fake sessions that behave realistically (screenshots, first run with no sessions). `?mock=1` runs a
     fully client-side simulation without a server.
@@ -65,7 +73,7 @@ Audience: developers using Claude Code (CLI or desktop) on macOS/Linux, often wi
     the office), PostToolUse + Stop + SubagentStop (deliver messages), Notification (mark "needs you").
     `npm run plugin:install|uninstall|status` installs into every detected account via the `claude plugin` CLI.
 
-Keyboard: / search, F follow selected, T terminal, N message, P next permission, M meu dia, O overview, [ sidebar,
+Keyboard: / search, F follow selected, T terminal, N message, P next permission, M my day, O overview, [ sidebar,
 ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
 
 ## Non-goals

@@ -6,7 +6,7 @@ This guide explains what AI Office is, the mental model behind the office metaph
 
 AI Office is a local web app that turns the Claude Code sessions running on your computer into a corporate office you can watch in real time. A small Node.js server reads the files Claude Code already writes under `~/.claude`, works out what every session is doing and streams that to a page in your browser. An optional Claude Code plugin adds two-way features: you can answer permission requests and send messages to agents from the office.
 
-The interface is in Brazilian Portuguese. This documentation is in English and quotes the Portuguese labels with their meaning, for example **Precisa de você** (needs you).
+The interface is available in English, Portuguese (Brazil) and Spanish, and follows your browser's language unless you pick one in **Settings → Language** (see [using the office](02-using-the-office.md#language)). This documentation is in English and quotes the English labels, for example **Needs you**. Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written, whatever language the interface is in.
 
 ## The mental model
 
@@ -15,10 +15,10 @@ The interface is in Brazilian Portuguese. This documentation is in English and q
 | A project (working directory) with an open session | A **room** | One room per open project. The building grows and shrinks as projects open and close. |
 | A session | A **person** at a desk | Named from a fixed list of Brazilian first names, chosen by hashing the account and session so the name stays stable. |
 | A subagent (`Agent` or `Task` tool) | A **colleague** who works at the meeting table | Arrives when the work starts, leaves shortly after it finishes. Shown with a badge. |
-| A background command or monitor | A **shell**: the person leans back and watches the screen | Counted in the top bar as **shells rodando** (shells running). |
+| A background command or monitor | A **shell**: the person leans back and watches the screen | Counted in the top bar as **shells running**. |
 | A Claude config directory (`~/.claude`, `~/.claude-work`, ...) | An **account** | Shown as a colored chip. Several accounts can share one office. |
 
-The building has fixed common areas (**Recepção** reception, **Copa** café, **Sala de reunião** meeting room, **Banheiros** restrooms, **Lounge**) plus one room per project. People arrive and leave through the reception elevators. When nothing needs doing, idle people walk to the café or the lounge.
+The building has fixed common areas (**Reception**, **Pantry**, **Meeting room**, **Restrooms**, **Lounge**) plus one room per project. People arrive and leave through the reception elevators. When nothing needs doing, idle people walk to the pantry or the lounge. The signs and labels inside the office follow the interface language too.
 
 ## Statuses
 
@@ -26,12 +26,12 @@ Every person has one status. The server derives it from the session registry and
 
 | Label in the UI | Meaning | How it is derived |
 | --- | --- | --- |
-| **Trabalhando** (working) | A turn is in progress: reading, editing, thinking. | The transcript shows a turn in progress or a tool call pending, or the session registry says `busy`. A turn that stopped producing events for 15 seconds while the registry says `idle` counts as finished. |
-| **Precisa de você** (needs you) | Stopped until you approve, answer or decide. | Any of: a permission request is pending in the office; the plugin's `Notification` hook flagged the agent; an `AskUserQuestion` or `ExitPlanMode` call is pending; the registry says `waiting`; or a tool call has been pending for more than 8 seconds while the registry says `idle` (shown as "Aprovar" plus the tool name). |
-| **Esperando o shell** (waiting for the shell) | A shell command is still running. | The agent has a running foreground command (or a background one while idle). A `Bash` call becomes a shell job when it is started in the background or runs for more than 10 seconds without a result. |
-| **Ocioso** (idle) | The turn ended; the session stays open. | The turn finished and nothing else applies. |
-| **Concluído** (done) | A subagent finished and is leaving. | The spawning `Agent`/`Task` call returned, a task notification arrived, the subagent ended its own turn, or it had no events for 2 minutes. It leaves 6 seconds later. |
-| **Com erro** (with error) | The last action ended with an error. | An idle agent whose latest activity was a tool error. |
+| **Working** | A turn is in progress: reading, editing, thinking. | The transcript shows a turn in progress or a tool call pending, or the session registry says `busy`. A turn that stopped producing events for 15 seconds while the registry says `idle` counts as finished. |
+| **Needs you** | Stopped until you approve, answer or decide. | Any of: a permission request is pending in the office; the plugin's `Notification` hook flagged the agent; an `AskUserQuestion` or `ExitPlanMode` call is pending; the registry says `waiting`; or a tool call has been pending for more than 8 seconds while the registry says `idle` (shown as "Approve" plus the tool name). |
+| **Waiting for the shell** | A shell command is still running. | The agent has a running foreground command (or a background one while idle). A `Bash` call becomes a shell job when it is started in the background or runs for more than 10 seconds without a result. |
+| **Idle** | The turn ended; the session stays open. | The turn finished and nothing else applies. |
+| **Done** | A subagent finished and is leaving. | The spawning `Agent`/`Task` call returned, a task notification arrived, the subagent ended its own turn, or it had no events for 2 minutes. It leaves 6 seconds later. |
+| **Error** | The last action ended with an error. | An idle agent whose latest activity was a tool error. |
 | **Offline** | The session closed; the person is leaving. | The registry file is gone or its process is no longer alive. |
 
 The priority is: needs you, then working, then idle. Shells and errors are refinements of working and idle that the page applies on top.

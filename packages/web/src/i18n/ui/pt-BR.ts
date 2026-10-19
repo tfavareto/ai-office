@@ -104,6 +104,8 @@ export const uiPtBR = {
   'usage.account': 'Conta',
   'usage.window5h': '5 h',
   'usage.week': 'Semana',
+  'usage.today': 'Hoje',
+  'usage.more': 'Mais contas ({n})',
   'usage.tip.account': 'Conta {label} (estimativa local, preços públicos da API)',
   'usage.tip.window': 'Janela de 5 h: {tokens} tokens · {cost} (reinicia {reset})',
   'usage.tip.week': 'Semana: {tokens} tokens · {cost} (reinicia {reset})',

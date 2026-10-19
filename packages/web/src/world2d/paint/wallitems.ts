@@ -12,6 +12,9 @@ export interface WallItemFrame {
   screen: { x: number; y: number; w: number; h: number } | null;
 }
 
+/** Highest y (px from the wall top) any wall item reaches; the room pills stay above it so they never cover one. */
+export const WALL_ITEMS_TOP = 4;
+
 /** y (px from the wall top) where wall items hang. */
 export const ITEM_Y = 12;
 
@@ -73,7 +76,7 @@ function tv(ctx: Ctx, x: number, w: number, big: boolean): WallItemFrame {
   const px = x * T + 2;
   const pw = w * T - 4;
   const h = big ? 26 : 18;
-  const y = big ? 4 : 9;
+  const y = big ? WALL_ITEMS_TOP : 9;
   frame(ctx, px, y, pw, h, EBONY.base);
   rect(ctx, px + 2, y + 2, pw - 4, h - 4, '#08101d');
   hline(ctx, px + 2, y + 2, pw - 4, '#16233a');

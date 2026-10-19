@@ -105,6 +105,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'usage.account': 'Cuenta',
   'usage.window5h': '5 h',
   'usage.week': 'Semana',
+  'usage.today': 'Hoy',
+  'usage.more': 'Más cuentas ({n})',
   'usage.tip.account': 'Cuenta {label} (estimación local, precios públicos de la API)',
   'usage.tip.window': 'Ventana de 5 h: {tokens} tokens · {cost} (se reinicia {reset})',
   'usage.tip.week': 'Semana: {tokens} tokens · {cost} (se reinicia {reset})',

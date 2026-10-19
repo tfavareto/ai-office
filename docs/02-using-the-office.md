@@ -1,8 +1,8 @@
 # Using the office
 
-This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, notifications, **Meu dia**, the terminal panel, settings, the statuses legend, keyboard shortcuts and the 2D and 3D views.
+This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
 
-The interface is in Brazilian Portuguese. Labels are quoted with their English meaning. Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Disponível apenas quando o AI Office é aberto neste computador (localhost)."
+The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
 
 ## The screen
 
@@ -11,12 +11,12 @@ Dark glass panels float over the office:
 - Top bar (full width)
 - Sidebar on the left (collapsible with `[`)
 - Details drawer on the right (opens when you select something)
-- **Atividade** (activity) feed along the bottom (collapsible with `]`)
+- **Activity** feed along the bottom (collapsible with `]`)
 - Toasts bottom right
 
 On screens narrower than 900 px the sidebar and drawer become overlays.
 
-When no session is open, a card says **Nenhuma sessão aberta** (no open session) with the steps to start one and a **Ver em modo demonstração** (see in demo mode) button.
+When no session is open, a card says **No open sessions** with the steps to start one and a **View in demo mode** button.
 
 ## Top bar
 
@@ -24,17 +24,17 @@ When no session is open, a card says **Nenhuma sessão aberta** (no open session
 | --- | --- |
 | Sidebar button | Show or hide the sidebar (`[`). |
 | Logo and "AI Office" | Brand. |
-| Connection pill | **Ao vivo** (live), **Ao vivo · demo**, **Reconectando…** (reconnecting; the page retries with a growing delay up to 30 s), **Conectando…** (connecting), or **Demonstração local** when you opened `?mock=1`. |
-| Counters | **salas** (rooms), **agentes** (agents), **trabalhando** (working), **subagentes** (subagents), **shells rodando** (shells running), **precisam de você** (need you). The last two are buttons that jump to the next shell or the next agent that needs you. They are disabled at zero. |
-| Usage cards | One per account: tokens and estimated cost for the **5 h** window and the **Semana** (week). Hover for the tooltip, which adds **Hoje** (today) and when each window resets. Costs are estimates from public list prices. |
-| Visão geral (O), Afastar (-), Aproximar (+) | Fit the whole office, zoom out, zoom in. |
-| Camera button | 3D only. Cycles **Visão geral**, **Primeira pessoa** (first person) and **Sobre o ombro** (over the shoulder). |
-| Bell | **Notificações** with an unread badge. |
-| Calendar | **Meu dia** (M). |
-| History | **Histórico de sessões** (session history). |
-| Feed | **Atividade** (`]`). |
-| Gear | **Configurações** (settings). |
-| Question mark | **Ajuda** (help, `?`). |
+| Connection pill | **Live**, **Live · demo**, **Reconnecting…** (the page retries with a growing delay up to 30 s), **Connecting…**, or **Local demo** when you opened `?mock=1`. |
+| Counters | **rooms**, **agents**, **working**, **subagents**, **shells running**, **need you**. The last two are buttons that jump to the next shell or the next agent that needs you. They are disabled at zero. |
+| Usage cards | One per account: tokens and estimated cost for the **5 h** window and the **Week**. Hover for the tooltip, which adds **Today** and when each window resets. Costs are estimates from public list prices. |
+| Overview (O), Zoom out (-), Zoom in (+) | Fit the whole office, zoom out, zoom in. |
+| Camera button | 3D only. Cycles **Overview**, **First person** and **Over the shoulder**. |
+| Bell | **Notifications** with an unread badge. |
+| Calendar | **My day** (M). |
+| History | **Session history**. |
+| Feed | **Office activity** (`]`). |
+| Gear | **Settings**. |
+| Question mark | **Help and shortcuts** (`?`). |
 
 The browser tab title shows **(n) AI Office** while *n* agents need you.
 
@@ -54,119 +54,143 @@ The browser tab title shows **(n) AI Office** while *n* agents need you.
 | Double-click | Focus the camera on it. |
 | Drag, `W` `A` `S` `D`, arrow keys | Pan. Hold `Shift` to pan faster. |
 | Mouse wheel, `+`, `-` | Zoom. 2D zooms in whole steps to keep the pixel art sharp. |
-| `O` | **Visão geral**: fit the whole office. |
-| `F` | **Seguir** (follow): keep the camera on the selected agent. |
+| `O` | **Overview**: fit the whole office. |
+| `F` | **Follow**: keep the camera on the selected agent. |
 
-People react to their status. **Trabalhando** people sit and type at their desk; subagents work at the meeting table. **Precisa de você** people stand with a raised hand and a bubble reading "Precisa de você". Idle people walk to the café or the lounge and chat. People waiting for a shell lean back and watch their screen. Finished or offline people walk to the elevator and leave. Speech bubbles show what an agent is doing; you can limit them in settings.
+People react to their status. **Working** people sit and type at their desk; subagents work at the meeting table. **Needs you** people stand with a raised hand and a bubble reading "Needs you". Idle people walk to the pantry or the lounge and chat. People waiting for a shell lean back and watch their screen. Finished or offline people walk to the elevator and leave. Speech bubbles show what an agent is doing; you can limit them in settings.
 
 ## Details drawer: an agent
 
 Select a person to open the drawer.
 
-**Header.** Avatar, name, kind (**Principal** or the subagent's role), account chip and a link to the room. Below it, the session title, the current status with how long ago it began, and four actions:
+**Header.** Avatar, name, kind (**Main** or the subagent's role), account chip and a link to the room. Below it, the session title, the current status with how long ago it began, and four actions:
 
 | Action | Effect |
 | --- | --- |
-| **Mensagem** (message) | Opens the **Mensagens** tab with the composer focused (`N`). |
-| **Seguir** (follow) | Camera follows the agent (`F`). |
-| **Centralizar** (center) | Moves the camera to the agent once. |
+| **Message** | Opens the **Messages** tab with the composer focused (`N`). |
+| **Follow** | Camera follows the agent (`F`). |
+| **Center** | Moves the camera to the agent once. |
 | **Terminal** | Opens the read-only terminal panel (`T`). |
 
 **Urgent cards** always sit at the top:
 
-- **Pedido de permissão** (permission request): the tool, a one-line summary, **Ver detalhes** (the tool input) and a countdown ("expira em"). Buttons: **Aprovar** (approve); **Aprovar e não perguntar de novo** (approve and do not ask again), one per rule Claude Code suggested, which also saves that rule; **Recusar** (refuse), which reveals an optional reason the agent will read and a checkbox **Interromper o turno do agente** (interrupt the agent's turn), confirmed with **Confirmar recusa**; and **Responder no terminal** (answer in the terminal), which hands the decision back to the terminal dialog. The first answer wins, whether it comes from the office or the terminal.
-- **Precisa de você**: shown when the agent waits on something the office cannot answer (a question or plan approval, or a notification). Its button opens the terminal panel; you answer in the terminal where the session runs.
-- **Esperando o shell**: lists running commands with elapsed time and a stage (**Iniciando**, **Rodando**, **Demorando**, **Execução longa**) that advances at 5 s, 1 min and 5 min.
+- **Permission request**: the tool, a one-line summary, **Show details** (the tool input) and a countdown ("expires in"). Buttons: **Approve**; **Approve and don't ask again**, one per rule Claude Code suggested, which also saves that rule; **Deny**, which reveals an optional reason the agent will read and a checkbox **Interrupt the agent's turn**, confirmed with **Confirm denial**; and **Answer in the terminal**, which hands the decision back to the terminal dialog. The first answer wins, whether it comes from the office or the terminal.
+- **Needs you**: shown when the agent waits on something the office cannot answer (a question or plan approval, or a notification). Its button opens the terminal panel; you answer in the terminal where the session runs.
+- **Waiting for the shell**: lists running commands with elapsed time and a stage (**Starting**, **Running**, **Taking a while**, **Long run**) that advances at 5 s, 1 min and 5 min.
 
 **Tabs** (arrow keys switch between them):
 
 | Tab | Content |
 | --- | --- |
-| **Resumo** (summary) | Tiles for **Ferramentas** (tools), **Tokens**, **Tempo na sessão** (session time) and **Custo** (estimated cost); **Agora** (now, the current activity); **Tarefas** (the agent's task list with progress); **Subagentes** (for a main agent) or **Responsável** (the owner, for a subagent). |
-| **Mensagens** (messages) | **Enviar ordem** (send an order) composer with quick chips, and the **Histórico** of messages with their delivery status. |
-| **Atividade** (activity) | Running shells and a timeline of recent activities. |
-| **Dados** (data) | Account, room, kind, model, branch, permission mode, session id (copyable), start, duration, tools, input and output tokens, changed lines, subagents created, estimated cost. |
+| **Summary** | Tiles for **Tools**, **Tokens**, **Time in session** and **Cost** (estimated); **Now** (the current activity); **Tasks** (the agent's task list with progress); **Subagents** (for a main agent) or **Owner** (for a subagent). |
+| **Messages** | **Send an order** composer with quick chips, and the **History** of messages with their delivery status. |
+| **Activity** | Running shells and a timeline of recent activities. |
+| **Data** | Account, room, kind, model, branch, permission mode, session id (copyable), start, duration, tools, input and output tokens, changed lines, subagents created, estimated cost. |
 
 ### Sending messages
 
-The composer takes up to 4000 characters. Four quick chips insert common instructions ("Como está indo? Me dê um resumo rápido.", "Pare e me explique o plano antes de seguir.", "Rode os testes antes de continuar.", "Pode finalizar e me mandar um resumo."). Send with **Enviar** or `Cmd+Enter` / `Ctrl+Enter`. Each message shows a status:
+The composer takes up to 4000 characters. Four quick chips insert common instructions ("How is it going? Give me a quick summary.", "Stop and explain the plan to me before continuing.", "Run the tests before continuing.", "You can wrap up and send me a summary."). Send with **Send** or `Cmd+Enter` / `Ctrl+Enter`. The message is delivered exactly as written; the plugin only phrases its own preamble in your interface language (see [the plugin guide](03-plugin.md#messages-to-agents)). Each message shows a status:
 
 | Status | Meaning |
 | --- | --- |
-| **Na fila** (queued) | Waiting for the agent's next hook. |
-| **Entregue durante o trabalho** (delivered while working) | Added to the agent's context after a tool call. |
-| **Entregue como nova instrução** (delivered as a new instruction) | Delivered when the agent finished its turn; it continues with the message as its next instruction. |
-| **Expirou** (expired) | Not picked up within 2 hours. |
+| **Queued** | Waiting for the agent's next hook. |
+| **Delivered while working** | Added to the agent's context after a tool call. |
+| **Delivered as a new instruction** | Delivered when the agent finished its turn; it continues with the message as its next instruction. |
+| **Expired** | Not picked up within 2 hours. |
 
 Messages need the [plugin](03-plugin.md#messages-to-agents). A message to an agent that has left the office is not accepted.
 
 ## Details drawer: a room
 
-Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Contas** (accounts) present, the **Agentes** list, a team composer (**Enviar à equipe**, send to team), **Tarefas** from every agent's plan and **Atividade recente**. A team message goes to every agent in the room (up to 24) and its history reads like "2 de 3 entregues" (2 of 3 delivered).
+Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a team composer (**Send to the team**), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
 
 ## Feed
 
-The **Atividade** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent.
+The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent.
 
-## Notifications and Não perturbe
+## Notifications and Do not disturb
 
-Notices appear as toasts. Alerts (**Precisa de você**) stay until resolved; repeats within two minutes collapse into one with a count. The bell opens the history with filters **Tudo** (all), **Precisa de você** and **Mensagens**, a **Limpar** (clear) button and the **Não perturbe** (do not disturb) switch. With **Não perturbe** on, only alerts produce a toast, a sound or a browser notification; the rest still land in the bell.
+Notices appear as toasts. Alerts (**Needs you**) stay until resolved; repeats within two minutes collapse into one with a count. The bell opens the history with filters **All**, **Needs you** and **Messages**, a **Clear** button and the **Do not disturb** switch. With **Do not disturb** on, only alerts produce a toast, a sound or a browser notification; the rest still land in the bell.
 
-Sounds and browser notifications are set in **Configurações**. Browser notifications fire for alerts when the tab is hidden and need your browser's permission.
+Sounds and browser notifications are set in **Settings**. Browser notifications fire for alerts when the tab is hidden and need your browser's permission.
 
-## Meu dia
+## My day
 
-**Meu dia** (my day, `M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Trabalhando**, **Esperando você** (waiting for you) and **Ocioso**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
+**My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
 
 ## Session history
 
-**Histórico de sessões** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
+**Session history** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
 
 ## Terminal panel
 
-The terminal panel renders a session's conversation the way the terminal would: your prompts, the assistant's text, collapsed **Pensando…** (thinking) blocks, and tool calls with a summary and result. It updates live (**Ao vivo · somente leitura**, live and read-only) and cannot send input.
+The terminal panel renders a session's conversation the way the terminal would: your prompts, the assistant's text, collapsed **Thinking…** blocks, and tool calls with a summary and result. It updates live (**Live · read-only**) and cannot send input.
 
 | Control | Effect |
 | --- | --- |
 | `T` | Open or close it for the selected agent. |
 | `Cmd+F` / `Ctrl+F` | Search the conversation (only while the panel is open). `Enter` and `Shift+Enter` step through results. |
 | Expand button | Expand all thinking blocks and results. |
-| **Ir para o fim** (go to end) | Jump to the latest entry. |
+| **Jump to the end** | Jump to the latest entry. |
 | `Esc` | Closes the search first, then the panel. |
 
 Text in the terminal view is truncated (entries keep at most 4 KB of text) and served only to pages opened on this computer.
 
-## Configurações
+## Settings
 
 The settings popover. Everything except the demo switch is stored in your browser (`localStorage`, key `ai-office:prefs`), not on the server.
 
 | Setting | Options |
 | --- | --- |
+| **Language** | **Automatic (system)** (the default), **English**, **Português (Brasil)** or **Español**. Applies immediately. See [Language](#language). |
 | **Visual** | **2D** (default) or **3D**. Applies immediately. |
-| **Dia e noite** (day and night) | **Automático** (follows local time), **Dia** (day), **Noite** (night). |
-| **Nomes sobre as pessoas** | Show or hide name tags. |
-| **Balões** (speech bubbles) | **Todos** (all), **Importantes** (important, the default), **Nenhum** (none). |
-| **Animação** | **Calma** (calm), **Normal**, **Animada** (lively). Sets how fast people walk and how many speech bubbles a room may show at once. If your system asks for reduced motion, the office also stops pulsing and idle wandering. |
-| **Sons** | On or off, with a volume slider. |
-| **Notificações do navegador** | Browser notifications for alerts (asks for permission). |
-| **Modo demonstração** | Fictitious agents alongside real ones. Needs a local page and a live server. |
-| **Sobre** (about) | Version and build. |
+| **Day and night** | **Automatic** (follows local time), **Day**, **Night**. |
+| **Names above people** | Show or hide name tags. |
+| **Bubbles** | **All**, **Important** (the default), **None**. |
+| **Animation** | **Calm**, **Normal**, **Lively**. Sets how fast people walk and how many speech bubbles a room may show at once. If your system asks for reduced motion, the office also stops pulsing and idle wandering. |
+| **Sounds** | On or off, with a **Sound volume** slider. |
+| **Browser notifications** | Browser notifications for alerts (asks for permission). |
+| **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |
+| **About** | Version and build. |
 
-## Ajuda
+## Language
 
-**Ajuda** (`?`) shows the status legend, the icon legend, the shortcuts and the plugin install command, with a copy button.
+The interface is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → Language**, or leave **Automatic (system)** to follow your browser: the first of your browser languages that AI Office supports wins (Portuguese gives Português, Spanish gives Español, anything else gives English).
+
+**The switch is live.** Nothing reloads: the panels are rebuilt in the new language and the world renderer redraws its signs, and your selected agent or room, the open panels, the scroll positions and the camera stay as they were.
+
+**What is translated**
+
+- Every panel, button, tooltip, status, notification, toast, error message and screen-reader announcement.
+- What the server and the demo say: activity lines ("Reading a file", "Running the tests"), notices ("an agent arrived at the office"), what a waiting agent is waiting for, permission summaries and the demo's content.
+- The signs and labels inside the office, in 2D and in 3D: room names (**Reception**, **Pantry**, **Meeting room**, **Restrooms**, **Lounge**), the room boards, the meeting-room screen, the LED ticker, the pantry menu and the speech bubbles the simulation makes. The default account is called **Personal** in English and Spanish and **Pessoal** in Portuguese.
+- Numbers, dates and times follow the language: decimal separators and compact token counts (`12,4 mil` in Portuguese, `12.4K` in English), weekday and date in the history, 24-hour clocks in Portuguese and Spanish and a 12-hour clock in English. Cost is always US dollars, written `US$ 0,42` in Portuguese and Spanish and `$0.42` in English. Durations use the same symbols everywhere (`45 s`, `12 min`, `2 h 05 min`).
+
+**What is shown as written**
+
+- Text from your own sessions: prompts, session and task titles, commands, file names, project and folder names, and the whole conversation in the terminal panel.
+- Names of the people (they come from a fixed list) and the product name.
+- The tool inputs and rule patterns in permission cards (the wording around them is translated), and the command you copy from **Help**.
+
+**What the agent sees.** The language also decides how the plugin phrases what it says to the agent: the reason added to a denial and the preamble before your messages. Your own message text is never translated. See [the plugin guide](03-plugin.md#messages-to-agents).
+
+The choice is saved in your browser with the other preferences (see [configuration](04-configuration.md#interface-preferences)).
+
+## Help
+
+**Help** (`?`) shows the status legend, the icon legend, the shortcuts and the plugin install command, with a copy button.
 
 ## Statuses legend
 
 | Dot label | Meaning |
 | --- | --- |
-| **Trabalhando** | Processing a turn: reading, editing or thinking. |
-| **Precisa de você** | Stopped until you approve, answer or decide something. |
-| **Esperando o shell** | A shell command is still running. |
-| **Ocioso** | Turn finished; the session stays open. |
-| **Concluído** | A subagent finished and is leaving. |
-| **Com erro** | The last action ended with an error. |
-| **Offline** | The session closed and the person is leaving. |
+| **Working** | Working through a turn: reading, editing or thinking. |
+| **Needs you** | Stopped until you approve, answer or decide something. |
+| **Waiting for the shell** | Waiting for a shell command to finish. |
+| **Idle** | Turn finished; the session is still open. |
+| **Done** | The subagent finished its work and is leaving. |
+| **Error** | The last action ended with an error. |
+| **Offline** | Session ended; leaving the office. |
 
 Color is never the only signal: every status also has text. How each status is derived is explained in the [overview](00-overview.md#statuses).
 
@@ -181,7 +205,7 @@ Plain keys are ignored while you type in a field.
 | `T` | Open or close the selected agent's terminal. |
 | `N` | Send a message to the agent, or to the room's team. |
 | `P` | Go to the next permission request. |
-| `M` | Open **Meu dia**. |
+| `M` | Open **My day**. |
 | `O` | Overview of the whole office. |
 | `[` | Show or hide the sidebar. |
 | `]` | Expand or collapse the activity feed. |
@@ -203,18 +227,18 @@ Both views show the same office: the same floor plan, the same people and the sa
 | Look | Pixel art, three-quarter top-down view | A glass tower interior in an isometric view, with a city around it |
 | Cost | Very light | Heavier, mainly at night (see [evidence and limits](06-validation.md#frame-rate-measurements)) |
 | Zoom | Whole steps | Continuous |
-| Cameras | Overview only | **Visão geral**, **Primeira pessoa**, **Sobre o ombro** |
+| Cameras | Overview only | **Overview**, **First person**, **Over the shoulder** |
 | Loading | Immediate | The 3D code and models are loaded the first time you switch to 3D |
 
-**To switch**, open **Configurações** and pick **3D** under **Visual**. It applies immediately and is remembered in your browser. If the page feels slow in 3D, switch back to 2D.
+**To switch**, open **Settings** and pick **3D** under **Visual**. It applies immediately and is remembered in your browser. If the page feels slow in 3D, switch back to 2D.
 
-**Day and night.** **Automático** follows your local time. At night the outside darkens, windows glow and rooms with people are lit. In 3D the night view adds a bloom effect, which is the most expensive part of the scene.
+**Day and night.** **Automatic** follows your local time. At night the outside darkens, windows glow and rooms with people are lit. In 3D the night view adds a bloom effect, which is the most expensive part of the scene.
 
 **3D cameras.** Use the camera button in the top bar:
 
-- **Visão geral**: isometric overview. Drag to pan, wheel to zoom.
-- **Primeira pessoa**: walk through the office. Drag to look, `E` to open the person you are looking at, `M` for the minimap, `Esc` to leave.
-- **Sobre o ombro**: follows the selected agent (or the first visible person if none is selected). Drag to rotate, wheel to change the distance, `Esc` to leave.
+- **Overview**: isometric overview. Drag to pan, wheel to zoom.
+- **First person**: walk through the office. Drag to look, `E` to open the person you are looking at, `M` for the minimap, `Esc` to leave.
+- **Over the shoulder**: follows the selected agent (or the first visible person if none is selected). Drag to rotate, wheel to change the distance, `Esc` to leave.
 
 3D assets (furniture, plants, textures, city, people models) are CC0; see `packages/web/public/assets/3d/CREDITS.md`.
 

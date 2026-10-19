@@ -41,7 +41,7 @@ walk over), so there are no holes.
 - Spots: desk seats, meeting seats, café stools/tables, lounge sofas, waiting sofa, standing spots, talk groups.
 - Behaviour by status: **working** sits at its desk typing (subagents work at the meeting table, or at a free desk in
   their project room if it is full); **waiting** stands up at the desk with a raised hand and a "!" badge (alert
-  bubble "Precisa de você"); **idle** after a while walks to the copa (coffee), lounge (sofa/ping-pong/arcade) or
+  bubble "Needs you", localized); **idle** after a while walks to the copa (coffee), lounge (sofa/ping-pong/arcade) or
   chats with others, then returns; **shell running** leans back watching the screen (stages after 1, 3, 8 min:
   stretching, popcorn, napping); **done/offline** walks to the elevator and leaves. New agents arrive by elevator.
 - Speech bubbles from activities (filtered by setting: all / important / none), name tags, status rings, selection

@@ -11,7 +11,7 @@ This guide records what is checked automatically, how to run the checks, the fra
 | Unit and integration tests | `npm test` | Vitest, one project per package (see below). |
 | Build | `npm run build` | Web app with Vite (typechecked first), then the server bundle with esbuild. |
 | Docs validator tests | `npm run docs:test` | Unit tests for the validator script itself. |
-| Docs check | `npm run docs:check` | `node scripts/validate-docs.mjs`: every local Markdown link and `#anchor` resolves, links to this repository's public URLs point at files that exist, JSON files parse, and the three READMEs stay aligned. |
+| Docs check | `npm run docs:check` | `node scripts/validate-docs.mjs`: every local Markdown link and `#anchor` resolves, links to this repository's public URLs point at files that exist, JSON files parse, and the three READMEs stay aligned (same sections and anchors, and each translation's screenshots exist). |
 
 Run everything before sending a change:
 
@@ -21,14 +21,14 @@ npm run typecheck && npm run lint && npm test && npm run build && npm run docs:t
 
 ### Tests
 
-At the time of writing (2026-10-19) the suite has **613 tests in 57 files**, all passing:
+At the time of writing (2026-10-19) the suite has **1208 tests in 73 files**:
 
 | Package | Tests | Files | What is exercised |
 | --- | --- | --- | --- |
-| `shared` | 80 | 12 | Activity text, names, colors, formatting, hashing and the demo simulator. |
-| `server` | 180 | 18 | Transcript parsing and tailing, status derivation, subagent lifecycle, stats and cost, registries (permissions, messages, attention), the request guard, token auth, configuration, and an **end-to-end HTTP suite that boots the real server** on a free port. |
-| `web` | 247 | 21 | The store and reconnection, the stream parser, preferences, UI models (counters, notifications, delivery, terminal, day), the 2D layout and simulation, cameras and picking in both worlds, and pure parts of the 3D scene. |
-| `plugins` | 106 | 6 | Each hook **run as a real child process** against a small in-process fake server (allow, deny, terminal, offline exit speed, message delivery, stand-by wake-up, subagent guard), the token and challenge logic, the installer's planning with a fake `claude` CLI, and the plugin and marketplace manifests. |
+| `shared` | 568 | 20 | Activity text, names, colors, formatting, hashing and the demo simulator; the localization core (message format, plural rules, translator fallbacks) and the **server and demo message catalogs**, whose tests check that pt-BR, English and Spanish define exactly the same keys and placeholders. |
+| `server` | 193 | 19 | Transcript parsing and tailing, status derivation, subagent lifecycle, stats and cost, registries (permissions, messages, attention), the request guard, `locale` validation, token auth, configuration, and an **end-to-end HTTP suite that boots the real server** on a free port. |
+| `web` | 330 | 27 | The store and reconnection, the stream parser, preferences (including the language), UI models (counters, notifications, delivery, terminal, day) in all three languages, locale-aware formatting, the **UI and world catalogs** (same keys in every language, no unused or missing keys), the 2D layout and simulation, cameras and picking in both worlds, and pure parts of the 3D scene. |
+| `plugins` | 117 | 7 | Each hook **run as a real child process** against a small in-process fake server (allow, deny, terminal, offline exit speed, message delivery, stand-by wake-up, subagent guard, the language of denials and message preambles), the token and challenge logic, the installer's planning with a fake `claude` CLI, and the plugin and marketplace manifests. |
 
 All fixtures are synthetic: temporary directories and invented transcripts, never real sessions.
 
@@ -73,7 +73,7 @@ A separate stress test used the 3D lab page with a synthetic office of **12 room
 2. For a controlled scene, use the dev harness (see [configuration](04-configuration.md#development-mode)): with `npm run dev`, open `http://localhost:5173/dev/world3d.html?projects=12&agents=40&hud=1&daylight=night`. The `hud=1` parameter prints fps, CPU time, agents, draw calls and pixel ratio on screen. `/dev/world2d.html` is the 2D equivalent.
 3. To see headroom beyond your display rate, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit` and count `requestAnimationFrame` callbacks over a few seconds after the scene has loaded (the figures above are a 6-second count, taken 4 s after load for 2D and 8 s for 3D). With vsync on, the measured rate is capped at your refresh rate, and Low Power Mode on a laptop halves it to 30 fps.
 
-If 3D feels slow, switch to 2D in **Configurações**, set **Dia e noite** to **Dia** (the day scene is far cheaper), turn off Low Power Mode, or plug in.
+If 3D feels slow, switch to 2D in **Settings**, set **Day and night** to **Day** (the day scene is far cheaper), turn off Low Power Mode, or plug in.
 
 ## Known limits
 
@@ -87,7 +87,7 @@ If 3D feels slow, switch to 2D in **Configurações**, set **Dia e noite** to **
 **Platform**
 
 - **macOS and Linux only.** Windows is a non-goal. CI covers Ubuntu and macOS; the performance measurements above come from a single Mac and a single browser (Chromium), and were not repeated on Linux.
-- **Interface language:** Brazilian Portuguese only.
+- **Interface language:** English, Portuguese (Brazil) and Spanish. Text that comes from your own sessions is shown as written, and the plugin's status lines in Claude Code and the server's command-line messages are fixed Portuguese strings.
 - **Single user, single machine.** Browsers cannot sign in from another computer. At most 20 pages can stay connected at once.
 
 **Rendering**

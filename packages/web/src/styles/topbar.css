@@ -157,15 +157,17 @@
   50% { box-shadow: 0 0 0 4px rgba(245, 181, 68, 0.12); }
 }
 
-/* Usage cards. */
+/* Usage cards: full, compact (chip and the 5 h figure) or "+N" overflow, chosen by UsageCards from the room left. */
 .ao-usage {
   display: flex;
+  flex: none;
+  align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
 .ao-usage-card {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   padding: 3px 10px 3px 8px;
@@ -194,6 +196,77 @@
 .ao-usage-value {
   color: var(--text);
   white-space: nowrap;
+}
+
+.ao-usage-short {
+  display: none;
+}
+
+.ao-usage.is-compact .ao-usage-lines {
+  display: none;
+}
+
+.ao-usage.is-compact .ao-usage-short {
+  display: block;
+}
+
+.ao-usage.is-compact .ao-usage-card {
+  height: 30px;
+  gap: 7px;
+}
+
+.ao-usage.is-compact .ao-usage-label {
+  width: auto;
+}
+
+.ao-usage-more {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  min-width: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.ao-usage-more:hover,
+.ao-usage-more.is-on {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ao-usage-list {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-usage-card--detail {
+  padding: 8px 12px 8px 10px;
+}
+
+.ao-usage-card--detail .ao-usage-lines {
+  flex: 1;
+}
+
+.ao-usage-card--detail .ao-usage-line {
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.ao-usage-card--detail .ao-usage-label {
+  width: auto;
+  min-width: 56px;
 }
 
 .ao-camera-btn {
@@ -350,15 +423,13 @@
   white-space: nowrap;
 }
 
+.ao-topbar.is-dense .ao-counter-label {
+  display: none;
+}
+
 @media (max-width: 1640px) {
   .ao-counter-label,
   .ao-camera-label {
-    display: none;
-  }
-}
-
-@media (max-width: 1240px) {
-  .ao-usage {
     display: none;
   }
 }

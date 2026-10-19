@@ -231,7 +231,7 @@ describe('messages in other languages', () => {
     setLocale('en');
     expect(messageStatusLabel(message())).toBe('Queued');
     expect(messageStatusLabel(message({ status: 'delivered', via: 'stop' }))).toBe('Delivered as a new instruction');
-    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe('Ana received your message during the work.');
+    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe('Ana received your message while working.');
     expect(summarizeDelivery(team, ctx)?.text).toBe('Team loja: 1 of 2 delivered');
     expect(validateMessageText('   ')).toEqual({ ok: false, error: 'Write a message before sending.' });
   });

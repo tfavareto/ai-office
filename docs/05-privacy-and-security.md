@@ -29,9 +29,9 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | --- | --- |
 | `token` | The random access token (mode 0600). |
 | `names.json` | The name picked for each agent, keyed by account, session and agent id. |
-| `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **Meu dia**). |
+| `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
 
-Messages, permission requests and notifications live in the server's memory and are gone when it stops. The browser stores your interface preferences in `localStorage` (`ai-office:prefs`). No transcript content is written to disk by AI Office.
+Messages, permission requests and notifications live in the server's memory and are gone when it stops. The browser stores your interface preferences, including the interface language, in `localStorage` (`ai-office:prefs`). The page also sends the language code in use (`pt-BR`, `en` or `es`) with the messages and permission answers it posts, so the plugin can phrase its output in that language; the code stays on this computer like everything else. No transcript content is written to disk by AI Office.
 
 ## Local only
 

@@ -46,7 +46,7 @@ If a step fails, stop and show the error with a proposal.
 
 1. Environment. `node --version` must be v22 or newer; run `npm --version` and `git --version`. Locate or create the clone: ask whether to use an existing one or clone to a folder the user chooses (propose `~/ai-office`): `git clone https://github.com/tfavareto/ai-office.git <dir>`. Work in `<dir>`. Check `git status --short` is clean and the branch is `main`, then `npm install`.
 
-2. Learn the rules. Read `AGENTS.md`, `CONTRIBUTING.md`, `docs/README.md` and the specs relevant to the change (`docs/spec/`), plus the README of the package you will touch. Summarize to the user in five lines the rules that matter for this change (strict TypeScript, no `any`, tests for logic, UI text in Brazilian Portuguese, English everywhere else, conventional commits, docs and prompts updated with the change).
+2. Learn the rules. Read `AGENTS.md`, `CONTRIBUTING.md`, `docs/README.md` and the specs relevant to the change (`docs/spec/`), plus the README of the package you will touch. Summarize to the user in five lines the rules that matter for this change (strict TypeScript, no `any`, tests for logic, every user-visible string added to the catalogs in pt-BR, en and es, English for code, comments, docs, prompts and commits, conventional commits, docs and prompts updated with the change).
 
 3. Plan. State the plan in a few bullets: files you expect to touch, the test you will write first, the docs you will update. If the change touches `packages/shared`, plan to update server, web, their tests and the spec together. Wait for the user to approve the plan if it is more than a trivial edit.
 

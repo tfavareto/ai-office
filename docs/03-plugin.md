@@ -12,9 +12,9 @@ One plugin, `ai-office`, published by this repository's own marketplace (`.claud
 
 | Event | Script | Timeout | What it does |
 | --- | --- | --- | --- |
-| `PermissionRequest` (all tools) | `permission.mjs` | 330 s | Sends the permission request to the office and waits for your answer. Status line: "Aguardando resposta no AI Office". |
+| `PermissionRequest` (all tools) | `permission.mjs` | 330 s | Sends the permission request to the office and waits for your answer. Status line (fixed, in Portuguese): "Aguardando resposta no AI Office". |
 | `PostToolUse` (all tools) | `messages.mjs` | 10 s | After a tool call, delivers any queued message as extra context. |
-| `Stop` | `messages.mjs` | 660 s | When the agent finishes its turn, delivers queued messages as a new instruction; with nothing queued and a page open, waits "on stand-by". Status line: "De plantão: aguardando ordens no AI Office". |
+| `Stop` | `messages.mjs` | 660 s | When the agent finishes its turn, delivers queued messages as a new instruction; with nothing queued and a page open, waits "on stand-by". Status line (fixed, in Portuguese): "De plantão: aguardando ordens no AI Office". |
 | `SubagentStop` | `messages.mjs` | 10 s | Same as `Stop` for subagents, without stand-by. Only acts for real subagents. |
 | `Notification` | `notify.mjs` | 5 s | Tells the office the agent is waiting for you. |
 
@@ -24,52 +24,56 @@ When Claude Code is about to show a permission dialog, the `PermissionRequest` h
 
 1. The hook posts the request (tool name and input, trimmed so the body stays under 200 KB) to the server.
 2. If no page is open on this computer, or the session is unknown to the office, the server answers "skip" and the hook exits silently: the terminal dialog proceeds as usual. The hook also skips `AskUserQuestion`, which is a question rather than a permission.
-3. Otherwise a **Pedido de permissão** (permission request) card appears in the agent's drawer, the agent gets the **Precisa de você** status and the hook waits.
+3. Otherwise a **Permission request** card appears in the agent's drawer, the agent gets the **Needs you** status and the hook waits.
 4. Your answer becomes the hook's output:
 
 | Your answer | What Claude Code receives |
 | --- | --- |
-| **Aprovar** (approve) | Allow, once. |
-| **Aprovar e não perguntar de novo** (approve and do not ask again) | Allow, plus the permission rule Claude Code suggested (for example "always allow this command"), exactly as it proposed it. There is one button per suggestion. |
-| **Recusar** (refuse) | Deny with the message "Recusado pelo usuário no AI Office: <your reason>" so the agent knows why. The optional **Interromper o turno do agente** checkbox also interrupts the turn. |
-| **Responder no terminal** (answer in the terminal) | No output; the terminal dialog stays in charge. |
+| **Approve** | Allow, once. |
+| **Approve and don't ask again** | Allow, plus the permission rule Claude Code suggested (for example "always allow this command"), exactly as it proposed it. There is one button per suggestion. |
+| **Deny** | Deny with a message made of a fixed phrase and your reason, so the agent knows why (see below). The optional **Interrupt the agent's turn** checkbox also interrupts the turn. |
+| **Answer in the terminal** | No output; the terminal dialog stays in charge. |
 | No answer | No output; the terminal dialog stays in charge. |
+
+**The language of a denial.** The fixed part of the deny message follows the interface language of the page that answered, not the language of the agent's session: "Denied by the user in AI Office" in English, "Recusado pelo usuário no AI Office" in Portuguese and "Rechazado por el usuario en AI Office" in Spanish, followed by `: <your reason>` when you wrote one. Your reason is passed through as written. The page sends its language as the optional `locale` field (`pt-BR`, `en` or `es`) of the decision it posts to `POST /api/permissions/:id/decision`; when the field is absent the hook uses Portuguese, and any other value is rejected with a 400 `invalid-locale`.
 
 **The terminal always keeps working.** The terminal dialog is never removed, so the first answer wins. If you answer in the terminal while the card is open, the office notices that the session moved on and withdraws the card.
 
-**Timeout.** The hook waits `AI_OFFICE_PERMISSION_TIMEOUT` seconds (default 300; values outside 5 to 1800 are clamped). In practice the longest wait is 5 minutes, because the server expires a request after 5 minutes and the hook's own timeout in `hooks.json` is 330 seconds; a larger value does not extend it. Lower it if you want the terminal dialog back sooner. The card shows a countdown ("expira em").
+**Timeout.** The hook waits `AI_OFFICE_PERMISSION_TIMEOUT` seconds (default 300; values outside 5 to 1800 are clamped). In practice the longest wait is 5 minutes, because the server expires a request after 5 minutes and the hook's own timeout in `hooks.json` is 330 seconds; a larger value does not extend it. Lower it if you want the terminal dialog back sooner. The card shows a countdown ("expires in").
 
 A permission request that cannot be matched to an agent in the office is skipped, so the terminal dialog handles it.
 
 ## Messages to agents
 
-You write a message in the agent's **Mensagens** tab (or to a whole room). It is queued on the server and handed to the agent by the next hook that asks for it. The message text reaches the agent labeled as coming from "seu chefe" (your boss) through the office.
+You write a message in the agent's **Messages** tab (or to a whole room). It is queued on the server and handed to the agent by the next hook that asks for it. The message text reaches the agent labeled as coming from "your boss" through the office.
+
+**The language of the preamble.** The hook puts a short preamble before your text (for example "Message from the user (your boss) sent just now through AI Office while you were working. Take it into account and adjust course if needed:"). It is phrased in the interface language you had when you sent the message, in English, Portuguese or Spanish, in singular or plural form to match the number of messages. The page sends that language as the optional `locale` field (`pt-BR`, `en` or `es`) of `POST /api/messages`, the server keeps it with the queued message, and the inbox hands it back to the hook. A missing `locale` means Portuguese; any other value is rejected with a 400 `invalid-locale`. If queued messages were written in different languages, the most recent message sets the language of the preamble. Your own text is never translated.
 
 There are two delivery paths:
 
 | Path | Hook | When | Status in the office |
 | --- | --- | --- | --- |
-| During work | `PostToolUse` | After the agent's next tool call. The message is added to the tool result as additional context, with a note asking the agent to take it into account and adjust course if needed. | **Entregue durante o trabalho** (delivered while working) |
-| As a new instruction | `Stop` or `SubagentStop` | When the agent is about to end its turn. The stop is blocked and the message is given as the reason, so the agent continues with it as a new instruction. | **Entregue como nova instrução** (delivered as a new instruction) |
+| During work | `PostToolUse` | After the agent's next tool call. The message is added to the tool result as additional context, with a note asking the agent to take it into account and adjust course if needed. | **Delivered while working** |
+| As a new instruction | `Stop` or `SubagentStop` | When the agent is about to end its turn. The stop is blocked and the message is given as the reason, so the agent continues with it as a new instruction. | **Delivered as a new instruction** |
 
 If several messages are waiting they are delivered together as a numbered list.
 
-**Stand-by ("de plantão").** When the agent finishes its turn with nothing queued, the `Stop` hook does not return immediately. If a page is open on this computer, it waits in 25-second long-polls for a message, for up to `AI_OFFICE_STANDBY_MIN` minutes (default 10, maximum 10, `0` disables it). A message sent during stand-by is delivered at once as a new instruction, so an agent that looks idle can be woken from the office. Stand-by ends early if the server says no page is open or the session is unknown. During stand-by, Claude Code shows the status line "De plantão: aguardando ordens no AI Office".
+**Stand-by.** When the agent finishes its turn with nothing queued, the `Stop` hook does not return immediately. If a page is open on this computer, it waits in 25-second long-polls for a message, for up to `AI_OFFICE_STANDBY_MIN` minutes (default 10, maximum 10, `0` disables it). A message sent during stand-by is delivered at once as a new instruction, so an agent that looks idle can be woken from the office. Stand-by ends early if the server says no page is open or the session is unknown. During stand-by, Claude Code shows the status line "De plantão: aguardando ordens no AI Office" (a fixed Portuguese string in `hooks.json`).
 
 **Status of a message.**
 
 | Status | Meaning |
 | --- | --- |
-| **Na fila** (queued) | Not picked up yet. An agent only asks at a tool call or at the end of a turn, so a message sent to an idle agent without stand-by stays queued until it does something. |
-| **Entregue durante o trabalho** | Delivered through `PostToolUse`. |
-| **Entregue como nova instrução** | Delivered through `Stop` or `SubagentStop`. |
-| **Expirou** (expired) | Still queued after 2 hours. |
+| **Queued** | Not picked up yet. An agent only asks at a tool call or at the end of a turn, so a message sent to an idle agent without stand-by stays queued until it does something. |
+| **Delivered while working** | Delivered through `PostToolUse`. |
+| **Delivered as a new instruction** | Delivered through `Stop` or `SubagentStop`. |
+| **Expired** | Still queued after 2 hours. |
 
-Limits: the server keeps the last 50 messages per agent and accepts up to 8000 characters (the composer stops at 4000). A team message goes to at most 24 agents and is tracked as a group ("2 de 3 entregues").
+Limits: the server keeps the last 50 messages per agent and accepts up to 8000 characters (the composer stops at 4000). A team message goes to at most 24 agents and is tracked as a group ("2 of 3 delivered").
 
 ## Notifications and attention
 
-When Claude Code raises a notification (for example, it needs your permission), the `Notification` hook tells the office. The agent becomes **Precisa de você** with the text "Precisa de você", appears in the **precisam de você** counter, and an alert toast is raised. The mark clears on the agent's next transcript event, or after 30 minutes. Notifications that only say the agent is waiting for your input in an idle prompt are ignored, so an idle session does not look urgent.
+When Claude Code raises a notification (for example, it needs your permission), the `Notification` hook tells the office. The agent becomes **Needs you** with the text "Needs you", appears in the **need you** counter, and an alert toast is raised. The mark clears on the agent's next transcript event, or after 30 minutes. Notifications that only say the agent is waiting for your input in an idle prompt are ignored, so an idle session does not look urgent.
 
 The office does not need the hook to notice most waiting states: it also detects pending permission prompts, pending questions and plan approvals from the transcript. The hook covers the cases where Claude Code knows something the transcript does not show yet.
 
@@ -132,5 +136,5 @@ For a second account, run the same commands with `CLAUDE_CONFIG_DIR=~/.claude-wo
 - [Using the office](02-using-the-office.md): the cards and tabs described here.
 - [Configuration](04-configuration.md): hook environment variables.
 - [Privacy and security](05-privacy-and-security.md): the token and the request guards.
-- [Troubleshooting](08-troubleshooting.md): permissions not showing, messages stuck on **Na fila**.
+- [Troubleshooting](08-troubleshooting.md): permissions not showing, messages stuck on **Queued**.
 - [Plugin spec](spec/05-plugins.md) and the [plugin package notes](../packages/plugins/ai-office/README.md).

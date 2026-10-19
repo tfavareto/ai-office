@@ -22,5 +22,6 @@
 
 - [ ] Docs, links and prompts affected by this change are updated
 - [ ] `README.pt-BR.md` and `README.es.md` are aligned with `README.md` (or README is untouched)
+- [ ] New user-visible strings have keys in pt-BR, en and es (or no new strings)
 - [ ] `packages/shared` changes are reflected in server, web and the specs (or shared is untouched)
 - [ ] New assets are CC0 or original and credited in `packages/web/public/assets/3d/CREDITS.md` (or no new assets)
