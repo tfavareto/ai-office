@@ -1,0 +1,77 @@
+# Contributing to AI Office
+
+Thanks for your interest. Bug reports, ideas, documentation fixes and code are all welcome. This page is the short path
+from clone to pull request; the full process is in [docs/spec/07-process.md](docs/spec/07-process.md).
+
+If you use a coding agent (Claude Code, Codex or another), point it at [AGENTS.md](AGENTS.md). It holds the same rules in
+a form agents can follow.
+
+## Requirements
+
+- Node.js 22 or newer and npm.
+- macOS or Linux. Windows is not a target.
+- Claude Code on the same machine if you want to see real sessions or work on the plugin. You do not need it to develop:
+  demo mode simulates agents.
+
+## Setup
+
+```sh
+git clone https://github.com/tfavareto/ai-office.git
+cd ai-office
+npm install
+```
+
+## Development loop
+
+```sh
+npm run dev      # server on :4848 (tsx watch) + Vite dev server with the API proxied
+```
+
+Open the URL Vite prints. Use demo mode for work that needs agents without real sessions: start the server with
+`AI_OFFICE_DEMO=1` (or `--demo`), or add `?mock=1` to the page URL for a fully client-side simulation with no server.
+To try the production build, run `npm run build` and `npm start`, then open `http://127.0.0.1:4848`.
+
+Where things live is described in [AGENTS.md](AGENTS.md) and in [docs/](docs/README.md); the design specs are in
+[docs/spec/](docs/spec/00-product.md).
+
+## Checks before a pull request
+
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run docs:check
+```
+
+CI runs the same commands on Ubuntu and macOS with Node 22 and 24. `npm run docs:test` tests the docs validator itself.
+Every logic change needs tests (Vitest, Arrange-Act-Assert).
+
+## Commit style
+
+Conventional commits, in English: `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `test: ...`, `chore: ...`,
+`perf: ...`, `ci: ...`. One logical change per commit, with a short description of what and why.
+
+## Pull requests
+
+- Keep them small and focused on one change.
+- Add or update tests, and run the checks above.
+- For UI changes, include screenshots taken in demo mode. Never include real project names, session content, tokens or
+  personal paths in screenshots, logs or fixtures.
+- Update the docs, links and prompts affected by the change. If you touch `README.md`, keep `README.pt-BR.md` and
+  `README.es.md` aligned (same sections and anchors).
+- Changes to `packages/shared` affect server and web together; update both sides.
+- Visible UI text is Brazilian Portuguese; code, comments, docs and commit messages are English.
+- Assets must be CC0 or original, and credited in `packages/web/public/assets/3d/CREDITS.md`.
+
+## Reporting issues
+
+Use the issue templates: a bug report (OS, Node and Claude Code versions, AI Office commit, 2D or 3D, steps, expected and
+actual behavior, logs) or a feature request. Redact tokens, personal paths and session content from anything you paste.
+
+Do not open a public issue for a security problem. Follow [SECURITY.md](SECURITY.md) instead.
+
+## License
+
+AI Office is released under the [MIT License](LICENSE). By contributing, you agree that your contributions are licensed
+under the same terms.

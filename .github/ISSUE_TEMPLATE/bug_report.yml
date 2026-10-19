@@ -1,0 +1,75 @@
+name: Bug report
+description: Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For security problems, do not use this form: use a
+        [private security advisory](https://github.com/tfavareto/ai-office/security/advisories/new).
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Linux, Other]
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output of `node -v`.
+      placeholder: v22.12.0
+    validations:
+      required: true
+  - type: input
+    id: claude-code
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`, and whether you use the CLI or the desktop app.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: AI Office commit
+      description: Output of `git rev-parse --short HEAD` in your clone.
+      placeholder: efc4099
+    validations:
+      required: true
+  - type: dropdown
+    id: view
+    attributes:
+      label: View
+      options: ['2D', '3D', 'Both', 'Not related to the view']
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Server output (`AI_OFFICE_LOG=debug`), browser console, or hook output (`AI_OFFICE_HOOK_DEBUG=1`).
+        Redact tokens, personal paths and session content before pasting. Prefer screenshots taken in demo mode.
+      render: text

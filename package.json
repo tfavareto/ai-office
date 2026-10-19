@@ -23,6 +23,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "docs:check": "node scripts/validate-docs.mjs",
+    "docs:test": "node --test scripts/validate-docs.test.mjs",
     "plugin:install": "node packages/plugins/scripts/install.mjs install",
     "plugin:uninstall": "node packages/plugins/scripts/install.mjs uninstall",
     "plugin:status": "node packages/plugins/scripts/install.mjs status"
