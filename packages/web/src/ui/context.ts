@@ -3,6 +3,7 @@ import type { Account, Agent, BossMessage, Msg, NoticeLevel, OfficeSnapshot, Per
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
+import type { InboxController } from './inbox-controller';
 import type { MessageCenter } from './message-center';
 import type { NotificationsStore, ToastStore } from './notification-stores';
 import type { DialogId, DrawerTab, PopoverId, UiState } from './state';
@@ -29,6 +30,7 @@ export interface AppContext {
   readonly notifications: NotificationsStore;
   readonly toasts: ToastStore;
   readonly messages: MessageCenter;
+  readonly inbox: InboxController;
 
   readonly snapshot: OfficeSnapshot | null;
   /** Terminal, permissions and messages are available. */
@@ -51,7 +53,6 @@ export interface AppContext {
   closePopover(): void;
   openDialog(id: DialogId): void;
   closeDialog(): void;
-  jumpToNeedsYou(): void;
   jumpToShell(): void;
 
   /** Asks for a render pass on the next frame. */

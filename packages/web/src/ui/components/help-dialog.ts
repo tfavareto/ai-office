@@ -15,6 +15,7 @@ const SHORTCUTS: readonly [string, UiKey][] = [
   ['T', 'help.shortcut.terminal'],
   ['N', 'help.shortcut.message'],
   ['P', 'help.shortcut.permission'],
+  ['I', 'help.shortcut.inbox'],
   ['M', 'help.shortcut.day'],
   ['O', 'help.shortcut.overview'],
   ['[', 'help.shortcut.sidebar'],
@@ -22,6 +23,13 @@ const SHORTCUTS: readonly [string, UiKey][] = [
   ['?', 'help.shortcut.help'],
   ['⌘/Ctrl + Enter', 'help.shortcut.send'],
   ['⌘/Ctrl + F', 'help.shortcut.find'],
+  ['J / K / ↑ / ↓', 'help.shortcut.inbox.move'],
+  ['Space', 'help.shortcut.inbox.select'],
+  ['A', 'help.shortcut.inbox.approve'],
+  ['Shift + A', 'help.shortcut.inbox.remember'],
+  ['D', 'help.shortcut.inbox.deny'],
+  ['Enter', 'help.shortcut.inbox.open'],
+  ['E', 'help.shortcut.inbox.seen'],
   ['Esc', 'help.shortcut.escape'],
 ];
 

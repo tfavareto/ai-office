@@ -1,6 +1,6 @@
 # Using the office
 
-This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
+This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
 
 The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
 
@@ -25,7 +25,7 @@ When no session is open, a card says **No open sessions** with the steps to star
 | Sidebar button | Show or hide the sidebar (`[`). |
 | Logo and "AI Office" | Brand. |
 | Connection pill | **Live**, **Live · demo**, **Reconnecting…** (the page retries with a growing delay up to 30 s), **Connecting…**, or **Local demo** when you opened `?mock=1`. |
-| Counters | **rooms**, **agents**, **working**, **subagents**, **shells running**, **need you**. The last two are buttons that jump to the next shell or the next agent that needs you. They are disabled at zero. |
+| Counters | **rooms**, **agents**, **working**, **subagents**, **shells running**, **need you**. **Shells running** jumps to the next agent with a shell and is disabled at zero. **Need you** opens the [inbox](#the-inbox-what-needs-you) (`I`); a green pill next to it counts agents that finished since you last looked. |
 | Usage cards | One per account: tokens and estimated cost for the **5 h** window and the **Week**. Hover for the tooltip, which adds **Today** and when each window resets. Costs are estimates from public list prices. |
 | Overview (O), Zoom out (-), Zoom in (+) | Fit the whole office, zoom out, zoom in. |
 | Camera button | 3D only. Cycles **Overview**, **First person** and **Over the shoulder**. |
@@ -103,6 +103,38 @@ Messages need the [plugin](03-plugin.md#messages-to-agents). A message to an age
 ## Details drawer: a room
 
 Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a team composer (**Send to the team**), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
+
+## The inbox: what needs you
+
+The **need you** counter in the top bar (or `I`) opens one list with everything that waits on you, so you can triage it without hunting through rooms. It floats between the sidebar and the drawer, so you can keep an agent open next to it, and it stays open until you press `Esc`, `I` or the counter again.
+
+Items come in this order:
+
+1. **Permissions**: pending requests, the one that expires first on top. Each shows the agent and room, the tool, what it wants to do and a countdown. Buttons: **Approve**, **Approve and don't ask again** (also saves the first rule Claude Code suggested), **Deny** (with an optional reason the agent reads) and **Answer in the terminal**.
+2. **Questions and notices**: the agent waits for an answer or an approval that only the terminal can give. Open the agent or its terminal; you answer there.
+3. **Errors**: the agent's last action failed.
+4. **Finished**: agents that went idle after working since you last looked. Opening the agent, or **Mark as seen**, clears them. Seen marks are kept in this browser only.
+
+The inbox is empty most of the time: "Nothing needs you right now".
+
+### Triage in bulk
+
+Tick the checkboxes (`Shift` + click selects a range) and use **Approve selected** or **Deny selected**. Identical requests, for example the same `npm test` from three agents, are offered together under **Similar requests** with **Approve all similar**; edits to files of the same folder and type, and fetches from the same host, count as similar too. Every bulk action first shows what it will do and what it leaves out, and waits for **Confirm**.
+
+Dangerous requests (deleting files recursively, `sudo`, forced pushes, hard resets, recursive `chmod`, piping a download into a shell, wiping disks or databases, writing to secrets or system files) carry a **Risky** badge. They are never part of a bulk approval or a similar group, and cannot be remembered as a rule: approve them one by one, with the button.
+
+### Inbox keys
+
+| Key | Action |
+| --- | --- |
+| `J` / `K` or arrows | Move between items. |
+| `Space` | Select the item. |
+| `A` | Approve the request (or the selection, after confirming). |
+| `Shift+A` | Approve and don't ask again. |
+| `D` | Deny; `Enter` confirms, with an optional reason. |
+| `Enter` | Open the agent. |
+| `E` | Mark as seen. |
+| `Esc` | Cancel the confirmation or deny box, then close the inbox. |
 
 ## Feed
 
@@ -205,6 +237,7 @@ Plain keys are ignored while you type in a field.
 | `T` | Open or close the selected agent's terminal. |
 | `N` | Send a message to the agent, or to the room's team. |
 | `P` | Go to the next permission request. |
+| `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
 | `M` | Open **My day**. |
 | `O` | Overview of the whole office. |
 | `[` | Show or hide the sidebar. |

@@ -1,0 +1,497 @@
+/* Inbox: the "needs you" list. Floats in the free area under the top bar, between the sidebar and the drawer. */
+.ao-popover--inbox {
+  --inbox-w: min(580px, calc(100vw - var(--panel-left, 12px) - var(--panel-right, 12px)));
+  right: auto;
+  left: calc(var(--panel-left, 12px) + max(0px, (100vw - var(--panel-left, 12px) - var(--panel-right, 12px) - var(--inbox-w)) / 2));
+  width: var(--inbox-w);
+  max-width: none;
+  max-height: min(720px, calc(100vh - var(--popover-top, 64px) - 16px));
+  transform-origin: top center;
+}
+
+.ao-root.is-narrow .ao-popover--inbox {
+  right: 8px;
+  left: 8px;
+  width: auto;
+}
+
+.ao-inbox-titlebar {
+  justify-content: flex-start;
+}
+
+.ao-inbox-titlebar > svg {
+  color: var(--waiting);
+}
+
+.ao-inbox-titlebar .ao-iconbtn {
+  margin-left: auto;
+}
+
+.ao-inbox-count {
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Similar requests + bulk bar. */
+.ao-inbox-tools {
+  flex: none;
+}
+
+.ao-inbox-groups {
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(110, 162, 255, 0.06);
+}
+
+.ao-inbox-groups-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ao-inbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ao-inbox-group-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: 12px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-inbox-bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-inbox-bulk.has-selection {
+  background: var(--accent-soft);
+}
+
+.ao-inbox-selectall {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ao-inbox-bulk.has-selection .ao-inbox-selectall {
+  color: var(--accent);
+}
+
+.ao-inbox-spacer {
+  flex: 1;
+}
+
+.ao-inbox-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+/* List. */
+.ao-inbox-list {
+  flex: 1;
+  min-height: 120px;
+  padding: 4px 8px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-inbox-list:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent-soft);
+}
+
+.ao-inbox-items {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-inbox-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0 4px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ao-inbox-heading:first-child {
+  margin-top: 2px;
+}
+
+.ao-inbox-heading-count {
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  letter-spacing: 0;
+}
+
+.ao-inbox-row {
+  --room: var(--line-strong);
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 12px 10px 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), opacity var(--t-base) var(--ease);
+  animation: ao-rise var(--t-base) var(--ease);
+}
+
+.ao-inbox-row::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--room);
+  content: '';
+}
+
+.ao-inbox-row .ao-inbox-check {
+  margin-top: 9px;
+}
+
+.ao-inbox-row.is-cursor {
+  border-color: rgba(110, 162, 255, 0.55);
+  background: rgba(110, 162, 255, 0.09);
+  box-shadow: 0 0 0 1px rgba(110, 162, 255, 0.25);
+}
+
+.ao-inbox-row.is-selected {
+  background: var(--accent-soft);
+}
+
+.ao-inbox-row.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ao-inbox-row.is-expired {
+  opacity: 0.7;
+}
+
+.ao-inbox-row.is-risky {
+  border-color: rgba(239, 107, 107, 0.45);
+}
+
+.ao-inbox-row--permission:not(.is-risky):not(.is-expired) {
+  border-color: rgba(245, 181, 68, 0.3);
+}
+
+.ao-inbox-row--error {
+  border-color: rgba(239, 107, 107, 0.3);
+}
+
+.ao-inbox-row--finished {
+  border-color: rgba(62, 207, 142, 0.22);
+}
+
+.ao-inbox-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ao-inbox-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ao-inbox-name {
+  flex: none;
+  font-size: 13.5px;
+}
+
+.ao-inbox-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-inbox-swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ao-inbox-time {
+  flex: none;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-inbox-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ao-inbox-body .ao-tool-chip {
+  flex: none;
+  margin-top: 1px;
+}
+
+.ao-inbox-text {
+  margin: 0;
+  min-width: 0;
+  font: 12.5px/1.45 var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.ao-inbox-row:not(.ao-inbox-row--permission) .ao-inbox-text {
+  font: 13px/1.45 var(--font);
+}
+
+.ao-inbox-flags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  empty-cells: hide;
+}
+
+.ao-inbox-flags:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
+.ao-inbox-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border: 1px solid rgba(239, 107, 107, 0.5);
+  border-radius: 99px;
+  background: rgba(239, 107, 107, 0.16);
+  color: #ffb4b4;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ao-inbox-similar {
+  padding: 1px 8px;
+  border: 1px solid rgba(110, 162, 255, 0.4);
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ao-inbox-similar:hover {
+  background: rgba(79, 134, 247, 0.28);
+}
+
+.ao-inbox-expires {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-inbox-expires.is-soon {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.ao-inbox-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ao-inbox-deny {
+  display: grid;
+  gap: 6px;
+}
+
+/* Bulk confirmation. */
+.ao-inbox-confirm {
+  display: grid;
+  flex: none;
+  gap: 8px;
+  max-height: 55%;
+  padding: 12px 14px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(110, 162, 255, 0.4);
+  background: rgba(24, 32, 50, 0.98);
+  animation: ao-rise var(--t-base) var(--ease);
+}
+
+.ao-inbox-confirm[hidden] {
+  display: none;
+}
+
+.ao-inbox-confirm-list,
+.ao-inbox-confirm-skipped ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-inbox-confirm-list li,
+.ao-inbox-confirm-skipped li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.ao-inbox-confirm-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font: 12px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-inbox-confirm-more,
+.ao-inbox-confirm-skipped li span {
+  color: var(--muted);
+}
+
+.ao-inbox-confirm-skipped {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 181, 68, 0.35);
+  border-radius: 8px;
+  background: rgba(245, 181, 68, 0.08);
+}
+
+.ao-inbox-confirm-skipped[hidden] {
+  display: none;
+}
+
+.ao-inbox-confirm-skip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--waiting);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Empty state. */
+.ao-inbox-empty {
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 36px 24px 40px;
+  text-align: center;
+}
+
+.ao-inbox-empty[hidden] {
+  display: none;
+}
+
+.ao-inbox-empty strong {
+  font-size: 15px;
+}
+
+.ao-inbox-empty .ao-note {
+  max-width: 340px;
+  margin: 0;
+}
+
+.ao-inbox-empty-art {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(62, 207, 142, 0.22), rgba(62, 207, 142, 0.05) 70%);
+  box-shadow: 0 0 0 8px rgba(62, 207, 142, 0.06), 0 0 0 18px rgba(62, 207, 142, 0.03);
+  color: var(--working);
+}
+
+.ao-inbox-foot {
+  padding: 8px 14px;
+}
+
+.ao-inbox-hint {
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.ao-root.is-narrow .ao-inbox-hint {
+  display: none;
+}
+
+.ao-root.is-narrow .ao-inbox-foot {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-inbox-row,
+  .ao-inbox-confirm {
+    animation: none;
+    transition: none;
+  }
+}
+
+.ao-root.is-reduced-motion .ao-inbox-row,
+.ao-root.is-reduced-motion .ao-inbox-confirm {
+  animation: none;
+  transition: none;
+}

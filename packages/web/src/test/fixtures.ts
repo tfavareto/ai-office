@@ -1,5 +1,5 @@
 // Synthetic builders for tests (never real data).
-import type { Account, Activity, Agent, OfficeSnapshot, Project } from '@ai-office/shared';
+import type { Account, Activity, Agent, OfficeSnapshot, PermissionRequest, Project } from '@ai-office/shared';
 
 export function activity(over: Partial<Activity> = {}): Activity {
   return { id: 'a1', at: 1_000, kind: 'read', icon: '📖', text: 'Lendo App.tsx', ...over };
@@ -26,6 +26,10 @@ export function agent(over: Partial<Agent> = {}): Agent {
     lastEventAt: 0,
     ...over,
   };
+}
+
+export function permission(over: Partial<PermissionRequest> = {}): PermissionRequest {
+  return { id: 'perm1', agentId: 'ag1', toolName: 'Bash', summary: 'npm test', input: { command: 'npm test' }, suggestions: [], createdAt: 1_000, expiresAt: 61_000, ...over };
 }
 
 export function project(over: Partial<Project> = {}): Project {

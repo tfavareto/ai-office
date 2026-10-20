@@ -53,7 +53,8 @@ the source catalog the other two are translated from. Code, comments and docs in
    (PostToolUse adds additionalContext; Stop blocks with the message as reason; Stop waits up to 10 min "on standby"
    when a page is open). The page sends its language (`locale`) with each message, and the hook phrases its preamble in
    it; the message text itself is delivered untouched.
-8. **Permission answers**: the plugin's PermissionRequest hook sends requests; the page shows them (P jumps to next);
+8. **Permission answers**: the plugin's PermissionRequest hook sends requests; the page shows them (P jumps to next,
+   and the inbox below lists them all);
    the terminal dialog still works (first answer wins). The page sends its language (`locale`) with the decision, and
    the hook phrases the fixed part of a denial message in it.
 9. **Read-only terminal**: panel that renders a session's conversation like the terminal (user prompts, assistant
@@ -73,7 +74,24 @@ the source catalog the other two are translated from. Code, comments and docs in
     the office), PostToolUse + Stop + SubagentStop (deliver messages), Notification (mark "needs you").
     `npm run plugin:install|uninstall|status` installs into every detected account via the `claude plugin` CLI.
 
-Keyboard: / search, F follow selected, T terminal, N message, P next permission, M my day, O overview, [ sidebar,
+15. **Needs-you inbox** ("Fila do que precisa de você"): the "need you" counter of the top bar is the button of one
+    prioritized list of everything that waits on the user (key I). Order: pending permission requests (soonest to
+    expire first), then questions, plan approvals and attention notices (oldest first), then errors (the last action
+    failed), then agents that finished (newest first). Permissions are answered in place (Approve, Approve and don't
+    ask again, Deny with an optional reason, Answer in the terminal); the other kinds open the agent, because they
+    are answered in the terminal, and can be marked as seen. "Finished" means a main agent that went idle after
+    working since the page first saw the office, and it counts as seen when its agent is opened. Bulk triage:
+    multi-select (checkboxes, Shift+click ranges), Approve selected, Deny selected, and "Approve all similar" for
+    identical requests (same tool and the same normalized command; file edits match by folder and extension; web
+    fetches by host). Every bulk action asks for confirmation and lists what it will do and what it leaves out.
+    Dangerous requests (recursive deletes, sudo, forced pushes, hard resets, recursive chmod, piping a download into
+    a shell, disk and database wipes, writes to secrets and system files) carry a warning badge, are never part of a
+    bulk approval or a "similar" group, and cannot be remembered as a rule. The seen marks live in this browser only
+    (`ai-office:inbox`). Sound and notifications are unchanged. Demo mode raises identical, similar and dangerous
+    permission requests, up to four at once.
+
+Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move, Space select, A approve, Shift+A approve and remember, D
+deny, Enter open, E mark seen), M my day, O overview, [ sidebar,
 ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
 
 ## Non-goals

@@ -79,6 +79,30 @@ describe('createDemoSimulator', () => {
     expect(sim.decidePermission('nao-existe', { behavior: 'deny' })).toBe(false);
   });
 
+  test('the opening scene already holds identical permission requests to triage together', () => {
+    const { sim } = run(1, 8);
+    const commands = sim.agents().flatMap((a) => (a.permission ? [a.permission.summary] : []));
+    expect(commands.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(commands).size).toBeLessThan(commands.length);
+  });
+
+  test('a longer run raises dangerous permission requests too, and several at once', () => {
+    let clock = T0;
+    const sim = createDemoSimulator({ seed: 3, now: () => clock });
+    const summaries = new Set<string>();
+    let mostAtOnce = 0;
+    for (let t = 0; t <= 900_000; t += 500) {
+      clock = T0 + t;
+      sim.tick(clock);
+      const pending = sim.agents().flatMap((a) => (a.permission ? [a.permission.summary] : []));
+      pending.forEach((summary) => summaries.add(summary));
+      mostAtOnce = Math.max(mostAtOnce, pending.length);
+    }
+    expect([...summaries].some((summary) => summary.startsWith('rm -rf'))).toBe(true);
+    expect([...summaries].some((summary) => summary.startsWith('sudo'))).toBe(true);
+    expect(mostAtOnce).toBeGreaterThanOrEqual(3);
+  });
+
   test('denying with interrupt ends the turn', () => {
     const { sim } = run(1, 6);
     const waiting = sim.agents().find((a) => a.permission !== undefined) as Agent;

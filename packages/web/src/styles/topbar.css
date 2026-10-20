@@ -153,6 +153,26 @@
   color: var(--waiting);
 }
 
+.ao-counter[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+
+.ao-counter-finished {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: rgba(62, 207, 142, 0.16);
+  color: var(--working);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ao-counter-finished[hidden] {
+  display: none;
+}
+
 @keyframes ao-attention {
   50% { box-shadow: 0 0 0 4px rgba(245, 181, 68, 0.12); }
 }

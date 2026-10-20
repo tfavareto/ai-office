@@ -13,6 +13,7 @@ import { EmptyState } from './components/empty-state';
 import { Feed } from './components/feed';
 import { HelpDialog } from './components/help-dialog';
 import { HoverTip } from './components/hover-tip';
+import { InboxPopover } from './components/inbox-popover';
 import { NotificationCenter } from './components/notification-center';
 import { SessionHistory } from './components/session-history';
 import { FOCUS_KEY_ATTR, Settings } from './components/settings';
@@ -27,8 +28,9 @@ import { bindLanguage } from './language';
 import { agentRole, agentTitle, localized, localizedOptional } from './display';
 import { h, isEditable, toggleClass } from './dom';
 import { computeInsets, layoutVariables, sameInsets } from './layout';
+import { InboxController } from './inbox-controller';
 import { MessageCenter } from './message-center';
-import { agentsNeedingYou, agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
+import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
 import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
@@ -44,7 +46,7 @@ const RELOAD_GUARD_KEY = 'ai-office:reload-at';
 const RELOAD_GUARD_MS = 15_000;
 
 /** Scrollable panels whose position survives the rebuild after a language change. */
-const SCROLL_SELECTORS = ['.ao-sidebar-list', '.ao-agent-body', '.ao-feed-list', '.ao-settings-body', '.ao-help-body', '.ao-sessions-body', '.ao-notif-list'] as const;
+const SCROLL_SELECTORS = ['.ao-sidebar-list', '.ao-agent-body', '.ao-feed-list', '.ao-settings-body', '.ao-help-body', '.ao-sessions-body', '.ao-notif-list', '.ao-inbox-list'] as const;
 
 const CUE_BY_LEVEL: Record<NoticeLevel, CueKind> = { alert: 'alert', warn: 'info', info: 'info', success: 'success' };
 
@@ -53,6 +55,7 @@ export class App implements AppContext {
   readonly notifications = new NotificationsStore();
   readonly toasts = new ToastStore();
   readonly messages: MessageCenter;
+  readonly inbox: InboxController;
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
@@ -85,6 +88,7 @@ export class App implements AppContext {
     const initial = prefs.get();
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
+    this.inbox = new InboxController({ snapshot: () => this.snapshot, notifications: () => this.notifications.get().items, now: () => this.now() });
     this.messages = new MessageCenter({
       backend: store.backend,
       nameOf: (id) => this.agent(id)?.name ?? t('agent.fallback'),
@@ -120,7 +124,7 @@ export class App implements AppContext {
     const drawer = new Drawer(this);
     const feed = new Feed(this);
     const toasts = new Toasts(this);
-    const popovers = [new NotificationCenter(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
+    const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
     const dialogs = [new DayDialog(this), new HelpDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
@@ -277,14 +281,6 @@ export class App implements AppContext {
     this.ui.set({ dialog: null });
   }
 
-  jumpToNeedsYou(): void {
-    const agents = this.snapshot?.agents ?? [];
-    const current = this.ui.get().selection;
-    const next = nextAfter(agentsNeedingYou(agents), current?.type === 'agent' ? current.id : null);
-    if (next) this.selectAgent(next.id, { focus: true, tab: 'summary' });
-    else this.announce(t('announce.needs.none'));
-  }
-
   jumpToShell(): void {
     const agents = this.snapshot?.agents ?? [];
     const current = this.ui.get().selection;
@@ -366,12 +362,17 @@ export class App implements AppContext {
 
   private wire(): void {
     this.store.subscribe((event) => {
-      if (event.type === 'snapshot') this.onSnapshot(event.snapshot);
+      if (event.type === 'snapshot') {
+        this.onSnapshot(event.snapshot);
+        this.inbox.sync(event.snapshot);
+      }
       else if (event.type === 'notice') this.handleNotice(event.notice);
       this.refresh();
     });
-    for (const observable of [this.ui, this.notifications, this.toasts, this.messages]) observable.subscribe(() => this.refresh());
+    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox]) observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
+      // Opening an agent counts as having seen that its work finished.
+      if (data.selection?.type === 'agent') this.inbox.markAgentSeen(data.selection.id);
       if (!data.narrow) this.prefs.set({ sidebarOpen: data.sidebarOpen });
       this.prefs.set({ feedOpen: data.feedOpen });
     });
@@ -527,7 +528,8 @@ export class App implements AppContext {
     if (this.ui.get().popover === null) return;
     const target = event.target;
     if (!(target instanceof Element)) return;
-    if (target.closest('.ao-popover') || target.closest('[data-popover-trigger]')) return;
+    // The inbox is a work surface: it stays open while the user looks at agents (Esc or its counter closes it).
+    if (this.ui.get().popover === 'inbox' || target.closest('.ao-popover') || target.closest('[data-popover-trigger]')) return;
     this.closePopover();
   }
 
@@ -560,6 +562,9 @@ export class App implements AppContext {
         return;
       case 'permission':
         this.jumpToPermission();
+        return;
+      case 'inbox':
+        this.togglePopover('inbox');
         return;
       case 'day':
         this.openDialog('day');

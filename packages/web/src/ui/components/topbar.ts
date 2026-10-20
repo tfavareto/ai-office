@@ -6,6 +6,7 @@ import { h, setText, toggleClass } from '../dom';
 import { icon, type IconName } from '../icons';
 import { logo } from '../logo';
 import { computeCounters, type Counters } from '../model/counters';
+import type { InboxCounts } from '../model/inbox';
 import { unreadCount } from '../model/notifications';
 import type { PopoverId } from '../state';
 import { iconButton, setPressed } from '../widgets';
@@ -16,7 +17,7 @@ interface CounterDef {
   icon: IconName;
   /** Catalog key of the label; plural-aware ("sala" / "salas"). */
   label: UiKey;
-  jump?: 'shell' | 'needs';
+  jump?: 'shell' | 'inbox';
 }
 
 const COUNTERS: readonly CounterDef[] = [
@@ -25,7 +26,7 @@ const COUNTERS: readonly CounterDef[] = [
   { key: 'working', icon: 'bolt', label: 'topbar.counter.working' },
   { key: 'subagents', icon: 'layers', label: 'topbar.counter.subagents' },
   { key: 'shells', icon: 'terminal', label: 'topbar.counter.shells', jump: 'shell' },
-  { key: 'needsYou', icon: 'alert', label: 'topbar.counter.needsYou', jump: 'needs' },
+  { key: 'needsYou', icon: 'alert', label: 'topbar.counter.needsYou', jump: 'inbox' },
 ];
 
 const CAMERA_LABEL: Record<CameraMode, UiKey> = {
@@ -39,6 +40,9 @@ interface CounterView {
   el: HTMLElement;
   value: HTMLElement;
   text: HTMLElement;
+  /** Inbox button only: unseen finished work, next to the count of what needs the user. */
+  finished?: HTMLElement;
+  finishedValue?: HTMLElement;
 }
 
 export class TopBar implements Component {
@@ -120,17 +124,22 @@ export class TopBar implements Component {
       const el = h('div', { class: `ao-counter ao-counter--${def.key}`, role: 'listitem' }, ...inner);
       return { def, el, value, text };
     }
+    if (def.jump === 'inbox') return this.createInboxCounter(def, inner, value, text);
+    const el = h('button', { type: 'button', class: `ao-counter ao-counter--${def.key} is-action`, role: 'listitem', onclick: () => this.ctx.jumpToShell() }, ...inner);
+    return { def, el, value, text };
+  }
+
+  /** The "needs you" counter is the button of the inbox. */
+  private createInboxCounter(def: CounterDef, inner: Node[], value: HTMLElement, text: HTMLElement): CounterView {
+    const finishedValue = h('span');
+    const finished = h('span', { class: 'ao-counter-finished', hidden: true }, icon('check', 12), finishedValue);
     const el = h(
       'button',
-      {
-        type: 'button',
-        class: `ao-counter ao-counter--${def.key} is-action`,
-        role: 'listitem',
-        onclick: () => (def.jump === 'shell' ? this.ctx.jumpToShell() : this.ctx.jumpToNeedsYou()),
-      },
+      { type: 'button', class: `ao-counter ao-counter--${def.key} is-action`, role: 'listitem', 'aria-haspopup': 'dialog', 'data-popover-trigger': 'inbox', onclick: () => this.ctx.togglePopover('inbox') },
       ...inner,
+      finished,
     );
-    return { def, el, value, text };
+    return { def, el, value, text, finished, finishedValue };
   }
 
   private cycleCamera(): void {
@@ -169,7 +178,12 @@ export class TopBar implements Component {
 
   private renderCounters(): void {
     const counters = computeCounters(this.ctx.snapshot);
+    const inbox = this.ctx.inbox.view().counts;
     for (const view of this.counters) {
+      if (view.def.jump === 'inbox') {
+        this.renderInboxCounter(view, inbox);
+        continue;
+      }
       const value = counters[view.def.key];
       setText(view.value, String(value));
       const label = t(view.def.label, { n: value });
@@ -184,6 +198,23 @@ export class TopBar implements Component {
         view.el.title = `${value} ${label}`;
       }
     }
+  }
+
+  private renderInboxCounter(view: CounterView, counts: InboxCounts): void {
+    const value = counts.urgent;
+    const label = t(view.def.label, { n: value });
+    setText(view.value, String(value));
+    setText(view.text, label);
+    toggleClass(view.el, 'is-attention', value > 0);
+    toggleClass(view.el, 'is-zero', value === 0);
+    setPressed(view.el, this.ctx.ui.get().popover === 'inbox');
+    if (view.finished && view.finishedValue) {
+      view.finished.hidden = counts.finished === 0;
+      setText(view.finishedValue, String(counts.finished));
+      view.finished.title = t('topbar.inbox.finished', { n: counts.finished });
+    }
+    const finishedHint = counts.finished > 0 ? ` · ${t('topbar.inbox.finished', { n: counts.finished })}` : '';
+    view.el.title = `${t('topbar.inbox.open')} · ${value} ${label}${finishedHint}`;
   }
 
   private renderButtons(): void {

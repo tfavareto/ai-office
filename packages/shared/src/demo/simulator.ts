@@ -51,6 +51,7 @@ import {
   DEMO_WEB,
   type DemoCommand,
   type DemoError,
+  type DemoPermissionSpec,
   type DemoProjectSpec,
   type DemoText,
 } from './content';
@@ -64,13 +65,16 @@ const MESSAGE_DELIVERY_MS = 1500;
 const LEAVE_LINGER_MS = 6000;
 const SUB_LINGER_MS = 5000;
 const PERMISSION_TIMEOUT_MS = 50_000;
-const MAX_BLOCKED = 2;
+const MAX_BLOCKED = 4;
+/** Per step, the chance an agent blocks on a permission request, and (just above it) on a question. */
+const PERMISSION_CHANCE = 0.07;
+const QUESTION_CHANCE = 0.09;
 const CHURN_MIN_MS = 70_000;
 const CHURN_MAX_MS = 130_000;
 const MAX_VISITORS = 2;
 const ERROR_NOTICE_GAP_MS = 20_000;
 const HOUR_MS = 3_600_000;
-const MOODS = ['shell', 'subs', 'idle', 'blocked', 'busy', 'busy', 'idle', 'busy'] as const;
+const MOODS = ['shell', 'subs', 'idle', 'blocked', 'blocked', 'busy', 'idle', 'busy'] as const;
 
 type Mood = (typeof MOODS)[number];
 type Phase = 'idle' | 'working' | 'blocked' | 'gone';
@@ -126,6 +130,7 @@ class Simulator implements DemoSimulator {
   private clock: number;
   private changedSinceTick = false;
   private counter = 0;
+  private permissionCursor = 0;
   private rev = 0;
 
   constructor(options: DemoOptions) {
@@ -554,11 +559,11 @@ class Simulator implements DemoSimulator {
     this.progressTasks(id, runtime, runtime.stepsTotal);
     const roll = runtime.rng();
     const canBlock = this.blockedCount() < MAX_BLOCKED;
-    if (roll < 0.025 && canBlock) {
+    if (roll < PERMISSION_CHANCE && canBlock) {
       this.blockOnPermission(id, at);
       return;
     }
-    if (roll >= 0.025 && roll < 0.045 && canBlock) {
+    if (roll >= PERMISSION_CHANCE && roll < QUESTION_CHANCE && canBlock) {
       this.blockOnQuestion(id, at);
       return;
     }
@@ -664,7 +669,7 @@ class Simulator implements DemoSimulator {
   private blockOnPermission(id: string, at: number): void {
     const runtime = this.runtimes.get(id);
     if (runtime === undefined || runtime.phase === 'gone') return;
-    const spec = pick(runtime.rng, DEMO_PERMISSIONS);
+    const spec = DEMO_PERMISSIONS[this.permissionCursor++ % DEMO_PERMISSIONS.length] as DemoPermissionSpec;
     const request: PermissionRequest = {
       id: this.nextId('demo-perm'),
       agentId: id,
