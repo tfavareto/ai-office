@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { computeBuilding } from '../layout/building';
 import type { RoomState } from '../sim/rooms';
 import type { Character } from '../sim/types';
-import { characterBox, pickCharacter, pickRoom } from './picking';
+import { characterBox, pickCharacter, pickRoom, pickWhiteboard, whiteboardRect } from './picking';
 
 function fake(id: string, x: number, y: number, alpha = 1): Character {
   return { id, x, y, alpha } as Character;
@@ -28,6 +28,16 @@ describe('picking', () => {
     const box = characterBox(placeholder);
 
     expect(pickCharacter([placeholder], box.x + 4, box.y + 10)).toBeNull();
+  });
+
+  it('finds the whiteboard of the meeting room and only its pixels', () => {
+    const building = computeBuilding([{ id: 'p1', seed: 3, name: 'p1', slot: 0 }]);
+    const board = whiteboardRect(building);
+
+    expect(board).not.toBeNull();
+    expect(pickWhiteboard(building, board!.x + 2, board!.y + 2)).toBe(true);
+    expect(pickWhiteboard(building, board!.x - 3, board!.y + 2)).toBe(false);
+    expect(pickWhiteboard(building, board!.x + 2, board!.y + board!.h + 20)).toBe(false);
   });
 
   it('finds the project room under a point and nothing for core areas', () => {

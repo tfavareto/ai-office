@@ -320,29 +320,6 @@ export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, t
   });
 }
 
-export function paintWhiteboard(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-  ctx.fillStyle = '#f4f6f8';
-  ctx.fillRect(0, 0, w, h);
-  const rng = new Rng(77);
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  const colors = ['#2f6fed', '#e0525a', '#2d9d6b'];
-  for (let i = 0; i < 7; i++) {
-    ctx.strokeStyle = colors[i % 3];
-    ctx.beginPath();
-    const y = 50 + i * 42;
-    ctx.moveTo(40, y);
-    for (let x = 40; x < 40 + rng.range(160, w - 100); x += 18) ctx.lineTo(x, y + Math.sin(x * 0.4 + i) * 7);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = '#2f6fed';
-  ctx.strokeRect(w - 200, 40, 150, 120);
-  ctx.beginPath();
-  ctx.moveTo(w - 200, 100);
-  ctx.lineTo(w - 50, 100);
-  ctx.stroke();
-}
-
 export function paintLoungeTv(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
   const g = ctx.createLinearGradient(0, 0, w, h);
   const hue = (t * 12) % 360;

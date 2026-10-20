@@ -179,3 +179,16 @@ describe('text fitting in the 2D world', () => {
     }
   });
 });
+
+describe('whiteboard task board', () => {
+  const WHITEBOARD_TEXT_PX = 4 * 16 - 2 - 4 - 6;
+
+  it('has an empty text that fits the pixel board in every language, in full or short form', () => {
+    for (const locale of LOCALES) {
+      const text = worldText(locale);
+      const forms = [text.t('taskboard.empty'), text.t('taskboard.empty.short')];
+      expect(unsupportedChars(forms.join(' ')), locale).toEqual([]);
+      expect(textWidth(pickFitting(forms, WHITEBOARD_TEXT_PX)), locale).toBeLessThanOrEqual(WHITEBOARD_TEXT_PX);
+    }
+  });
+});

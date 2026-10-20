@@ -127,8 +127,13 @@ export const DEMO_LONG_SHELLS: readonly { command: string; label: DemoText }[] =
 export const DEMO_TASK_PLAN: readonly { title: DemoText; activeForm: DemoText }[] = [
   { title: localized('demo.task.1.title'), activeForm: localized('demo.task.1.active') },
   { title: localized('demo.task.2.title'), activeForm: localized('demo.task.2.active') },
+  { title: localized('demo.task.6.title'), activeForm: localized('demo.task.6.active') },
+  { title: localized('demo.task.7.title'), activeForm: localized('demo.task.7.active') },
+  { title: localized('demo.task.8.title'), activeForm: localized('demo.task.8.active') },
   { title: localized('demo.task.3.title'), activeForm: localized('demo.task.3.active') },
   { title: localized('demo.task.4.title'), activeForm: localized('demo.task.4.active') },
+  { title: localized('demo.task.9.title'), activeForm: localized('demo.task.9.active') },
+  { title: localized('demo.task.10.title'), activeForm: localized('demo.task.10.active') },
   { title: localized('demo.task.5.title'), activeForm: localized('demo.task.5.active') },
 ];
 

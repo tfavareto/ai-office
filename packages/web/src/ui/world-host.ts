@@ -27,6 +27,7 @@ export class WorldHost {
   private readonly selectListeners = new Set<Listener<Selection>>();
   private readonly hoverListeners = new Set<Listener<HoverInfo | null>>();
   private readonly cameraListeners = new Set<Listener<CameraMode>>();
+  private readonly boardListeners = new Set<() => void>();
   private readonly deskListeners = new Set<Listener<DeskRef>>();
 
   constructor(private readonly container: HTMLElement) {}
@@ -62,6 +63,9 @@ export class WorldHost {
       }),
       world.onHover((hover) => {
         for (const listener of this.hoverListeners) listener(hover);
+      }),
+      world.onBoardClick(() => {
+        for (const listener of this.boardListeners) listener();
       }),
       world.onCameraMode((mode) => {
         for (const listener of this.cameraListeners) listener(mode);
@@ -153,6 +157,11 @@ export class WorldHost {
   onHover(listener: Listener<HoverInfo | null>): () => void {
     this.hoverListeners.add(listener);
     return () => this.hoverListeners.delete(listener);
+  }
+
+  onBoardClick(listener: () => void): () => void {
+    this.boardListeners.add(listener);
+    return () => this.boardListeners.delete(listener);
   }
 
   onDeskClick(listener: Listener<DeskRef>): () => void {

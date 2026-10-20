@@ -12,7 +12,8 @@ import { LayerCache } from './layers/cache';
 import { skyColors } from './lighting';
 import { type Ctx, context2d, makeCanvas } from './paint/ctx';
 import { DESK_SCREENS } from './paint/furnOffice';
-import { type RoomInfo, renderBoard, renderMeetingTv, roomInfoKey } from './runtime/boards';
+import { type RoomInfo, renderBoard, renderMeetingTv, renderTaskBoard, roomInfoKey } from './runtime/boards';
+import { taskBoardKey, type TaskBoardSummary } from '../world/taskBoard';
 import { type CarDraw, Traffic } from './runtime/cars';
 import { SCREEN_H, SCREEN_W, desksScreens, screenSprite } from './runtime/screens';
 import { type TickerStrip } from './runtime/ticker';
@@ -36,6 +37,7 @@ export interface FrameState {
   hoverDesk: DeskTarget | null;
   options: WorldOptions;
   roomInfo: ReadonlyMap<string, RoomInfo>;
+  taskBoard: TaskBoardSummary;
   agents: ReadonlyMap<string, Agent>;
   accountColor: (accountId: string) => string;
   ticker: TickerStrip | null;
@@ -292,6 +294,12 @@ export class Renderer {
       const text = worldText(s.options.locale);
       const version = `${roomInfoKey(info)}|${area.theme.accent}|${text.locale}`;
       const canvas = this.boardFor(`${area.id}:board`, () => renderBoard(screen.w, screen.h, info, area.theme.accent, text), version);
+      ctx.drawImage(canvas, screen.x, screen.y);
+      return;
+    }
+    if (screen.kind === 'taskboard') {
+      const text = worldText(s.options.locale);
+      const canvas = this.boardFor('meeting:tasks', () => renderTaskBoard(screen.w, screen.h, s.taskBoard, text), `${text.locale}|${taskBoardKey(s.taskBoard)}`);
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }

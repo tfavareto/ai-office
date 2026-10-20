@@ -27,6 +27,13 @@ export const worldEs: Readonly<Record<WorldKey, string>> = {
   'meeting.inRoom': 'En la sala {n}',
   'meeting.inRoom3d': 'En la sala · {n}',
   'meeting.free': 'Sala libre',
+  // meeting-room whiteboard: the task board
+  'taskboard.title': 'Tablero de tareas',
+  'taskboard.pending': 'Pendiente',
+  'taskboard.active': 'En curso',
+  'taskboard.done': 'Completada',
+  'taskboard.empty': 'Sin tareas',
+  'taskboard.empty.short': 'Vacío',
   'ticker.working': '{n} trabajando',
   'ticker.shells': '{n, plural, one {# shell en ejecución} other {# shells en ejecución}}',
   'ticker.allGood': 'Todo en orden',

@@ -65,6 +65,27 @@ describe('3D canvas texts', () => {
     expect(tv.texts).toContain('EN LA SALA · 2');
   });
 
+  it('paints the whiteboard task board in the language of the world, with the demo titles translated', async () => {
+    const { paintTaskBoard } = await import('./taskBoardScreen');
+    const summary = { pending: 2, active: 1, done: 7, top: [{ text: 'Implementando a mudança', msg: { key: 'demo.task.2.active' } }, { text: 'Escrito pelo usuário' }] };
+    for (const [locale, labels, title] of [
+      ['pt-BR', ['QUADRO DE TAREFAS', 'PENDENTE', 'EM ANDAMENTO', 'CONCLUÍDO'], 'Implementando a mudança'],
+      ['en', ['TASK BOARD', 'PENDING', 'IN PROGRESS', 'COMPLETED'], 'Implementing the change'],
+      ['es', ['TABLERO DE TAREAS', 'PENDIENTE', 'EN CURSO', 'COMPLETADA'], 'Implementando el cambio'],
+    ] as const) {
+      const { ctx, texts } = recordingContext();
+      paintTaskBoard(ctx, 486, 269, summary, worldText(locale));
+      expect(texts, locale).toEqual(expect.arrayContaining([...labels, '2', '1', '7', title, 'Escrito pelo usuário']));
+    }
+  });
+
+  it('says there are no tasks when the whiteboard has none', async () => {
+    const { paintTaskBoard } = await import('./taskBoardScreen');
+    const { ctx, texts } = recordingContext();
+    paintTaskBoard(ctx, 486, 269, { pending: 0, active: 0, done: 0, top: [] }, worldText('en'));
+    expect(texts).toContain('No tasks');
+  });
+
   it('repaints only the localized decor when the language changes', async () => {
     const { DecorAtlas } = await import('./screens');
     const atlas = new DecorAtlas(worldText('pt-BR'));

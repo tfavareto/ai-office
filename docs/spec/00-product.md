@@ -100,9 +100,20 @@ the source catalog the other two are translated from. Code, comments and docs in
     files, as always). Meanwhile a placeholder person ("arriving…") walks in from the elevator to the chosen desk, and
     hands over to the real session when it appears (matched by folder + account + start time, within 90 s). Local access
     only; in demo mode a simulated agent arrives instead and no terminal opens.
+17. **Task board**: one board with the tasks of every agent (what Claude Code writes with TodoWrite / TaskCreate /
+    TaskUpdate), opened from the top-bar button, `K` or by clicking the whiteboard of the meeting room. Three columns
+    (**Pending / In progress / Completed**) or one lane per room; filters for room, account, agent and "active agents
+    only". A card shows the task (the "doing…" form while in progress), who has it, the room, the account and its age
+    (the server stamps `TaskItem.changedAt`); clicking it selects the agent and highlights the task in the drawer. Old
+    completed cards fold away (the last 3 per room, "See all"). The board never edits a list itself: dragging a card to
+    another column or to another agent (or `M` on a focused card, or the "+" of a column) opens a confirmation with the
+    exact message, editable, and sends it as a normal message ("Prioritize this task now: …", "Take over this task: …
+    (it came from Ana)", "Add this task to your task list: …"). The card says "message sent" until a snapshot shows the
+    change. Agents without a task list are listed apart. The whiteboard of the meeting room (2D and 3D) shows the live
+    summary: cards per column and the first tasks in progress.
 
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
-Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, O overview,
+Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, K task board (on a focused card: M moves it), O overview,
 H hire an agent, [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
 
 ## Non-goals

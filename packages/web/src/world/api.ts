@@ -60,6 +60,8 @@ export interface WorldApi {
   select(selection: Selection, opts?: { focus?: boolean }): void;
   onSelect(cb: (selection: Selection) => void): () => void;
   onHover(cb: (hover: HoverInfo | null) => void): () => void;
+  /** The meeting-room whiteboard (task board) was clicked. */
+  onBoardClick(cb: () => void): () => void;
   /** The person clicked an empty desk (only while `hireEnabled`). */
   onDeskClick(cb: (desk: DeskRef) => void): () => void;
   /** Camera commands from buttons/shortcuts. */

@@ -79,6 +79,7 @@ const MAX_VISITORS = 2;
 const HIRE_ARRIVAL_MS = 4500;
 const ERROR_NOTICE_GAP_MS = 20_000;
 const HOUR_MS = 3_600_000;
+const MAX_DEMO_TASKS = 5;
 const MOODS = ['shell', 'subs', 'idle', 'blocked', 'blocked', 'busy', 'idle', 'busy'] as const;
 
 type Mood = (typeof MOODS)[number];
@@ -110,6 +111,11 @@ interface ProjectEntry {
 /** Title fields of an agent: a generated text carries its message, a user's text (a delivered message) does not. */
 function titleOf(title: DemoText | string): { title: string; titleMsg: Msg | undefined } {
   return typeof title === 'string' ? { title, titleMsg: undefined } : { title: title.text, titleMsg: title.msg };
+}
+
+/** Tasks before `done` are finished, the one at `done` is in progress and the rest wait. */
+function demoTaskStatus(index: number, done: number): TaskItem['status'] {
+  return index < done ? 'completed' : index === done ? 'in_progress' : 'pending';
 }
 
 /** A shell command whose description is generated (demo) text, so it has a localizable message. */
@@ -468,7 +474,7 @@ class Simulator implements DemoSimulator {
     runtime.turnStartedAt = at - randInt(runtime.rng, 20, 90) * 1000;
     runtime.stepsLeft = randInt(runtime.rng, 5, 9);
     runtime.stepsTotal = 12;
-    this.update(id, (agent) => ({ ...agent, tasks: this.planTasks(runtime, 0.45) }));
+    this.update(id, (agent) => ({ ...agent, tasks: this.planTasks(runtime, 0.45, at - randInt(runtime.rng, 5, 60) * 1000) }));
     this.setStatus(id, 'working', at - randInt(runtime.rng, 3, 25) * 1000);
   }
 
@@ -547,29 +553,32 @@ class Simulator implements DemoSimulator {
 
   // ---- turns ------------------------------------------------------------------------------------------------
 
-  private planTasks(runtime: Runtime, progress: number): TaskItem[] {
-    const count = randInt(runtime.rng, 3, DEMO_TASK_PLAN.length);
+  /** A contiguous slice of the demo plan (so each turn reads like a different job), with `done` tasks already finished. */
+  private planTasks(runtime: Runtime, progress: number, at: number): TaskItem[] {
+    const count = randInt(runtime.rng, 3, MAX_DEMO_TASKS);
+    const first = randInt(runtime.rng, 0, DEMO_TASK_PLAN.length - count);
     const done = Math.min(count - 1, Math.floor(progress * count));
-    return DEMO_TASK_PLAN.slice(0, count).map((task, index): TaskItem => ({
+    return DEMO_TASK_PLAN.slice(first, first + count).map((task, index): TaskItem => ({
       id: `t${index + 1}`,
       title: task.title.text,
       titleMsg: task.title.msg,
       activeForm: task.activeForm.text,
       activeFormMsg: task.activeForm.msg,
-      status: index < done ? 'completed' : index === done ? 'in_progress' : 'pending',
+      status: demoTaskStatus(index, done),
+      changedAt: at,
     }));
   }
 
-  private progressTasks(id: string, runtime: Runtime, total: number): void {
+  private progressTasks(id: string, runtime: Runtime, total: number, at: number): void {
     const fraction = total <= 0 ? 1 : 1 - runtime.stepsLeft / total;
     this.update(id, (agent) => {
       const count = agent.tasks.length;
       if (count === 0) return agent;
       const done = Math.min(count - 1, Math.floor(fraction * count));
-      const tasks = agent.tasks.map((task, index): TaskItem => ({
-        ...task,
-        status: index < done ? 'completed' : index === done ? 'in_progress' : 'pending',
-      }));
+      const tasks = agent.tasks.map((task, index): TaskItem => {
+        const status = demoTaskStatus(index, done);
+        return status === task.status ? task : { ...task, status, changedAt: at };
+      });
       return { ...agent, tasks };
     });
   }
@@ -583,7 +592,7 @@ class Simulator implements DemoSimulator {
     runtime.stepsLeft = randInt(runtime.rng, 8, 15);
     runtime.stepsTotal = runtime.stepsLeft;
     runtime.turnsLeft--;
-    this.update(id, (agent) => ({ ...agent, ...titleOf(source), tasks: this.planTasks(runtime, 0) }));
+    this.update(id, (agent) => ({ ...agent, ...titleOf(source), tasks: this.planTasks(runtime, 0, at) }));
     this.setStatus(id, 'working', at);
     this.emit(id, promptDraft(source), at);
     this.scheduleStep(id, at + this.dwell(runtime.rng, 900, 2200));
@@ -609,7 +618,7 @@ class Simulator implements DemoSimulator {
       return;
     }
     runtime.stepsLeft--;
-    this.progressTasks(id, runtime, runtime.stepsTotal);
+    this.progressTasks(id, runtime, runtime.stepsTotal, at);
     const roll = runtime.rng();
     const canBlock = this.blockedCount() < MAX_BLOCKED;
     if (roll < PERMISSION_CHANCE && canBlock) {
@@ -698,7 +707,7 @@ class Simulator implements DemoSimulator {
     this.emit(id, doneDraft(duration), at);
     this.update(id, (agent) => ({
       ...agent,
-      tasks: agent.tasks.map((task): TaskItem => ({ ...task, status: 'completed' })),
+      tasks: agent.tasks.map((task): TaskItem => (task.status === 'completed' ? task : { ...task, status: 'completed', changedAt: at })),
       shells: agent.shells.filter((shell) => shell.background),
     }));
     this.noticeFor(id, 'success', msg('notice.done', { name: this.nameOf(id), duration: durationMsg(duration) }), at);

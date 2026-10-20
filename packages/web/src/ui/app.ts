@@ -7,6 +7,7 @@ import type { Store } from '../net/store';
 import { toWorldOptions, type PrefsStore } from '../prefs/prefs';
 import type { Selection } from '../world/api';
 import { notifyPermission, showBrowserNotification } from './browser-notify';
+import { BoardDialog } from './components/board-dialog';
 import { Drawer } from './components/drawer';
 import { DayDialog } from './components/day-dialog';
 import { EmptyState } from './components/empty-state';
@@ -25,6 +26,7 @@ import { TerminalPanel } from './components/terminal-panel';
 import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
 import { localOnlyHint, type AppContext, type Component } from './context';
+import { BoardStore } from './board-store';
 import { bindLanguage } from './language';
 import { agentRole, agentTitle, localized, localizedOptional } from './display';
 import { h, isEditable, toggleClass } from './dom';
@@ -57,6 +59,7 @@ export class App implements AppContext {
   readonly notifications = new NotificationsStore();
   readonly toasts = new ToastStore();
   readonly messages: MessageCenter;
+  readonly board = new BoardStore();
   readonly inbox: InboxController;
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
@@ -128,7 +131,7 @@ export class App implements AppContext {
     const feed = new Feed(this);
     const toasts = new Toasts(this);
     const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
-    const dialogs = [new DayDialog(this), new HelpDialog(this), new HireDialog(this)];
+    const dialogs = [new DayDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
@@ -391,7 +394,7 @@ export class App implements AppContext {
       else if (event.type === 'notice') this.handleNotice(event.notice);
       this.refresh();
     });
-    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox]) observable.subscribe(() => this.refresh());
+    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox, this.board]) observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
       // Opening an agent counts as having seen that its work finished.
       if (data.selection?.type === 'agent') this.inbox.markAgentSeen(data.selection.id);
@@ -403,6 +406,7 @@ export class App implements AppContext {
       this.ui.set({ selection, ...(selection && this.ui.get().narrow ? { sidebarOpen: false } : {}) });
     });
     this.world.onHover((hover) => this.hoverTip.setHover(hover));
+    this.world.onBoardClick(() => this.ui.set({ dialog: 'board', popover: null }));
     this.world.onDeskClick((desk) => this.openHire({ projectPath: desk.projectId, deskIndex: desk.deskIndex }));
     this.world.onCameraMode(() => this.refresh());
     onLocaleChange(() => this.onLocaleChanged());
@@ -595,6 +599,9 @@ export class App implements AppContext {
         return;
       case 'day':
         this.openDialog('day');
+        return;
+      case 'board':
+        this.openDialog('board');
         return;
       case 'overview':
         this.world.overview();

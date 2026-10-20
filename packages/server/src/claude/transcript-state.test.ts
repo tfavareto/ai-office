@@ -76,8 +76,21 @@ describe('TranscriptState tasks, shells and spawns', () => {
     const state = main();
     feed(state, assistantLine([toolUse('t', 'TodoWrite', { todos: [{ content: 'A', status: 'completed', activeForm: 'Fazendo A' }, { content: 'B', status: 'in_progress' }, { content: '' }] })], 0));
     expect(state.tasks).toEqual([
-      { id: '1', title: 'A', activeForm: 'Fazendo A', status: 'completed' },
-      { id: '2', title: 'B', status: 'in_progress' },
+      { id: '1', title: 'A', activeForm: 'Fazendo A', status: 'completed', changedAt: T0 },
+      { id: '2', title: 'B', status: 'in_progress', changedAt: T0 },
+    ]);
+  });
+
+  test('a task keeps its stamp until its status changes', () => {
+    const state = main();
+    feed(
+      state,
+      assistantLine([toolUse('t1', 'TodoWrite', { todos: [{ content: 'A', status: 'in_progress' }, { content: 'B', status: 'pending' }] })], 0),
+      assistantLine([toolUse('t2', 'TodoWrite', { todos: [{ content: 'A', status: 'completed' }, { content: 'B', status: 'pending' }] })], 5000),
+    );
+    expect(state.tasks.map((task) => [task.title, task.status, task.changedAt])).toEqual([
+      ['A', 'completed', T0 + 5000],
+      ['B', 'pending', T0],
     ]);
   });
 
@@ -89,7 +102,7 @@ describe('TranscriptState tasks, shells and spawns', () => {
       toolResultLine('c1', 'created', 10, { toolUseResult: { task: { id: '7' } } }),
       assistantLine([toolUse('u1', 'TaskUpdate', { taskId: '7', status: 'in_progress' })], 20),
     );
-    expect(state.tasks).toEqual([{ id: '7', title: 'Escrever testes', status: 'in_progress' }]);
+    expect(state.tasks).toEqual([{ id: '7', title: 'Escrever testes', status: 'in_progress', changedAt: T0 + 20 }]);
   });
 
   test('background Bash becomes a shell job until its notification; KillShell removes it too', () => {

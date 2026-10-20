@@ -3,6 +3,7 @@ import type { Account, Agent, BossMessage, HireRequest, Msg, NoticeLevel, Office
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
+import type { BoardStore } from './board-store';
 import type { InboxController } from './inbox-controller';
 import type { MessageCenter } from './message-center';
 import type { HireTarget } from './model/hire';
@@ -31,6 +32,7 @@ export interface AppContext {
   readonly notifications: NotificationsStore;
   readonly toasts: ToastStore;
   readonly messages: MessageCenter;
+  readonly board: BoardStore;
   readonly inbox: InboxController;
 
   readonly snapshot: OfficeSnapshot | null;

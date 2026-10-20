@@ -115,7 +115,7 @@ describe('resolveShortcut', () => {
   const key = (k: string, extra: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean }> = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, ...extra });
 
   it('maps the documented keys', () => {
-    const expected: Record<string, string> = { '/': 'search', F: 'follow', t: 'terminal', N: 'message', p: 'permission', m: 'day', o: 'overview', '[': 'sidebar', ']': 'feed', '?': 'help' };
+    const expected: Record<string, string> = { '/': 'search', F: 'follow', t: 'terminal', N: 'message', p: 'permission', m: 'day', K: 'board', o: 'overview', '[': 'sidebar', ']': 'feed', '?': 'help' };
     for (const [k, action] of Object.entries(expected)) expect(resolveShortcut(key(k), false, false)).toBe(action);
   });
 

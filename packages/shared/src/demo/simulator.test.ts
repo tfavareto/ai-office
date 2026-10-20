@@ -218,6 +218,33 @@ describe('createDemoSimulator', () => {
     expect(sim.agents().every((a) => a.parentId === undefined || ids.has(a.parentId))).toBe(true);
   });
 
+  test('tasks move through the three states over time, each stamped with when it changed', () => {
+    let clock = T0;
+    const sim = createDemoSimulator({ seed: 3, now: () => clock });
+    const seen = new Map<string, Set<string>>();
+    for (let t = 0; t <= 300_000; t += 1000) {
+      clock = T0 + t;
+      sim.tick(clock);
+      for (const agent of sim.agents()) {
+        for (const task of agent.tasks) {
+          expect(task.changedAt, `${agent.name} ${task.id}`).toBeDefined();
+          expect(task.changedAt as number).toBeLessThanOrEqual(clock);
+          const key = `${agent.id}:${task.titleMsg?.key}`;
+          seen.set(key, (seen.get(key) ?? new Set<string>()).add(task.status));
+        }
+      }
+    }
+    const states = new Set([...seen.values()].flatMap((set) => [...set]));
+    expect(states).toEqual(new Set(['pending', 'in_progress', 'completed']));
+    expect([...seen.values()].some((set) => set.size === 3)).toBe(true);
+  });
+
+  test('agents plan different jobs, not always the same first tasks', () => {
+    const { sim } = run(5, 600, 1000);
+    const firstTitles = new Set(sim.agents().filter((a) => a.tasks.length > 0).map((a) => a.tasks[0]?.titleMsg?.key));
+    expect(firstTitles.size).toBeGreaterThan(1);
+  });
+
   test('speed multiplier makes the story advance faster', () => {
     let clock = T0;
     const slow = createDemoSimulator({ seed: 1, now: () => clock, speed: 1 });

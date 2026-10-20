@@ -91,6 +91,8 @@ export interface TaskItem {
   activeForm?: string;
   activeFormMsg?: Msg;
   status: 'pending' | 'in_progress' | 'completed';
+  /** Epoch ms when the task entered its current status, when known (the task board shows its age). */
+  changedAt?: number;
 }
 
 /** A long-running shell command the agent started (foreground or background) or a monitor. */

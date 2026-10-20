@@ -22,7 +22,7 @@ export interface PlacedItem {
 }
 
 export interface ScreenRect extends Rect {
-  kind: 'board' | 'tv';
+  kind: 'board' | 'tv' | 'taskboard';
   itemId: string;
   big: boolean;
 }
@@ -121,7 +121,7 @@ function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme'], text:
   for (const wi of area.wallItems) {
     if (wi.side !== 'north') continue;
     const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent, text);
-    if (frame.screen) screens.push({ ...frame.screen, kind: wi.kind === 'board' ? 'board' : 'tv', itemId: wi.id, big: wi.w >= 6 });
+    if (frame.screen) screens.push({ ...frame.screen, kind: wi.kind === 'board' ? 'board' : wi.kind === 'whiteboard' ? 'taskboard' : 'tv', itemId: wi.id, big: wi.w >= 6 });
   }
   if (!isTerrace) paintSideWall(ctx, area);
   paintLedge(ctx, area);

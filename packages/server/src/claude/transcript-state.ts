@@ -19,7 +19,7 @@ import {
 } from '@ai-office/shared';
 import { asString } from '../util/fs-safe';
 import { StatsAccumulator } from './stats';
-import { appendTask, renameTask, tasksFromTodoWrite, updateTask } from './tasks';
+import { appendTask, renameTask, stampTaskChanges, tasksFromTodoWrite, updateTask } from './tasks';
 import { END_STOP_REASONS, type ParsedLine, type StructuredResult, type UsageInfo } from './types';
 
 const RECENT_LIMIT = 30;
@@ -366,9 +366,9 @@ export class TranscriptState {
     else if (name === 'Bash' && background) this.addJob(id, input, 'shell', at);
     else if (name === 'Monitor') this.addJob(id, input, 'monitor', at);
     else if (name === 'KillShell' || name === 'TaskStop') this.removeJob(input);
-    else if (name === 'TodoWrite') this.tasksList = tasksFromTodoWrite(input);
-    else if (name === 'TaskCreate') this.tasksList = appendTask(this.tasksList, input, `pending:${id}`);
-    else if (name === 'TaskUpdate') this.tasksList = updateTask(this.tasksList, input);
+    else if (name === 'TodoWrite') this.tasksList = stampTaskChanges(this.tasksList, tasksFromTodoWrite(input), at);
+    else if (name === 'TaskCreate') this.tasksList = stampTaskChanges(this.tasksList, appendTask(this.tasksList, input, `pending:${id}`), at);
+    else if (name === 'TaskUpdate') this.tasksList = stampTaskChanges(this.tasksList, updateTask(this.tasksList, input), at);
   }
 
   private registerSpawn(id: string, input: Record<string, unknown>, at: number, background: boolean): void {

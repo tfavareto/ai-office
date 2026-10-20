@@ -3,6 +3,7 @@ import type { BuildingLayout } from '../layout/types';
 import type { RoomState } from '../sim/rooms';
 import type { Character } from '../sim/types';
 import { ANCHOR_X, ANCHOR_Y, SPRITE_H, SPRITE_W } from './chars/sprites';
+import { WHITEBOARD } from './paint/wallitems';
 
 /** Pixels from the character's feet y to the sprite anchor (feet are drawn slightly below the tile centre). */
 export const FOOT_OFFSET = 4;
@@ -38,4 +39,19 @@ export function pickRoom(building: BuildingLayout, rooms: readonly RoomState[], 
     if (room && !room.ghost) return room.projectId;
   }
   return null;
+}
+
+/** World-px rectangle of the meeting-room whiteboard (the task board), or null when the building has none. */
+export function whiteboardRect(building: BuildingLayout): { x: number; y: number; w: number; h: number } | null {
+  for (const area of building.areas) {
+    const item = area.wallItems.find((wi) => wi.kind === 'whiteboard' && wi.side === 'north');
+    if (item) return { x: item.x * TILE + 1, y: area.rect.y * TILE + WHITEBOARD.y, w: item.w * TILE - 2, h: WHITEBOARD.h };
+  }
+  return null;
+}
+
+/** Whether a world point is on the whiteboard. */
+export function pickWhiteboard(building: BuildingLayout, wx: number, wy: number): boolean {
+  const r = whiteboardRect(building);
+  return r !== null && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h;
 }

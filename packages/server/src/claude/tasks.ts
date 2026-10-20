@@ -58,3 +58,16 @@ export function updateTask(tasks: readonly TaskItem[], input: Record<string, unk
 export function renameTask(tasks: readonly TaskItem[], from: string, to: string): TaskItem[] {
   return tasks.map((task) => (task.id === from ? { ...task, id: to } : task));
 }
+
+/**
+ * Records when each task entered its current status: tasks that kept their title and status keep their stamp, new or
+ * changed ones get `at` (the time of the tool call that changed the list). Pure; the input is not modified.
+ */
+export function stampTaskChanges(previous: readonly TaskItem[], next: readonly TaskItem[], at: number): TaskItem[] {
+  const before = new Map(previous.map((task) => [task.id, task]));
+  return next.map((task) => {
+    const old = before.get(task.id);
+    const unchanged = old !== undefined && old.status === task.status && old.title === task.title;
+    return { ...task, changedAt: unchanged ? (old.changedAt ?? at) : at };
+  });
+}

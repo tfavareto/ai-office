@@ -1,0 +1,487 @@
+/* Task board: dialog, filters, columns, lanes, cards, move menu, confirmation sheet, drop rail. */
+.ao-root {
+  --col-pending: #e8a14a;
+  --col-in_progress: var(--accent);
+  --col-completed: var(--working);
+}
+
+.ao-dialog--board {
+  position: relative;
+  width: min(1240px, 100%);
+  height: min(820px, calc(100vh - 32px));
+  max-height: none;
+}
+
+.ao-board-head {
+  flex-wrap: wrap;
+}
+
+.ao-board-headline {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ao-board-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-board-toolbar {
+  flex: none;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ao-board-filters .ao-select {
+  max-width: 220px;
+}
+
+.ao-board-active {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ao-board-body {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-board-empty {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+
+.ao-board-empty strong {
+  color: var(--text);
+}
+
+.ao-board-empty p {
+  margin: 0;
+}
+
+/* Columns and lanes. */
+.ao-board-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.ao-root.is-narrow .ao-board-cols {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ao-bcol {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--col-pending);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.ao-bcol.is-in_progress { border-top-color: var(--col-in_progress); }
+.ao-bcol.is-completed { border-top-color: var(--col-completed); }
+
+.ao-bcol.is-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ao-bcol-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ao-bcol-head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+
+.ao-bcol-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ao-bcol-list {
+  display: grid;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-bcol-empty {
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ao-bcol-more {
+  justify-self: start;
+}
+
+.ao-blane {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.ao-blane + .ao-blane {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.ao-blane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-blane-head .ao-bcard-room {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ao-blane-agents {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+/* Cards. */
+.ao-bcard {
+  position: relative;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--col-pending);
+  border-radius: var(--radius-sm);
+  background: var(--bg-solid);
+  box-shadow: 0 1px 2px rgba(3, 7, 15, 0.25);
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+
+.ao-bcard.is-in_progress { border-left-color: var(--col-in_progress); }
+.ao-bcard.is-completed { border-left-color: var(--col-completed); }
+
+.ao-bcard:hover {
+  border-color: var(--line-strong);
+}
+
+.ao-bcard.is-dragging {
+  opacity: 0.45;
+}
+
+.ao-bcard.is-ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ao-bcard-face {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 34px 9px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.ao-bcard.is-ghost .ao-bcard-face {
+  cursor: default;
+}
+
+.ao-bcard.is-completed .ao-bcard-title {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.ao-bcard-title {
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ao-bcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-bcard-agent,
+.ao-bcard-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ao-bcard-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ao-bcard-roomdot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+}
+
+.ao-bcard-roomname {
+  overflow: hidden;
+  max-width: 130px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-bcard-age {
+  margin-left: auto;
+  color: var(--faint);
+}
+
+.ao-bcard-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ao-bcard-move {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.ao-bcard-face:focus-visible,
+.ao-bcard-move:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ao-board-taskless {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Move menu. */
+.ao-board-menu {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  max-width: min(320px, calc(100% - 16px));
+  max-height: 60%;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow);
+}
+
+.ao-board-menu[hidden] {
+  display: none;
+}
+
+.ao-board-menu-title {
+  padding: 4px 8px 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ao-board-menu-item {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+}
+
+.ao-board-menu-item.is-agent {
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 6px 6px;
+}
+
+.ao-board-menu-item:hover,
+.ao-board-menu-item:focus-visible {
+  outline: none;
+  background: var(--accent-soft);
+}
+
+/* Confirmation sheet. */
+.ao-board-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: inherit;
+  background: rgba(5, 9, 16, 0.6);
+}
+
+.ao-board-sheet-scrim[hidden] {
+  display: none;
+}
+
+.ao-board-sheet {
+  display: grid;
+  gap: 10px;
+  width: min(480px, 100%);
+  max-height: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow);
+}
+
+.ao-board-sheet h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ao-board-sheet .ao-note {
+  margin: 0;
+}
+
+.ao-board-sheet-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.ao-board-sheet-fields[hidden] {
+  display: none;
+}
+
+.ao-board-field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-board-field .ao-select {
+  max-width: none;
+  width: 100%;
+}
+
+.ao-board-sheet-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Drop rail: appears while a card is dragged, to hand the task to another agent. */
+.ao-board-rail {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 4;
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow);
+}
+
+.ao-board-rail.is-visible {
+  display: flex;
+}
+
+.ao-board-rail-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-board-rail-chip {
+  height: 28px;
+  padding: 0 10px 0 5px;
+}
+
+.ao-board-rail-chip.is-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* The task picked on the board, in the agent drawer. */
+.ao-task.is-focus {
+  margin: -3px -6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(110, 162, 255, 0.55);
+  animation: ao-task-focus 1.6s var(--ease) 1;
+}
+
+@keyframes ao-task-focus {
+  from { background: rgba(110, 162, 255, 0.5); }
+  to { background: var(--accent-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-task.is-focus { animation: none; }
+}

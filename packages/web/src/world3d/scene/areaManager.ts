@@ -11,6 +11,7 @@ import { AreaScene, type AreaFrame, type SceneDeps } from './areaScene';
 import { shadowOf } from './materials';
 import { StaticBatcher } from './staticBatcher';
 import { TickerStrip, type BoardInfo, type DeskState } from './screens';
+import type { TaskBoardSummary } from '../../world/taskBoard';
 import { buildOuterFacades } from './shell';
 
 interface Entry {
@@ -27,6 +28,7 @@ export interface AreaInputs {
   refreshScreens: boolean;
   info: (projectId: string) => BoardInfo;
   namesIn: (areaId: string) => readonly string[];
+  taskBoard: TaskBoardSummary;
   desksIn: (area: AreaLayout) => readonly DeskState[];
   occupied: (areaId: string) => boolean;
   tickerText: string;
@@ -156,6 +158,15 @@ export class AreaManager {
     return out;
   }
 
+  /** Bounds of the whiteboard (the task board), when the meeting room is built. */
+  whiteboardBox(): Box3 | null {
+    for (const entry of this.entries.values()) {
+      const box = entry.scene.whiteboardBounds();
+      if (box) return box;
+    }
+    return null;
+  }
+
   areaScene(areaId: string): AreaScene | undefined {
     return this.entries.get(areaId)?.scene;
   }
@@ -177,6 +188,7 @@ export class AreaManager {
         lit: room && room.progress < 0.95 ? 0 : entry.lit,
         info: room ? inputs.info(room.projectId) : emptyInfo,
         names: area.kind === 'meeting' ? inputs.namesIn(id) : [],
+        taskBoard: inputs.taskBoard,
         desks: area.kind === 'project' ? inputs.desksIn(area) : [],
         elevatorOpen: (i) => this.sim.elevatorOpenness(i),
         refreshScreens: inputs.refreshScreens,

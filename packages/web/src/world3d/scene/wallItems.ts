@@ -7,7 +7,7 @@ import { BufferGeometry, CylinderGeometry, Float32BufferAttribute } from 'three'
 import { boxGeometry, transform, type PartCollector } from '../util/parts';
 import type { Materials } from './materials';
 import { type WorldText, worldText } from '../../i18n/world/translate';
-import { CanvasScreen, DecorAtlas, type DecorPainter, paintMenu, paintPoster, paintSign, paintWhiteboard } from './screens';
+import { CanvasScreen, DecorAtlas, type DecorPainter, paintMenu, paintPoster, paintSign } from './screens';
 
 export interface ElevatorRig {
   left: Mesh;
@@ -22,6 +22,8 @@ export interface ElevatorRig {
 export interface WallScreens {
   board?: CanvasScreen;
   meetingTv?: CanvasScreen;
+  /** The whiteboard: the live task board. */
+  whiteboard?: CanvasScreen;
   loungeTv?: CanvasScreen;
   elevators: ElevatorRig[];
   /** All screens created for this area (disposed with it). */
@@ -176,8 +178,10 @@ function placeNorthItem(
       break;
     }
     case 'whiteboard': {
+      const s = mk(1.9, 1.05);
+      out.whiteboard = s;
       c.box(m.steel, mid, 1.5, z + 0.02, 1.96, 1.11, 0.03);
-      decorQuad(c, out, mid, 1.5, z + 0.04, 1.9, 1.05, paintWhiteboard, text);
+      addScreen(dynamic, s, mid, 1.5, z + 0.045, 1.9, 1.05);
       break;
     }
     case 'poster': {

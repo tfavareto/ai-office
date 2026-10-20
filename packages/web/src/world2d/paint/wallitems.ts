@@ -1,7 +1,7 @@
 import type { WallItem } from '../../layout/types';
 import { type WorldText, worldText } from '../../i18n/world/translate';
 import { drawPixelText, textWidth } from '../font';
-import { noise2, rgba, shade } from '../color';
+import { rgba, shade } from '../color';
 import { BRASS, EBONY, GRAPHITE, LED, MARBLE, WALNUT } from '../palette';
 import { type Ctx, bevel, disc, hline, pixel, rect, vline } from './ctx';
 
@@ -121,20 +121,16 @@ function menu(ctx: Ctx, x: number, w: number, text: WorldText): void {
   });
 }
 
-function whiteboard(ctx: Ctx, x: number, w: number): void {
+/** Frame of the meeting-room whiteboard (px from the wall top): the live task board is drawn inside it. */
+export const WHITEBOARD = { y: 5, h: 24 } as const;
+
+function whiteboard(ctx: Ctx, x: number, w: number): WallItemFrame {
   const px = x * T + 1;
   const pw = w * T - 2;
-  frame(ctx, px, 8, pw, 19, GRAPHITE.light);
-  rect(ctx, px + 2, 10, pw - 4, 15, '#f3f5f6');
-  hline(ctx, px + 2, 10, pw - 4, '#ffffff');
-  const colors = ['#2f6fed', '#e0795a', '#3b8a52'];
-  for (let i = 0; i < 4; i++) {
-    const len = 8 + Math.floor(noise2(x, i, 5) * (pw - 24));
-    hline(ctx, px + 5, 13 + i * 3, len, colors[i % 3]);
-  }
-  rect(ctx, px + pw - 10, 12, 5, 5, '#ffd86b');
-  rect(ctx, px + pw - 10, 18, 5, 5, '#8fd3a8');
-  rect(ctx, px + 4, 25, pw - 8, 1, GRAPHITE.light);
+  frame(ctx, px, WHITEBOARD.y, pw, WHITEBOARD.h, GRAPHITE.light);
+  rect(ctx, px + 2, WHITEBOARD.y + 2, pw - 4, WHITEBOARD.h - 4, '#f3f5f6');
+  hline(ctx, px + 2, WHITEBOARD.y + 2, pw - 4, '#ffffff');
+  return { screen: { x: px + 2, y: WHITEBOARD.y + 2, w: pw - 4, h: WHITEBOARD.h - 4 } };
 }
 
 function elevator(ctx: Ctx, x: number, w: number): void {
@@ -199,8 +195,7 @@ export function paintWallItem(ctx: Ctx, item: WallItem, localX: number, label: s
       menu(ctx, localX, item.w, text);
       return { screen: null };
     case 'whiteboard':
-      whiteboard(ctx, localX, item.w);
-      return { screen: null };
+      return whiteboard(ctx, localX, item.w);
     case 'elevator':
       elevator(ctx, localX, item.w);
       return { screen: null };

@@ -34,6 +34,13 @@ export const worldPtBR = {
   'meeting.inRoom': 'Na sala {n}',
   'meeting.inRoom3d': 'Na sala · {n}',
   'meeting.free': 'Sala livre',
+  // meeting-room whiteboard: the task board
+  'taskboard.title': 'Quadro de tarefas',
+  'taskboard.pending': 'Pendente',
+  'taskboard.active': 'Em andamento',
+  'taskboard.done': 'Concluído',
+  'taskboard.empty': 'Sem tarefas',
+  'taskboard.empty.short': 'Vazio',
   // LED ticker (corridor, 2D and 3D)
   'ticker.working': '{n} trabalhando',
   'ticker.shells': '{n, plural, one {# shell rodando} other {# shells rodando}}',

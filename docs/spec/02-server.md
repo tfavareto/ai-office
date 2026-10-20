@@ -54,7 +54,8 @@ command head>"; Grep/Glob: "🔎 Buscando “<pattern>”"; WebFetch/WebSearch: 
 <description>"; TodoWrite: "📋 Atualizando a lista de tarefas"; mcp__x__y: "🔌 <server>: <tool>"; AskUserQuestion: "❓
 Fazendo uma pergunta a você"; thinking: "💭 Pensando…"; assistant text: "💬 Escrevendo a resposta"; user prompt: "📨 Nova
 tarefa: “…”"; tool error: "⚠️ Erro em <tool>"; turn end: "✅ Concluiu em <duration>". Text max 60 chars, detail 400.
-Tasks come from the latest TodoWrite input (todos[]) or TaskCreate/TaskUpdate tools. Stats: tool calls, usage tokens,
+Tasks come from the latest TodoWrite input (todos[]) or TaskCreate/TaskUpdate tools; each task carries `changedAt`, the time of
+the tool call that created it or last changed its status or title (the task board shows it as the card's age). Stats: tool calls, usage tokens,
 lines from Edit/Write results, subagents spawned; cost from a small price table per model family (opus, sonnet,
 haiku, fable; input/output/cache), flagged as estimate.
 

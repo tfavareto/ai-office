@@ -5,6 +5,7 @@ import {
 } from 'three';
 import { type WorldText, worldText } from '../../i18n/world/translate';
 import type { AreaLayout, BuildingLayout } from '../../layout/types';
+import { WALL_ROWS } from '../../layout/constants';
 import { TILE_M as T } from '../units';
 import { groundQuad, PartCollector, disposeObject } from '../util/parts';
 import { buildFurniture, type ScreenQuad } from './furniture';
@@ -15,6 +16,8 @@ import {
   paintBoard, paintLoungeTv, paintMeetingTv, WorkstationAtlas, type BoardInfo, type DeskState,
 } from './screens';
 import { roomInfoKey } from '../../world2d/runtime/boards';
+import { taskBoardKey, type TaskBoardSummary } from '../../world/taskBoard';
+import { paintTaskBoard } from './taskBoardScreen';
 import { buildWallItems, disposeScreens, type WallScreens } from './wallItems';
 
 export interface SceneDeps {
@@ -30,6 +33,8 @@ export interface AreaFrame {
   lit: number;
   info: BoardInfo;
   names: readonly string[];
+  /** Summary drawn on the meeting-room whiteboard. */
+  taskBoard: TaskBoardSummary;
   desks: readonly DeskState[];
   /** Elevator openness by building elevator index. */
   elevatorOpen: (index: number) => number;
@@ -61,6 +66,7 @@ export class AreaScene {
   private glowMaterial: MeshBasicMaterial | null = null;
   private lastInfoKey = '';
   private lastNamesKey = '';
+  private lastTasksKey = '';
   private build = 1;
 
   private text: WorldText;
@@ -94,6 +100,7 @@ export class AreaScene {
     this.atlas?.setText(text);
     this.lastInfoKey = '';
     this.lastNamesKey = '';
+    this.lastTasksKey = '';
   }
 
   private addMonitors(parts: PartCollector, quads: readonly ScreenQuad[]): void {
@@ -146,6 +153,14 @@ export class AreaScene {
     return out;
   }
 
+  /** Bounds of the whiteboard (task board) on the north wall, for picking; null when the area has none. */
+  whiteboardBounds(): Box3 | null {
+    const item = this.area.wallItems.find((wi) => wi.kind === 'whiteboard' && wi.side === 'north');
+    if (!item) return null;
+    const zFace = (this.area.rect.y + WALL_ROWS) * T;
+    return new Box3(new Vector3(item.x * T, 0.9, zFace - 0.1), new Vector3((item.x + item.w) * T, 2.1, zFace + 0.25));
+  }
+
   get isBuilt(): boolean {
     return this.build >= 1;
   }
@@ -164,6 +179,13 @@ export class AreaScene {
       if (key !== this.lastNamesKey) {
         this.lastNamesKey = key;
         screens.meetingTv.draw(key, (ctx, w, h) => paintMeetingTv(ctx, w, h, f.names, this.text));
+      }
+    }
+    if (screens.whiteboard) {
+      const key = `${this.text.locale}|${taskBoardKey(f.taskBoard)}`;
+      if (key !== this.lastTasksKey) {
+        this.lastTasksKey = key;
+        screens.whiteboard.draw(key, (ctx, w, h) => paintTaskBoard(ctx, w, h, f.taskBoard, this.text));
       }
     }
     if (screens.loungeTv && f.refreshScreens && f.visible) {

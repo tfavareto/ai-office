@@ -12,6 +12,7 @@ import {
 } from '../world/api';
 import { DayNight } from '../world2d/lighting';
 import { summarizeRoom } from '../world2d/runtime/boards';
+import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { type TickerStats, tickerFromSnapshot, tickerText } from '../world2d/runtime/ticker';
 import { CameraRig } from './camera/cameraRig';
 import { pickCapsule, targetInSight, type ScreenCapsule, type SightTarget } from './camera/picking';
@@ -71,6 +72,7 @@ export class World3D implements WorldApi {
   private readonly keys = new Set<string>();
   private readonly selectListeners = new Set<(s: Selection) => void>();
   private readonly hoverListeners = new Set<(h: HoverInfo | null) => void>();
+  private readonly boardListeners = new Set<() => void>();
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
   private readonly deskListeners = new Set<(desk: DeskRef) => void>();
   private readonly deskHint = new DeskHint3D();
@@ -88,6 +90,7 @@ export class World3D implements WorldApi {
   private agents = new Map<string, Agent>();
   private accountColors = new Map<string, string>();
   private roomInfo = new Map<string, ReturnType<typeof summarizeRoom>>();
+  private taskBoard: TaskBoardSummary = EMPTY_TASK_BOARD;
   private ticker = '';
   private tickerStats: TickerStats | null = null;
   private readonly canvas: HTMLCanvasElement;
@@ -203,6 +206,7 @@ export class World3D implements WorldApi {
     }
     this.roomInfo = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
     for (const p of snapshot.projects) if (!this.roomInfo.has(p.id)) this.roomInfo.set(p.id, summarizeRoom([]));
+    this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.tickerStats = tickerFromSnapshot(snapshot);
     this.refreshTicker();
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
@@ -261,6 +265,11 @@ export class World3D implements WorldApi {
   onSelect(cb: (selection: Selection) => void): () => void {
     this.selectListeners.add(cb);
     return () => this.selectListeners.delete(cb);
+  }
+
+  onBoardClick(cb: () => void): () => void {
+    this.boardListeners.add(cb);
+    return () => this.boardListeners.delete(cb);
   }
 
   onHover(cb: (hover: HoverInfo | null) => void): () => void {
@@ -398,6 +407,7 @@ export class World3D implements WorldApi {
     this.overlay.canvas.remove();
     this.selectListeners.clear();
     this.hoverListeners.clear();
+    this.boardListeners.clear();
     this.modeListeners.clear();
     this.deskListeners.clear();
     this.deskHint.dispose();
@@ -435,6 +445,7 @@ export class World3D implements WorldApi {
     this.areas.update({
       time: this.clock, dt, night, refreshScreens, tickerText: this.ticker,
       info: (id) => this.roomInfo.get(id) ?? summarizeRoom([]),
+      taskBoard: this.taskBoard,
       namesIn: (areaId) => this.sim.characters.filter((c) => c.areaId === areaId && c.alpha > 0.5).map((c) => c.name),
       desksIn: (area) => this.desksIn(area),
       isVisible: (box) => this.inView(box),
@@ -751,8 +762,18 @@ export class World3D implements WorldApi {
     return best ? { type: 'room', id: best.id } : null;
   }
 
+  /** The point is on the whiteboard (the task board) and nothing in front of it was picked. */
+  private overBoard(p: { x: number; y: number }, picked: object | null): boolean {
+    const box = picked ? null : this.areas.whiteboardBox();
+    return box !== null && this.rig.rayAt(p.x, p.y).ray.intersectBox(box, this.tmpA) !== null;
+  }
+
   private click(p: { x: number; y: number }): void {
     const picked = this.pickAt(p);
+    if (this.overBoard(p, picked)) {
+      for (const cb of this.boardListeners) cb();
+      return;
+    }
     if (picked?.type === 'desk') {
       for (const cb of this.deskListeners) cb({ projectId: picked.desk.projectId, deskIndex: picked.desk.deskIndex });
       return;
@@ -781,7 +802,7 @@ export class World3D implements WorldApi {
       roomId = area?.projectId ?? null;
     }
     this.setHover(agentId, roomId, p, desk);
-    this.canvasEl.style.cursor = picked ? 'pointer' : this.rig.mode === 'overview' ? 'grab' : 'crosshair';
+    this.canvasEl.style.cursor = picked || this.overBoard(p, picked) ? 'pointer' : this.rig.mode === 'overview' ? 'grab' : 'crosshair';
   }
 
   private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {

@@ -58,6 +58,7 @@ export class TopBar implements Component {
   private readonly bellBtn: HTMLButtonElement;
   private readonly bellBadge: HTMLElement;
   private readonly popoverButtons = new Map<PopoverId, HTMLButtonElement>();
+  private readonly boardBtn: HTMLButtonElement;
   private readonly dayBtn: HTMLButtonElement;
   private readonly helpBtn: HTMLButtonElement;
 
@@ -80,6 +81,7 @@ export class TopBar implements Component {
     this.bellBtn = iconButton({ icon: 'bell', label: t('topbar.notifications'), onClick: () => ctx.togglePopover('notifications') });
     this.bellBtn.dataset.popoverTrigger = 'notifications';
     this.bellBtn.appendChild(this.bellBadge);
+    this.boardBtn = iconButton({ icon: 'board', label: t('topbar.board'), onClick: () => ctx.openDialog('board') });
     this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDialog('day') });
     this.helpBtn = iconButton({ icon: 'help', label: t('topbar.help'), className: 'ao-help-btn', onClick: () => ctx.openDialog('help') });
 
@@ -95,6 +97,7 @@ export class TopBar implements Component {
         this.cameraBtn,
         h('span', { class: 'ao-topbar-sep', 'aria-hidden': 'true' }),
         this.bellBtn,
+        this.boardBtn,
         this.dayBtn,
         this.popoverButton('sessions', 'history', t('topbar.sessions')),
         this.feedBtn,
@@ -223,6 +226,7 @@ export class TopBar implements Component {
     setPressed(this.feedBtn, ui.feedOpen);
     for (const [id, btn] of this.popoverButtons) setPressed(btn, ui.popover === id);
     setPressed(this.bellBtn, ui.popover === 'notifications');
+    setPressed(this.boardBtn, ui.dialog === 'board');
     setPressed(this.dayBtn, ui.dialog === 'day');
     setPressed(this.helpBtn, ui.dialog === 'help');
 

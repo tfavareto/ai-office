@@ -30,6 +30,7 @@ When no session is open, a card says **No open sessions** with the steps to star
 | Overview (O), Zoom out (-), Zoom in (+) | Fit the whole office, zoom out, zoom in. |
 | Camera button | 3D only. Cycles **Overview**, **First person** and **Over the shoulder**. |
 | Bell | **Notifications** with an unread badge. |
+| Board | **Task board** (`K`). |
 | Calendar | **My day** (M). |
 | History | **Session history**. |
 | Feed | **Office activity** (`]`). |
@@ -166,6 +167,20 @@ Good to know:
 - At most five agents can be hired per minute.
 - In **demo mode** nothing is launched: a simulated agent arrives instead. The feature only works when the page is opened on the computer that runs AI Office. See [Privacy and security](05-privacy-and-security.md#hiring-an-agent) for what it can launch.
 
+## The task board
+
+The **Task board** (`K`, the board button of the top bar, or a click on the whiteboard of the meeting room) shows the tasks of every agent in one place: what Claude Code writes in its task list (TodoWrite, TaskCreate, TaskUpdate). It is a view, not a project manager: AI Office never edits a task list itself.
+
+- **Columns.** **Pending**, **In progress** and **Completed**. A card shows the task (the "doing…" form while in progress), the agent, its account, the room and how long ago the task reached its status. Switch **By column** or **By room** (one lane per room).
+- **Filters.** Room, account (when you have several), agent and **Active agents only** (working, waiting for you or running a shell).
+- **Completed cards.** Each room keeps its last three; **See all** shows the rest.
+- **Open a task.** Click a card: the camera frames the agent and its drawer highlights the task in the **Tasks** list.
+- **Move a task.** Drag a card to another column, or onto an agent chip that appears at the bottom while you drag (to hand the task over). From the keyboard, focus a card and press `M` (or use the arrow button on the card) to pick a destination. A confirmation shows the exact message that will be sent to the agent, for example "Prioritize this task now: …", "If you have already finished it, mark this task as completed: …" or "Take over this task: … (it came from Ana)"; edit it if you like, then send. The agent updates its own list, and the card reads "message sent" until that shows up.
+- **New task.** The **+** of a column asks an agent to add a task; it appears as a dashed card until the agent writes it down.
+- **No list.** Agents that have not written a task list are shown at the bottom of the board; real sessions only expose the tasks Claude Code writes.
+
+Moving and adding need the [plugin](03-plugin.md#messages-to-agents) and the page opened on this computer, like any message. On the whiteboard of the meeting room (2D and 3D) a live summary shows the number of cards per column and the first tasks in progress.
+
 ## Feed
 
 The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent.
@@ -268,7 +283,8 @@ Plain keys are ignored while you type in a field.
 | `N` | Send a message to the agent, or to the room's team. |
 | `P` | Go to the next permission request. |
 | `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
-| `M` | Open **My day**. |
+| `M` | Open **My day**. On the task board, with a card focused: move the task. |
+| `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
 | `O` | Overview of the whole office. |
 | `[` | Show or hide the sidebar. |

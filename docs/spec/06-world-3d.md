@@ -3,7 +3,8 @@
 Implements the same `WorldApi` with three.js (r180+), lazy-loaded (dynamic import) only when the user picks 3D.
 Same floor plan and simulation as 2D (reuse the 2D sim module: positions, paths, spots, statuses); only the rendering
 differs. Premium corporate interior: walnut, marble, brass, glass partitions with frosted band, slatted accent walls,
-pendant/linear lights, plants, 4 monitors per desk with live canvas content, room board TV, meeting room TV, café menu
+pendant/linear lights, plants, 4 monitors per desk with live canvas content, room board TV, meeting room TV, a whiteboard that shows the live task board (counts per column and the first three tasks in progress,
+fitted to the language; clicking it opens the task board panel), café menu
 board, corridor LED ticker, lounge furniture. Office on a high floor of a glass tower with a compact city frame
 (streets, cars, trees) around. Isometric orthographic camera by default (pan/zoom/overview), plus first-person walk
 (WASD, drag to look, E opens the agent in sight, N message, M minimap, Esc exit) and an over-the-shoulder camera.

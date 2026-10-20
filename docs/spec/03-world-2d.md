@@ -15,7 +15,8 @@ Reference furnishing per area (all must be recognizable at 2x zoom):
 - **Copa** (north, col 1): porcelain tile floor, kitchen counter with coffee machine, fridge, vending machine, café
   menu board, high tables with stools, round tables with chairs.
 - **Sala de reunião** (north, col 2): wood floor, long meeting table with 12-14 chairs, big wall TV (shows a live
-  list of who is there), whiteboard, glass wall with door to the corridor (frosts when in use), plants.
+  list of who is there), whiteboard (the live task board: three counters in marker colors and the first two tasks in
+  progress; clicking it opens the task board panel), glass wall with door to the corridor (frosts when in use), plants.
 - **Banheiros** (south, col 0): tiles, stalls, sinks with mirrors.
 - **Lounge** (south, col 1): herringbone parquet, sofas + coffee table, TV, ping-pong table, bean bags, bookshelf,
   arcade cabinet.

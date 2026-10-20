@@ -20,7 +20,8 @@ import { portraitDataUrl } from './chars/portrait';
 import { DayNight } from './lighting';
 import { OverlaySprites } from './overlay';
 import { OverlayPass } from './overlayPass';
-import { pickCharacter, pickRoom } from './picking';
+import { pickCharacter, pickRoom, pickWhiteboard } from './picking';
+import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { Renderer, type FrameState } from './renderer';
 import { type RoomInfo, summarizeRoom } from './runtime/boards';
 import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
@@ -56,6 +57,7 @@ export class World2D implements WorldApi {
   private hoverDesk: DeskTarget | null = null;
   private agents = new Map<string, Agent>();
   private roomInfo = new Map<string, RoomInfo>();
+  private taskBoard: TaskBoardSummary = EMPTY_TASK_BOARD;
   private accountColors = new Map<string, string>();
   private ticker: TickerStrip | null = null;
   private tickerKey = '';
@@ -82,6 +84,7 @@ export class World2D implements WorldApi {
   private readonly selectListeners = new Set<(s: Selection) => void>();
   private readonly hoverListeners = new Set<(h: HoverInfo | null) => void>();
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
+  private readonly boardListeners = new Set<() => void>();
   private readonly deskListeners = new Set<(desk: DeskRef) => void>();
   private readonly portraitCache = new Map<string, string>();
 
@@ -120,6 +123,7 @@ export class World2D implements WorldApi {
     }
     this.roomInfo = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
     for (const p of snapshot.projects) if (!this.roomInfo.has(p.id)) this.roomInfo.set(p.id, summarizeRoom([]));
+    this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.updateTicker(snapshot);
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
   }
@@ -192,6 +196,11 @@ export class World2D implements WorldApi {
   onHover(cb: (hover: HoverInfo | null) => void): () => void {
     this.hoverListeners.add(cb);
     return () => this.hoverListeners.delete(cb);
+  }
+
+  onBoardClick(cb: () => void): () => void {
+    this.boardListeners.add(cb);
+    return () => this.boardListeners.delete(cb);
   }
 
   onDeskClick(cb: (desk: DeskRef) => void): () => void {
@@ -318,6 +327,7 @@ export class World2D implements WorldApi {
     this.canvas.remove();
     this.selectListeners.clear();
     this.hoverListeners.clear();
+    this.boardListeners.clear();
     this.modeListeners.clear();
     this.deskListeners.clear();
   }
@@ -357,6 +367,7 @@ export class World2D implements WorldApi {
       hoverDesk: this.options.hireEnabled ? this.hoverDesk : null,
       options: this.options,
       roomInfo: this.roomInfo,
+      taskBoard: this.taskBoard,
       agents: this.agents,
       accountColor: (id) => this.accountColors.get(id) ?? '#8d99ad',
       ticker: this.ticker,
@@ -482,7 +493,16 @@ export class World2D implements WorldApi {
     return room ? { type: 'room', id: room } : null;
   }
 
+  private overBoard(p: { x: number; y: number }): boolean {
+    const w = this.cam.screenToWorld(p.x, p.y);
+    return !pickCharacter(this.sim.characters, w.x, w.y) && pickWhiteboard(this.sim.building, w.x, w.y);
+  }
+
   private click(p: { x: number; y: number }): void {
+    if (this.overBoard(p)) {
+      for (const cb of this.boardListeners) cb();
+      return;
+    }
     const clicked = this.pickAt(p);
     if (clicked?.type === 'desk') {
       for (const cb of this.deskListeners) cb({ projectId: clicked.desk.projectId, deskIndex: clicked.desk.deskIndex });
@@ -514,7 +534,7 @@ export class World2D implements WorldApi {
       roomId = area?.projectId ?? null;
     }
     this.setHover(agentId, roomId, p, desk);
-    this.canvas.style.cursor = picked ? 'pointer' : 'grab';
+    this.canvas.style.cursor = picked || this.overBoard(p) ? 'pointer' : 'grab';
   }
 
   private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {

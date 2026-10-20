@@ -1,5 +1,6 @@
 import type { Agent, Msg } from '@ai-office/shared';
 import { type WorldText, worldText } from '../../i18n/world/translate';
+import { TASK_COLUMN_COLORS, type TaskBoardSummary } from '../../world/taskBoard';
 import { drawPixelText, textWidth } from '../font';
 import { LED } from '../palette';
 import { context2d, hline, makeCanvas, rect } from '../paint/ctx';
@@ -101,6 +102,38 @@ export function renderMeetingTv(w: number, h: number, names: readonly string[], 
     const y = 10 + row * 6;
     rect(ctx, x, y + 1, 2, 3, i % 3 === 0 ? '#3ecf8e' : '#6ea2ff');
     drawPixelText(ctx, fit(name, colW - 7), x + 4, y, '#c9d6ee');
+  });
+  return canvas;
+}
+
+const INK = '#2a3344';
+const TITLES_2D = 2;
+
+/** Meeting-room whiteboard: cards per column and the first tasks in progress, in marker colors. */
+export function renderTaskBoard(w: number, h: number, summary: TaskBoardSummary, text: WorldText = worldText('pt-BR')): HTMLCanvasElement {
+  const canvas = makeCanvas(w, h);
+  const ctx = context2d(canvas);
+  rect(ctx, 0, 0, w, h, '#f3f5f6');
+  const counts = [
+    [TASK_COLUMN_COLORS.pending, summary.pending],
+    [TASK_COLUMN_COLORS.active, summary.active],
+    [TASK_COLUMN_COLORS.done, summary.done],
+  ] as const;
+  if (counts.every(([, n]) => n === 0)) {
+    drawPixelText(ctx, pickFitting([text.t('taskboard.empty'), text.t('taskboard.empty.short')], w - 6), 3, 2, '#7b8392');
+    return canvas;
+  }
+  let x = 3;
+  for (const [color, n] of counts) {
+    rect(ctx, x, 2, 2, 3, color);
+    drawPixelText(ctx, String(n), x + 3, 1, INK);
+    x += 3 + textWidth(String(n)) + 4;
+  }
+  hline(ctx, 2, 7, w - 4, '#d3d9e0');
+  summary.top.slice(0, TITLES_2D).forEach((title, i) => {
+    const y = 9 + i * 6;
+    rect(ctx, 3, y + 1, 1, 3, TASK_COLUMN_COLORS.active);
+    drawPixelText(ctx, fit(text.tm(title.msg, title.text), w - 9), 6, y, INK);
   });
   return canvas;
 }

@@ -93,7 +93,7 @@ export function layoutCopa(x0: number): AreaLayout {
 export function layoutMeeting(x0: number): AreaLayout {
   const b = new AreaBuilder({ id: 'meeting', kind: 'meeting', label: 'Sala de reunião', row: 'north', x: x0, width: CORE_W, theme: WOOD_THEME });
   b.wallItem('tv', 4, 6);
-  b.wallItem('whiteboard', 11, 3);
+  b.wallItem('whiteboard', 10, 4);
   b.wallItem('clock', 1, 1);
   b.put('rug', 2, 1, 11, 7, { variant: 3, walk: true });
   const table = b.put('meetingTable', 3, 3, 9, 2);

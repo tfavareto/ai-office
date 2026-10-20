@@ -2,6 +2,7 @@
 import type { Activity, Agent } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
+import { FOCUS_TASK_MS } from '../board-store';
 import { localOnlyHint, type AppContext } from '../context';
 import { accountLabel, activityDetail, activityText, agentRole, shellLabel, taskLabel } from '../display';
 import { compact, h, setText, toggleClass } from '../dom';
@@ -88,7 +89,8 @@ export class SummaryTab implements AgentTab {
   }
 
   private renderTasks(agent: Agent): void {
-    const signature = agent.tasks.map((task) => `${task.id}${task.status}${task.title}`).join('|');
+    const focused = this.focusedTaskId(agent);
+    const signature = `${focused ?? ''}#${agent.tasks.map((task) => `${task.id}${task.status}${task.title}`).join('|')}`;
     if (signature === this.signatures.tasks) return;
     this.signatures.tasks = signature;
     const done = agent.tasks.filter((task) => task.status === 'completed').length;
@@ -106,7 +108,7 @@ export class SummaryTab implements AgentTab {
               ...agent.tasks.map((task) =>
                 h(
                   'li',
-                  { class: `ao-task is-${task.status}` },
+                  { class: `ao-task is-${task.status}${task.id === focused ? ' is-focus' : ''}`, 'data-task-id': task.id },
                   h('span', { class: 'ao-task-mark', 'aria-hidden': 'true' }, task.status === 'completed' ? icon('check', 12) : null),
                   h('span', { class: 'ao-task-text' }, taskLabel(task)),
                   h('span', { class: 'ao-visually-hidden' }, ` (${task.status === 'completed' ? t('task.completed') : task.status === 'in_progress' ? t('task.inProgress') : t('task.pending')})`),
@@ -115,6 +117,13 @@ export class SummaryTab implements AgentTab {
             ),
           ),
     );
+    if (focused !== null) this.tasks.querySelector('.is-focus')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  /** The task picked on the task board, while its highlight lasts. */
+  private focusedTaskId(agent: Agent): string | null {
+    const focus = this.ctx.board.get().focusTask;
+    return focus && focus.agentId === agent.id && this.ctx.now() - focus.at < FOCUS_TASK_MS ? focus.taskId : null;
   }
 
   private renderRelations(agent: Agent): void {
