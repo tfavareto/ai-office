@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AppContext } from './context';
 import { API } from '@ai-office/shared';
 import { registerDataRoutes } from './handlers/data';
+import { registerHireRoutes } from './handlers/hire';
 import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
 import { registerSystemRoutes } from './handlers/system';
@@ -43,6 +44,7 @@ export function buildRouter(app: AppContext): Router {
   registerDataRoutes(router, app);
   registerPermissionRoutes(router, app);
   registerMessageRoutes(router, app);
+  registerHireRoutes(router, app);
   return router;
 }
 

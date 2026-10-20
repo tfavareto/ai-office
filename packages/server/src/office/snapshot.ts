@@ -1,5 +1,5 @@
 // Builds OfficeSnapshots and publishes them at most 4 times per second.
-import type { OfficeMeta, OfficeSnapshot } from '@ai-office/shared';
+import type { OfficeMeta, OfficeSnapshot, PendingHire } from '@ai-office/shared';
 import type { UsageTracker } from './usage';
 import type { Office } from './office';
 
@@ -10,6 +10,8 @@ export interface SnapshotDeps {
   usage: UsageTracker;
   now: () => number;
   meta: () => Omit<OfficeMeta, 'local'>;
+  /** Real agents being hired (the demo's come with the office state). */
+  hires: (now: number) => PendingHire[];
   emit: (snapshot: OfficeSnapshot) => void;
   minIntervalMs?: number;
 }
@@ -32,6 +34,7 @@ export class SnapshotPublisher {
       state.accounts.filter((account) => !state.demoUsage.some((usage) => usage.accountId === account.id)).map((account) => account.id),
       now,
     );
+    const hires = [...this.deps.hires(now), ...state.demoHires];
     return {
       rev: this.rev,
       serverTime: now,
@@ -40,6 +43,7 @@ export class SnapshotPublisher {
       projects: state.projects,
       agents: state.agents,
       usage: [...realUsage, ...state.demoUsage],
+      ...(hires.length > 0 ? { hires } : {}),
     };
   }
 

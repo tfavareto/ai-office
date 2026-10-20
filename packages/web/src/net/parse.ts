@@ -6,8 +6,10 @@ import type {
   BossMessage,
   DayStats,
   FeedItem,
+  HireCheckResponse,
   Notice,
   OfficeSnapshot,
+  PendingHire,
   RecentSession,
   TranscriptEntry,
   TranscriptPage,
@@ -76,10 +78,43 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
   };
 }
 
+function isPendingHire(value: unknown): value is PendingHire {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.projectId === 'string' &&
+    typeof value.accountId === 'string' &&
+    typeof value.createdAt === 'number' &&
+    typeof value.expiresAt === 'number' &&
+    (value.deskIndex === undefined || (typeof value.deskIndex === 'number' && Number.isInteger(value.deskIndex) && value.deskIndex >= 0)) &&
+    (value.agentId === undefined || typeof value.agentId === 'string')
+  );
+}
+
+/** Pending hires that survive validation; the snapshot omits the field when there are none. */
+export function parseHires(data: unknown): PendingHire[] {
+  return arr(data, isPendingHire);
+}
+
+export function parseHire(data: unknown): PendingHire {
+  const hire = isRecord(data) ? data.hire : undefined;
+  if (!isPendingHire(hire)) throw new Error(t('error.invalidResponse'));
+  return hire;
+}
+
+const CHECK_REASONS = new Set(['not-absolute', 'not-found', 'not-directory', 'not-readable']);
+
+export function parseFolderCheck(data: unknown): HireCheckResponse {
+  if (!isRecord(data) || typeof data.ok !== 'boolean') throw new Error(t('error.invalidResponse'));
+  const reason = typeof data.reason === 'string' && CHECK_REASONS.has(data.reason) ? (data.reason as HireCheckResponse['reason']) : undefined;
+  return { ok: data.ok, ...(reason !== undefined ? { reason } : {}) };
+}
+
 export function parseSnapshot(data: unknown): OfficeSnapshot | null {
   if (!isRecord(data) || typeof data.rev !== 'number' || typeof data.serverTime !== 'number' || !isRecord(data.meta)) return null;
   if (!Array.isArray(data.accounts) || !Array.isArray(data.projects) || !Array.isArray(data.agents)) return null;
   const meta = data.meta;
+  const hires = parseHires(data.hires);
   return {
     rev: data.rev,
     serverTime: data.serverTime,
@@ -94,6 +129,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
     projects: data.projects.filter(isRecord) as unknown as OfficeSnapshot['projects'],
     agents: data.agents.filter(isAgentLike).map(normalizeAgent),
     usage: Array.isArray(data.usage) ? (data.usage.filter(isRecord) as unknown as OfficeSnapshot['usage']) : [],
+    ...(hires.length > 0 ? { hires } : {}),
   };
 }
 

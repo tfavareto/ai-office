@@ -1,6 +1,6 @@
 // HTTP + Server-Sent Events protocol between the AI Office server and the web app / plugin hooks.
 import type { Locale } from './i18n/i18n';
-import type { BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PermissionDecision, RecentSession, TranscriptEntry } from './model';
+import type { BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, RecentSession, TranscriptEntry } from './model';
 
 /** Default port. Override with AI_OFFICE_PORT (server) — the plugin hooks read the same variable. */
 export const DEFAULT_PORT = 4848;
@@ -49,6 +49,10 @@ export const API = {
   messages: '/api/messages',
   /** POST { session_id, agent_id?, message? } from the Notification hook: the agent needs the user (local only). */
   attention: '/api/attention',
+  /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
+  hire: '/api/agents/hire',
+  /** GET ?path=<absolute folder> → HireCheckResponse: whether a folder can host a new agent. Local access only. */
+  hireCheck: '/api/agents/hire/check',
 } as const;
 
 export interface HealthResponse {
@@ -113,3 +117,71 @@ export interface MessagesResponse {
  * GET /api/messages/wait?session=&agent=&timeout=<s> → same shape; long-poll (≤ 25 s) used by the Stop hook.
  */
 export type InboxResponse = { messages: { id: string; text: string; createdAt: number; locale?: Locale }[] } | { skip: string };
+
+// ---- hiring an agent ------------------------------------------------------------------------------------------------
+
+/** Models offered when hiring; `default` leaves the choice to Claude Code. The others are `--model` aliases. */
+export const HIRE_MODELS = ['default', 'opus', 'sonnet', 'haiku'] as const;
+export type HireModel = (typeof HIRE_MODELS)[number];
+
+/** Permission modes offered when hiring; `default` leaves the choice to Claude Code. The others are `--permission-mode` values. */
+export const HIRE_PERMISSION_MODES = ['default', 'acceptEdits', 'plan'] as const;
+export type HirePermissionMode = (typeof HIRE_PERMISSION_MODES)[number];
+
+/** Longest initial prompt (characters) and folder path accepted. */
+export const HIRE_MAX_PROMPT = 8000;
+export const HIRE_MAX_PATH = 1024;
+/** Highest desk index a request may carry (a room has 6 desks; the cap only bounds the input). */
+export const HIRE_MAX_DESK_INDEX = 31;
+/** How long a placeholder waits for the session to show up, and how long a taken-over placeholder lingers so every tab can hand over. */
+export const HIRE_WINDOW_MS = 90_000;
+export const HIRE_HANDOVER_MS = 6_000;
+
+/** POST /api/agents/hire body. Every field but `projectPath` is optional. */
+export interface HireRequest {
+  /** Absolute path of an existing folder; its room is where the agent works. */
+  projectPath: string;
+  /** Account (Claude Code config dir) to run under; default: the default account, else the first one. */
+  accountId?: string;
+  /** First prompt, at most HIRE_MAX_PROMPT characters. */
+  prompt?: string;
+  model?: HireModel;
+  permissionMode?: HirePermissionMode;
+  /** Desk the person clicked in the room (the placeholder sits there). */
+  deskIndex?: number;
+  /** Language of the person hiring: used for the texts the launched terminal prints itself. */
+  locale?: Locale;
+}
+
+/** 202 body: the hire is registered; the session shows up in the office when Claude Code starts. */
+export interface HireResponse {
+  hire: PendingHire;
+}
+
+/** Why a folder cannot host a new agent (GET /api/agents/hire/check). */
+export type HireCheckReason = 'not-absolute' | 'not-found' | 'not-directory' | 'not-readable';
+
+export interface HireCheckResponse {
+  ok: boolean;
+  reason?: HireCheckReason;
+}
+
+/** Error codes of POST /api/agents/hire (the `error` field of the JSON error body). */
+export type HireErrorCode =
+  | 'local-only'
+  | 'rate-limited'
+  | 'invalid-projectPath'
+  | 'invalid-accountId'
+  | 'invalid-prompt'
+  | 'invalid-model'
+  | 'invalid-permissionMode'
+  | 'invalid-deskIndex'
+  | 'invalid-locale'
+  | 'unknown-account'
+  | 'project-not-found'
+  | 'project-not-directory'
+  | 'project-not-readable'
+  | 'claude-not-found'
+  | 'no-terminal'
+  | 'terminal-failed'
+  | 'unsupported-platform';

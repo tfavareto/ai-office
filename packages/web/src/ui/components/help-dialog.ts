@@ -16,6 +16,7 @@ const SHORTCUTS: readonly [string, UiKey][] = [
   ['N', 'help.shortcut.message'],
   ['P', 'help.shortcut.permission'],
   ['M', 'help.shortcut.day'],
+  ['H', 'help.shortcut.hire'],
   ['O', 'help.shortcut.overview'],
   ['[', 'help.shortcut.sidebar'],
   [']', 'help.shortcut.feed'],

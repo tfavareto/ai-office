@@ -4,6 +4,8 @@ import { isWalkable, nearestWalkable } from '../layout/grid';
 import { clamp, hash32 } from '../layout/rng';
 import type { AreaLayout, BuildingLayout, Spot, TilePos } from '../layout/types';
 import { Actor, approach, dirFromVector, type ActivityPlan } from './actor';
+import { type DeskTarget, emptyDeskAt } from './desks';
+import { hireAgentId, placeholderAgent, waitingHires, withHireProjects } from './hires';
 import { activityImportance, BubbleManager, clipText, ALERT_IMPORTANCE, type Bubble } from './bubbles';
 import { findPath, smoothPath, type Vec } from './path';
 import { RoomManager, type RoomMove, type RoomState } from './rooms';
@@ -76,6 +78,11 @@ export class OfficeSim {
     return this.actors.get(id);
   }
 
+  /** The empty desk under a floor-plan position (tile units), if any. */
+  emptyDeskAt(x: number, y: number): DeskTarget | null {
+    return emptyDeskAt(this.building, this.spots, this.rooms, x, y);
+  }
+
   /** Estimated server clock (ms). */
   serverNow(): number {
     return this.serverBase + (this.time - this.serverBaseTime) * 1000;
@@ -103,9 +110,11 @@ export class OfficeSim {
   setSnapshot(snapshot: OfficeSnapshot, serverNow: number): void {
     this.serverBase = serverNow;
     this.serverBaseTime = this.time;
-    if (this.rooms.sync(snapshot.projects)) this.relayout();
+    const waiting = waitingHires(snapshot.hires);
+    if (this.rooms.sync(withHireProjects(snapshot.projects, waiting))) this.relayout();
     const instant = this.firstSnapshot;
     this.firstSnapshot = false;
+    this.handOverHires(snapshot);
     const present = new Set<string>();
     for (const agent of snapshot.agents) {
       present.add(agent.id);
@@ -113,10 +122,34 @@ export class OfficeSim {
       if (existing) this.updateAgent(existing, agent);
       else if (agent.status !== 'done' && agent.status !== 'offline') this.spawn(agent, instant);
     }
+    for (const hire of waiting) {
+      const placeholder = placeholderAgent(hire);
+      present.add(placeholder.id);
+      const existing = this.actors.get(placeholder.id);
+      if (existing) existing.agent = placeholder;
+      else this.spawn(placeholder, instant, hire.deskIndex);
+    }
     for (const actor of this.list) {
       if (!present.has(actor.id) && !actor.leaving) {
         this.updateAgent(actor, { ...actor.agent, status: 'offline' });
       }
+    }
+  }
+
+  /** A pending hire whose session appeared: the placeholder person becomes that agent, right where it sits. */
+  private handOverHires(snapshot: OfficeSnapshot): void {
+    for (const hire of snapshot.hires ?? []) {
+      if (hire.agentId === undefined) continue;
+      const placeholder = this.actors.get(hireAgentId(hire.id));
+      const agent = snapshot.agents.find((candidate) => candidate.id === hire.agentId);
+      if (placeholder === undefined || agent === undefined || this.actors.has(agent.id)) continue;
+      this.actors.delete(placeholder.id);
+      this.spots.rekey(placeholder.id, agent.id);
+      this.bubbleManager.withdraw(placeholder.id);
+      placeholder.adopt(agent);
+      placeholder.celebrateUntil = this.time + 1.8;
+      this.actors.set(agent.id, placeholder);
+      this.offerBubble(placeholder, { text: 'Cheguei!', msg: { key: 'bubble.arrived' }, icon: '👋', importance: 60, sticky: false, ttl: 3.2 });
     }
   }
 
@@ -175,8 +208,9 @@ export class OfficeSim {
   // ---------------------------------------------------------------------------------------------------------------
   // agents
 
-  private spawn(agent: Agent, instant: boolean): void {
+  private spawn(agent: Agent, instant: boolean, desk?: number): void {
     const actor = new Actor(agent, this.seed);
+    actor.preferredDesk = desk;
     this.actors.set(agent.id, actor);
     this.list.push(actor);
     actor.idleDue = this.time + actor.rng.range(instant ? 4 : 12, instant ? 40 : 30);
@@ -248,7 +282,8 @@ export class OfficeSim {
     if (a.kind === 'main') {
       if (room) {
         const desks = this.spots.free('desk', room.areaId, a.id).sort((p, q) => (p.deskIndex ?? 0) - (q.deskIndex ?? 0));
-        const spot = claim(desks[0]) ?? claim(this.spots.free('overflow', room.areaId, a.id)[0]);
+        const wanted = desks.find((desk) => desk.deskIndex === a.preferredDesk);
+        const spot = claim(wanted ?? desks[0]) ?? claim(this.spots.free('overflow', room.areaId, a.id)[0]);
         if (spot) return spot;
       }
     } else {
@@ -488,7 +523,7 @@ export class OfficeSim {
       else a.setPose(home.seat ? 'type' : 'stand');
     } else a.setPose(home.seat ? 'sit' : 'stand');
 
-    if (status === 'idle' && !this.options.reducedMotion && !celebrating && this.time >= a.idleDue) this.tryWander(a);
+    if (status === 'idle' && !a.hiring && !this.options.reducedMotion && !celebrating && this.time >= a.idleDue) this.tryWander(a);
     if ((home.kind === 'wait' || home.kind === 'overflow' || home.kind === 'talk') && (a.stageTimer += dt) > 2) {
       a.stageTimer = 0;
       const better = this.assignBetterHome(a);

@@ -1,10 +1,11 @@
 // Transient UI state: what is selected, which panels and overlays are open, filters.
 import type { Selection } from '../world/api';
+import type { HireTarget } from './model/hire';
 import { Observable } from './observable';
 
 export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage';
-export type DialogId = 'day' | 'help';
+export type DialogId = 'day' | 'help' | 'hire';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {
@@ -34,6 +35,8 @@ export interface UiData {
   narrow: boolean;
   /** Bumped to ask the visible composer to take focus. */
   composerFocus: number;
+  /** Where the "hire an agent" dialog starts (the room or desk it was opened from). */
+  hire: HireTarget;
 }
 
 export const NARROW_BREAKPOINT = 900;
@@ -53,6 +56,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     following: false,
     narrow: init.narrow,
     composerFocus: 0,
+    hire: {},
   };
 }
 

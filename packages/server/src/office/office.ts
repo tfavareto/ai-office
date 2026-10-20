@@ -11,6 +11,7 @@ import {
   type Notice,
   type NoticeLevel,
   DEMO_ACCOUNTS,
+  type PendingHire,
   type PermissionRequest,
   type Project,
   durationMsg,
@@ -68,6 +69,8 @@ export interface OfficeState {
   agents: Agent[];
   /** Usage of demo accounts (empty when demo is off). */
   demoUsage: AccountUsage[];
+  /** Simulated hires in progress (demo mode only). */
+  demoHires: PendingHire[];
 }
 
 interface StatusMemo {
@@ -85,7 +88,7 @@ export class Office {
   private feedBacklog: FeedItem[] = [];
   private demo: DemoSimulator | undefined;
   private lastFingerprint = '';
-  private computed: OfficeState = { accounts: [], projects: [], agents: [], demoUsage: [] };
+  private computed: OfficeState = { accounts: [], projects: [], agents: [], demoUsage: [], demoHires: [] };
 
   constructor(private readonly deps: OfficeDeps) {}
 
@@ -230,7 +233,7 @@ export class Office {
   /** Recomputes agents and projects; fires `onChange` when anything visible changed. */
   refresh(now: number): void {
     this.computed = this.compute(now);
-    const fingerprint = JSON.stringify([this.computed.agents, this.computed.projects, this.computed.accounts, this.computed.demoUsage]);
+    const fingerprint = JSON.stringify([this.computed.agents, this.computed.projects, this.computed.accounts, this.computed.demoUsage, this.computed.demoHires]);
     if (fingerprint === this.lastFingerprint) return;
     this.lastFingerprint = fingerprint;
     this.deps.events.onChange();
@@ -249,7 +252,7 @@ export class Office {
     const memoIds = new Set<string>();
     const agents = real.map((agent) => this.withStatusSince(agent, now, memoIds));
     for (const id of this.memo.keys()) if (!memoIds.has(id)) this.memo.delete(id);
-    if (this.demo === undefined) return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [] };
+    if (this.demo === undefined) return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [], demoHires: [] };
     // One snapshot: it advances the simulator first, so agents, projects and usage describe the same instant.
     const demo = this.demo.snapshot(now);
     const nextOrder = realProjects.reduce((max, project) => Math.max(max, project.order + 1), 0);
@@ -259,6 +262,7 @@ export class Office {
       projects: [...realProjects, ...demoProjects],
       agents: [...agents, ...demo.agents],
       demoUsage: demo.usage,
+      demoHires: demo.hires ?? [],
     };
   }
 

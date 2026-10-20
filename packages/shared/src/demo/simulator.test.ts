@@ -141,6 +141,51 @@ describe('createDemoSimulator', () => {
     expect(sim.agents().filter((a) => a.kind === 'sub')).toHaveLength(2);
   });
 
+  test('spawnSession returns the id of the new main agent and honors account and title', () => {
+    const sim = createDemoSimulator({ sessions: 1, seed: 5, now: () => T0 });
+
+    const id = sim.spawnSession({ project: 'novo-projeto', accountId: 'demo-trabalho', title: 'Corrigir o login' });
+
+    const agent = sim.agents().find((candidate) => candidate.id === id);
+    expect(agent?.kind).toBe('main');
+    expect(agent?.accountId).toBe('demo-trabalho');
+    expect(agent?.title).toBe('Corrigir o login');
+  });
+
+  test('hire keeps a pending hire, then opens a session in that room and hands it over', () => {
+    let clock = T0;
+    const sim = createDemoSimulator({ sessions: 1, seed: 5, now: () => clock });
+    const before = sim.agents().length;
+
+    const hire = sim.hire({ project: 'loja-online', prompt: '  Revisar o checkout  ', deskIndex: 3, now: clock });
+
+    expect(sim.hires(clock).map((item) => item.id)).toEqual([hire.id]);
+    expect(hire).toMatchObject({ demo: true, projectId: expect.stringContaining('loja-online'), deskIndex: 3 });
+    expect(sim.agents()).toHaveLength(before);
+
+    clock = T0 + 10_000;
+    sim.tick(clock);
+
+    const resolved = sim.hires(clock)[0];
+    expect(resolved?.agentId).toBeDefined();
+    const agent = sim.agents().find((candidate) => candidate.id === resolved?.agentId);
+    expect(agent?.projectId).toBe(hire.projectId);
+    expect(agent?.title).toBe('Revisar o checkout');
+    expect(sim.snapshot(clock).hires).toHaveLength(1);
+
+    clock = T0 + 30_000;
+    expect(sim.hires(clock)).toEqual([]);
+    expect(sim.snapshot(clock).hires).toBeUndefined();
+  });
+
+  test('hire ignores an unknown account and uses the account of the project', () => {
+    const sim = createDemoSimulator({ sessions: 1, seed: 5, now: () => T0 });
+
+    const hire = sim.hire({ project: 'api-pagamentos', accountId: 'nope', now: T0 });
+
+    expect(['demo-pessoal', 'demo-trabalho']).toContain(hire.accountId);
+  });
+
   test('visitors arrive and leave over time without leaking agents', () => {
     const { sim, notices } = run(11, 1800, 1000);
     expect(notices.some((n) => n.level === 'info')).toBe(true);

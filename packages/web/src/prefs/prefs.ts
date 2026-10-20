@@ -120,7 +120,7 @@ export function effectiveLocale(prefs: Prefs, system: Locale = systemLocale()): 
 
 export function toWorldOptions(
   prefs: Prefs,
-  extra: { followSelected: boolean; reducedMotion: boolean; locale?: Locale },
+  extra: { followSelected: boolean; reducedMotion: boolean; locale?: Locale; hireEnabled?: boolean },
 ): WorldOptions {
   return {
     locale: extra.locale ?? effectiveLocale(prefs),
@@ -130,6 +130,7 @@ export function toWorldOptions(
     daylight: prefs.daylight,
     followSelected: extra.followSelected,
     reducedMotion: extra.reducedMotion,
+    hireEnabled: extra.hireEnabled ?? false,
   };
 }
 

@@ -1,13 +1,14 @@
 import type { Agent, OfficeSnapshot } from '@ai-office/shared';
-import { Box3, Frustum, Group, Matrix4, Vector3, type Material, type Mesh, type MeshStandardMaterial, type Texture } from 'three';
+import { Box3, Frustum, Group, Matrix4, Plane, Vector3, type Material, type Mesh, type MeshStandardMaterial, type Texture } from 'three';
 import { BUILDING_H } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import { nearestWalkable } from '../layout/grid';
 import { worldText } from '../i18n/world/translate';
 import { bubbleText } from '../sim/bubbles';
+import type { DeskTarget } from '../sim/desks';
 import { OfficeSim } from '../sim/sim';
 import {
-  DEFAULT_WORLD_OPTIONS, type CameraMode, type HoverInfo, type Selection, type ViewInsets, type WorldApi, type WorldFactoryOptions, type WorldOptions,
+  DEFAULT_WORLD_OPTIONS, type CameraMode, type DeskRef, type HoverInfo, type Selection, type ViewInsets, type WorldApi, type WorldFactoryOptions, type WorldOptions,
 } from '../world/api';
 import { DayNight } from '../world2d/lighting';
 import { summarizeRoom } from '../world2d/runtime/boards';
@@ -22,6 +23,7 @@ import { HumanLibrary } from './characters/humanLibrary';
 import { PortraitRenderer } from './characters/portrait';
 import { CityScene } from './exterior/city';
 import { loadCityModels } from './exterior/cityModels';
+import { DeskHint3D } from './overlay/deskHint';
 import { LabelOverlay, type TagItem } from './overlay/labels';
 import { paintMinimap } from './overlay/minimap';
 import { Stage } from './render/stage';
@@ -30,7 +32,7 @@ import { Materials, loadTextureSets } from './scene/materials';
 import { loadModels } from './scene/models';
 import type { DeskState } from './scene/screens';
 import { TextureLoader } from './scene/textures';
-import { SLAB_H, TILE_M, WALL_H } from './units';
+import { DESK_H, SLAB_H, TILE_M, WALL_H } from './units';
 import type { AreaLayout } from '../layout/types';
 import type { Pose } from '../sim/types';
 
@@ -70,6 +72,10 @@ export class World3D implements WorldApi {
   private readonly selectListeners = new Set<(s: Selection) => void>();
   private readonly hoverListeners = new Set<(h: HoverInfo | null) => void>();
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
+  private readonly deskListeners = new Set<(desk: DeskRef) => void>();
+  private readonly deskHint = new DeskHint3D();
+  private readonly deskPlane = new Plane(new Vector3(0, 1, 0), -DESK_H);
+  private hoverDesk: DeskTarget | null = null;
   private readonly tmpA = new Vector3();
   private readonly tmpB = new Vector3();
   private readonly screenA: ScreenPoint = { x: 0, y: 0, depth: 0, visible: true };
@@ -129,7 +135,7 @@ export class World3D implements WorldApi {
     this.crowd = new Crowd(parts.library, this.sim);
     this.city = new CityScene(parts.materials, parts.city);
     this.portraits = new PortraitRenderer(this.stage.renderer, parts.library);
-    this.world.add(this.areas.group, this.crowd.group, this.city.group);
+    this.world.add(this.areas.group, this.crowd.group, this.city.group, this.deskHint.group);
     this.stage.scene.add(this.world);
     this.applyOptions();
     this.stage.setPixelRatio(clamp(window.devicePixelRatio || 1, MIN_DPR, MAX_DPR));
@@ -262,6 +268,11 @@ export class World3D implements WorldApi {
     return () => this.hoverListeners.delete(cb);
   }
 
+  onDeskClick(cb: (desk: DeskRef) => void): () => void {
+    this.deskListeners.add(cb);
+    return () => this.deskListeners.delete(cb);
+  }
+
   private officeBox(): Box3 {
     const b = this.sim.building;
     return new Box3(new Vector3(0, -SLAB_H, 0), new Vector3(b.width * TILE_M, WALL_H, BUILDING_H * TILE_M));
@@ -388,6 +399,8 @@ export class World3D implements WorldApi {
     this.selectListeners.clear();
     this.hoverListeners.clear();
     this.modeListeners.clear();
+    this.deskListeners.clear();
+    this.deskHint.dispose();
   }
 
   private get canvasEl(): HTMLCanvasElement {
@@ -436,6 +449,8 @@ export class World3D implements WorldApi {
       detail: true, still: this.options.reducedMotion,
     });
     this.city.update(this.clock, night);
+    this.deskHint.set(this.options.hireEnabled ? this.hoverDesk : null);
+    this.deskHint.update(this.clock, this.options.reducedMotion);
     this.updatePool(dt);
     this.stage.render(this.rig.active as never, true);
     this.drawOverlay();
@@ -612,21 +627,31 @@ export class World3D implements WorldApi {
       if (!this.screenA.visible || this.screenA.x < -80 || this.screenA.x > this.width + 80 || this.screenA.y < -60 || this.screenA.y > this.height + 40) continue;
       if (this.rig.mode !== 'overview' && this.screenA.depth > 14) continue;
       const agent = this.agents.get(c.agentId);
-      const emphasis = (this.selection?.type === 'agent' && this.selection.id === c.agentId) || this.hover.agentId === c.agentId;
+      const emphasis = !c.hiring && ((this.selection?.type === 'agent' && this.selection.id === c.agentId) || this.hover.agentId === c.agentId);
       const b = bubbles.get(c.agentId);
       items.push({
-        id: c.id, sx: this.screenA.x, sy: this.screenA.y, name: agent?.name ?? c.name, accent: this.accountColors.get(c.accountId) ?? '#8d99ad',
-        status: c.status, sub: c.kind === 'sub', emphasis, alert: c.alert && !b,
+        id: c.id, sx: this.screenA.x, sy: this.screenA.y, name: c.hiring ? text.t('overlay.arriving') : (agent?.name ?? c.name), accent: this.accountColors.get(c.accountId) ?? '#8d99ad',
+        status: c.status, sub: c.kind === 'sub', emphasis, alert: c.alert && !b, arriving: c.hiring,
         bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky } : null,
       });
     }
     items.sort((p, q) => p.sy - q.sy);
     this.overlay.draw(items, this.options.showNames && nameZoom, first ? this.fpHint : null);
+    this.drawDeskBadge();
     if (first && this.minimap) {
       this.overlay.drawMinimap((ctx, w, h) =>
         paintMinimap(ctx, w, h, { building: this.sim.building, characters: this.sim.characters, player: this.rig.walker, accent: (c) => this.accountColors.get(c.accountId) ?? '#8d99ad' }),
       );
     }
+  }
+
+  /** The "+" over the empty desk the pointer is on. */
+  private drawDeskBadge(): void {
+    if (!this.options.hireEnabled || this.rig.mode === 'first-person') return;
+    const anchor = this.deskHint.badgeAnchor(this.tmpA);
+    if (!anchor) return;
+    this.rig.project(anchor, this.screenA);
+    if (this.screenA.visible) this.overlay.drawPlus(this.screenA.x, this.screenA.y);
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -697,10 +722,10 @@ export class World3D implements WorldApi {
     if (!this.pointer) this.setHover(null, null, null);
   };
 
-  private pickAt(p: { x: number; y: number }): Selection {
+  private pickAt(p: { x: number; y: number }): Selection | { type: 'desk'; desk: DeskTarget } {
     this.capsules.length = 0;
     for (const c of this.sim.characters) {
-      if (c.alpha < 0.5) continue;
+      if (c.alpha < 0.5 || c.hiring) continue;
       const person = this.crowd.get(c.id);
       if (!person || !person.root.visible) continue;
       this.tmpB.set(c.x * TILE_M, 0.05, c.y * TILE_M);
@@ -713,6 +738,9 @@ export class World3D implements WorldApi {
     const agent = pickCapsule(this.capsules, p.x, p.y);
     if (agent) return { type: 'agent', id: agent };
     const ray = this.rig.rayAt(p.x, p.y).ray;
+    const onDesk = this.options.hireEnabled ? ray.intersectPlane(this.deskPlane, this.tmpB) : null;
+    const desk = onDesk ? this.sim.emptyDeskAt(onDesk.x / TILE_M, onDesk.z / TILE_M) : null;
+    if (desk) return { type: 'desk', desk };
     let best: { id: string; d: number } | null = null;
     for (const room of this.areas.projectBoxes()) {
       const hit = ray.intersectBox(room.box, this.tmpA);
@@ -725,6 +753,10 @@ export class World3D implements WorldApi {
 
   private click(p: { x: number; y: number }): void {
     const picked = this.pickAt(p);
+    if (picked?.type === 'desk') {
+      for (const cb of this.deskListeners) cb({ projectId: picked.desk.projectId, deskIndex: picked.desk.deskIndex });
+      return;
+    }
     this.selection = picked;
     for (const cb of this.selectListeners) cb(picked);
   }
@@ -732,7 +764,7 @@ export class World3D implements WorldApi {
   private onDoubleClick = (e: MouseEvent): void => {
     if (this.rig.mode !== 'overview') return;
     const picked = this.pickAt(this.local(e));
-    if (!picked) return;
+    if (!picked || picked.type === 'desk') return;
     this.selection = picked;
     for (const cb of this.selectListeners) cb(picked);
     this.focusSelection();
@@ -741,21 +773,23 @@ export class World3D implements WorldApi {
   private updateHover(p: { x: number; y: number }): void {
     const picked = this.pickAt(p);
     const agentId = picked?.type === 'agent' ? picked.id : null;
-    let roomId = picked?.type === 'room' ? picked.id : null;
+    const desk = picked?.type === 'desk' ? picked.desk : null;
+    let roomId = picked?.type === 'room' ? picked.id : (desk?.projectId ?? null);
     if (agentId) {
       const c = this.sim.character(agentId);
       const area = c?.areaId ? this.sim.building.areas.find((a) => a.id === c.areaId) : undefined;
       roomId = area?.projectId ?? null;
     }
-    this.setHover(agentId, roomId, p);
+    this.setHover(agentId, roomId, p, desk);
     this.canvasEl.style.cursor = picked ? 'pointer' : this.rig.mode === 'overview' ? 'grab' : 'crosshair';
   }
 
-  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null): void {
-    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId;
+  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {
+    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId || desk?.deskIndex !== this.hoverDesk?.deskIndex || desk?.projectId !== this.hoverDesk?.projectId;
     this.hover = { agentId, roomId };
+    this.hoverDesk = desk;
     if (!changed && !(p && (agentId || roomId))) return;
-    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y } : null;
+    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y, ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}) } : null;
     for (const cb of this.hoverListeners) cb(info);
   }
 

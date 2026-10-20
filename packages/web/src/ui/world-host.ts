@@ -3,6 +3,7 @@ import type { OfficeSnapshot } from '@ai-office/shared';
 import {
   DEFAULT_WORLD_OPTIONS,
   type CameraMode,
+  type DeskRef,
   type HoverInfo,
   type Selection,
   type ViewInsets,
@@ -26,6 +27,7 @@ export class WorldHost {
   private readonly selectListeners = new Set<Listener<Selection>>();
   private readonly hoverListeners = new Set<Listener<HoverInfo | null>>();
   private readonly cameraListeners = new Set<Listener<CameraMode>>();
+  private readonly deskListeners = new Set<Listener<DeskRef>>();
 
   constructor(private readonly container: HTMLElement) {}
 
@@ -63,6 +65,9 @@ export class WorldHost {
       }),
       world.onCameraMode((mode) => {
         for (const listener of this.cameraListeners) listener(mode);
+      }),
+      world.onDeskClick((desk) => {
+        for (const listener of this.deskListeners) listener(desk);
       }),
     ];
     world.setOptions(this.options);
@@ -148,6 +153,11 @@ export class WorldHost {
   onHover(listener: Listener<HoverInfo | null>): () => void {
     this.hoverListeners.add(listener);
     return () => this.hoverListeners.delete(listener);
+  }
+
+  onDeskClick(listener: Listener<DeskRef>): () => void {
+    this.deskListeners.add(listener);
+    return () => this.deskListeners.delete(listener);
   }
 
   onCameraMode(listener: Listener<CameraMode>): () => void {

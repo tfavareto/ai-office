@@ -34,7 +34,11 @@ export class HoverTip implements Component {
       this.el.hidden = true;
       return;
     }
-    if (agent) {
+    if (hover.desk && project) {
+      setText(this.title, t('hover.desk.title'));
+      setText(this.line, t('hover.desk.hint'));
+      setText(this.extra, project.name);
+    } else if (agent) {
       setText(this.title, agent.name);
       setText(this.line, `${agentKindLabel(agent)} · ${statusLabel(displayStatus(agent))}`);
       setText(this.extra, agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : (agentTitle(agent) ?? ''));

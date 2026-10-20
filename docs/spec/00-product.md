@@ -73,8 +73,20 @@ the source catalog the other two are translated from. Code, comments and docs in
     the office), PostToolUse + Stop + SubagentStop (deliver messages), Notification (mark "needs you").
     `npm run plugin:install|uninstall|status` installs into every detected account via the `claude plugin` CLI.
 
-Keyboard: / search, F follow selected, T terminal, N message, P next permission, M my day, O overview, [ sidebar,
-] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
+Keyboard: / search, F follow selected, T terminal, N message, P next permission, M my day, O overview, H hire an agent,
+[ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
+
+15. **Hire an agent**: the office is also a place to start work. Click an empty desk of a room (hover shows a dashed
+    outline with a "+"), use the **Hire agent** button of the room drawer, the "+" of a room in the sidebar, the "+" at
+    the top of the sidebar or `H`. A dialog asks for the project folder (an existing room, or **New project…** with a
+    path field that validates the folder and suggests recent folders), the account (when there are several; default:
+    the room's most recent one), an optional first task (≤ 8000 characters), the model (default / Opus / Sonnet / Haiku)
+    and the permission mode (default / accept edits / plan). Cmd/Ctrl+Enter submits. The server opens a **new terminal
+    window** running Claude Code in that folder (the person uses it normally; the office follows the session through its
+    files, as always). Meanwhile a placeholder person ("arriving…") walks in from the elevator to the chosen desk, and
+    hands over to the real session when it appears (matched by folder + account + start time, within 90 s). Local access
+    only; in demo mode a simulated agent arrives instead and no terminal opens.
 
 ## Non-goals
-Remote multi-user access; editing files; sending prompts other than through the message feature; Windows-specific work.
+Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a
+first prompt can be given when hiring an agent); Windows-specific work.

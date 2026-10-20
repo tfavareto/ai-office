@@ -108,12 +108,12 @@ describe('access token', () => {
 
   test('every /api route except health refuses requests without a valid token', async () => {
     await boot();
-    for (const path of ['/api/day', '/api/history?agent=x', '/api/sessions', '/api/demo', '/api/messages?agent=x', '/api/permissions/abc', '/api/transcript?session=s&account=claude', '/api/unknown']) {
+    for (const path of ['/api/day', '/api/history?agent=x', '/api/sessions', '/api/demo', '/api/messages?agent=x', '/api/permissions/abc', '/api/transcript?session=s&account=claude', '/api/agents/hire/check?path=/', '/api/unknown']) {
       const response = await fetch(`${base()}${path}`);
       expect(response.status, path).toBe(401);
       expect(await response.json()).toEqual({ error: 'unauthorized' });
     }
-    for (const path of ['/api/demo', '/api/messages', '/api/messages/inbox', '/api/attention', '/api/permissions']) {
+    for (const path of ['/api/demo', '/api/messages', '/api/messages/inbox', '/api/attention', '/api/permissions', '/api/agents/hire']) {
       expect((await post(path, {})).status, path).toBe(401);
     }
     expect((await fetch(`${base()}/api/stream`)).status).toBe(401);

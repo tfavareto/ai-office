@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, BossMessage, DayStats, PermissionDecision, RecentSession, TranscriptPage } from '@ai-office/shared';
+import type { Activity, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, RecentSession, TranscriptPage } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -21,6 +21,10 @@ export interface Backend {
   sessions(): Promise<RecentSession[]>;
   day(date: string): Promise<DayStats>;
   setDemo(on: boolean): Promise<boolean>;
+  /** Opens a terminal running Claude Code in the folder (local access only); the placeholder then arrives in the snapshot. */
+  hireAgent(request: HireRequest): Promise<PendingHire>;
+  /** Whether a folder can host a new agent (feedback while typing a path). */
+  checkFolder(path: string): Promise<HireCheckResponse>;
 }
 
 export class BackendError extends Error {

@@ -8,6 +8,7 @@ import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
 import type { MessageRegistry } from '../registries/messages';
 import type { PermissionRegistry } from '../registries/permissions';
+import type { HireService } from '../hire/service';
 import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
 import type { SnapshotPublisher } from '../office/snapshot';
@@ -25,6 +26,7 @@ export interface AppContext {
   permissions: PermissionRegistry;
   messages: MessageRegistry;
   attention: AttentionRegistry;
+  hires: HireService;
   day: DayRecorder;
   transcripts: TranscriptCache;
   isDemo: () => boolean;

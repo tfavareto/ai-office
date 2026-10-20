@@ -2,7 +2,7 @@
 
 This guide states exactly what AI Office reads, what it stores, how it keeps everything on your computer, how access is protected and how to report a vulnerability.
 
-The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests and refuses requests that do not carry its access token or that come from another site.
+The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
 
 ## What AI Office reads
 
@@ -37,7 +37,7 @@ Messages, permission requests and notifications live in the server's memory and 
 
 - The server binds to `127.0.0.1` by default. A non-loopback `AI_OFFICE_HOST` is refused at startup unless remote access is explicitly allowed.
 - The server and the plugin hooks make **no outbound network requests**. The hooks connect to `127.0.0.1` and nothing else.
-- Features that act on sessions (terminal, session history, permissions, messages, attention marks, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
+- Features that act on sessions (terminal, session history, permissions, messages, attention marks, hiring an agent, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
 - The web app loads all its scripts, styles and assets from the server itself. 3D models and textures are bundled (CC0), not fetched from a CDN.
 
 ## Access token
@@ -80,6 +80,18 @@ Referrer-Policy: no-referrer
 ```
 
 The page cannot be framed, cannot load scripts from other origins and cannot connect anywhere but its own server. The UI builds text with `textContent`, never `innerHTML` with session data.
+
+## Hiring an agent
+
+`POST /api/agents/hire` is the only endpoint that starts a program. What it can launch is fixed:
+
+- **Which program.** A terminal window (`osascript` for Terminal.app or iTerm2 on macOS; `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` or `xterm` on Linux) that runs `/bin/sh` on a launcher script the server wrote, which runs the `claude` executable the server found itself (an absolute `PATH` entry, `~/.local/bin/claude` or `~/.claude/local/claude`). The request cannot name an executable, arguments or environment variables: it carries only a folder, an account id, a prompt, a model alias, a permission mode, a desk number and a language, each validated (absolute existing readable folder, a known account, enums, size limits: prompt 8000 characters, path 1024). Unknown fields are ignored. Permission modes that skip checks (`bypassPermissions`, `dontAsk`) cannot be chosen from the office.
+- **No shell injection.** The folder, the prompt and the account directory only appear in the launcher script, written with single-quote quoting (tested against quotes, spaces, newlines, `$()`, backticks, unicode and leading dashes by running the script with a stub `claude`); the terminal is only ever told to run `/bin/sh '<script path>'` and the programs are started with argument arrays, never through a shell. The prompt is one argument.
+- **Where the prompt goes.** The launcher lives in a fresh private directory (mode 0700, file 0600) under the system temp dir and deletes itself and its directory the moment it starts (a launcher nobody ran is removed after 10 minutes). The prompt then lives in the Claude Code session like any other prompt.
+- **Guards.** Local-only (loopback bind, `Host` and peer), the access token, `Sec-Fetch-Site`, JSON-only and same-origin `POST`, a 256 KB body limit and **5 launches per minute**; the folder check endpoint has its own limit (120 per minute) and only tells whether a directory exists and can be entered.
+- **Demo mode.** Nothing is launched: hires into non-real rooms are simulated.
+
+If you do not want this at all, do not open the page on the computer that runs AI Office: the endpoint answers 403 `local-only` to every other client. A macOS prompt asks once whether the app that runs the server may control Terminal.
 
 ## Remote access
 

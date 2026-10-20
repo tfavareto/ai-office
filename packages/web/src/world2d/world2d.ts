@@ -2,10 +2,12 @@ import type { Agent, OfficeSnapshot } from '@ai-office/shared';
 import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
 import { clamp } from '../layout/rng';
+import type { DeskTarget } from '../sim/desks';
 import { OfficeSim } from '../sim/sim';
 import {
   DEFAULT_WORLD_OPTIONS,
   type CameraMode,
+  type DeskRef,
   type HoverInfo,
   type Selection,
   type ViewInsets,
@@ -51,6 +53,7 @@ export class World2D implements WorldApi {
   private insets: ViewInsets;
   private selection: Selection = null;
   private hover: { agentId: string | null; roomId: string | null } = { agentId: null, roomId: null };
+  private hoverDesk: DeskTarget | null = null;
   private agents = new Map<string, Agent>();
   private roomInfo = new Map<string, RoomInfo>();
   private accountColors = new Map<string, string>();
@@ -79,6 +82,7 @@ export class World2D implements WorldApi {
   private readonly selectListeners = new Set<(s: Selection) => void>();
   private readonly hoverListeners = new Set<(h: HoverInfo | null) => void>();
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
+  private readonly deskListeners = new Set<(desk: DeskRef) => void>();
   private readonly portraitCache = new Map<string, string>();
 
   constructor(private readonly container: HTMLElement, opts: WorldFactoryOptions) {
@@ -188,6 +192,11 @@ export class World2D implements WorldApi {
   onHover(cb: (hover: HoverInfo | null) => void): () => void {
     this.hoverListeners.add(cb);
     return () => this.hoverListeners.delete(cb);
+  }
+
+  onDeskClick(cb: (desk: DeskRef) => void): () => void {
+    this.deskListeners.add(cb);
+    return () => this.deskListeners.delete(cb);
   }
 
   overview(animate = true): void {
@@ -310,6 +319,7 @@ export class World2D implements WorldApi {
     this.selectListeners.clear();
     this.hoverListeners.clear();
     this.modeListeners.clear();
+    this.deskListeners.clear();
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -344,6 +354,7 @@ export class World2D implements WorldApi {
       dt,
       selection: this.selection,
       hover: this.hover,
+      hoverDesk: this.options.hireEnabled ? this.hoverDesk : null,
       options: this.options,
       roomInfo: this.roomInfo,
       agents: this.agents,
@@ -461,16 +472,23 @@ export class World2D implements WorldApi {
     if (!this.pointer) this.setHover(null, null, null);
   };
 
-  private pickAt(p: { x: number; y: number }): Selection {
+  private pickAt(p: { x: number; y: number }): Selection | { type: 'desk'; desk: DeskTarget } {
     const w = this.cam.screenToWorld(p.x, p.y);
     const person = pickCharacter(this.sim.characters, w.x, w.y);
     if (person) return { type: 'agent', id: person.agentId };
+    const desk = this.options.hireEnabled ? this.sim.emptyDeskAt(w.x / TILE, w.y / TILE) : null;
+    if (desk) return { type: 'desk', desk };
     const room = pickRoom(this.sim.building, this.sim.roomStates, w.x, w.y);
     return room ? { type: 'room', id: room } : null;
   }
 
   private click(p: { x: number; y: number }): void {
-    const picked = this.pickAt(p);
+    const clicked = this.pickAt(p);
+    if (clicked?.type === 'desk') {
+      for (const cb of this.deskListeners) cb({ projectId: clicked.desk.projectId, deskIndex: clicked.desk.deskIndex });
+      return;
+    }
+    const picked = clicked;
     this.selection = picked;
     this.followBroken = false;
     for (const cb of this.selectListeners) cb(picked);
@@ -479,7 +497,7 @@ export class World2D implements WorldApi {
 
   private onDoubleClick = (e: MouseEvent): void => {
     const picked = this.pickAt(this.local(e));
-    if (!picked) return;
+    if (!picked || picked.type === 'desk') return;
     this.selection = picked;
     for (const cb of this.selectListeners) cb(picked);
     this.focusSelection();
@@ -488,21 +506,23 @@ export class World2D implements WorldApi {
   private updateHover(p: { x: number; y: number }): void {
     const picked = this.pickAt(p);
     const agentId = picked?.type === 'agent' ? picked.id : null;
-    let roomId = picked?.type === 'room' ? picked.id : null;
+    const desk = picked?.type === 'desk' ? picked.desk : null;
+    let roomId = picked?.type === 'room' ? picked.id : (desk?.projectId ?? null);
     if (agentId) {
       const c = this.sim.character(agentId);
       const area = c?.areaId ? this.sim.building.areas.find((a) => a.id === c.areaId) : undefined;
       roomId = area?.projectId ?? null;
     }
-    this.setHover(agentId, roomId, p);
+    this.setHover(agentId, roomId, p, desk);
     this.canvas.style.cursor = picked ? 'pointer' : 'grab';
   }
 
-  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null): void {
-    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId;
+  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {
+    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId || desk?.deskIndex !== this.hoverDesk?.deskIndex || desk?.projectId !== this.hoverDesk?.projectId;
     this.hover = { agentId, roomId };
+    this.hoverDesk = desk;
     if (!changed && !(p && (agentId || roomId))) return;
-    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y } : null;
+    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y, ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}) } : null;
     for (const cb of this.hoverListeners) cb(info);
   }
 

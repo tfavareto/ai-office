@@ -15,6 +15,7 @@ import {
   type Pos,
 } from './labels';
 import type { Viewport } from './camera';
+import { drawDeskHint } from './deskHint';
 import { WALL_ITEMS_TOP } from './paint/wallitems';
 import type { OverlaySprites, Sprite } from './overlay';
 import { STATUS_COLORS } from './palette';
@@ -122,6 +123,7 @@ export class OverlayPass {
     const free = freeArea(cam.view);
 
     const pills = this.drawRooms(ctx, sprites, s, free);
+    drawDeskHint(ctx, s);
     const payloads = new Map<string, Payload>();
     const items = this.buildItems(sprites, s, payloads, free);
     const placed = placeLabels(items, {
@@ -176,7 +178,7 @@ export class OverlayPass {
       if (head.x < free.x - FREE_MARGIN || head.x > free.x + free.w + FREE_MARGIN || head.y < free.y - FREE_MARGIN || head.y > free.y + free.h + FREE_MARGIN) continue;
       const selected = s.selection?.type === 'agent' && s.selection.id === c.agentId;
       const hovered = s.hover.agentId === c.agentId;
-      const showTag = selected || hovered || c.alert || (s.options.showNames && cam.zoom >= NAME_MIN_ZOOM);
+      const showTag = selected || hovered || c.alert || ((s.options.showNames || c.hiring) && cam.zoom >= NAME_MIN_ZOOM);
       let tagPriority: number = selected ? Priority.Selected : hovered ? Priority.Hovered : c.alert ? Priority.AlertTag : Priority.Tag;
       const tagId = `tag:${c.agentId}`;
 
@@ -203,7 +205,8 @@ export class OverlayPass {
       }
 
       if (showTag) {
-        const sprite = sprites.nameTag(c.name, s.accountColor(c.accountId), statusOf(c), c.kind, selected || hovered);
+        const label = c.hiring ? text.t('overlay.arriving') : c.name;
+        const sprite = sprites.nameTag(label, s.accountColor(c.accountId), statusOf(c), c.kind, selected || hovered);
         payloads.set(tagId, { sprite, alpha: c.alpha, rise: 0, layer: 'tag' });
         items.push({ id: tagId, priority: tagPriority, w: sprite.w, h: sprite.h, spots: tagSpots(head, sprite.w, sprite.h), required: selected || hovered || c.alert });
       }

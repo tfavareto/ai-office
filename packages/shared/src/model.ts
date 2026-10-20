@@ -210,6 +210,26 @@ export interface OfficeMeta {
   build?: string;
 }
 
+/**
+ * An agent being hired from the office: a terminal window was opened for it and its session has not shown up yet.
+ * The worlds draw a placeholder person walking to `deskIndex` until `agentId` appears (or `expiresAt` passes).
+ */
+export interface PendingHire {
+  id: string;
+  /** Room (project) the agent is hired into: the absolute project folder. */
+  projectId: string;
+  accountId: string;
+  createdAt: number;
+  /** The placeholder goes away at this time when no session matched. */
+  expiresAt: number;
+  /** Desk the person clicked (0-based, within the room); the placeholder sits there and the real agent inherits it. */
+  deskIndex?: number;
+  /** Set when the session appeared: the office agent that takes over the placeholder. */
+  agentId?: string;
+  /** Simulated by the demo (no terminal was opened). */
+  demo?: boolean;
+}
+
 export interface OfficeSnapshot {
   /** Increases on every change. */
   rev: number;
@@ -219,6 +239,8 @@ export interface OfficeSnapshot {
   projects: Project[];
   agents: Agent[];
   usage: AccountUsage[];
+  /** Agents being hired right now (a terminal is open, the session has not appeared). Absent when there are none. */
+  hires?: PendingHire[];
 }
 
 export interface FeedItem {

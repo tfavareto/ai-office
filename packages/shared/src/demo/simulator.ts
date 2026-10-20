@@ -9,13 +9,14 @@ import type {
   Notice,
   NoticeLevel,
   OfficeSnapshot,
+  PendingHire,
   PermissionDecision,
   PermissionRequest,
   Project,
   ShellJob,
   TaskItem,
 } from '../model';
-import type { DemoOptions, DemoSimulator, DemoTick } from './types';
+import type { DemoHireOptions, DemoOptions, DemoSimulator, DemoTick } from './types';
 import {
   type ActivityDraft,
   describeToolUse,
@@ -31,6 +32,8 @@ import {
   toActivity,
 } from '../activities';
 import { fnv1a, mulberry32, pick, randInt } from '../hash';
+import { HireBook } from '../hires';
+import { HIRE_WINDOW_MS } from '../protocol';
 import { type Locale, type Msg, msg, sourceText } from '../i18n';
 import { pickName } from '../names';
 import {
@@ -68,6 +71,8 @@ const MAX_BLOCKED = 2;
 const CHURN_MIN_MS = 70_000;
 const CHURN_MAX_MS = 130_000;
 const MAX_VISITORS = 2;
+/** A hired demo agent "walks in" for this long before its session opens. */
+const HIRE_ARRIVAL_MS = 4500;
 const ERROR_NOTICE_GAP_MS = 20_000;
 const HOUR_MS = 3_600_000;
 const MOODS = ['shell', 'subs', 'idle', 'blocked', 'busy', 'busy', 'idle', 'busy'] as const;
@@ -121,6 +126,7 @@ class Simulator implements DemoSimulator {
   private readonly projectMap = new Map<string, ProjectEntry>();
   private readonly messageMap = new Map<string, BossMessage[]>();
   private readonly usageExtra = new Map<string, number>();
+  private readonly hireBook = new HireBook();
   private pendingFeed: FeedItem[] = [];
   private pendingNotices: Notice[] = [];
   private clock: number;
@@ -179,6 +185,7 @@ class Simulator implements DemoSimulator {
 
   snapshot(now: number): OfficeSnapshot {
     this.advance(now);
+    const hires = this.hireBook.list(now);
     return {
       rev: this.rev,
       serverTime: now,
@@ -187,7 +194,12 @@ class Simulator implements DemoSimulator {
       projects: this.projects(),
       agents: this.agents(),
       usage: this.usage(now),
+      ...(hires.length > 0 ? { hires } : {}),
     };
+  }
+
+  hires(now: number): PendingHire[] {
+    return this.hireBook.list(now);
   }
 
   decidePermission(requestId: string, decision: PermissionDecision): boolean {
@@ -226,10 +238,9 @@ class Simulator implements DemoSimulator {
     return [...(this.messageMap.get(agentId) ?? [])];
   }
 
-  spawnSession(opts: { project: string; subs?: number; status?: Agent['status'] }): void {
+  spawnSession(opts: { project: string; subs?: number; status?: Agent['status']; accountId?: string; title?: string }): string {
     const spec = this.specFor(opts.project);
-    const index = Math.max(0, DEMO_PROJECTS.findIndex((candidate) => candidate.path === spec.path));
-    const id = this.createMain(spec, index, this.clock, false, 1);
+    const id = this.createMain(spec, this.projectIndexOf(spec), this.clock, false, 1, { accountId: opts.accountId, title: opts.title });
     this.noticeFor(id, 'info', msg('notice.opened', { name: this.nameOf(id), project: spec.name }), this.clock);
     const status = opts.status ?? 'working';
     if (status === 'idle') {
@@ -240,12 +251,36 @@ class Simulator implements DemoSimulator {
     } else if (status === 'offline' || status === 'done') {
       this.leave(id, this.clock);
     } else {
-      this.startTurn(id, this.clock);
+      this.startTurn(id, this.clock, opts.title);
     }
     if (opts.subs !== undefined && opts.subs > 0 && this.runtimes.get(id)?.phase === 'working') {
       this.spawnSubs(id, this.clock, opts.subs);
     }
     this.touch();
+    return id;
+  }
+
+  hire(opts: DemoHireOptions): PendingHire {
+    this.advance(opts.now);
+    const spec = this.specFor(opts.project);
+    const accountId = this.accountIdFor(spec, opts.accountId);
+    const prompt = opts.prompt?.trim();
+    const hire: PendingHire = {
+      id: this.nextId('hire'),
+      projectId: spec.path,
+      accountId,
+      createdAt: this.clock,
+      expiresAt: this.clock + HIRE_WINDOW_MS,
+      demo: true,
+      ...(opts.deskIndex !== undefined ? { deskIndex: opts.deskIndex } : {}),
+    };
+    this.hireBook.add(hire);
+    this.queue.push(this.clock + this.scale(HIRE_ARRIVAL_MS), (at) => {
+      const agentId = this.spawnSession({ project: spec.path, accountId, ...(prompt ? { title: prompt.slice(0, 80) } : {}) });
+      this.hireBook.resolve(hire.id, agentId, at);
+    });
+    this.touch();
+    return hire;
   }
 
   // ---- time -------------------------------------------------------------------------------------------------
@@ -259,6 +294,7 @@ class Simulator implements DemoSimulator {
       if (++processed >= MAX_EVENTS_PER_ADVANCE) break;
     }
     this.clock = Math.max(this.clock, now);
+    this.hireBook.sweep(this.clock);
   }
 
   private touch(): void {
@@ -319,7 +355,24 @@ class Simulator implements DemoSimulator {
     if (!stillUsed) this.projectMap.delete(path);
   }
 
-  private createMain(spec: DemoProjectSpec, projectIndex: number, at: number, visitor: boolean, turns: number): string {
+  private projectIndexOf(spec: DemoProjectSpec): number {
+    return Math.max(0, DEMO_PROJECTS.findIndex((candidate) => candidate.path === spec.path));
+  }
+
+  /** `requested` when it is a demo account; otherwise the account the project belongs to. */
+  private accountIdFor(spec: DemoProjectSpec, requested?: string): string {
+    const known = DEMO_ACCOUNTS.find((account) => account.id === requested);
+    return (known ?? DEMO_ACCOUNTS[this.projectIndexOf(spec) % DEMO_ACCOUNTS.length] ?? DEMO_ACCOUNTS[0]).id;
+  }
+
+  private createMain(
+    spec: DemoProjectSpec,
+    projectIndex: number,
+    at: number,
+    visitor: boolean,
+    turns: number,
+    overrides: { accountId?: string | undefined; title?: string | undefined } = {},
+  ): string {
     const accountIndex = projectIndex % DEMO_ACCOUNTS.length;
     this.ensureProject(spec, accountIndex);
     const id = this.nextId('demo');
@@ -329,12 +382,12 @@ class Simulator implements DemoSimulator {
       id,
       kind: 'main',
       sessionId: `demo-session-${id}`,
-      accountId: (DEMO_ACCOUNTS[accountIndex] ?? DEMO_ACCOUNTS[0]).id,
+      accountId: overrides.accountId ?? (DEMO_ACCOUNTS[accountIndex] ?? DEMO_ACCOUNTS[0]).id,
       projectId: spec.path,
       name: person.name,
       role: sourceText(msg('agent.role.main')),
       roleMsg: msg('agent.role.main'),
-      ...titleOf(pick(rng, spec.prompts)),
+      ...titleOf(overrides.title ?? pick(rng, spec.prompts)),
       look: person.look,
       seed: fnv1a(id),
       status: 'idle',

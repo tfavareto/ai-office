@@ -38,6 +38,11 @@ export class SpotBook {
     if (this.claims.get(spotId) === charId) this.claims.delete(spotId);
   }
 
+  /** Moves every claim of `from` to `to` (a placeholder person is taken over by the real agent). */
+  rekey(from: string, to: string): void {
+    for (const [spotId, owner] of this.claims) if (owner === from) this.claims.set(spotId, to);
+  }
+
   releaseAll(charId: string): void {
     for (const [spotId, owner] of this.claims) if (owner === charId) this.claims.delete(spotId);
   }
