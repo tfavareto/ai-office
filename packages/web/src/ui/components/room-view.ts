@@ -9,7 +9,7 @@ import { icon } from '../icons';
 import { agentsOfProject, roomColor } from '../model/rooms';
 import { displayStatus, statusLabel } from '../model/status';
 import { roomActivities } from '../model/timeline';
-import { accountChip, createAvatar, emptyNote, sectionTitle, setStatusDot, statusDot } from '../widgets';
+import { accountChip, button, createAvatar, emptyNote, sectionTitle, setDisabled, setStatusDot, statusDot } from '../widgets';
 import { MessageComposer } from './message-composer';
 import { MessageHistory } from './message-history';
 import { closeButton } from './overlay';
@@ -26,6 +26,7 @@ export class RoomView implements Component {
   private readonly tasks = h('div', { class: 'ao-block' });
   private readonly activity = h('div', { class: 'ao-block' });
   private readonly composer: MessageComposer;
+  private readonly hireBtn: HTMLButtonElement;
   private readonly history: MessageHistory;
   private readonly body = h('div', { class: 'ao-agent-body' });
   private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote(t('room.gone')));
@@ -46,10 +47,12 @@ export class RoomView implements Component {
       h('div', { class: 'ao-hero-info' }, this.name, h('div', { class: 'ao-room-path-row' }, this.path, copy)),
       closeButton(t('drawer.close'), () => ctx.clearSelection()),
     );
+    this.hireBtn = button({ label: t('hire.action'), icon: 'plus', variant: 'soft', className: 'ao-room-hirebtn', onClick: () => this.roomId && this.ctx.openHire({ projectPath: this.roomId }) });
     this.body.append(
       this.stats,
       this.accounts,
       this.agents,
+      this.hireBtn,
       h('div', { class: 'ao-block' }, sectionTitle(t('room.team.title')), this.composer.el, this.history.el),
       this.tasks,
       this.activity,
@@ -82,6 +85,7 @@ export class RoomView implements Component {
     this.swatch.style.background = roomColor(project.seed);
     setText(this.name, project.name);
     setText(this.path, project.path);
+    setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());
     this.renderStats(agents);
     this.renderAccounts(agents);
     this.renderAgents(agents);

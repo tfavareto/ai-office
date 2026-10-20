@@ -1,8 +1,8 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import { API, type PermissionDecision } from '@ai-office/shared';
+import { API, type HireRequest, type PermissionDecision } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
-import { isRecord, parseActivities, parseDay, parseMessages, parseSessions, parseTranscriptPage } from './parse';
+import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parseSessions, parseTranscriptPage } from './parse';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -80,6 +80,15 @@ export class HttpBackend implements Backend {
 
   async day(date: string) {
     return parseDay(await this.get(API.day, { date }));
+  }
+
+  async hireAgent(request: HireRequest) {
+    const { body } = await this.post(API.hire, { ...request, locale: locale() });
+    return parseHire(body);
+  }
+
+  async checkFolder(path: string) {
+    return parseFolderCheck(await this.get(API.hireCheck, { path }));
   }
 
   async setDemo(on: boolean): Promise<boolean> {

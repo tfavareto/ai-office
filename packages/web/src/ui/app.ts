@@ -1,5 +1,5 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import type { Account, Agent, BossMessage, Msg, Notice, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, HireRequest, Msg, Notice, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
@@ -12,6 +12,7 @@ import { DayDialog } from './components/day-dialog';
 import { EmptyState } from './components/empty-state';
 import { Feed } from './components/feed';
 import { HelpDialog } from './components/help-dialog';
+import { HireDialog } from './components/hire-dialog';
 import { HoverTip } from './components/hover-tip';
 import { InboxPopover } from './components/inbox-popover';
 import { NotificationCenter } from './components/notification-center';
@@ -31,6 +32,7 @@ import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { InboxController } from './inbox-controller';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
+import type { HireTarget } from './model/hire';
 import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
@@ -69,6 +71,7 @@ export class App implements AppContext {
   private pendingSnapshot: OfficeSnapshot | null = null;
   private appliedInsets: ViewInsets | null = null;
   private appliedFollow: boolean | null = null;
+  private appliedHire: boolean | null = null;
   private lastTitle = '';
   private lastNeeds = 0;
   private buildId: string | undefined;
@@ -125,7 +128,7 @@ export class App implements AppContext {
     const feed = new Feed(this);
     const toasts = new Toasts(this);
     const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
-    const dialogs = [new DayDialog(this), new HelpDialog(this)];
+    const dialogs = [new DayDialog(this), new HelpDialog(this), new HireDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
@@ -281,6 +284,15 @@ export class App implements AppContext {
     this.ui.set({ dialog: null });
   }
 
+  openHire(target: HireTarget = {}): void {
+    if (!this.isLocal) {
+      this.announce(localOnlyHint());
+      this.flash('info', localOnlyHint());
+      return;
+    }
+    this.ui.set({ hire: target, dialog: 'hire', popover: null });
+  }
+
   jumpToShell(): void {
     const agents = this.snapshot?.agents ?? [];
     const current = this.ui.get().selection;
@@ -354,6 +366,16 @@ export class App implements AppContext {
     return sent;
   }
 
+  async hireAgent(request: HireRequest): Promise<PendingHire> {
+    if (!this.isLocal) throw new Error(localOnlyHint());
+    const hire = await this.store.backend.hireAgent(request);
+    const project = this.project(hire.projectId)?.name ?? hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId;
+    this.cue('sent');
+    this.flash('info', t('hire.toast.opened', { project }));
+    this.announce(t('announce.hire.opened', { project }));
+    return hire;
+  }
+
   async setDemo(on: boolean): Promise<void> {
     await this.store.backend.setDemo(on);
   }
@@ -381,6 +403,7 @@ export class App implements AppContext {
       this.ui.set({ selection, ...(selection && this.ui.get().narrow ? { sidebarOpen: false } : {}) });
     });
     this.world.onHover((hover) => this.hoverTip.setHover(hover));
+    this.world.onDeskClick((desk) => this.openHire({ projectPath: desk.projectId, deskIndex: desk.deskIndex }));
     this.world.onCameraMode(() => this.refresh());
     onLocaleChange(() => this.onLocaleChanged());
 
@@ -422,7 +445,7 @@ export class App implements AppContext {
 
   private applyWorldOptions(): void {
     const following = this.ui.get().following && this.ui.get().selection?.type === 'agent';
-    this.world.setOptions(toWorldOptions(this.prefs.get(), { followSelected: following, reducedMotion: this.reducedMotion.matches }));
+    this.world.setOptions(toWorldOptions(this.prefs.get(), { followSelected: following, reducedMotion: this.reducedMotion.matches, hireEnabled: this.isLocal }));
     toggleClass(this.root, 'is-reduced-motion', this.reducedMotion.matches);
   }
 
@@ -497,6 +520,10 @@ export class App implements AppContext {
     if (following !== this.appliedFollow) {
       this.appliedFollow = following;
       this.world.setOptions({ followSelected: following });
+    }
+    if (this.isLocal !== this.appliedHire) {
+      this.appliedHire = this.isLocal;
+      this.world.setOptions({ hireEnabled: this.isLocal });
     }
     toggleClass(this.root, 'is-narrow', ui.narrow);
     toggleClass(this.root, 'has-drawer', ui.selection !== null);
@@ -580,6 +607,10 @@ export class App implements AppContext {
         return;
       case 'help':
         this.openDialog('help');
+        return;
+      case 'hire':
+        if (ui.dialog === 'hire') return;
+        this.openHire(ui.selection?.type === 'room' ? { projectPath: ui.selection.id } : {});
         return;
       case 'find':
         this.terminal.openSearch();

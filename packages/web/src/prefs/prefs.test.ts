@@ -71,6 +71,12 @@ describe('PrefsStore', () => {
     const options = toWorldOptions({ ...DEFAULT_PREFS, animation: 'lively', bubbles: 'all' }, { followSelected: true, reducedMotion: true });
     expect(options).toMatchObject({ liveliness: 'lively', bubbles: 'all', followSelected: true, reducedMotion: true });
   });
+
+  it('keeps empty desks inert unless the page can hire', () => {
+    const base = { followSelected: false, reducedMotion: false };
+    expect(toWorldOptions(DEFAULT_PREFS, base).hireEnabled).toBe(false);
+    expect(toWorldOptions(DEFAULT_PREFS, { ...base, hireEnabled: true }).hireEnabled).toBe(true);
+  });
 });
 
 describe('language', () => {

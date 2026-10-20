@@ -1,7 +1,7 @@
 // Contract of the demo simulator (implemented in ./simulator.ts): fake but realistic sessions used by the server's
 // demo mode and by the web app's fully client-side `?mock=1` mode.
 import type { Locale } from '../i18n/i18n';
-import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PermissionDecision, Project } from '../model';
+import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, Project } from '../model';
 
 export interface DemoOptions {
   /** Deterministic seed (same seed + same clock = same story). */
@@ -33,6 +33,20 @@ export interface DemoSimulator {
   /** Deliver a message to demo agents after a short simulated delay (`locale`: language of the sender). */
   sendMessage(agentIds: readonly string[], text: string, now: number, locale?: Locale): BossMessage[];
   messages(agentId: string): BossMessage[];
-  /** Debug helper: open a new demo session (project with a main agent and `subs` subagents). */
-  spawnSession(opts: { project: string; subs?: number; status?: Agent['status'] }): void;
+  /** Open a new demo session (project with a main agent and `subs` subagents). Returns the new agent's id. */
+  spawnSession(opts: { project: string; subs?: number; status?: Agent['status']; accountId?: string; title?: string }): string;
+  /** "Hire" a demo agent: a placeholder is pending for a few seconds, then a demo session opens in that room. */
+  hire(opts: DemoHireOptions): PendingHire;
+  /** Hires waiting for their session, and recently taken-over ones (what the snapshot carries). */
+  hires(now: number): PendingHire[];
+}
+
+export interface DemoHireOptions {
+  /** Project name or absolute path; unknown ones become a new demo project. */
+  project: string;
+  accountId?: string;
+  /** The first prompt: it becomes the new agent's title. */
+  prompt?: string;
+  deskIndex?: number;
+  now: number;
 }

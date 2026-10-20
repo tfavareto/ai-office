@@ -42,6 +42,8 @@ export interface Character {
   readonly carrying: 'cup' | null;
   /** Raised hand / needs the user. */
   readonly alert: boolean;
+  /** A placeholder for an agent being hired: not selectable, tagged "arriving". */
+  readonly hiring: boolean;
 }
 
 export interface SimOptions {

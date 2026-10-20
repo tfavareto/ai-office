@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { OfficeSnapshot } from '@ai-office/shared';
+import type { OfficeSnapshot, PendingHire } from '@ai-office/shared';
 import { silentLogger } from '../log';
 import { NameStore } from './name-store';
 import { Office } from './office';
@@ -9,7 +9,7 @@ import { UsageTracker } from './usage';
 let clock = 10_000;
 const emitted: OfficeSnapshot[] = [];
 
-function publisher(): SnapshotPublisher {
+function publisher(hires: PendingHire[] = []): SnapshotPublisher {
   const office = new Office({
     now: () => clock,
     names: new NameStore(undefined, silentLogger),
@@ -24,6 +24,7 @@ function publisher(): SnapshotPublisher {
     usage: new UsageTracker(),
     now: () => clock,
     meta: () => ({ version: '1.2.3', startedAt: 1, demo: false }),
+    hires: () => hires,
     emit: (snapshot) => void emitted.push(snapshot),
   });
 }
@@ -70,6 +71,13 @@ describe('SnapshotPublisher', () => {
     }
     expect(emitted.length).toBeLessThanOrEqual(5);
     expect(emitted.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('pending hires travel in the snapshot, and the field is absent when there are none', () => {
+    const hire: PendingHire = { id: 'h1', projectId: '/work/app', accountId: 'claude', createdAt: 9000, expiresAt: 99_000 };
+
+    expect(publisher([hire]).build().hires).toEqual([hire]);
+    expect(publisher().build().hires).toBeUndefined();
   });
 
   test('build() does not change rev', () => {

@@ -21,6 +21,8 @@ import { drawAreaAnimated } from './animation';
 import { drawLighting } from './night';
 import { drawCharacters } from './characters';
 
+import type { DeskTarget } from '../sim/desks';
+
 export interface FrameState {
   sim: OfficeSim;
   cam: Camera;
@@ -30,6 +32,8 @@ export interface FrameState {
   dt: number;
   selection: Selection;
   hover: { agentId: string | null; roomId: string | null };
+  /** The empty desk under the pointer (while the page can hire). */
+  hoverDesk: DeskTarget | null;
   options: WorldOptions;
   roomInfo: ReadonlyMap<string, RoomInfo>;
   agents: ReadonlyMap<string, Agent>;

@@ -2,6 +2,7 @@ export * from './model';
 export * from './protocol';
 export * from './demo/types';
 export * from './hash';
+export * from './hires';
 export * from './names';
 export * from './colors';
 export * from './format';

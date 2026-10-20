@@ -23,6 +23,13 @@ describe('picking', () => {
     expect(pickCharacter([a], box.x + 4, box.y + 10)).toBeNull();
   });
 
+  it('ignores the placeholder of an agent being hired, so the click reaches the desk or the room behind it', () => {
+    const placeholder = { ...fake('hire:h1', 10, 5), hiring: true } as Character;
+    const box = characterBox(placeholder);
+
+    expect(pickCharacter([placeholder], box.x + 4, box.y + 10)).toBeNull();
+  });
+
   it('finds the project room under a point and nothing for core areas', () => {
     const building = computeBuilding([{ id: 'p1', seed: 3, name: 'p1', slot: 0 }]);
     const area = building.areas.find((a) => a.kind === 'project')!;

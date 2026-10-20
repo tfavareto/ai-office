@@ -73,6 +73,49 @@ toggle, permissions (create from hook into a pending map with 5 min expiry; wait
 decision; auto-cancel when the agent's session moves on), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
 long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity). `POST /api/messages` and `POST /api/permissions/:id/decision` accept an optional `locale` (`pt-BR`, `en` or `es`; anything else is a 400 `invalid-locale`); the server keeps it with the queued message and returns it from the inbox so the hooks can phrase their output in that language.
 
+## Hiring an agent (`POST /api/agents/hire`)
+Local-only (loopback bind + Host + peer, like permissions), token-protected and covered by the request guard. Body
+`{ projectPath, accountId?, prompt?, model?, permissionMode?, deskIndex?, locale? }` (`HireRequest` in shared). Validation, in
+this order, with the error code in `{ error }`:
+- Syntax (400): `projectPath` a non-empty string ≤ 1024 chars (`invalid-projectPath`); `accountId` a string ≤ 300
+  (`invalid-accountId`); `prompt` a string ≤ 8000 chars without NUL (`invalid-prompt`; trimmed, empty means none); `model` one of
+  `default|opus|sonnet|haiku` (`invalid-model`); `permissionMode` one of `default|acceptEdits|plan`
+  (`invalid-permissionMode`); `deskIndex` an integer 0-31 (`invalid-deskIndex`); `locale` `pt-BR|en|es`
+  (`invalid-locale`). Unknown fields are ignored: the client can never choose the executable, arguments or environment.
+- Folder: `~` and `~/…` expand to the home folder; the path must be absolute, free of control characters and is
+  normalized (400 `invalid-projectPath`); it must exist (404 `project-not-found`), be a directory (400
+  `project-not-directory`) and be readable and enterable (403 `project-not-readable`).
+- Account (400 `unknown-account`): `accountId` must be one of the discovered accounts; without it the default account (`~/.claude`),
+  else the first one (a computer with no account directory yet uses the default account).
+- `claude` must be found like the plugin installer does (PATH entries that are absolute, then `~/.local/bin/claude`,
+  `~/.claude/local/claude`): 503 `claude-not-found`.
+- Rate limit: 5 launches per minute (429 `rate-limited`); only requests that reach the launcher count.
+Then it opens a terminal window and answers **202** `{ hire: PendingHire }`. Launch failures: 503 `no-terminal`, 502
+`terminal-failed`, 501 `unsupported-platform`.
+
+Launch. A private directory (`mkdtemp` under the system temp dir, mode 0700) gets `launch.sh` (mode 0600), a POSIX `sh` script that
+first deletes its own directory, then `cd`s into the project, exports `CLAUDE_CONFIG_DIR=<account dir>` (or unsets it for the
+default account) and runs `claude [--model <alias>] [--permission-mode <mode>] [--] [<prompt>]`. Every value is written with single-quote
+shell quoting (the only metacharacter inside quotes is the quote itself), the prompt is one argument (`--` precedes a prompt that starts with a
+dash), and a NUL byte is refused. The terminal is told to run `/bin/sh '<script path>'`; nothing from the request ever reaches a
+shell command line, an AppleScript string or an argv other than through that script. A launcher nobody ran is removed after 10 minutes. macOS: `osascript`
+(argument array, no shell) opens **Terminal.app**, or **iTerm2** when it is running and Terminal.app is not; Linux tries `x-terminal-emulator`,
+`gnome-terminal`, `konsole`, `xfce4-terminal` and `xterm` in order (`spawn`, detached, no shell). The launcher is an injectable
+dependency (`AppOptions.hire.launcher`), so tests never open terminals.
+
+Pending hires. The hire is kept in a registry and travels in the snapshot as the optional `hires: PendingHire[]` (`id`, `projectId`,
+`accountId`, `createdAt`, `expiresAt = createdAt + 90 s`, `deskIndex?`, `agentId?`, `demo?`). `projectId` is the room: the existing room that matches
+the folder (typed or with symlinks resolved), else the resolved path (what Claude Code reports as its cwd). Every second the registry looks for a
+**main, non-demo, open agent with the same account whose project is the folder and whose `startedAt` is not before the request** (oldest first; one session takes
+over one hire) and sets `agentId`; the entry stays 6 s so every page can hand over, then goes away. A hire with no session after 90 s is dropped and a warn notice
+("the session has not shown up yet…") is broadcast.
+
+`GET /api/agents/hire/check?path=<folder>` → `{ ok, reason? }` (`not-absolute|not-found|not-directory|not-readable`): the same folder checks, for the
+path field (120 per minute).
+
+Demo mode. While demo mode is on, a hire into a folder that is not a room with real sessions is **simulated**: no folder, account or `claude` checks and no
+terminal; the simulator keeps a pending hire for ~4.5 s and then opens a demo session in that room (its title is the prompt). The same simulator powers `?mock=1`.
+
 ## Day recorder
 Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD.json` (flush every 30 s).
 `/api/day` returns it (today by default).

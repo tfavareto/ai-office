@@ -1,0 +1,205 @@
+/* Hiring an agent: the dialog, and the buttons that open it (sidebar, room drawer). */
+.ao-sidebar-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ao-sidebar-searchrow .ao-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-sidebar-hire {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ao-sidebar-hire:hover:not(:disabled) {
+  border-color: rgba(110, 162, 255, 0.5);
+  background: rgba(79, 134, 247, 0.26);
+  color: var(--text);
+}
+
+.ao-room-hire {
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.ao-room:hover .ao-room-hire,
+.ao-room.is-selected .ao-room-hire,
+.ao-room-hire:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ao-room-hire {
+    opacity: 1;
+  }
+}
+
+.ao-room-hirebtn {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+/* Dialog. */
+.ao-dialog--hire {
+  width: min(540px, 100%);
+}
+
+.ao-hire-body {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-hire-field,
+.ao-hire-newproject,
+.ao-hire-recent {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ao-hire-newproject {
+  gap: 10px;
+}
+
+.ao-hire-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-hire-select {
+  width: 100%;
+  max-width: none;
+  height: 34px;
+  font-size: 13px;
+}
+
+.ao-hire-path {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-hire-feedback {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.ao-hire-feedback.is-ok {
+  color: var(--working);
+}
+
+.ao-hire-feedback.is-bad {
+  color: #ffb4b4;
+}
+
+.ao-hire-folder {
+  max-width: 100%;
+  padding: 0 10px;
+}
+
+.ao-hire-folder span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-hire-accounts .ao-chip {
+  height: 30px;
+}
+
+.ao-hire-prompt {
+  min-height: 96px;
+}
+
+.ao-hire-count {
+  justify-self: end;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-hire-count.is-over {
+  color: #ffb4b4;
+  font-weight: 600;
+}
+
+.ao-hire-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ao-hire-modehint {
+  margin: -6px 0 0;
+}
+
+.ao-hire-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ao-hire-note .ao-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.ao-hire-error {
+  margin: 0;
+}
+
+.ao-dialog-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ao-hire-kbd {
+  margin-left: 4px;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .ao-hire-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-room-hire {
+    transition: none;
+  }
+}

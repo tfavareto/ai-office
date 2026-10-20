@@ -1,5 +1,5 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { createDemoSimulator, type DemoSimulator, type OfficeSnapshot, type PermissionDecision } from '@ai-office/shared';
+import { createDemoSimulator, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
@@ -95,6 +95,20 @@ class MockBackend implements Backend {
 
   async setDemo(on: boolean): Promise<boolean> {
     return on;
+  }
+
+  async hireAgent(request: HireRequest) {
+    return this.sim.hire({
+      project: request.projectPath,
+      now: Date.now(),
+      ...(request.accountId !== undefined ? { accountId: request.accountId } : {}),
+      ...(request.prompt !== undefined ? { prompt: request.prompt } : {}),
+      ...(request.deskIndex !== undefined ? { deskIndex: request.deskIndex } : {}),
+    });
+  }
+
+  async checkFolder(path: string): Promise<HireCheckResponse> {
+    return path.startsWith('/') ? { ok: true } : { ok: false, reason: 'not-absolute' };
   }
 }
 

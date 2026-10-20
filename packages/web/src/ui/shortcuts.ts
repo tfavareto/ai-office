@@ -11,6 +11,7 @@ export type ShortcutAction =
   | 'sidebar'
   | 'feed'
   | 'help'
+  | 'hire'
   | 'escape'
   | 'find';
 
@@ -33,6 +34,7 @@ const PLAIN_KEYS: Readonly<Record<string, ShortcutAction>> = {
   '[': 'sidebar',
   ']': 'feed',
   '?': 'help',
+  h: 'hire',
 };
 
 /**

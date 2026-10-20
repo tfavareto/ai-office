@@ -1,9 +1,10 @@
 // Composition root: wires the office, registries, ingest engine, SSE hub and HTTP server together.
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDemoSimulator, messageDraft } from '@ai-office/shared';
+import { createDemoSimulator, messageDraft, msg, sourceText } from '@ai-office/shared';
 import { Engine } from './claude/engine';
 import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
@@ -11,6 +12,11 @@ import { TranscriptCache } from './claude/transcript';
 import type { ServerConfig } from './config';
 import { TokenAuth } from './http/auth';
 import type { AppContext } from './http/context';
+import { resolveClaudeExecutable } from './hire/claude-path';
+import { HIRE_LAUNCH_LIMIT, HIRE_LAUNCH_WINDOW_MS } from './hire/limits';
+import { HireRegistry } from './hire/registry';
+import { HireService } from './hire/service';
+import { SystemTerminalLauncher, type TerminalLauncher } from './hire/terminals';
 import { type HttpLimits, createHttpServer } from './http/server';
 import { SseHub } from './http/sse';
 import type { Logger } from './log';
@@ -23,6 +29,8 @@ import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
 import { asString } from './util/fs-safe';
+import { newId } from './util/ids';
+import { RateLimiter } from './util/rate-limit';
 
 const TICK_MS = 250;
 const SLOW_TICK_EVERY = 4;
@@ -33,9 +41,19 @@ export interface AppOptions {
   pidAlive?: PidCheck;
   /** Value of CLAUDE_CONFIG_DIR. */
   envDir?: string;
+  /** Process environment (default: process.env); the PATH is used to find `claude`. */
+  env?: NodeJS.ProcessEnv;
   version?: string;
   /** Overrides the HTTP request timeouts (tests). */
   httpLimits?: HttpLimits;
+  /** Hiring agents: tests replace the launcher, so no terminal is ever opened. */
+  hire?: {
+    launcher?: TerminalLauncher;
+    /** Absolute path of `claude`, or undefined when there is none. */
+    resolveClaude?: () => string | undefined;
+    /** Where private launcher folders are created. */
+    tmpDir?: string;
+  };
 }
 
 export interface App {
@@ -92,6 +110,15 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     onChange: refresh,
     onDelivered: (message) => void office.addExternalActivity(message.agentId, messageDraft(message.text)),
   });
+  const hireRegistry = new HireRegistry({
+    now,
+    newId: () => `hire-${newId(6)}`,
+    onChange: () => snapshots.markDirty(),
+    onExpired: (hire) => {
+      const message = msg('notice.hire.timeout', { project: hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId });
+      hub.broadcastNotice({ id: `n-${newId(6)}`, at: now(), level: 'warn', text: sourceText(message), msg: message, projectId: hire.projectId });
+    },
+  });
   const hub: SseHub = new SseHub({ snapshot: () => snapshots.build(), backlog: () => office.recentFeed() });
   const office: Office = new Office({
     now,
@@ -115,6 +142,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     usage,
     now,
     meta: () => ({ version, startedAt, demo: demoOn, ...(build !== undefined ? { build } : {}) }),
+    hires: (time) => hireRegistry.list(time),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
   });
   const engine = new Engine({
@@ -132,6 +160,25 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     refresh();
   };
 
+  const env = options.env ?? process.env;
+  const hires = new HireService({
+    now,
+    log,
+    homeDir: config.homeDir,
+    tmpDir: options.hire?.tmpDir ?? tmpdir(),
+    accounts: () => engine.accountList(),
+    realProjectIds: () => {
+      const simulated = new Set((office.demoSimulator?.projects() ?? []).map((project) => project.id));
+      return office.state().projects.filter((project) => !simulated.has(project.id)).map((project) => project.id);
+    },
+    demo: () => office.demoSimulator,
+    registry: hireRegistry,
+    launcher: options.hire?.launcher ?? new SystemTerminalLauncher({ platform: process.platform, env }),
+    resolveClaude: options.hire?.resolveClaude ?? (() => resolveClaudeExecutable({ env, home: config.homeDir })),
+    launchLimiter: new RateLimiter(HIRE_LAUNCH_LIMIT, HIRE_LAUNCH_WINDOW_MS, now),
+    refresh,
+  });
+
   const context: AppContext = {
     config,
     version,
@@ -145,6 +192,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     permissions,
     messages,
     attention,
+    hires,
     day,
     transcripts: new TranscriptCache(),
     isDemo: () => demoOn,
@@ -163,6 +211,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     if (++ticks % SLOW_TICK_EVERY !== 0) return;
     permissions.sweep();
     messages.expire();
+    hireRegistry.sweep(office.state().agents, time);
     if (time - lastDayRecord >= RECORD_INTERVAL_MS) {
       lastDayRecord = time;
       void day.record(office.state().agents.filter((agent) => agent.demo !== true), time).catch((error: unknown) => log.debug(`Meu dia: ${String(error)}`));

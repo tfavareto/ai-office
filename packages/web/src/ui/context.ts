@@ -1,10 +1,11 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, Msg, NoticeLevel, OfficeSnapshot, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
 import type { InboxController } from './inbox-controller';
 import type { MessageCenter } from './message-center';
+import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
 import type { DialogId, DrawerTab, PopoverId, UiState } from './state';
 import type { WorldHost } from './world-host';
@@ -53,6 +54,8 @@ export interface AppContext {
   closePopover(): void;
   openDialog(id: DialogId): void;
   closeDialog(): void;
+  /** Opens the "hire an agent" dialog (no-op with a hint when the page is not local). */
+  openHire(target?: HireTarget): void;
   jumpToShell(): void;
 
   /** Asks for a render pass on the next frame. */
@@ -69,5 +72,7 @@ export interface AppContext {
 
   decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean>;
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
+  /** Opens a terminal with Claude Code for a new agent; rejects with the server's error. */
+  hireAgent(request: HireRequest): Promise<PendingHire>;
   setDemo(on: boolean): Promise<void>;
 }

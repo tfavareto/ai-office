@@ -17,6 +17,8 @@ export interface WorldOptions {
   followSelected: boolean;
   /** prefers-reduced-motion: no pulsing, no idle wandering. */
   reducedMotion: boolean;
+  /** Empty desks answer to the pointer (hover feedback, click to hire). Off when the page cannot hire. */
+  hireEnabled: boolean;
 }
 
 /** Free area (CSS px) not covered by panels: camera focus and overview fit inside it. */
@@ -27,9 +29,18 @@ export interface ViewInsets {
   left: number;
 }
 
+/** An empty desk in a project room: the place a new agent can be hired at. */
+export interface DeskRef {
+  projectId: string;
+  /** Index of the desk inside the room (0-5). */
+  deskIndex: number;
+}
+
 export interface HoverInfo {
   agentId: string | null;
   roomId: string | null;
+  /** The pointer is over an empty desk (then `roomId` is that desk's room). */
+  desk?: DeskRef;
   /** Screen position (CSS px, relative to the container) for the hover tip. */
   x: number;
   y: number;
@@ -49,6 +60,8 @@ export interface WorldApi {
   select(selection: Selection, opts?: { focus?: boolean }): void;
   onSelect(cb: (selection: Selection) => void): () => void;
   onHover(cb: (hover: HoverInfo | null) => void): () => void;
+  /** The person clicked an empty desk (only while `hireEnabled`). */
+  onDeskClick(cb: (desk: DeskRef) => void): () => void;
   /** Camera commands from buttons/shortcuts. */
   overview(): void;
   zoomBy(factor: number): void;
@@ -80,4 +93,5 @@ export const DEFAULT_WORLD_OPTIONS: WorldOptions = {
   daylight: 'auto',
   followSelected: false,
   reducedMotion: false,
+  hireEnabled: false,
 };

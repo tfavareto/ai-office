@@ -4,15 +4,17 @@ import { t } from '../../i18n';
 import { localOnlyHint, type AppContext, type Component } from '../context';
 import { h, toggleClass } from '../dom';
 import { computeCounters } from '../model/counters';
-import { button } from '../widgets';
+import { button, setDisabled } from '../widgets';
 
 export class EmptyState implements Component {
   readonly el = h('div', { class: 'ao-empty', hidden: true });
   private readonly demoBtn: HTMLButtonElement;
+  private readonly hireBtn: HTMLButtonElement;
   private busy = false;
 
   constructor(private readonly ctx: AppContext) {
     this.demoBtn = button({ label: t('empty.demo'), icon: 'play', variant: 'primary', onClick: () => void this.enableDemo() });
+    this.hireBtn = button({ label: t('hire.action'), icon: 'plus', variant: 'soft', onClick: () => ctx.openHire() });
     this.el.append(
       h(
         'div',
@@ -20,7 +22,7 @@ export class EmptyState implements Component {
         h('h2', null, t('empty.title')),
         h('p', null, t('empty.intro')),
         h('ol', { class: 'ao-empty-steps' }, h('li', null, t('empty.step1')), h('li', null, h('span', null, t('empty.step2.before')), h('code', null, 'claude'), h('span', null, t('empty.step2.after'))), h('li', null, t('empty.step3'))),
-        h('div', { class: 'ao-row-actions' }, this.demoBtn),
+        h('div', { class: 'ao-row-actions' }, this.hireBtn, this.demoBtn),
         h('p', { class: 'ao-note' }, t('empty.note')),
       ),
     );
@@ -45,6 +47,7 @@ export class EmptyState implements Component {
     this.el.hidden = !empty;
     if (!empty) return;
     const canDemo = this.ctx.isLocal && this.ctx.store.mode === 'live';
+    setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());
     this.demoBtn.disabled = !canDemo || this.busy;
     this.demoBtn.title = canDemo ? '' : localOnlyHint();
     toggleClass(this.el, 'is-narrow', this.ctx.ui.get().narrow);

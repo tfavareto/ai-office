@@ -13,6 +13,7 @@ export const worldEs: Readonly<Record<WorldKey, string>> = {
   'count.needsYou': '{n, plural, one {# te necesita} other {# te necesitan}}',
   'bubble.done': '¡Terminé!',
   'bubble.needsYou': 'Te necesita',
+  'bubble.arrived': '¡Llegué!',
   'board.waiting': 'Esperándote',
   'board.waiting.short': 'Te espera',
   'board.working': 'Trabajando',
@@ -45,4 +46,5 @@ export const worldEs: Readonly<Record<WorldKey, string>> = {
   'desk.waiting': 'Espera',
   'overlay.sub': 'SUB',
   'overlay.openAgent': 'E · abrir {name}',
+  'overlay.arriving': 'llegando…',
 };

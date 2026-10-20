@@ -1,6 +1,7 @@
 import type { Agent, AgentKind, AgentStatus } from '@ai-office/shared';
 import type { Dir, Spot, TilePos } from '../layout/types';
 import { Rng } from '../layout/rng';
+import { isHireAgentId } from './hires';
 import type { Vec } from './path';
 import type { Character, Pose, SeatKind } from './types';
 
@@ -34,8 +35,8 @@ export interface ActivityPlan {
 
 /** Mutable character used by the simulation; renderers see it through the readonly `Character` interface. */
 export class Actor implements Character {
-  readonly id: string;
-  readonly agentId: string;
+  id: string;
+  agentId: string;
   readonly rng: Rng;
   agent: Agent;
   x = 0;
@@ -72,6 +73,8 @@ export class Actor implements Character {
   prevStatus: AgentStatus;
   /** Time spent waiting for a room to be built (re-check throttle). */
   waitCheck = 0;
+  /** Desk (index in the room) this person was asked to sit at: a hire placeholder, and the agent that takes it over. */
+  preferredDesk: number | undefined;
 
   constructor(agent: Agent, seed: number) {
     this.id = agent.id;
@@ -81,6 +84,10 @@ export class Actor implements Character {
     this.prevStatus = agent.status;
   }
 
+  /** A placeholder for an agent being hired (not a real session yet). */
+  get hiring(): boolean {
+    return isHireAgentId(this.id);
+  }
   get name(): string {
     return this.agent.name;
   }
@@ -101,6 +108,13 @@ export class Actor implements Character {
   }
   get status(): AgentStatus {
     return this.agent.status;
+  }
+
+  /** The real agent takes this person over: same body, same desk, from now on it carries the agent's data. */
+  adopt(agent: Agent): void {
+    this.id = agent.id;
+    this.agentId = agent.id;
+    this.agent = agent;
   }
 
   setPose(pose: Pose): void {

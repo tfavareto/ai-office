@@ -50,7 +50,9 @@ The browser tab title shows **(n) AI Office** while *n* agents need you.
 | Gesture | Effect |
 | --- | --- |
 | Hover a person or room | A small tip: for a person, the name, role, status and current activity; for a room, the project name, how many people are in it and its path. |
+| Hover an empty desk | A dashed outline with a "+" and the tip **Free desk** (only when the page is opened on this computer). |
 | Click a person or room | Select it and open the drawer. |
+| Click an empty desk | Open **Hire an agent** for that room (see [Hiring an agent](#hiring-an-agent)). |
 | Double-click | Focus the camera on it. |
 | Drag, `W` `A` `S` `D`, arrow keys | Pan. Hold `Shift` to pan faster. |
 | Mouse wheel, `+`, `-` | Zoom. 2D zooms in whole steps to keep the pixel art sharp. |
@@ -135,6 +137,34 @@ Dangerous requests (deleting files recursively, `sudo`, forced pushes, hard rese
 | `Enter` | Open the agent. |
 | `E` | Mark as seen. |
 | `Esc` | Cancel the confirmation or deny box, then close the inbox. |
+
+## Hiring an agent
+
+The office is also a place to start work. Use any of these:
+
+- click an **empty desk** in a room (the desk you click is where the new person will sit);
+- the **Hire agent** button in a room's drawer, or the **+** on a room row in the sidebar;
+- the **+** next to the sidebar search, the **Hire agent** button on the empty-state card, or the `H` key (with a room selected it starts in that room).
+
+The dialog asks for:
+
+| Field | Notes |
+| --- | --- |
+| **Project** | A room already in the office, or **New project…** to start in a folder that has no room yet: type its full path (`~` works) and the field tells you whether the folder exists; **Recent folders** come from your session history. |
+| **Account** | Shown when you have several accounts. It starts on the account that most recently worked in that room, else the default account. |
+| **First task** | Optional, up to 8000 characters. Claude Code receives it as its first prompt. |
+| **Model** | Claude Code's default, or Opus, Sonnet or Haiku. |
+| **Permission mode** | Default (asks before editing or running commands), Accept edits, or Plan first. |
+
+Press **Hire** (or `Cmd+Enter` / `Ctrl+Enter`). AI Office opens a **new terminal window** (Terminal.app on macOS, iTerm2 if that is the terminal you have open; on Linux the first of `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `xterm`) running Claude Code in the project folder. You use that window like any other Claude Code session; the office follows it as usual.
+
+Until the session starts, a person tagged **arriving…** walks in from the elevator and sits at the desk. When the session appears (usually a few seconds, up to 90 s) that same person becomes the agent, and a bubble says it has arrived. If nothing shows up in 90 s you get a notice: the terminal may be waiting for you (for example a "trust this folder" question).
+
+Good to know:
+
+- If the dialog says it could not open the terminal, on macOS allow AI Office's host app (your terminal or Node) to control Terminal under **System Settings → Privacy & Security → Automation**. If it says it cannot find `claude`, install Claude Code and check that `claude` works in a terminal (AI Office also looks in `~/.local/bin` and `~/.claude/local`).
+- At most five agents can be hired per minute.
+- In **demo mode** nothing is launched: a simulated agent arrives instead. The feature only works when the page is opened on the computer that runs AI Office. See [Privacy and security](05-privacy-and-security.md#hiring-an-agent) for what it can launch.
 
 ## Feed
 
@@ -239,6 +269,7 @@ Plain keys are ignored while you type in a field.
 | `P` | Go to the next permission request. |
 | `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
 | `M` | Open **My day**. |
+| `H` | Hire an agent (in the selected room, if any). |
 | `O` | Overview of the whole office. |
 | `[` | Show or hide the sidebar. |
 | `]` | Expand or collapse the activity feed. |

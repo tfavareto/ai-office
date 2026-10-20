@@ -14,11 +14,11 @@ export function characterBox(c: Character): { x: number; y: number; w: number; h
   return { x: footX - ANCHOR_X + 4, y: footY - ANCHOR_Y + 2, w: SPRITE_W - 8, h: SPRITE_H - 4 };
 }
 
-/** The character under a world point (the one drawn in front wins), or null. */
+/** The character under a world point (the one drawn in front wins), or null. Placeholders of agents being hired cannot be picked. */
 export function pickCharacter(characters: readonly Character[], wx: number, wy: number): Character | null {
   let best: Character | null = null;
   for (const c of characters) {
-    if (c.alpha < 0.5) continue;
+    if (c.alpha < 0.5 || c.hiring) continue;
     const b = characterBox(c);
     if (wx < b.x || wx > b.x + b.w || wy < b.y || wy > b.y + b.h) continue;
     if (!best || c.y > best.y) best = c;

@@ -1,5 +1,18 @@
 // Defensive validation of request bodies and query parameters.
-import { type Locale, type PermissionDecision, type PermissionHookRequest, isLocale } from '@ai-office/shared';
+import {
+  HIRE_MAX_DESK_INDEX,
+  HIRE_MAX_PATH,
+  HIRE_MAX_PROMPT,
+  HIRE_MODELS,
+  HIRE_PERMISSION_MODES,
+  type HireModel,
+  type HirePermissionMode,
+  type HireRequest,
+  type Locale,
+  type PermissionDecision,
+  type PermissionHookRequest,
+  isLocale,
+} from '@ai-office/shared';
 import { asArray, asNumber, asRecord, asString } from '../util/fs-safe';
 import { HttpError } from './respond';
 
@@ -21,6 +34,39 @@ function optionalLocale(value: unknown): Locale | undefined {
   if (value === undefined || value === null) return undefined;
   if (!isLocale(value)) throw new HttpError(400, 'invalid-locale');
   return value;
+}
+
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], code: string): T | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) throw new HttpError(400, code);
+  return value as T;
+}
+
+/** Body of POST /api/agents/hire: types, enums and sizes only; the folder and the account are checked by the service. */
+export function parseHireRequest(body: unknown): HireRequest {
+  const raw = asRecord(body);
+  const projectPath = asString(raw.projectPath);
+  if (projectPath === undefined || projectPath.trim().length === 0 || projectPath.length > HIRE_MAX_PATH) throw new HttpError(400, 'invalid-projectPath');
+  const request: HireRequest = { projectPath };
+  const accountId = optionalString(raw.accountId, 'accountId');
+  if (accountId !== undefined) request.accountId = accountId;
+  if (raw.prompt !== undefined && raw.prompt !== null) {
+    if (typeof raw.prompt !== 'string' || raw.prompt.length > HIRE_MAX_PROMPT || raw.prompt.includes('\0')) throw new HttpError(400, 'invalid-prompt');
+    const prompt = raw.prompt.trim();
+    if (prompt.length > 0) request.prompt = prompt;
+  }
+  const model = oneOf<HireModel>(raw.model, HIRE_MODELS, 'invalid-model');
+  if (model !== undefined) request.model = model;
+  const permissionMode = oneOf<HirePermissionMode>(raw.permissionMode, HIRE_PERMISSION_MODES, 'invalid-permissionMode');
+  if (permissionMode !== undefined) request.permissionMode = permissionMode;
+  if (raw.deskIndex !== undefined && raw.deskIndex !== null) {
+    const desk = asNumber(raw.deskIndex);
+    if (desk === undefined || !Number.isInteger(desk) || desk < 0 || desk > HIRE_MAX_DESK_INDEX) throw new HttpError(400, 'invalid-deskIndex');
+    request.deskIndex = desk;
+  }
+  const locale = optionalLocale(raw.locale);
+  if (locale !== undefined) request.locale = locale;
+  return request;
 }
 
 export function parsePermissionHookRequest(body: unknown): PermissionHookRequest {

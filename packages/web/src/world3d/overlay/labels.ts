@@ -13,6 +13,8 @@ export interface TagItem {
   sub: boolean;
   emphasis: boolean;
   alert: boolean;
+  /** A placeholder for an agent being hired: its tag ("arriving…") shows even when names are off. */
+  arriving: boolean;
   bubble: { text: string; icon: string; sticky: boolean } | null;
 }
 
@@ -154,7 +156,7 @@ export class LabelOverlay {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (const item of items) {
       let y = item.sy - 6;
-      if (showNames || item.emphasis) {
+      if (showNames || item.emphasis || item.arriving) {
         const t = this.tag(item);
         ctx.drawImage(t.canvas, Math.round((item.sx - t.w / 2) * dpr), Math.round((y - t.h) * dpr), t.canvas.width, t.canvas.height);
         y -= t.h + 3;
@@ -168,6 +170,32 @@ export class LabelOverlay {
       }
     }
     if (hint) this.drawHint(hint);
+  }
+
+  /** The round "+" badge over an empty desk the pointer is on. */
+  drawPlus(sx: number, sy: number): void {
+    const { ctx, dpr } = this;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#2f6fed';
+    ctx.beginPath();
+    ctx.arc(sx, sy, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.stroke();
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx - 5.5, sy);
+    ctx.lineTo(sx + 5.5, sy);
+    ctx.moveTo(sx, sy - 5.5);
+    ctx.lineTo(sx, sy + 5.5);
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawHint(text: string): void {
