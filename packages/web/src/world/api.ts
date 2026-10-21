@@ -19,6 +19,8 @@ export interface WorldOptions {
   reducedMotion: boolean;
   /** Empty desks answer to the pointer (hover feedback, click to hire). Off when the page cannot hire. */
   hireEnabled: boolean;
+  /** Draw the repository state of each room (the plaque under the sign and the branch on the pill). */
+  showGit: boolean;
 }
 
 /** Free area (CSS px) not covered by panels: camera focus and overview fit inside it. */
@@ -96,4 +98,5 @@ export const DEFAULT_WORLD_OPTIONS: WorldOptions = {
   followSelected: false,
   reducedMotion: false,
   hireEnabled: false,
+  showGit: true,
 };

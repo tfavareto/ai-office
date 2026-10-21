@@ -18,7 +18,9 @@ import {
 import { roomInfoKey } from '../../world2d/runtime/boards';
 import { taskBoardKey, type TaskBoardSummary } from '../../world/taskBoard';
 import { paintTaskBoard } from './taskBoardScreen';
-import { buildWallItems, disposeScreens, type WallScreens } from './wallItems';
+import { paintPlaque } from './plaqueScreen';
+import { roomGitKey, type RoomGit } from '../../world/roomGit';
+import { buildWallItems, disposeScreens, mountPlaque, type WallScreens } from './wallItems';
 
 export interface SceneDeps {
   m: Materials;
@@ -68,6 +70,8 @@ export class AreaScene {
   private lastNamesKey = '';
   private lastTasksKey = '';
   private build = 1;
+  private plaqueMounted = false;
+  private plaqueMesh: Mesh | null = null;
 
   private text: WorldText;
 
@@ -101,6 +105,23 @@ export class AreaScene {
     this.lastInfoKey = '';
     this.lastNamesKey = '';
     this.lastTasksKey = '';
+  }
+
+  /** Paints the branch plaque (hanging it the first time), and hides it when the room has no repository to show. */
+  private updatePlaque(git: RoomGit | undefined): void {
+    const screens = this.screens;
+    if (git !== undefined && !this.plaqueMounted) {
+      this.plaqueMounted = true;
+      const mounted = mountPlaque(this.dynamic, screens, this.area);
+      if (mounted !== null) {
+        screens.plaque = mounted.screen;
+        this.plaqueMesh = mounted.mesh;
+      }
+    }
+    if (this.plaqueMesh === null || screens.plaque === undefined) return;
+    this.plaqueMesh.visible = git !== undefined;
+    if (git === undefined) return;
+    screens.plaque.draw(`${this.text.locale}|${roomGitKey(git)}`, (ctx, w, h) => paintPlaque(ctx, w, h, git, this.text));
   }
 
   private addMonitors(parts: PartCollector, quads: readonly ScreenQuad[]): void {
@@ -188,6 +209,7 @@ export class AreaScene {
         screens.whiteboard.draw(key, (ctx, w, h) => paintTaskBoard(ctx, w, h, f.taskBoard, this.text));
       }
     }
+    this.updatePlaque(f.info.git);
     if (screens.loungeTv && f.refreshScreens && f.visible) {
       const t = Math.floor(f.time * 2);
       screens.loungeTv.draw(`lounge${t}`, (ctx, w, h) => paintLoungeTv(ctx, w, h, f.time));

@@ -1,0 +1,340 @@
+/* Git: the branch chip of a sidebar room, the Git section of the room drawer and its pull request. */
+
+/* --- sidebar chip -------------------------------------------------------------------------------------------- */
+.ao-room-branch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: -1px 8px 3px 40px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.ao-room-branch[hidden] {
+  display: none;
+}
+
+.ao-room-branch .ao-icon {
+  flex: none;
+}
+
+.ao-room-branch-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-room-branch-dot {
+  display: none;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--waiting);
+  box-shadow: 0 0 0 2px rgba(245, 181, 68, 0.18);
+}
+
+.ao-room-branch.is-dirty .ao-room-branch-dot {
+  display: block;
+}
+
+.ao-room-branch.is-op {
+  color: var(--error);
+}
+
+.ao-room-branch.is-op .ao-room-branch-dot {
+  display: block;
+  background: var(--error);
+  box-shadow: 0 0 0 2px rgba(239, 107, 107, 0.2);
+}
+
+/* --- drawer section ------------------------------------------------------------------------------------------ */
+.ao-git {
+  display: grid;
+  gap: 8px;
+}
+
+.ao-git[hidden] {
+  display: none;
+}
+
+.ao-git-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.ao-git-muted {
+  color: var(--muted);
+}
+
+.ao-git-hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.ao-git-branchrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ao-git-branch-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--accent);
+}
+
+.ao-git-branch {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-git-branchrow .ao-iconbtn {
+  margin-left: auto;
+  flex: none;
+}
+
+.ao-git-changes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ao-git-change {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--bg-soft);
+  font-size: 12px;
+}
+
+.ao-git-change--conflicted {
+  border-color: rgba(239, 107, 107, 0.45);
+  color: var(--error);
+}
+
+.ao-git-change--staged {
+  border-color: rgba(62, 207, 142, 0.35);
+}
+
+.ao-git-change--unstaged {
+  border-color: rgba(245, 181, 68, 0.4);
+}
+
+.ao-git-lines {
+  margin-left: 2px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.ao-git-add {
+  color: var(--working);
+}
+
+.ao-git-del {
+  color: var(--error);
+}
+
+.ao-git-arrows {
+  display: inline-flex;
+  color: var(--working);
+}
+
+.ao-git-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 7px 1px 4px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-git-arrow--ahead {
+  color: var(--working);
+}
+
+.ao-git-arrow--behind {
+  color: var(--waiting);
+}
+
+.ao-git-commit {
+  display: grid;
+  gap: 3px;
+}
+
+.ao-git-commit-title,
+.ao-git-pr-title {
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ao-git-commit-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.ao-git-hash {
+  flex: none;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.ao-git-subject {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-git-ago {
+  flex: none;
+  font-size: 11.5px;
+}
+
+/* --- pull request -------------------------------------------------------------------------------------------- */
+.ao-git-pr {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.ao-git-pr-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ao-git-pr-link:hover .ao-git-pr-name {
+  text-decoration: underline;
+}
+
+.ao-git-pr-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ao-git-pr-number {
+  flex: none;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.ao-git-pr-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-git-pr-link .ao-icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.ao-git-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ao-git-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--bg-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ao-git-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--idle);
+}
+
+.ao-git-badge--ok {
+  border-color: rgba(62, 207, 142, 0.4);
+  color: var(--working);
+}
+
+.ao-git-badge--ok .ao-git-badge-dot {
+  background: var(--working);
+}
+
+.ao-git-badge--warn {
+  border-color: rgba(245, 181, 68, 0.45);
+  color: var(--waiting);
+}
+
+.ao-git-badge--warn .ao-git-badge-dot {
+  background: var(--waiting);
+}
+
+.ao-git-badge--bad {
+  border-color: rgba(239, 107, 107, 0.5);
+  color: var(--error);
+}
+
+.ao-git-badge--bad .ao-git-badge-dot {
+  background: var(--error);
+}
+
+.ao-git-badge--muted {
+  color: var(--muted);
+}
+
+.ao-git-failing {
+  color: var(--error);
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ao-git-ci.ao-git-badge--warn .ao-git-badge-dot {
+    animation: ao-git-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes ao-git-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

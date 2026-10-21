@@ -1,4 +1,5 @@
 export * from './model';
+export * from './git';
 export * from './protocol';
 export * from './demo/types';
 export * from './hash';

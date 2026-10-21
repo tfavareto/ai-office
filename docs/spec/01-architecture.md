@@ -52,7 +52,7 @@ page, page decisions go back to the hooks.
 - Limits: request 30 s and headers 15 s (they bound receiving a request, not SSE or long-poll responses); at most 20
   SSE streams (503 `too-many-streams` beyond); transcript entries keep at most 4 KB of text, a cached view at most
   ~8 MB, and `/api/transcript` pages carry at most 500 entries.
-- No secrets in the repo; no outbound network requests.
+- No secrets in the repo; no outbound network requests (the only exception: the optional, off-by-default pull request lookup through the user's own `gh` CLI, see 02-server).
 
 ## Build and run
 - `npm run dev`: server (tsx watch, port 4848) + Vite dev server (proxy /api to 4848).

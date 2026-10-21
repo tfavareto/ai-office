@@ -54,4 +54,9 @@ export const worldEs: Readonly<Record<WorldKey, string>> = {
   'overlay.sub': 'SUB',
   'overlay.openAgent': 'E · abrir {name}',
   'overlay.arriving': 'llegando…',
+  'git.op.merge': 'Merge',
+  'git.op.rebase': 'Rebase',
+  'git.op.cherry-pick': 'Cherry-pick',
+  'git.op.revert': 'Reversión',
+  'git.op.bisect': 'Bisect',
 };

@@ -14,6 +14,9 @@ import { type Ctx, context2d, makeCanvas } from './paint/ctx';
 import { DESK_SCREENS } from './paint/furnOffice';
 import { type RoomInfo, renderBoard, renderMeetingTv, renderTaskBoard, roomInfoKey } from './runtime/boards';
 import { taskBoardKey, type TaskBoardSummary } from '../world/taskBoard';
+import { roomGitKey } from '../world/roomGit';
+import { ITEM_Y } from './paint/wallitems';
+import { PLAQUE_W, renderPlaque } from './runtime/plaque';
 import { type CarDraw, Traffic } from './runtime/cars';
 import { SCREEN_H, SCREEN_W, desksScreens, screenSprite } from './runtime/screens';
 import { type TickerStrip } from './runtime/ticker';
@@ -42,6 +45,9 @@ export interface FrameState {
   accountColor: (accountId: string) => string;
   ticker: TickerStrip | null;
 }
+
+/** y (px from the room's top) of the branch plaque: right under the 11 px sign. */
+const PLAQUE_Y = ITEM_Y + 12;
 
 interface DeskRef {
   spotId: string;
@@ -259,9 +265,19 @@ export class Renderer {
       if (desks) this.drawDesks(ctx, s, desks, frameBase);
       if (ac.area.kind === 'meeting' && ac.area.ledge) this.drawFrost(ctx, ac, this.lightOf(ac.area.id));
       for (const screen of ac.screens) this.drawWallScreen(ctx, s, ac, screen, frameBase);
+      this.drawPlaque(ctx, s, ac);
     }
     drawElevators(ctx, s.sim, vis);
     this.drawTicker(ctx, s, vis);
+  }
+
+  /** The branch plaque under a project room's sign (nothing for a folder that is not a repository). */
+  private drawPlaque(ctx: Ctx, s: FrameState, ac: AreaCanvas): void {
+    const git = s.options.showGit ? this.roomInfoOf(s, ac.area)?.git : undefined;
+    const sign = ac.area.wallItems.find((item) => item.kind === 'sign' && item.side === 'north');
+    if (git === undefined || sign === undefined) return;
+    const canvas = this.boardFor(`${ac.area.id}:plaque`, () => renderPlaque(git), roomGitKey(git));
+    ctx.drawImage(canvas, sign.x * TILE + Math.floor((sign.w * TILE - PLAQUE_W) / 2), ac.area.rect.y * TILE + PLAQUE_Y);
   }
 
   /** The meeting-room glass wall frosts over while people are inside. */

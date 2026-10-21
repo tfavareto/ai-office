@@ -66,11 +66,13 @@ The interface settings in **Settings** are saved by the page in your browser's `
 | `language` | `auto`, `pt-BR`, `en`, `es` | `auto` |
 | `visual` | `2d`, `3d` | `2d` |
 | `daylight` | `auto`, `day`, `night` | `auto` |
-| `showNames`, `sounds`, `browserNotifications`, `dnd` | `true` or `false` | names on, sounds on, the rest off |
+| `showNames`, `sounds`, `browserNotifications`, `dnd`, `showGit` | `true` or `false` | names on, sounds on, Git status on, the rest off |
 | `bubbles` | `all`, `important`, `none` | `important` |
 | `animation` | `calm`, `normal`, `lively` | `normal` |
 | `volume` | 0 to 1 | `0.5` |
 | `usageLimits` | Object keyed by account id: `{ "unit": "usd" \| "tokens", "window5h"?: number, "week"?: number }` | none |
+
+**Git status.** `showGit` is what **Settings → Show Git status** edits. It only hides the branch, changes and pull request in the page: the server keeps reading each repository (read-only, a few short `git` commands every 30 seconds to 5 minutes, at most two at a time). The other Git setting, the `gh` pull request lookup, is a server setting kept in `git-settings.json` in the [state directory](#state-directory), not in the browser.
 
 **Usage limits.** `usageLimits` is what **Consumo → Limits (optional)** edits: the limit of your Claude plan per 5 h window and per week for each account, in US$ of estimated cost (`usd`) or in tokens (`tokens`, typed in millions). The usage forecast uses it as its reference; without it the reference is your highest recent 5 h block or week. Claude's real limits cannot be read from this computer, so type what your plan allows (or a number you want to stay under). Only positive numbers survive validation, at most 32 accounts are kept, and nothing is sent to the server.
 
@@ -98,6 +100,7 @@ The server keeps its own files in the state directory, `~/.ai-office` by default
 | `token` | The access token: 32 random bytes as 64 hex characters, mode 0600. Created on first start and reused afterwards. See [privacy and security](05-privacy-and-security.md#access-token). |
 | `names.json` | The name given to each agent, keyed by account, session and subagent, so a person keeps the same name across restarts. At most 3000 entries are kept. |
 | `usage-index/` | The usage history behind **Consumo** and the usage cards, mode 0700: `meta.json` (what was read of each transcript) and one `YYYY-MM.json` shard per UTC month with hourly token counts and estimated cost per account, project, model and session. It is a cache of your transcripts: delete the folder while the server is stopped (or let AI Office do it when it finds a damaged file) and it is rebuilt from the previous month onwards. Months older than 13 are dropped. See [privacy and security](05-privacy-and-security.md#what-ai-office-stores). |
+| `git-settings.json` | `{ "version": 1, "pullRequests": false }`, mode 0600: whether the server may ask your `gh` CLI for the pull request of each room's branch (**Settings → Look up pull requests with gh**). Off by default; a missing or unreadable file means off. |
 | `days/YYYY-MM-DD.json` | The **My day** record for that day: per agent, milliseconds in each status. Written every 5 seconds, flushed to disk every 30 seconds. Demo agents are not recorded. |
 
 To rotate the token, stop the server, delete `token`, start it again and reload the page. Hooks read the file on every run and pick up the new token.

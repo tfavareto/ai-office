@@ -40,7 +40,7 @@ Where the registry (`<config dir>/sessions/<pid>.json`) is missing for an accoun
 
 ## Principles
 
-- **Local and private.** The server binds to `127.0.0.1` by default and makes no outbound network requests. Features that act on sessions (terminal view, permissions, messages) only work when the page is opened on this computer. See [privacy and security](05-privacy-and-security.md).
+- **Local and private.** The server binds to `127.0.0.1` by default and makes no outbound network requests (the one optional exception, off by default, is the pull request lookup through your own `gh` CLI). Features that act on sessions (terminal view, permissions, messages) only work when the page is opened on this computer. See [privacy and security](05-privacy-and-security.md).
 - **Never break Claude Code.** The plugin hooks exit silently and quickly when AI Office is not running. They cannot block or fail a session. See [plugin](03-plugin.md).
 - **Smooth.** The default 2D view is built to stay at 60 frames per second on a laptop. 3D is an optional visual and costs more. See [evidence and limits](06-validation.md).
 - **Read-only toward Claude Code.** AI Office reads Claude Code's files and never writes to them. The only things it writes are its own files in the state directory.

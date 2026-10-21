@@ -5,6 +5,7 @@
 // app renders in the user's language. Texts that come from the user's own sessions (prompts, titles, commands) have
 // no `Msg` and are shown as they are.
 import type { Locale, Msg } from './i18n/i18n';
+import type { ProjectGit } from './git';
 import type { UsageBurn, UsagePeaks } from './usage/types';
 
 /** A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... */
@@ -35,6 +36,8 @@ export interface Project {
   seed: number;
   /** Order of arrival in the office (0 = first project opened). The client maps it to a room slot. */
   order: number;
+  /** Git state of the folder (read-only); absent when it is not a repository or git could not be read. */
+  git?: ProjectGit;
 }
 
 export type AgentKind = 'main' | 'sub';
@@ -217,6 +220,8 @@ export interface OfficeMeta {
   demo: boolean;
   /** Build id of the web bundle the server is serving (pages reload when it changes). */
   build?: string;
+  /** Pull requests of each room's branch are being asked of `gh` (off unless the person turned it on). */
+  gitPullRequests?: boolean;
 }
 
 /**

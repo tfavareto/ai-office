@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
+import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, GitSettings, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -36,6 +36,10 @@ export interface Backend {
   /** Usage history of an account (`all` for every account) over today, this week or this month. */
   usageDetail(account: string, period: UsagePeriod): Promise<UsageDetail>;
   setDemo(on: boolean): Promise<boolean>;
+  /** Settings of the git integration that live on the server (local access only). */
+  gitSettings(): Promise<GitSettings>;
+  /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
+  setGitPullRequests(on: boolean): Promise<GitSettings>;
   rules(): Promise<Rule[]>;
   createRule(draft: RuleDraft): Promise<Rule>;
   /** Fields named in `patch` replace the rule's; `note: null` removes the note. */

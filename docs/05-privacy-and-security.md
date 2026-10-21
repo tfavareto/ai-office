@@ -2,7 +2,7 @@
 
 This guide states exactly what AI Office reads, what it stores, how it keeps everything on your computer, how access is protected and how to report a vulnerability.
 
-The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
+The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests (the one optional exception is the pull request lookup through your own `gh` CLI, **off by default**, see [Git and pull requests](#git-and-pull-requests)) and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
 
 ## What AI Office reads
 
@@ -19,6 +19,8 @@ Beyond live tailing, three features read more on request:
 - **Terminal panel and session history** read a transcript on demand to show the conversation, and scan the last 7 days of transcripts for titles. Entries keep at most 4 KB of text each, a view pages at 500 entries, and the cached view is capped at about 8 MB.
 - **Usage cards and the Consumo view** are filled by a background indexer that reads every transcript of this and the previous month (then only what is appended) and keeps only token counts, the model, the message id, the timestamp and the working directory. It never keeps or logs prompts, replies, tool calls or file contents.
 
+- **Git state** of each room: the server runs a few read-only `git` commands in the project folders (see [Git and pull requests](#git-and-pull-requests)). It keeps the branch, the counts of changed files and lines, the last commit's hash, subject and time, and the number of stashed entries in memory and sends them to the page; the day report also reads the day's commit subjects with `git log`. Nothing is written to disk.
+
 - **Day report** (the Report tab of **My day**) reads the part of each transcript that belongs to the chosen day, up to seven days back, on request and in the background. From it the server keeps in memory only counters and short strings: tool call counts, the paths of files edited, the first line of each command (credential-looking values such as `--token x`, `API_KEY=x` and bearer tokens are masked), commit subjects printed by `git commit`, completed task titles, test outcomes, timestamps and, for the optional **Include the requests** switch, the first line of each of your prompts (140 characters). The request texts are only sent to the page when the switch is on, which is off by default. Nothing from the report is written to disk by AI Office, and the Markdown export only happens when you press the buttons. Read the exported file before sharing it: it names your projects, files, commands and commits.
 
 It does not read your credentials, your Claude Code settings, your API keys or your project source files. Statistics only cover what it has read: the tail at startup plus everything new.
@@ -33,6 +35,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `names.json` | The name picked for each agent, keyed by account, session and agent id. |
 | `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
 | `usage-index/` | Mode 0700, files 0600. `YYYY-MM.json` shards: per hour, account, project (working directory path), model, session id and subagent id, the counts of input, output, cache-write and cache-read tokens and the estimated cost. `meta.json`: for each transcript, its path relative to the account directory, session and subagent ids, how many bytes were read, its size, modification time, inode, a hash of its first bytes and the ids and counts of the last 16 messages. Numbers and identifiers only: no conversation text. Up to 13 months are kept; delete the folder at any time and it is rebuilt. |
+| `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
 
@@ -41,7 +44,7 @@ Messages, permission requests and notifications live in the server's memory and 
 ## Local only
 
 - The server binds to `127.0.0.1` by default. A non-loopback `AI_OFFICE_HOST` is refused at startup unless remote access is explicitly allowed.
-- The server and the plugin hooks make **no outbound network requests**. The hooks connect to `127.0.0.1` and nothing else.
+- The server and the plugin hooks make **no outbound network requests**, with one optional exception: if you turn on **Settings → Look up pull requests with gh (uses the internet)**, the server starts your own `gh` CLI, which talks to GitHub (see [Git and pull requests](#git-and-pull-requests)). It is off by default. The hooks connect to `127.0.0.1` and nothing else.
 - Features that act on sessions (terminal, session history, permissions, messages, attention marks, hiring an agent, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
 - The web app loads all its scripts, styles and assets from the server itself. 3D models and textures are bundled (CC0), not fetched from a CDN.
 
@@ -97,6 +100,12 @@ The page cannot be framed, cannot load scripts from other origins and cannot con
 - **Deny wins.** A matching deny rule beats any allow rule; disabled rules do nothing.
 - **Local, authenticated, validated.** The `/api/rules` endpoints are local-only, need the token, pass the request guards above and validate every field (sizes, types, at most 200 rules); the files are written atomically with mode 0600, and a file that cannot be read is moved aside, never overwritten.
 - **Visible.** Every automatic decision is logged, shows as a quiet line in the agent's activity, and counts as a hit on the rule.
+
+## Git and pull requests
+
+**Repository state (always on, local).** For each room whose folder has a `.git`, the server runs read-only `git` commands (`status`, `diff --shortstat`, `log`, `stash list`) with an argument array, no shell, the project folder as working directory and a 3 second limit, at most two at a time. They run with `--no-optional-locks` (so they never block your own git commands), `core.fsmonitor` off and no external diff or text-conversion programs, an environment reduced to `PATH`, `HOME` and a few locale variables plus `GIT_TERMINAL_PROMPT=0` (no prompt, no credentials), and they never fetch, never write and never run hooks. A room is read when it appears, every 30 seconds while its agents work and every 5 minutes otherwise, and shortly after an agent finishes a tool call. Without `git` installed, or for folders that are not repositories, nothing is shown. This part makes no network request.
+
+**Pull requests and CI (off by default, uses the internet).** The pull request and check status of a branch can only come from GitHub, so this is the **only** feature of AI Office that contacts the internet, and it never does so by itself: it works only when you turn on **Settings → Look up pull requests with gh (uses the internet)** (a local-only, token-protected setting stored in `git-settings.json`), and only through the `gh` CLI that you installed and signed in. For each room with a branch the server runs `gh pr view --json number,title,state,url,isDraft,reviewDecision,statusCheckRollup` in the project folder every two minutes (and when the branch changes), with an argument array, no shell and a 15 second limit, in your own environment (so `gh` uses its own credentials; AI Office never reads, stores or sends them). What GitHub answers is validated; only the pull request number, title, state, review decision, the check counts and failing check names, and an http(s) link are kept, in memory, and shown in the page. The link opens GitHub in your browser only when you click it. Turn the switch off and the lookups stop at once. If `gh` is missing or not signed in, AI Office says so in Settings and tries again at most every ten minutes.
 
 ## Hiring an agent
 

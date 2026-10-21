@@ -23,7 +23,7 @@ import { OverlayPass } from './overlayPass';
 import { pickCharacter, pickRoom, pickWhiteboard } from './picking';
 import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { Renderer, type FrameState } from './renderer';
-import { type RoomInfo, summarizeRoom } from './runtime/boards';
+import { type RoomInfo, summarizeRoom, withRoomGit } from './runtime/boards';
 import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
 
 const PAN_SPEED = 360;
@@ -121,8 +121,9 @@ export class World2D implements WorldApi {
       list.push(agent);
       byProject.set(agent.projectId, list);
     }
-    this.roomInfo = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
-    for (const p of snapshot.projects) if (!this.roomInfo.has(p.id)) this.roomInfo.set(p.id, summarizeRoom([]));
+    const rooms = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
+    for (const p of snapshot.projects) if (!rooms.has(p.id)) rooms.set(p.id, summarizeRoom([]));
+    this.roomInfo = withRoomGit(rooms, snapshot.projects);
     this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.updateTicker(snapshot);
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;

@@ -19,3 +19,9 @@ Performance rules (must not regress visual quality): merge static geometry per m
 instancing for repeated parts, shader warm-up with `compileAsync` before showing new content, textures decoded off the
 main thread (ImageBitmap) and uploaded progressively, no empty draw calls, frustum culling, shadow map updated every
 other frame, `renderer.debug.checkShaderErrors = false` in production. Target 45-60 fps on an Apple-silicon laptop.
+
+Branch plaque: a project room whose folder is a repository (and `WorldOptions.showGit`) hangs a 1.8 m plate under its sign, created
+the first time the room has git state (a `CanvasScreen` in the area's dynamic group, repainted only when `roomGitKey` or the language
+changes; rooms that are not repositories get none and no static geometry changes). It shows a marker (green, amber, red as in 2D), the
+branch fitted to the plate (`fitBranch` and `fitFont`), a right-hand note (the operation in progress as a localized word from the world
+catalog, `git.op.*`, else the commits ahead and behind as `↑n ↓n`) and a lit CI disc while the branch has an open pull request.

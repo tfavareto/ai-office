@@ -1,6 +1,7 @@
 import { areaLabel } from '../i18n/world/areaLabel';
 import { worldText } from '../i18n/world/translate';
 import { TILE, WALL_ROWS } from '../layout/constants';
+import { pillBranch } from '../world/roomGit';
 import { type Bubble, bubbleText } from '../sim/bubbles';
 import type { Character } from '../sim/types';
 import {
@@ -265,7 +266,8 @@ export class OverlayPass {
         ctx.strokeRect(topLeft.x + 1, topLeft.y + 1, size.w - 2, size.h - 2);
       }
       const info = s.roomInfo.get(projectId);
-      const detail = isProject && info ? text.t('count.agents', { n: info.agents }) : '';
+      const branch = emphasis && s.options.showGit ? info?.git : undefined;
+      const detail = branch ? pillBranch(branch) : isProject && info ? text.t('count.agents', { n: info.agents }) : '';
       const room2 = { x: topLeft.x, y: topLeft.y, w: size.w, h: size.h };
       const slot = roomPillSlot(room2, free, 20, WALL_ROWS * TILE * cam.zoom, WALL_ITEMS_TOP * cam.zoom);
       if (!slot) continue;

@@ -11,7 +11,7 @@ import {
   DEFAULT_WORLD_OPTIONS, type CameraMode, type DeskRef, type HoverInfo, type Selection, type ViewInsets, type WorldApi, type WorldFactoryOptions, type WorldOptions,
 } from '../world/api';
 import { DayNight } from '../world2d/lighting';
-import { summarizeRoom } from '../world2d/runtime/boards';
+import { summarizeRoom, withRoomGit } from '../world2d/runtime/boards';
 import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { type TickerStats, tickerFromSnapshot, tickerText } from '../world2d/runtime/ticker';
 import { CameraRig } from './camera/cameraRig';
@@ -204,8 +204,9 @@ export class World3D implements WorldApi {
       list.push(agent);
       byProject.set(agent.projectId, list);
     }
-    this.roomInfo = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
-    for (const p of snapshot.projects) if (!this.roomInfo.has(p.id)) this.roomInfo.set(p.id, summarizeRoom([]));
+    const rooms = new Map([...byProject].map(([id, list]) => [id, summarizeRoom(list)]));
+    for (const p of snapshot.projects) if (!rooms.has(p.id)) rooms.set(p.id, summarizeRoom([]));
+    this.roomInfo = withRoomGit(rooms, snapshot.projects);
     this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.tickerStats = tickerFromSnapshot(snapshot);
     this.refreshTicker();
@@ -444,7 +445,7 @@ export class World3D implements WorldApi {
     if (refreshScreens) this.screenTimer = 0;
     this.areas.update({
       time: this.clock, dt, night, refreshScreens, tickerText: this.ticker,
-      info: (id) => this.roomInfo.get(id) ?? summarizeRoom([]),
+      info: (id) => this.infoOf(id),
       taskBoard: this.taskBoard,
       namesIn: (areaId) => this.sim.characters.filter((c) => c.areaId === areaId && c.alpha > 0.5).map((c) => c.name),
       desksIn: (area) => this.desksIn(area),
@@ -484,6 +485,12 @@ export class World3D implements WorldApi {
 
   private updateWorldBounds(): void {
     this.stage.fitSun(this.officeBox());
+  }
+
+  /** What a room's board shows; the repository part only while the person wants it (Settings). */
+  private infoOf(projectId: string): ReturnType<typeof summarizeRoom> {
+    const info = this.roomInfo.get(projectId) ?? summarizeRoom([]);
+    return this.options.showGit || info.git === undefined ? info : { ...info, git: undefined };
   }
 
   private desksIn(area: AreaLayout): DeskState[] {

@@ -58,6 +58,15 @@ celebrate, sleep. Diversity: skin tones, hair styles/colors, men in suits (shirt
 blouses/skirts or suits; deterministic from the agent seed + look. Subagents wear a small badge. Account color shows
 as a thin ring at the feet / name tag accent.
 
+## Branch plaque
+A project room whose folder is a repository (`Project.git`) and `WorldOptions.showGit` hang a 40x7 px plaque right under the room sign
+(`runtime/plaque.ts`, drawn by the renderer's dynamic pass and cached per room by `roomGitKey`): a brass-framed dark plate with a
+marker (green clean, amber uncommitted work, red conflicts or a rebase/merge/... in progress), the branch (or detached commit) in the 3x5
+pixel font fitted to the plate (`fitBranch`: whole, else without its first segment such as `feat/`, else cut with a dot; accents fold to
+the font's letters) and, at the right end, a 3x3 CI light (green, red or amber) while the branch has an open pull request. Rooms that are
+not repositories get no plate. The room pill shows the branch (starred when dirty) instead of the agent count while the room is hovered
+or selected. Nothing here changes the static layers or the cost of a frame.
+
 ## Performance (hard requirements)
 - 60 fps at 2x zoom with 40 agents and 12 rooms on a MacBook Air-class machine.
 - Static layers (exterior, building shell, each room) pre-rendered into offscreen canvases, rebuilt only when the

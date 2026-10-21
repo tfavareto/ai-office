@@ -3,6 +3,7 @@ import { CanvasTexture, MeshBasicMaterial, RepeatWrapping, SRGBColorSpace } from
 import type { AgentStatus, Msg } from '@ai-office/shared';
 import { type WorldText, worldText } from '../../i18n/world/translate';
 import { Rng } from '../../layout/rng';
+import type { RoomGit } from '../../world/roomGit';
 import { boardLine } from '../../world2d/runtime/boards';
 import { menuLayout } from './menuLayout';
 import { fitFont } from './textFit';
@@ -200,6 +201,8 @@ export interface BoardInfo {
   tasksDone: number;
   current: string | null;
   currentMsg?: Msg;
+  /** The room's repository, for the plaque under the sign. */
+  git?: RoomGit | undefined;
 }
 
 export function paintBoard(

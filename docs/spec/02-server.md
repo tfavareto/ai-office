@@ -182,6 +182,39 @@ path field (120 per minute).
 Demo mode. While demo mode is on, a hire into a folder that is not a room with real sessions is **simulated**: no folder, account or `claude` checks and no
 terminal; the simulator keeps a pending hire for ~4.5 s and then opens a demo session in that room (its title is the prompt). The same simulator powers `?mock=1`.
 
+## Git integration (`packages/server/src/git/`)
+Each room whose folder has a `.git` (a folder, or a file pointing to the git directory) gets `Project.git` (`shared/src/git.ts`) in the
+snapshot: branch (or the abbreviated commit of a detached HEAD), counts of staged / unstaged / untracked / conflicted files, lines
+added and removed, upstream with ahead/behind, last commit (hash, subject cut to 120 characters, time), stash entries, the operation in
+progress (merge, rebase, cherry-pick, revert, bisect) and, when enabled, the pull request. Demo rooms bring their own fake state
+(`shared/src/demo/git.ts`) and are never read. A folder without `.git`, a failing repository or a missing `git` binary gives no field.
+
+- **Read-only, bounded.** `GitWatcher` runs `git` with `execFile` (argument array, no shell, `cwd` = the project folder, 3 s timeout, 1 MB
+  output cap) and an environment that holds only `PATH`, `HOME` and a few locale and temp variables plus `GIT_OPTIONAL_LOCKS=0` and
+  `GIT_TERMINAL_PROMPT=0`; no credentials, no askpass. Every command starts with `--no-pager --no-optional-locks -c core.fsmonitor=false`
+  (a repository's configuration cannot start a program), diffs add `--no-ext-diff --no-textconv`. The commands are `status
+  --porcelain=v2 --branch --untracked-files=normal` (branch, upstream, ahead/behind from `# branch.ab`, change counts), `diff --shortstat`
+  and `diff --shortstat --cached` (only when there are tracked changes), `log -1 --format=%h%x09%ct%x09%s` and `stash list`; the operation
+  comes from marker files in the git directory (`rebase-merge`, `rebase-apply`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`,
+  `BISECT_LOG`). It never fetches, never writes and never runs a hook. A single cap of 2 programs at a time (`limitRunner`) covers the
+  watcher and the day report.
+- **Schedule.** A room is read when it first appears; then every 30 s while an agent in it is working or waiting and every 5 min
+  otherwise; and 2 s after the last finished tool call of an agent in the room (a trailing debounce, at most 10 s of waiting), which is
+  how file changes reach the watcher. Reads are skipped while nothing is due, and `onChange` fires (a snapshot is published) only when the
+  state changed. Three failed reads in a row drop the last known state; a missing `git` switches the integration off for 10 minutes.
+- **Pull requests (`gh`), off by default.** Only when `pullRequests` is on and only for rooms with a branch: `gh pr view --json
+  number,title,state,url,isDraft,reviewDecision,statusCheckRollup` in the project folder (argument array, 15 s timeout, the person's own
+  environment with prompts and colors off), at most every 2 minutes and at once when the branch changes. The JSON is validated: the state
+  is `open`/`merged`/`closed`, the link must be http(s), the checks become `{ total, passed, failed, pending, failing[] }` and the CI state is
+  failure > pending > success (`none` without checks). "No pull request for this branch" is not an error. A missing `gh` or one that is not
+  signed in (`gh` status `missing` / `unauthenticated`) stops lookups for 10 minutes; turning the setting off hides pull requests at once.
+  This is the only code in AI Office that contacts GitHub, and only through that CLI.
+- **Settings** (`GET /api/git/settings` → `{ pullRequests, gh }`, `POST { pullRequests: boolean }` → the same; 400 `invalid-pullRequests`):
+  local-only, token-protected, `Sec-Fetch-Site` guarded. Stored in `<stateDir>/git-settings.json` `{ "version": 1, "pullRequests": false }`
+  (mode 0600, atomic). `OfficeMeta.gitPullRequests` mirrors it in the snapshot. The demo simulator follows it for its fake pull requests.
+- **Day report.** `ReportService` gets `gitCommits(projectPath, range)`: `log --all --no-merges --since/--until` for the day (up to 100
+  commits), limited to the configured `user.email` when there is one, returned as `ReportCommit` with `source: "git"`.
+
 ## Day recorder
 Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD.json` (flush every 30 s).
 `/api/day` returns it (today by default).

@@ -65,6 +65,12 @@ export const worldPtBR = {
   'overlay.sub': 'SUB',
   'overlay.openAgent': 'E · abrir {name}',
   'overlay.arriving': 'chegando…',
+  // branch plaque under a room's sign (3D): the operation a repository is in the middle of
+  'git.op.merge': 'Merge',
+  'git.op.rebase': 'Rebase',
+  'git.op.cherry-pick': 'Cherry-pick',
+  'git.op.revert': 'Reversão',
+  'git.op.bisect': 'Bisect',
 } as const;
 
 export type WorldKey = keyof typeof worldPtBR;

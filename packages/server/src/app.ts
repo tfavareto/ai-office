@@ -13,6 +13,12 @@ import type { ServerConfig } from './config';
 import { TokenAuth } from './http/auth';
 import type { AppContext } from './http/context';
 import { resolveClaudeExecutable } from './hire/claude-path';
+import { GitSettingsStore } from './git/settings-store';
+import { readDayCommits } from './git/day-commits';
+import { limitRunner } from './git/limit';
+import { GitWatcher, MAX_CONCURRENT_READS } from './git/watcher';
+import { watchedRooms } from './git/rooms';
+import { type Runner, createGhRunner, createGitRunner } from './git/run';
 import { HIRE_LAUNCH_LIMIT, HIRE_LAUNCH_WINDOW_MS } from './hire/limits';
 import { HireRegistry } from './hire/registry';
 import { HireService } from './hire/service';
@@ -49,6 +55,8 @@ export interface AppOptions {
   /** Overrides the HTTP request timeouts (tests). */
   httpLimits?: HttpLimits;
   /** Hiring agents: tests replace the launcher, so no terminal is ever opened. */
+  /** Programs that read the repositories: tests replace them, so no test ever runs `git` or `gh` on a real folder. */
+  gitRunners?: { git?: Runner; gh?: Runner };
   hire?: {
     launcher?: TerminalLauncher;
     /** Absolute path of `claude`, or undefined when there is none. */
@@ -99,6 +107,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   const day = new DayRecorder(config.stateDir, log);
   const indexer = new UsageIndexer({ stateDir: config.stateDir, accounts: () => engine.accountList(), log, now });
   const rules = new RulesStore(config.stateDir, log, now);
+  const gitSettings = new GitSettingsStore(config.stateDir, log);
 
   // The registries and the office reference each other through callbacks; `office` is assigned before any call.
   const refresh = (): void => office.refresh(now());
@@ -134,6 +143,11 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       onNotice: (notice) => hub.broadcastNotice(notice),
       onAgentEvent: (agentId, effects, at) => {
         attention.clearIfEventAfter(agentId, at);
+        // A finished tool call may have changed files: read the repository again soon.
+        if (effects.toolResults.length > 0) {
+          const projectId = office.agentById(agentId)?.projectId;
+          if (projectId !== undefined) git.touch(projectId);
+        }
         const pending = permissions.pendingFor(agentId);
         if (pending !== undefined && at > pending.createdAt && movedOn(effects, pending.toolName)) permissions.cancelFor(agentId);
       },
@@ -143,9 +157,24 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     office,
     usage: indexer,
     now,
-    meta: () => ({ version, startedAt, demo: demoOn, ...(build !== undefined ? { build } : {}) }),
+    meta: () => ({ version, startedAt, demo: demoOn, ...(build !== undefined ? { build } : {}), ...(gitSettings.pullRequests ? { gitPullRequests: true } : {}) }),
     hires: (time) => hireRegistry.list(time),
+    git: (projectId) => git.get(projectId),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
+  });
+  // One cap for every program started on the user's repositories, whoever asks (the watcher or the day report).
+  const runGit = limitRunner(options.gitRunners?.git ?? createGitRunner(options.env ?? process.env), MAX_CONCURRENT_READS);
+  const git = new GitWatcher({
+    runGit,
+    runGh: options.gitRunners?.gh ?? createGhRunner(options.env ?? process.env),
+    now,
+    log,
+    projects: () => {
+      const state = office.state();
+      return watchedRooms(state.projects, state.agents, new Set((office.demoSimulator?.projects() ?? []).map((project) => project.id)));
+    },
+    pullRequestsEnabled: () => gitSettings.pullRequests,
+    onChange: () => snapshots.markDirty(),
   });
   const engine: Engine = new Engine({
     discover: { homeDir: config.homeDir, explicitDirs: config.claudeDirs, envDir: options.envDir },
@@ -161,6 +190,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       on
         ? createDemoSimulator({
             now,
+            pullRequests: () => gitSettings.pullRequests,
             // Demo requests go through the same rules as real ones.
             autoDecide: (request, agent) =>
               autoAnswer(rules.book, {
@@ -213,6 +243,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    git,
+    gitSettings,
     day,
     usage: indexer,
     report: new ReportService({
@@ -222,6 +254,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       dayStats: (date) => day.get(date),
       agents: () => office.state().agents,
       storedName: (key) => names.peek(key),
+      gitCommits: (projectPath, range) => readDayCommits(runGit, projectPath, range),
     }),
     transcripts: new TranscriptCache(),
     isDemo: () => demoOn,
@@ -241,6 +274,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     permissions.sweep();
     messages.expire();
     hireRegistry.sweep(office.state().agents, time);
+    git.tick();
     if (time - lastDayRecord >= RECORD_INTERVAL_MS) {
       lastDayRecord = time;
       void day.record(office.state().agents.filter((agent) => agent.demo !== true), time).catch((error: unknown) => log.debug(`Meu dia: ${String(error)}`));
@@ -266,6 +300,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await auth.load(config.stateDir);
       await names.load();
       await rules.load();
+      await gitSettings.load();
       setDemo(config.demo);
       await refreshBuild();
       await new Promise<void>((resolveListen, rejectListen) => {
@@ -284,6 +319,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
       engine.stop();
+      git.stop();
       await indexer.stop();
       snapshots.stop();
       hub.closeAll();

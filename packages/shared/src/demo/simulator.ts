@@ -61,6 +61,7 @@ import {
   type DemoProjectSpec,
   type DemoText,
 } from './content';
+import { demoGit } from './git';
 import { EventQueue } from './event-queue';
 
 const MAX_PROJECTS = 12;
@@ -133,6 +134,7 @@ class Simulator implements DemoSimulator {
   private readonly startedAt: number;
   private readonly rng: () => number;
   private readonly autoDecide: DemoOptions['autoDecide'];
+  private readonly pullRequests: () => boolean;
   private readonly queue = new EventQueue();
   private readonly agentMap = new Map<string, Agent>();
   private readonly runtimes = new Map<string, Runtime>();
@@ -152,6 +154,7 @@ class Simulator implements DemoSimulator {
     this.speed = options.speed !== undefined && options.speed > 0 ? options.speed : 1;
     this.clockFn = options.now ?? Date.now;
     this.autoDecide = options.autoDecide;
+    this.pullRequests = options.pullRequests ?? (() => true);
     this.startedAt = this.clockFn();
     this.clock = this.startedAt;
     this.rng = mulberry32(this.seed ^ 0x9e3779b9);
@@ -193,6 +196,7 @@ class Simulator implements DemoSimulator {
         path,
         seed: fnv1a(path),
         order: entry.order,
+        git: demoGit(DEMO_PROJECTS.findIndex((candidate) => candidate.path === path), this.startedAt, this.pullRequests()),
       }))
       .sort((a, b) => a.order - b.order);
   }

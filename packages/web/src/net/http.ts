@@ -5,6 +5,7 @@ import { BackendError, RuleRejectedError, type Backend, type DecisionResult, typ
 import { parseDayReport } from './parse-report';
 import { parseUsageDetail } from './parse-usage';
 import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parsePermission, parseRule, parseRuleLog, parseRulePreview, parseRuleRejection, parseRules, parseSessions, parseTranscriptPage } from './parse';
+import { parseGitSettings } from './parse-git';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -108,6 +109,15 @@ export class HttpBackend implements Backend {
 
   async dayReport(query: ReportQuery) {
     return parseDayReport(await this.get(API.report, { date: query.date, account: query.account, requests: query.includeRequests ? 1 : undefined, locale: locale() }));
+  }
+
+  async gitSettings() {
+    return parseGitSettings(await this.get(API.gitSettings));
+  }
+
+  async setGitPullRequests(on: boolean) {
+    const { body } = await this.post(API.gitSettings, { pullRequests: on });
+    return parseGitSettings(body);
   }
 
   async rules() {

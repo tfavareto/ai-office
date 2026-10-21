@@ -72,6 +72,15 @@ describe('PrefsStore', () => {
     expect(options).toMatchObject({ liveliness: 'lively', bubbles: 'all', followSelected: true, reducedMotion: true });
   });
 
+  it('shows the repository state by default and lets the world hide it', () => {
+    const base = { followSelected: false, reducedMotion: false };
+    expect(DEFAULT_PREFS.showGit).toBe(true);
+    expect(toWorldOptions(DEFAULT_PREFS, base).showGit).toBe(true);
+    expect(toWorldOptions({ ...DEFAULT_PREFS, showGit: false }, base).showGit).toBe(false);
+    expect(parsePrefs({ showGit: 'no' }).showGit).toBe(true);
+    expect(parsePrefs({ showGit: false }).showGit).toBe(false);
+  });
+
   it('keeps empty desks inert unless the page can hire', () => {
     const base = { followSelected: false, reducedMotion: false };
     expect(toWorldOptions(DEFAULT_PREFS, base).hireEnabled).toBe(false);

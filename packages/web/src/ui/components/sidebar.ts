@@ -5,6 +5,7 @@ import { localOnlyHint, type AppContext, type Component } from '../context';
 import { accountLabel, activityText, agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../display';
 import { KeyedList, h, setAttr, setText, toggleClass, type KeyedEntry } from '../dom';
 import { icon } from '../icons';
+import { branchChip } from '../model/git';
 import { buildRooms, roomColor, type AgentRowModel, type RoomModel } from '../model/rooms';
 import { displayStatus, primaryShell, statusLabel } from '../model/status';
 import { accountChip, createAvatar, iconButton, liveText, setDisabled, setLive, setStatusDot, statusDot, updateAccountChip } from '../widgets';
@@ -87,7 +88,7 @@ export class Sidebar implements Component {
 
     this.renderChips();
     const selectedId = ui.selection?.type === 'agent' ? ui.selection.id : null;
-    const signature = `${snapshot.rev}|${ui.query}|${ui.accountFilter.join(',')}|${ui.collapsedRooms.join(',')}|${ui.selection?.id ?? ''}|${Math.floor(this.ctx.now() / PORTRAIT_REFRESH_MS)}`;
+    const signature = `${snapshot.rev}|${ui.query}|${ui.accountFilter.join(',')}|${ui.collapsedRooms.join(',')}|${ui.selection?.id ?? ''}|${this.ctx.prefs.get().showGit}|${Math.floor(this.ctx.now() / PORTRAIT_REFRESH_MS)}`;
     if (signature === this.signature) return;
     this.signature = signature;
 
@@ -129,6 +130,9 @@ export class Sidebar implements Component {
     const swatch = h('span', { class: 'ao-room-swatch', 'aria-hidden': 'true' });
     const name = h('span', { class: 'ao-room-name' });
     const count = h('span', { class: 'ao-room-count' });
+    const branchText = h('span', { class: 'ao-room-branch-text' });
+    const branchDot = h('span', { class: 'ao-room-branch-dot', 'aria-hidden': 'true' });
+    const branch = h('span', { class: 'ao-room-branch', hidden: true }, icon('branch', 11), branchText, branchDot);
     const attention = h('span', { class: 'ao-room-attention', hidden: true });
     const progressBar = h('span', { class: 'ao-progress-bar' });
     const progress = h('span', { class: 'ao-progress', hidden: true }, progressBar);
@@ -137,7 +141,7 @@ export class Sidebar implements Component {
     const toggle = h('button', { type: 'button', class: 'ao-room-toggle', 'aria-label': t('sidebar.room.toggle') }, icon('chevronDown', 16));
     const main = h('button', { type: 'button', class: 'ao-room-main' }, swatch, name, attention, count, progressText, progress);
     const rowsEl = h('div', { class: 'ao-room-rows' });
-    const el = h('section', { class: 'ao-room' }, h('div', { class: 'ao-room-head' }, toggle, main, hire), rowsEl);
+    const el = h('section', { class: 'ao-room' }, h('div', { class: 'ao-room-head' }, toggle, main, hire), branch, rowsEl);
     const rows = new KeyedList<AgentRowModel>(rowsEl, (row) => row.agent.id, (row) => this.createRow(row));
     let projectId = initial.project.id;
     let path = initial.project.path;
@@ -160,6 +164,14 @@ export class Sidebar implements Component {
         hire.setAttribute('aria-label', hireLabel);
         hire.dataset.baseTitle = hireLabel;
         setDisabled(hire, !this.ctx.isLocal, localOnlyHint());
+        const chip = this.ctx.prefs.get().showGit ? branchChip(room.project.git) : null;
+        branch.hidden = chip === null;
+        if (chip !== null) {
+          setText(branchText, chip.label);
+          setAttr(branch, 'title', t(chip.dirty ? 'sidebar.room.branchDirty' : 'sidebar.room.branch', { branch: chip.label }));
+          toggleClass(branch, 'is-dirty', chip.dirty);
+          toggleClass(branch, 'is-op', chip.op !== null);
+        }
         setText(count, String(room.agentCount));
         attention.hidden = room.needsYou === 0;
         setText(attention, room.needsYou > 0 ? t('sidebar.room.needs', { n: room.needsYou }) : '');

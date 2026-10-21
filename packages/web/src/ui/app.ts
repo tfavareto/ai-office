@@ -1,5 +1,5 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import { suggestRule, type Account, type Agent, type BossMessage, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
+import { suggestRule, type Account, type Agent, type BossMessage, type GitSettings, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
@@ -419,6 +419,14 @@ export class App implements AppContext {
 
   async setDemo(on: boolean): Promise<void> {
     await this.store.backend.setDemo(on);
+  }
+
+  gitSettings(): Promise<GitSettings> {
+    return this.store.backend.gitSettings();
+  }
+
+  setGitPullRequests(on: boolean): Promise<GitSettings> {
+    return this.store.backend.setGitPullRequests(on);
   }
 
   // --- wiring --------------------------------------------------------------------------------------------------------

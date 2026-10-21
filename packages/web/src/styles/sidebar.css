@@ -161,6 +161,7 @@
 
 .ao-room-name {
   flex: 0 1 auto;
+  min-width: 3ch;
   overflow: hidden;
   font-weight: 700;
   text-overflow: ellipsis;

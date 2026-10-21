@@ -1,5 +1,5 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, GitSettings, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
@@ -85,4 +85,8 @@ export interface AppContext {
   /** "Create rule…": opens the rule editor pre-filled from a permission request of an agent. */
   openRuleEditor(agent: Agent, permission: PermissionRequest): Promise<void>;
   setDemo(on: boolean): Promise<void>;
+  /** Server settings of the git integration (local access only). */
+  gitSettings(): Promise<GitSettings>;
+  /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
+  setGitPullRequests(on: boolean): Promise<GitSettings>;
 }

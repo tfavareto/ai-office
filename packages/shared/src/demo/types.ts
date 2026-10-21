@@ -16,6 +16,8 @@ export interface DemoOptions {
    * Asked for every permission request before it blocks an agent (the approval rules of the server answer here). A
    * decision answers the request on the spot; `undefined` leaves it for the user.
    */
+  /** Whether the demo rooms carry fake pull requests (follows the server's setting; default: yes). */
+  pullRequests?: () => boolean;
   autoDecide?: (request: PermissionRequest, agent: Agent) => PermissionDecision | undefined;
 }
 

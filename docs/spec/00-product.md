@@ -130,6 +130,20 @@ the source catalog the other two are translated from. Code, comments and docs in
 
 18. **Consumo (usage)**: dialog opened from a usage card or with `U`. Account picker (each account and "All"), period tabs (Today / Week / Month), KPI tiles (total tokens, estimated cost, change against the same elapsed part of the previous period, cache hit share), stacked bars of the token types over time (hours for today, days for the week and the month), the open 5 h window of each account, a **limit forecast** (burn rate of the last 30-60 minutes projected to the end of the 5 h window and of the week, against a limit you type in or, without one, your highest recent block or week), and breakdown tables by model, project and session or subagent (people and rooms the office knows are links). Numbers come from a persisted, incremental hourly index of every transcript (previous month onwards, kept up to 13 months), computed locally. Everything is an estimate and says so.
 
+19. **Git per room**: each room shows the state of its project's repository, read-only. The room drawer has a **Git**
+    section (branch with a copy button, an operation in progress such as a rebase or merge, the changes as staged /
+    modified / new / conflicted files with the lines added and removed, commits ahead of and behind the upstream, the last
+    commit with its age, the stash); the sidebar row shows a compact branch line with a dot while work is uncommitted;
+    hovering a room shows its branch on the map pill and in the tip. In the world each project room has a small **branch
+    plaque** under its sign (2D pixel plate, 3D lettered plate with the operation word in the viewer's language), and a
+    **CI light** (green, red or amber) when the branch has an open pull request. Pull requests and CI status come only from
+    the person's own `gh` CLI and only when **Settings → Look up pull requests with gh (uses the internet)** is on; it is
+    off by default and is the only feature that contacts GitHub. Without it nothing leaves the computer. **Show Git
+    status** hides all of it. Folders that are not repositories (or computers without git) simply show nothing. The demo
+    gives every room a different state (clean, dirty, ahead, behind, a rebase and a merge in progress, a detached HEAD,
+    pull requests with passing, failing and running checks). The state is the optional `Project.git` field of the
+    snapshot, also used by the day report for the commits of a day.
+
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
 Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
 H hire an agent, [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).

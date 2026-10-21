@@ -1,5 +1,5 @@
 // Settings popover: language, visual, day/night, names, bubbles, animation, sounds, browser notifications, demo mode, about.
-import { LOCALES, LOCALE_NAMES } from '@ai-office/shared';
+import { LOCALES, LOCALE_NAMES, type GitSettings } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
 import type { LanguagePref } from '../../prefs/prefs';
@@ -49,18 +49,26 @@ export class Settings extends Popover {
   private readonly volume = h('input', { type: 'range', min: 0, max: 100, step: 5, class: 'ao-range', 'aria-label': t('settings.volume') });
   private readonly browser = createSwitch(t('settings.browser'), (on) => void this.toggleBrowser(on));
   private readonly demo = createSwitch(t('settings.demo'), (on) => void this.toggleDemo(on));
+  private readonly repo = createSwitch(t('settings.git'), (on) => ctxPrefs(this.ctx, { showGit: on }));
+  private readonly pullRequests = createSwitch(t('settings.gitPr'), (on) => void this.togglePullRequests(on));
   private readonly languageRow = row(t('settings.language'), this.language);
   private readonly visualRow = row(t('settings.visual'), this.visual.el);
   private readonly soundRow: Row;
   private readonly browserRow = row(t('settings.browser'), this.browser.el);
   private readonly demoRow = row(t('settings.demo'), this.demo.el);
+  private readonly repoRow = row(t('settings.git'), this.repo.el);
+  private readonly pullRequestsRow = row(t('settings.gitPr'), this.pullRequests.el, t('settings.gitPr.hint'));
+  private readonly ghHint = h('p', { class: 'ao-setting-hint ao-setting-hint--warn', hidden: true });
   private readonly rulesButton = button({ label: t('rules.settings.button'), variant: 'soft', className: 'ao-btn--small', onClick: () => this.ctx.openRules() });
   private readonly rulesRow = row(t('rules.settings.label'), this.rulesButton, t('rules.settings.hint'));
   private readonly about = h('p', { class: 'ao-setting-about' });
   private busy = false;
+  /** What the server says about the pull request lookup (read when the popover opens). */
+  private gitSettings: GitSettings | null = null;
 
   constructor(ctx: AppContext) {
     super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
+    this.pullRequestsRow.el.append(this.ghHint);
     this.volume.addEventListener('input', () => ctx.prefs.set({ volume: Number(this.volume.value) / 100 }));
     this.volume.addEventListener('change', () => ctx.cue('info'));
     this.soundRow = row(t('settings.sounds'), h('div', { class: 'ao-sound-control' }, this.volume, this.sounds.el));
@@ -77,6 +85,8 @@ export class Settings extends Popover {
         row(t('settings.animation'), this.animation.el).el,
         this.soundRow.el,
         this.browserRow.el,
+        this.repoRow.el,
+        this.pullRequestsRow.el,
         this.rulesRow.el,
         this.demoRow.el,
         h('div', { class: 'ao-setting ao-setting--about' }, h('span', { class: 'ao-setting-label' }, t('settings.about')), this.about),
@@ -97,7 +107,30 @@ export class Settings extends Popover {
   }
 
   protected onOpen(): void {
-    // Nothing to load: values come from the preferences store.
+    void this.loadGitSettings();
+  }
+
+  private async loadGitSettings(): Promise<void> {
+    if (!this.ctx.isLocal) return;
+    try {
+      this.gitSettings = await this.ctx.gitSettings();
+    } catch {
+      this.gitSettings = null;
+    }
+    this.ctx.refresh();
+  }
+
+  private async togglePullRequests(on: boolean): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      this.gitSettings = await this.ctx.setGitPullRequests(on);
+    } catch (error) {
+      this.ctx.notifyLocal('warn', describeError(error));
+    } finally {
+      this.busy = false;
+      this.ctx.refresh();
+    }
   }
 
   protected update(): void {
@@ -117,6 +150,16 @@ export class Settings extends Popover {
     this.browser.el.disabled = permission === 'unsupported' || permission === 'denied';
     this.browserRow.hint.hidden = permission === 'granted' || permission === 'default';
     setText(this.browserRow.hint, permission === 'denied' ? t('settings.browser.blocked') : t('settings.browser.unsupported'));
+
+    this.repo.set(prefs.showGit);
+    const lookup = this.gitSettings?.pullRequests ?? this.ctx.snapshot?.meta.gitPullRequests === true;
+    this.pullRequests.set(lookup);
+    this.pullRequests.el.disabled = !this.ctx.isLocal || this.busy;
+    const gh = lookup ? this.gitSettings?.gh : undefined;
+    this.ghHint.hidden = gh !== 'missing' && gh !== 'unauthenticated';
+    setText(this.ghHint, gh === 'unauthenticated' ? t('settings.gitPr.unauthenticated') : t('settings.gitPr.missing'));
+    this.pullRequestsRow.hint.hidden = false;
+    setText(this.pullRequestsRow.hint, this.ctx.isLocal ? t('settings.gitPr.hint') : localOnlyHint());
 
     this.rulesButton.disabled = !this.ctx.isLocal;
     setAttr(this.rulesButton, 'title', this.ctx.isLocal ? null : localOnlyHint());

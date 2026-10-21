@@ -43,7 +43,7 @@ The browser tab title shows **(n) AI Office** while *n* agents need you.
 
 - **Search** (`/` focuses it): filters agents, projects and accounts. Arrow keys move through results; `Esc` clears the search.
 - **Account chips**: filter the list by account when you have more than one.
-- **Rooms** list: each room can be collapsed and shows how many of its agents need you. Click a room to select it and move the camera there.
+- **Rooms** list: each room can be collapsed and shows how many of its agents need you, and its Git branch (with a dot while work is uncommitted). Click a room to select it and move the camera there.
 - **Agent rows**: avatar with a status dot, name, account chip, role, current activity and how long ago the status changed. For an agent waiting on a shell, the time is the shell's elapsed time. Subagents are indented under their parent. Click selects and focuses; people who are leaving fade out.
 
 ## The office
@@ -105,7 +105,21 @@ Messages need the [plugin](03-plugin.md#messages-to-agents). A message to an age
 
 ## Details drawer: a room
 
-Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a team composer (**Send to the team**), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
+Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a team composer (**Send to the team**), **Git** (see below), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
+
+### Git
+
+When the room's folder is a Git repository, the drawer has a **Git** section and the office shows the same state elsewhere. It is read-only: AI Office never fetches, commits or changes anything.
+
+- **Branch**, with a button that copies its name. A badge says when a rebase, merge, cherry-pick, revert or bisect is in progress, or that HEAD is detached.
+- **Changes**: files with conflicts, staged, modified and new files, and the lines added and removed.
+- **Ahead and behind**: `↑2 ↓1` against the branch's upstream; "up to date with origin/main", or a note that the branch has no upstream.
+- **Last commit** (hash, subject and age) and the number of stashed entries.
+- **Pull request** (only if you turned it on, see below): its number and title as a link that opens it in your browser, whether it is open, draft, merged or closed, the review decision, a CI badge (green passing, amber running, red failing) and how many checks passed, with the names of the failing ones.
+
+The sidebar shows the branch under each room's name, with a dot while there is uncommitted work (red during a rebase, merge...). Hovering a room shows its branch in the tip and on its label on the map. In the office, each room has a small **plaque under its sign** with the branch and a marker (green clean, amber uncommitted work, red conflicts or an operation in progress); in 3D the plaque also names the operation and the commits ahead or behind. When the branch has an open pull request, a **CI light** (green, red or amber) sits on the plaque. Folders that are not repositories show none of this.
+
+Pull requests and CI come from GitHub through your own [`gh`](https://cli.github.com/) CLI. This is **off by default** because it is the only feature that uses the internet: turn it on in **Settings → Look up pull requests with gh (uses the internet)**. `gh` must be installed and signed in (`gh auth login`); Settings tells you when it is not. See [privacy and security](05-privacy-and-security.md#git-and-pull-requests).
 
 ## The inbox: what needs you
 
@@ -278,6 +292,8 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Animation** | **Calm**, **Normal**, **Lively**. Sets how fast people walk and how many speech bubbles a room may show at once. If your system asks for reduced motion, the office also stops pulsing and idle wandering. |
 | **Sounds** | On or off, with a **Sound volume** slider. |
 | **Browser notifications** | Browser notifications for alerts (asks for permission). |
+| **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
+| **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
 | **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |
 | **About** | Version and build. |

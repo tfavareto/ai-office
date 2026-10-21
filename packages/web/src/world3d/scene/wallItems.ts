@@ -7,6 +7,7 @@ import { BufferGeometry, CylinderGeometry, Float32BufferAttribute } from 'three'
 import { boxGeometry, transform, type PartCollector } from '../util/parts';
 import type { Materials } from './materials';
 import { type WorldText, worldText } from '../../i18n/world/translate';
+import { PLAQUE_CANVAS_H, PLAQUE_CANVAS_W, PLAQUE_HEIGHT_M, PLAQUE_WIDTH_M } from './plaqueScreen';
 import { CanvasScreen, DecorAtlas, type DecorPainter, paintMenu, paintPoster, paintSign } from './screens';
 
 export interface ElevatorRig {
@@ -25,6 +26,8 @@ export interface WallScreens {
   /** The whiteboard: the live task board. */
   whiteboard?: CanvasScreen;
   loungeTv?: CanvasScreen;
+  /** The branch plaque under the room sign (created when the room has a repository). */
+  plaque?: CanvasScreen;
   elevators: ElevatorRig[];
   /** All screens created for this area (disposed with it). */
   all: CanvasScreen[];
@@ -199,6 +202,25 @@ function placeNorthItem(
     default:
       break;
   }
+}
+
+/** Height (m) of the branch plaque's centre: right under the room sign. */
+const PLAQUE_Y = 1.93;
+
+/**
+ * Hangs the branch plaque under the room's sign and returns its screen (null for an area without a sign). It is created
+ * the first time a room has a repository, so folders that are not repositories get no empty plate.
+ */
+export function mountPlaque(dynamic: Group, out: WallScreens, area: AreaLayout): { screen: CanvasScreen; mesh: Mesh } | null {
+  const sign = area.wallItems.find((item) => item.kind === 'sign' && item.side === 'north');
+  if (!sign) return null;
+  const screen = new CanvasScreen(PLAQUE_CANVAS_W, PLAQUE_CANVAS_H);
+  out.all.push(screen);
+  const zFace = (area.rect.y + WALL_ROWS) * T;
+  const mesh = new Mesh(plane(PLAQUE_WIDTH_M, PLAQUE_HEIGHT_M), screen.material);
+  mesh.position.set((sign.x + sign.w / 2) * T, PLAQUE_Y, zFace + 0.07);
+  dynamic.add(mesh);
+  return { screen, mesh };
 }
 
 export function disposeScreens(screens: WallScreens): void {

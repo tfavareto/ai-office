@@ -1,5 +1,5 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, dayRange, demoDayReport, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
+import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, dayRange, demoDayReport, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type GitSettings, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type ReportQuery, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
@@ -65,6 +65,8 @@ class MockBackend implements Backend {
     private readonly sim: DemoSimulator,
     private readonly log: MockLog,
     private readonly book: RuleBook,
+    /** The demo's pull requests are fake; this switch only mirrors the setting so the screens behave as with a server. */
+    private readonly pullRequests: { on: boolean },
   ) {}
 
   private snapshot(): OfficeSnapshot {
@@ -128,6 +130,15 @@ class MockBackend implements Backend {
     return on;
   }
 
+  async gitSettings(): Promise<GitSettings> {
+    return { pullRequests: this.pullRequests.on, gh: 'unknown' };
+  }
+
+  async setGitPullRequests(on: boolean): Promise<GitSettings> {
+    this.pullRequests.on = on;
+    return this.gitSettings();
+  }
+
   async rules() {
     return [...this.book.rules()];
   }
@@ -175,13 +186,15 @@ export function createMockEnvironment(): { transport: Transport; backend: Backen
   // The simulated office answers its own requests through the same rules engine as the server's.
   let ruleIds = 0;
   const book = new RuleBook({ now: Date.now, newId: () => `mock-rule-${++ruleIds}` });
+  const pullRequests = { on: true };
   const sim = createDemoSimulator({
     sessions: 4,
+    pullRequests: () => pullRequests.on,
     autoDecide: (request, agent) =>
       autoAnswer(book, { toolName: request.toolName, input: request.input, summary: request.summary, projectPath: agent.projectId, accountId: agent.accountId, agentId: agent.id, agentName: agent.name, demo: true })?.decision,
   });
   const log = new MockLog();
-  const backend = new MockBackend(sim, log, book);
+  const backend = new MockBackend(sim, log, book, pullRequests);
   const transport = new MockTransport(sim, log, (snapshot) => {
     backend.latest = snapshot;
   });

@@ -1,5 +1,6 @@
-import type { Agent, Msg } from '@ai-office/shared';
+import type { Agent, Msg, Project } from '@ai-office/shared';
 import { type WorldText, worldText } from '../../i18n/world/translate';
+import { roomGit, type RoomGit } from '../../world/roomGit';
 import { TASK_COLUMN_COLORS, type TaskBoardSummary } from '../../world/taskBoard';
 import { drawPixelText, textWidth } from '../font';
 import { LED } from '../palette';
@@ -14,6 +15,8 @@ export interface RoomInfo {
   current: string | null;
   /** Localizable form of `current` (demo tasks); real task texts have none and are shown as written. */
   currentMsg?: Msg;
+  /** The room's repository, for the plaque under its sign and the branch on its pill. */
+  git?: RoomGit | undefined;
 }
 
 export function summarizeRoom(agents: readonly Agent[]): RoomInfo {
@@ -34,6 +37,17 @@ export function summarizeRoom(agents: readonly Agent[]): RoomInfo {
     }
   }
   return info;
+}
+
+/** Room infos with each project's repository attached (rooms whose folder is not a repository stay as they are). */
+export function withRoomGit(rooms: ReadonlyMap<string, RoomInfo>, projects: readonly Project[]): Map<string, RoomInfo> {
+  const result = new Map(rooms);
+  for (const project of projects) {
+    const git = roomGit(project.git);
+    const info = result.get(project.id);
+    if (git !== undefined && info !== undefined) result.set(project.id, { ...info, git });
+  }
+  return result;
 }
 
 export function roomInfoKey(info: RoomInfo): string {

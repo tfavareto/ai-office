@@ -14,6 +14,7 @@ import {
   type OfficeSnapshot,
   type PendingHire,
   type PermissionRequest,
+  type Project,
   type RecentSession,
   type Rule,
   type RuleErrorBody,
@@ -22,6 +23,7 @@ import {
   type TranscriptPage,
 } from '@ai-office/shared';
 import { t } from '../i18n';
+import { parseProjectGit } from './parse-git';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -85,6 +87,13 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
   };
 }
 
+/** A project as the snapshot carries it, with its optional repository state validated (or dropped). */
+function normalizeProject(raw: Record<string, unknown>): Project {
+  const { git: rawState, ...rest } = raw;
+  const state = parseProjectGit(rawState);
+  return { ...(rest as unknown as Project), ...(state !== undefined ? { git: state } : {}) };
+}
+
 function isPendingHire(value: unknown): value is PendingHire {
   return (
     isRecord(value) &&
@@ -131,9 +140,10 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
       local: meta.local === true,
       demo: meta.demo === true,
       build: typeof meta.build === 'string' ? meta.build : undefined,
+      ...(meta.gitPullRequests === true ? { gitPullRequests: true } : {}),
     },
     accounts: data.accounts.filter(isRecord) as unknown as OfficeSnapshot['accounts'],
-    projects: data.projects.filter(isRecord) as unknown as OfficeSnapshot['projects'],
+    projects: data.projects.filter(isRecord).map(normalizeProject),
     agents: data.agents.filter(isAgentLike).map(normalizeAgent),
     usage: Array.isArray(data.usage) ? (data.usage.filter(isRecord) as unknown as OfficeSnapshot['usage']) : [],
     ...(hires.length > 0 ? { hires } : {}),

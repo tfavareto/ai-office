@@ -98,7 +98,7 @@ The pt-BR file exports the keys (`UiKey = keyof typeof uiPtBR`) and the other tw
 
 ## Design choices
 
-- **Read-only toward Claude Code, local by construction.** The only inputs are files Claude Code already writes. The server binds to loopback, makes no outbound requests and guards every request ([privacy and security](05-privacy-and-security.md)).
+- **Read-only toward Claude Code, local by construction.** The only inputs are files Claude Code already writes. The server binds to loopback, makes no outbound requests unless you turn on the `gh` pull request lookup, and guards every request ([privacy and security](05-privacy-and-security.md)).
 - **Hooks must never hurt a session.** They are tiny plain-Node scripts with hard timeouts that exit 0 with no output on any problem, and they verify the server's identity before sending a token.
 - **No framework.** `node:http` on the server and plain DOM helpers on the client keep dependencies, bundle size and startup time small. DOM text always goes through `textContent`.
 - **Full snapshots, throttled.** The server sends the whole state at most four times a second instead of diffs. It is simple, self-healing after a reconnect and cheap at this size.

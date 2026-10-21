@@ -10,6 +10,7 @@ import { agentsOfProject, roomColor } from '../model/rooms';
 import { displayStatus, statusLabel } from '../model/status';
 import { roomActivities } from '../model/timeline';
 import { accountChip, button, createAvatar, emptyNote, sectionTitle, setDisabled, setStatusDot, statusDot } from '../widgets';
+import { GitSection } from './git-section';
 import { MessageComposer } from './message-composer';
 import { MessageHistory } from './message-history';
 import { closeButton } from './overlay';
@@ -22,6 +23,7 @@ export class RoomView implements Component {
   private readonly path = h('code', { class: 'ao-room-path' });
   private readonly stats = h('div', { class: 'ao-room-stats' });
   private readonly accounts = h('div', { class: 'ao-block' });
+  private readonly repo: GitSection;
   private readonly agents = h('div', { class: 'ao-block' });
   private readonly tasks = h('div', { class: 'ao-block' });
   private readonly activity = h('div', { class: 'ao-block' });
@@ -33,6 +35,7 @@ export class RoomView implements Component {
   private signatures = { stats: '', accounts: '', agents: '', tasks: '', activity: '' };
 
   constructor(private readonly ctx: AppContext) {
+    this.repo = new GitSection(ctx);
     this.history = new MessageHistory(ctx, (id) => ctx.agent(id)?.name ?? t('agent.fallback'));
     this.composer = new MessageComposer(ctx, () => this.history.refreshNow());
     const copy = h(
@@ -51,6 +54,7 @@ export class RoomView implements Component {
     this.body.append(
       this.stats,
       this.accounts,
+      this.repo.el,
       this.agents,
       this.hireBtn,
       h('div', { class: 'ao-block' }, sectionTitle(t('room.team.title')), this.composer.el, this.history.el),
@@ -88,6 +92,7 @@ export class RoomView implements Component {
     setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());
     this.renderStats(agents);
     this.renderAccounts(agents);
+    this.repo.update(project);
     this.renderAgents(agents);
     this.renderTeam(project.name, agents);
     this.renderTasks(agents);

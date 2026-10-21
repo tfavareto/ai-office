@@ -51,6 +51,8 @@ export const API = {
   report: '/api/report/day',
   /** GET ?account=<id|all>&period=today|week|month → UsageDetail (usage history index). Local access only. */
   usageDetail: '/api/usage/detail',
+  /** GET → GitSettings · POST { pullRequests: boolean } → GitSettings. Local access only. */
+  gitSettings: '/api/git/settings',
   /** POST { on: boolean } → { demo } */
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */

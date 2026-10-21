@@ -1,5 +1,5 @@
 // Builds OfficeSnapshots and publishes them at most 4 times per second.
-import type { AccountUsage, OfficeMeta, OfficeSnapshot, PendingHire } from '@ai-office/shared';
+import type { AccountUsage, OfficeMeta, OfficeSnapshot, PendingHire, Project, ProjectGit } from '@ai-office/shared';
 import type { Office } from './office';
 
 export const SNAPSHOT_MIN_INTERVAL_MS = 250;
@@ -12,6 +12,8 @@ export interface SnapshotDeps {
   meta: () => Omit<OfficeMeta, 'local'>;
   /** Real agents being hired (the demo's come with the office state). */
   hires: (now: number) => PendingHire[];
+  /** Git state of a real room (the demo's rooms bring their own). */
+  git?: (projectId: string) => ProjectGit | undefined;
   emit: (snapshot: OfficeSnapshot) => void;
   minIntervalMs?: number;
 }
@@ -40,11 +42,21 @@ export class SnapshotPublisher {
       serverTime: now,
       meta: { ...this.deps.meta(), local: true },
       accounts: state.accounts,
-      projects: state.projects,
+      projects: this.withGit(state.projects),
       agents: state.agents,
       usage: [...realUsage, ...state.demoUsage],
       ...(hires.length > 0 ? { hires } : {}),
     };
+  }
+
+  /** Rooms with the repository state the watcher knows (rooms that already carry one, like the demo's, keep it). */
+  private withGit(projects: Project[]): Project[] {
+    const lookup = this.deps.git;
+    if (lookup === undefined) return projects;
+    return projects.map((project) => {
+      const found = project.git ?? lookup(project.id);
+      return found === undefined ? project : { ...project, git: found };
+    });
   }
 
   /** Requests a publication: immediate when the last one is old enough, otherwise delayed to respect the rate limit. */

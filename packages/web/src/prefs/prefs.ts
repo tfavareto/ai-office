@@ -26,6 +26,8 @@ export interface Prefs {
   dnd: boolean;
   sidebarOpen: boolean;
   feedOpen: boolean;
+  /** Show the repository state (branch, changes, pull request) of each room. */
+  showGit: boolean;
   /** Plan limits the user typed in per account id (the reference of the usage forecast). */
   usageLimits: Readonly<Record<string, AccountLimits>>;
 }
@@ -43,6 +45,7 @@ export const DEFAULT_PREFS: Prefs = {
   dnd: false,
   sidebarOpen: true,
   feedOpen: false,
+  showGit: true,
   usageLimits: {},
 };
 
@@ -99,6 +102,7 @@ export function parsePrefs(raw: unknown): Prefs {
     dnd: bool(data.dnd, DEFAULT_PREFS.dnd),
     sidebarOpen: bool(data.sidebarOpen, DEFAULT_PREFS.sidebarOpen),
     feedOpen: bool(data.feedOpen, DEFAULT_PREFS.feedOpen),
+    showGit: bool(data.showGit, DEFAULT_PREFS.showGit),
     usageLimits: parseUsageLimits(data.usageLimits),
   };
 }
@@ -159,6 +163,7 @@ export function toWorldOptions(
     followSelected: extra.followSelected,
     reducedMotion: extra.reducedMotion,
     hireEnabled: extra.hireEnabled ?? false,
+    showGit: prefs.showGit,
   };
 }
 
