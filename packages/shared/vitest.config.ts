@@ -1,3 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
-export default defineConfig({ test: { name: 'shared', environment: 'node' } });
+// `tsc -b` emits compiled copies of the tests into dist/; run only the sources.
+export default defineConfig({ test: { name: 'shared', environment: 'node', exclude: [...configDefaults.exclude, 'dist/**'] } });
