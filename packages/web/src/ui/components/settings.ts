@@ -5,8 +5,8 @@ import { describeError } from '../../net/backend';
 import type { LanguagePref } from '../../prefs/prefs';
 import { notifyPermission, requestNotifyPermission } from '../browser-notify';
 import { localOnlyHint, type AppContext } from '../context';
-import { h, setText } from '../dom';
-import { createSegmented, createSwitch } from '../widgets';
+import { h, setAttr, setText } from '../dom';
+import { button, createSegmented, createSwitch } from '../widgets';
 import { Popover } from './overlay';
 
 interface Row {
@@ -54,6 +54,8 @@ export class Settings extends Popover {
   private readonly soundRow: Row;
   private readonly browserRow = row(t('settings.browser'), this.browser.el);
   private readonly demoRow = row(t('settings.demo'), this.demo.el);
+  private readonly rulesButton = button({ label: t('rules.settings.button'), variant: 'soft', className: 'ao-btn--small', onClick: () => this.ctx.openRules() });
+  private readonly rulesRow = row(t('rules.settings.label'), this.rulesButton, t('rules.settings.hint'));
   private readonly about = h('p', { class: 'ao-setting-about' });
   private busy = false;
 
@@ -75,6 +77,7 @@ export class Settings extends Popover {
         row(t('settings.animation'), this.animation.el).el,
         this.soundRow.el,
         this.browserRow.el,
+        this.rulesRow.el,
         this.demoRow.el,
         h('div', { class: 'ao-setting ao-setting--about' }, h('span', { class: 'ao-setting-label' }, t('settings.about')), this.about),
       ),
@@ -114,6 +117,9 @@ export class Settings extends Popover {
     this.browser.el.disabled = permission === 'unsupported' || permission === 'denied';
     this.browserRow.hint.hidden = permission === 'granted' || permission === 'default';
     setText(this.browserRow.hint, permission === 'denied' ? t('settings.browser.blocked') : t('settings.browser.unsupported'));
+
+    this.rulesButton.disabled = !this.ctx.isLocal;
+    setAttr(this.rulesButton, 'title', this.ctx.isLocal ? null : localOnlyHint());
 
     const mock = this.ctx.store.mode === 'mock';
     const local = this.ctx.isLocal;

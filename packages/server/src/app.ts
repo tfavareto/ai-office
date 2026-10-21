@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDemoSimulator, messageDraft, msg, sourceText } from '@ai-office/shared';
+import { autoAnswer, createDemoSimulator, messageDraft, msg, sourceText } from '@ai-office/shared';
 import { Engine } from './claude/engine';
 import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
@@ -28,6 +28,7 @@ import { UsageTracker } from './office/usage';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
+import { RulesStore } from './rules/rules-store';
 import { asString } from './util/fs-safe';
 import { newId } from './util/ids';
 import { RateLimiter } from './util/rate-limit';
@@ -96,6 +97,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   const names = NameStore.forStateDir(config.stateDir, log);
   const usage = new UsageTracker();
   const day = new DayRecorder(config.stateDir, log);
+  const rules = new RulesStore(config.stateDir, log, now);
 
   // The registries and the office reference each other through callbacks; `office` is assigned before any call.
   const refresh = (): void => office.refresh(now());
@@ -156,7 +158,25 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
 
   const setDemo = (on: boolean): void => {
     demoOn = on;
-    office.setDemo(on ? createDemoSimulator({ now }) : undefined);
+    office.setDemo(
+      on
+        ? createDemoSimulator({
+            now,
+            // Demo requests go through the same rules as real ones.
+            autoDecide: (request, agent) =>
+              autoAnswer(rules.book, {
+                toolName: request.toolName,
+                input: request.input,
+                summary: request.summary,
+                projectPath: agent.projectId,
+                accountId: agent.accountId,
+                agentId: agent.id,
+                agentName: agent.name,
+                demo: true,
+              })?.decision,
+          })
+        : undefined,
+    );
     refresh();
   };
 
@@ -190,6 +210,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     hub,
     snapshots,
     permissions,
+    rules,
     messages,
     attention,
     hires,
@@ -236,6 +257,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       // Creates the state dir (0700) and the access token (0600) before anything is served.
       await auth.load(config.stateDir);
       await names.load();
+      await rules.load();
       setDemo(config.demo);
       await refreshBuild();
       await new Promise<void>((resolveListen, rejectListen) => {
@@ -259,7 +281,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
         http.server.close(() => resolveClose());
         http.server.closeAllConnections();
       });
-      await Promise.all([day.flush(), names.flush()]);
+      await Promise.all([day.flush(), names.flush(), rules.flush()]);
     },
   };
 }

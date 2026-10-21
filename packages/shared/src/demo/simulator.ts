@@ -26,6 +26,7 @@ import {
   localizeDraft,
   messageDraft,
   permissionDraft,
+  ruleDraft,
   promptDraft,
   replyDraft,
   thinkingDraft,
@@ -130,6 +131,7 @@ class Simulator implements DemoSimulator {
   private readonly clockFn: () => number;
   private readonly startedAt: number;
   private readonly rng: () => number;
+  private readonly autoDecide: DemoOptions['autoDecide'];
   private readonly queue = new EventQueue();
   private readonly agentMap = new Map<string, Agent>();
   private readonly runtimes = new Map<string, Runtime>();
@@ -149,6 +151,7 @@ class Simulator implements DemoSimulator {
     this.seed = options.seed ?? 1;
     this.speed = options.speed !== undefined && options.speed > 0 ? options.speed : 1;
     this.clockFn = options.now ?? Date.now;
+    this.autoDecide = options.autoDecide;
     this.startedAt = this.clockFn();
     this.clock = this.startedAt;
     this.rng = mulberry32(this.seed ^ 0x9e3779b9);
@@ -746,6 +749,12 @@ class Simulator implements DemoSimulator {
     };
     runtime.phase = 'blocked';
     const episode = ++runtime.episode;
+    const automatic = this.autoDecide?.(request, this.agentMap.get(id) as Agent);
+    if (automatic !== undefined && automatic.behavior !== 'terminal') {
+      this.emit(id, ruleDraft(automatic.behavior, spec.summary, spec.summaryMsg), at);
+      this.resolveBlock(id, episode, automatic, at);
+      return;
+    }
     this.setStatus(id, 'waiting', at, { permission: request, waitingFor: undefined, waitingForMsg: undefined });
     this.emit(id, permissionDraft(spec.summary, spec.summaryMsg), at);
     this.noticeFor(id, 'alert', msg('notice.needs.detail', { name: this.nameOf(id), detail: spec.summaryMsg ?? spec.summary }), at);
@@ -769,7 +778,7 @@ class Simulator implements DemoSimulator {
     runtime.phase = 'working';
     runtime.episode++;
     this.setStatus(id, 'working', at, { permission: undefined, waitingFor: undefined, waitingForMsg: undefined });
-    if (decision.behavior === 'deny') {
+    if (decision.behavior === 'deny' && decision.auto !== 'rule') {
       const denied = msg('activity.denied');
       this.emit(id, { kind: 'other', icon: '🚫', text: sourceText(denied), msg: denied, detail: decision.message }, at);
       if (decision.interrupt === true) {

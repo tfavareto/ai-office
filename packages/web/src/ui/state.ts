@@ -5,7 +5,7 @@ import { Observable } from './observable';
 
 export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
-export type DialogId = 'day' | 'help' | 'hire' | 'board';
+export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {

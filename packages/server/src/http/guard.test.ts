@@ -66,7 +66,18 @@ describe('guardRequest', () => {
 
   test('rejects cross-site fetches and unsupported methods', () => {
     expect(guardRequest(req('GET', { host: 'localhost:4848', 'sec-fetch-site': 'cross-site' }), options)).toMatchObject({ ok: false, status: 403 });
-    expect(guardRequest(req('DELETE', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
+    expect(guardRequest(req('PUT', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
+    expect(guardRequest(req('OPTIONS', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
+  });
+
+  test('PATCH needs JSON like POST, DELETE only the origin check, and neither accepts a foreign origin', () => {
+    const host = 'localhost:4848';
+    expect(guardRequest(req('PATCH', { host }), options)).toMatchObject({ ok: false, status: 415 });
+    expect(guardRequest(req('PATCH', { host, 'content-type': 'application/json' }), options)).toMatchObject({ ok: true });
+    expect(guardRequest(req('PATCH', { host, 'content-type': 'application/json', origin: 'http://evil.example' }), options)).toMatchObject({ ok: false, status: 403 });
+    expect(guardRequest(req('DELETE', { host }), options)).toMatchObject({ ok: true });
+    expect(guardRequest(req('DELETE', { host, origin: 'http://evil.example' }), options)).toMatchObject({ ok: false, status: 403 });
+    expect(guardRequest(req('DELETE', { host, 'sec-fetch-site': 'cross-site' }), options)).toMatchObject({ ok: false, status: 403 });
   });
 
   test('local-only features need a loopback bind, Host and peer', () => {

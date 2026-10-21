@@ -36,6 +36,8 @@ export const es: Readonly<Record<SharedMessageKey, string>> = {
   'activity.message': 'Mensaje tuyo: {text}',
   'activity.permission': 'Pidiendo permiso: {summary}',
   'activity.denied': 'Solicitud rechazada por ti',
+  'activity.rule.allow': 'La regla aprobó: {summary}',
+  'activity.rule.deny': 'La regla rechazó: {summary}',
   'duration.seconds': '{s} s',
   'duration.minutes': '{m} min {s} s',
   'duration.hours': '{h} h {m} min',

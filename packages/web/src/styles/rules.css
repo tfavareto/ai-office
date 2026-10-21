@@ -1,0 +1,398 @@
+/* Approval rules: the manager dialog (rules, log) and the rule editor. */
+.ao-dialog--rules {
+  width: min(760px, 100%);
+  min-height: min(520px, calc(100vh - 32px));
+}
+
+.ao-rules-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-rules-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-rules-status {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 18px 16px;
+}
+
+/* Empty state. */
+.ao-rules-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: 440px;
+  margin: auto;
+  padding: 36px 16px;
+  text-align: center;
+}
+
+.ao-rules-empty-art {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Rule rows. */
+.ao-rules-list {
+  display: grid;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.ao-rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-rule-row.is-off .ao-rule-main {
+  opacity: 0.55;
+}
+
+.ao-rule-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.ao-rule-badge {
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ao-rule-badge--allow {
+  background: rgba(62, 207, 142, 0.16);
+  color: var(--working);
+}
+
+.ao-rule-badge--deny {
+  background: rgba(239, 107, 107, 0.16);
+  color: var(--error);
+}
+
+.ao-rule-badge--ask {
+  background: rgba(245, 181, 68, 0.16);
+  color: var(--waiting);
+}
+
+.ao-rule-kind {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-rule-matcher {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.ao-rule-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-rule-note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-style: italic;
+}
+
+.ao-rule-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ao-rule-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.ao-rule-confirm {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(239, 107, 107, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(239, 107, 107, 0.08);
+  font-size: 13px;
+}
+
+.ao-rule-confirm[hidden],
+.ao-rule-row-actions[hidden] {
+  display: none;
+}
+
+/* Log. */
+.ao-rules-log {
+  display: flex;
+  flex-direction: column;
+}
+
+.ao-log-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 6px;
+}
+
+.ao-log-search {
+  flex: 1;
+  min-width: 180px;
+}
+
+.ao-log-rulechip {
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ao-log-rulechip::after {
+  content: ' ×';
+  color: var(--muted);
+}
+
+.ao-log-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-log-empty {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.ao-log-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-log-row {
+  display: grid;
+  gap: 4px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ao-log-row.is-ask {
+  background: rgba(245, 181, 68, 0.05);
+}
+
+.ao-log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.ao-log-subject {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.ao-log-meta,
+.ao-log-time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-log-why {
+  margin: 0;
+  color: var(--waiting);
+  font-size: 12.5px;
+}
+
+.ao-log-demo {
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 99px;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+
+/* Editor. */
+.ao-rule-editor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-content: start;
+  padding: 16px 16px 0;
+}
+
+.ao-rule-editor > .ao-rule-editor-title,
+.ao-rule-editor > .ao-rule-source,
+.ao-rule-editor > .ao-rule-preview,
+.ao-rule-editor > .ao-rule-safety,
+.ao-rule-editor > .ao-rule-refusal,
+.ao-rule-editor > .ao-rule-actions,
+.ao-rule-field--wide {
+  grid-column: 1 / -1;
+}
+
+.ao-rule-editor[hidden] {
+  display: none;
+}
+
+.ao-rule-editor-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ao-rule-source {
+  margin: -6px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.ao-rule-field {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.ao-rule-field .ao-segmented {
+  justify-self: start;
+}
+
+.ao-rule-field--row {
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: start;
+  gap: 12px;
+}
+
+.ao-rule-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-rule-editor .ao-select,
+.ao-rule-editor .ao-input {
+  width: 100%;
+  max-width: none;
+}
+
+.ao-rule-editor .ao-input {
+  height: 32px;
+}
+
+.ao-rule-value {
+  font-family: var(--mono);
+}
+
+.ao-rule-preview {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(62, 207, 142, 0.1);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.ao-rule-preview.is-warn {
+  background: rgba(245, 181, 68, 0.12);
+}
+
+.ao-rule-preview[hidden],
+.ao-rule-refusal[hidden] {
+  display: none;
+}
+
+.ao-rule-refusal {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(239, 107, 107, 0.4);
+  border-radius: var(--radius-sm);
+  background: rgba(239, 107, 107, 0.1);
+  font-size: 13px;
+}
+
+.ao-rule-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-solid);
+}
+
+.ao-rule-safety {
+  margin: 0;
+}
+
+.ao-root.is-narrow .ao-rule-editor {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ao-root.is-narrow .ao-rule-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ao-root.is-narrow .ao-rule-side {
+  align-items: flex-start;
+}
+
+.ao-root.is-narrow .ao-rule-row-actions {
+  justify-content: flex-start;
+}

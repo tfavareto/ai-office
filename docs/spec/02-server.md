@@ -71,8 +71,52 @@ health, stream, history, transcript (TranscriptEntry list rendered from JSONL, p
 view cache ≤ ~8 MB), sessions (scan
 projects dirs for sessions modified in 7 days; title from custom-title or first prompt), day (day recorder), demo
 toggle, permissions (create from hook into a pending map with 5 min expiry; wait long-poll 25 s max; detail;
-decision; auto-cancel when the agent's session moves on), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
+decision; auto-cancel when the agent's session moves on; answered first by the approval rules, see below), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
 long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity). `POST /api/messages` and `POST /api/permissions/:id/decision` accept an optional `locale` (`pt-BR`, `en` or `es`; anything else is a 400 `invalid-locale`); the server keeps it with the queued message and returns it from the inbox so the hooks can phrase their output in that language.
+
+## Approval rules (`/api/rules`)
+Standing answers to recurring permission requests. The engine is pure and lives in `packages/shared/src/rules/`
+(matching, precedence, validation, the in-memory `RuleBook`); the server only persists it and wires it to the hook.
+
+- **Rule** (`shared/src/model.ts`): `id`, `effect` (`allow`/`deny`), `tool` (`Bash`, `Edit`, `WebFetch`, or an MCP
+  prefix `mcp__server__*`), `matcher` (`command-prefix` for Bash, `exact`, `path-glob` for file tools, `host` for
+  WebFetch, `any`), `scope` (`projectPath` absolute, `accountId`; omitted = everywhere), `enabled`, `note?`, `locale?`
+  (language of the reason sent to the agent), `createdAt`, `hits`, `lastHitAt?`. At most 200 rules; an identical rule
+  is a 409 `duplicate-rule`.
+- **Decision order.** For each request that reaches `POST /api/permissions` the rules run **before** the page is asked
+  and whether or not a page is open. Disabled rules are ignored; any matching **deny** rule wins over every allow
+  rule; among rules of the same effect the most specific wins (project scope, then account scope, then matcher
+  kind and length, then the oldest). A match answers the hook through the same registry as a person
+  (`PermissionRegistry.createDecided`: the request is stored already decided, never pending, the long-poll finds the
+  decision at once) with `auto: "rule"`; a deny carries the rule's note (or `Tool: matcher`) as `message` and its
+  `locale`. The agent gets a quiet feed activity ("Regra aprovou: npm test") and the rule's `hits`/`lastHitAt` grow.
+  Requests no rule matches behave exactly as before.
+- **Safety.** An allow rule never answers a risky request (shared `detectRisk`: delete, sudo, force push, reset,
+  permissions, pipe-to-shell, disk, data, sensitive file writes; plus inline code such as `bash -c`, `node -e`,
+  `python -c`): it is logged as `ask` and the request goes to the person. Allow `command-prefix` and `exact` rules
+  match **simple commands only**: any of `; & | < > \` ` ( ) $(` or a line break (even inside quotes) makes the command
+  unmatchable; prefixes match whole words (`npm test` matches `npm test -- --watch`, not `npm testx`). Deny rules also
+  look inside compound commands and through `sudo`/`env`/`nohup`. `path-glob` `*`/`**` never match dot files or
+  folders; paths are normalized (no `..` escape; symlinks are not resolved). **Creating or editing** an allow rule is
+  refused (400, with `error`, `field`, `detail`) when it would cover something dangerous: `any` on Bash and file
+  tools, `mcp__*` wildcards (only `mcp__server__*`), prefixes that are or extend `rm`, `sudo`, `git push`, `git reset`,
+  `git clean`, shells, `env`, `xargs`..., compound commands, globs at the root or in system folders, or on secrets,
+  and hosts like `*.com`. Rules read from disk go through the same policy: an allow rule it refuses is loaded **disabled**.
+- **Endpoints** (local-only, token, `Sec-Fetch-Site`/origin guarded; `PATCH` needs JSON like `POST`, `DELETE` only the
+  origin check): `GET /api/rules`, `POST /api/rules`, `PATCH /api/rules/:id` (named fields replace the rule's; `note`
+  or `locale` `null` removes it), `DELETE /api/rules/:id`, `GET /api/rules/log[?limit=]` (newest first), `DELETE
+  /api/rules/log`, `POST /api/rules/preview` (a rule body → `{ matches, total, since }`: how many of today's requests it
+  would have answered; the server keeps the last 500 requests in memory only). Errors: 400 invalid or refused rule
+  (`RuleErrorBody`), 404 unknown id, 409 duplicate or too many, 500 `save-failed` (the change is undone).
+- **Persistence.** `<stateDir>/rules.json` `{ "version": 1, "rules": [...] }` and `<stateDir>/rules-log.json`
+  `{ "version": 1, "entries": [...] }` (last 500 auto-decisions: outcome `allow`/`deny`/`ask`, the rule as it was, the
+  request subject cut to 200 characters with URL queries removed, agent, project). Both are written atomically
+  (temp file + rename) with mode 0600, debounced for counters and the log and immediately for rule edits, read
+  defensively (unreadable entries dropped, bare arrays from before versions migrated), and a file that cannot be read or comes from a newer version is moved to
+  `<name>.unreadable-<time>` instead of being overwritten.
+- **Demo.** The simulator asks `autoDecide` before it blocks an agent; the server answers it with the same engine, so
+  demo requests are decided, counted and logged (entries flagged `demo`) like real ones. `?mock=1` runs the same
+  `RuleBook` in memory.
 
 ## Hiring an agent (`POST /api/agents/hire`)
 Local-only (loopback bind + Host + peer, like permissions), token-protected and covered by the request guard. Body

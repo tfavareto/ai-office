@@ -7,6 +7,7 @@ import { registerDataRoutes } from './handlers/data';
 import { registerHireRoutes } from './handlers/hire';
 import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
+import { registerRuleRoutes } from './handlers/rules';
 import { registerSystemRoutes } from './handlers/system';
 import { guardRequest } from './guard';
 import { HttpError, sendError } from './respond';
@@ -44,6 +45,7 @@ export function buildRouter(app: AppContext): Router {
   registerDataRoutes(router, app);
   registerPermissionRoutes(router, app);
   registerMessageRoutes(router, app);
+  registerRuleRoutes(router, app);
   registerHireRoutes(router, app);
   return router;
 }

@@ -1,4 +1,4 @@
-// Request guard: Host allowlist (DNS rebinding), Sec-Fetch-Site, JSON-only and same-origin POSTs, local-only detection.
+// Request guard: Host allowlist (DNS rebinding), Sec-Fetch-Site, JSON-only and same-origin writes, local-only detection.
 import type { IncomingMessage } from 'node:http';
 import { isIP } from 'node:net';
 import { isLoopbackHost, isWildcardHost } from '../config';
@@ -11,6 +11,9 @@ export interface GuardOptions {
 export type GuardResult = { ok: true; local: boolean } | { ok: false; status: number; error: string };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
+/** Writes that carry a JSON body. DELETE has none, but gets the same origin check. */
+const JSON_METHODS = new Set(['POST', 'PATCH']);
+const WRITE_METHODS = new Set(['POST', 'PATCH', 'DELETE']);
 /** Sec-Fetch-Site values of requests made by the page itself or typed in the address bar. */
 const TRUSTED_FETCH_SITES = new Set(['same-origin', 'none']);
 
@@ -49,9 +52,9 @@ export function guardRequest(req: IncomingMessage, options: GuardOptions): Guard
   if (fetchSite !== undefined && !TRUSTED_FETCH_SITES.has(String(fetchSite).toLowerCase())) return { ok: false, status: 403, error: 'cross-site' };
   const method = req.method ?? 'GET';
   if (!SAFE_METHODS.has(method)) {
-    if (method !== 'POST') return { ok: false, status: 405, error: 'method-not-allowed' };
+    if (!WRITE_METHODS.has(method)) return { ok: false, status: 405, error: 'method-not-allowed' };
     const type = req.headers['content-type'] ?? '';
-    if (!type.toLowerCase().startsWith('application/json')) return { ok: false, status: 415, error: 'json-required' };
+    if (JSON_METHODS.has(method) && !type.toLowerCase().startsWith('application/json')) return { ok: false, status: 415, error: 'json-required' };
     const origin = req.headers.origin;
     if (origin !== undefined && origin !== `http://${host}` && origin !== `https://${host}`) return { ok: false, status: 403, error: 'origin-not-allowed' };
   }

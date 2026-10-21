@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { permission } from '../../test/fixtures';
-import { detectRisk } from './permission-risk';
+import type { PermissionRequest } from './model';
+import { detectRisk, isSensitivePath } from './permission-risk';
 
+const permission = (over: Partial<PermissionRequest> = {}): PermissionRequest => ({ id: 'perm1', agentId: 'ag1', toolName: 'Bash', summary: 'npm test', input: { command: 'npm test' }, suggestions: [], createdAt: 1_000, expiresAt: 61_000, ...over });
 const bash = (command: string) => permission({ toolName: 'Bash', summary: command, input: { command } });
 
 describe('detectRisk', () => {
@@ -65,5 +66,14 @@ describe('detectRisk', () => {
 
   it('ignores tools it knows nothing about', () => {
     expect(detectRisk(permission({ toolName: 'mcp__x__run', summary: 'rm -rf /', input: { anything: 'sudo' } }))).toBeNull();
+  });
+});
+
+describe('isSensitivePath', () => {
+  it('recognizes secrets, shell profiles and system folders', () => {
+    expect(isSensitivePath('/app/.env.local')).toBe(true);
+    expect(isSensitivePath('/Users/x/.zshrc')).toBe(true);
+    expect(isSensitivePath('/etc/hosts')).toBe(true);
+    expect(isSensitivePath('/app/src/env.ts')).toBe(false);
   });
 });

@@ -102,6 +102,24 @@ describe('pure helpers', () => {
   });
 });
 
+describe('denials by an approval rule', () => {
+  test.each([
+    [undefined, 'Recusado por regra do AI Office: Bash: git push'],
+    ['pt-BR', 'Recusado por regra do AI Office: Bash: git push'],
+    ['en', 'Denied by an AI Office rule: Bash: git push'],
+    ['es', 'Rechazado por una regla de AI Office: Bash: git push'],
+  ])('words a refusal with locale %s as a rule refusal', (locale, message) => {
+    const output = buildDecisionOutput({ behavior: 'deny', auto: 'rule', message: 'Bash: git push', ...(locale !== undefined ? { locale } : {}) }, []) as any;
+    expect(output.hookSpecificOutput.decision).toEqual({ behavior: 'deny', message, interrupt: false });
+  });
+
+  test('an allow by a rule is a plain allow', () => {
+    expect(buildDecisionOutput({ behavior: 'allow', auto: 'rule' }, [])).toEqual({
+      hookSpecificOutput: { hookEventName: 'PermissionRequest', decision: { behavior: 'allow' } },
+    });
+  });
+});
+
 describe('permission.mjs as a child process', () => {
   let office: FakeOffice;
   const env = () => ({ AI_OFFICE_PORT: String(office.port) });

@@ -1,10 +1,9 @@
 // The "needs you" inbox: one prioritized list of everything that waits on the user, derived from the snapshot and the
 // notifications. Pure: no DOM, no storage.
-import type { Activity, Agent, Msg, OfficeSnapshot, PermissionRequest } from '@ai-office/shared';
+import { detectRisk, type Activity, type Agent, type Msg, type OfficeSnapshot, type PermissionRequest, type RiskReason } from '@ai-office/shared';
 import { type InboxState, isSeen } from './inbox-state';
 import type { NotificationItem } from './notifications';
 import { similarityKey } from './permission-pattern';
-import { detectRisk, type RiskReason } from './permission-risk';
 import { displayStatus, isLive } from './status';
 
 export type InboxKind = 'permission' | 'attention' | 'error' | 'finished';

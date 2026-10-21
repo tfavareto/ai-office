@@ -36,6 +36,8 @@ export const en: Readonly<Record<SharedMessageKey, string>> = {
   'activity.message': 'Message from you: {text}',
   'activity.permission': 'Requesting permission: {summary}',
   'activity.denied': 'Request denied by you',
+  'activity.rule.allow': 'Rule approved: {summary}',
+  'activity.rule.deny': 'Rule denied: {summary}',
   'duration.seconds': '{s} s',
   'duration.minutes': '{m} min {s} s',
   'duration.hours': '{h} h {m} min',

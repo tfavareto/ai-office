@@ -36,6 +36,8 @@ export const ptBR = {
   'activity.message': 'Mensagem sua: {text}',
   'activity.permission': 'Pedindo permissão: {summary}',
   'activity.denied': 'Pedido recusado por você',
+  'activity.rule.allow': 'Regra aprovou: {summary}',
+  'activity.rule.deny': 'Regra recusou: {summary}',
   'duration.seconds': '{s} s',
   'duration.minutes': '{m} min {s} s',
   'duration.hours': '{h} h {m} min',

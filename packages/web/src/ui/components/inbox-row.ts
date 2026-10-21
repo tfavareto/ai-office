@@ -70,7 +70,7 @@ class InboxRow {
   private readonly actionsBox = h('div', { class: 'ao-inbox-actions' });
   private readonly denyBox = h('div', { class: 'ao-inbox-deny', hidden: true });
   private readonly reason = h('textarea', { class: 'ao-textarea ao-textarea--small', rows: 2, placeholder: t('permission.deny.placeholder'), 'aria-label': t('permission.deny.reason') });
-  private readonly permissionButtons: { approve: HTMLButtonElement; remember: HTMLButtonElement; deny: HTMLButtonElement; terminal: HTMLButtonElement } | null;
+  private readonly permissionButtons: { approve: HTMLButtonElement; remember: HTMLButtonElement; deny: HTMLButtonElement; terminal: HTMLButtonElement; rule: HTMLButtonElement } | null;
   private item: InboxItem;
   private wasDenying = false;
 
@@ -120,9 +120,15 @@ class InboxRow {
     const remember = button({ label: t('permission.remember'), icon: 'shield', variant: 'soft', className: 'ao-btn--small', onClick: () => void this.actions.approveAndRemember(this.item) });
     const deny = button({ label: t('permission.deny'), icon: 'x', variant: 'soft', className: 'ao-btn--small', onClick: () => this.ctx.inbox.set({ denying: this.ctx.inbox.get().denying === this.item.id ? null : this.item.id }) });
     const terminal = button({ label: t('permission.terminal'), icon: 'terminal', variant: 'ghost', className: 'ao-btn--small', title: t('permission.terminal.hint'), onClick: () => void this.actions.answerInTerminal(this.item) });
+    const rule = button({ label: t('rules.create'), icon: 'shield', variant: 'ghost', className: 'ao-btn--small', title: t('rules.create.title'), onClick: () => this.createRule() });
     approve.dataset.role = 'approve';
-    this.actionsBox.append(approve, remember, deny, terminal);
-    return { approve, remember, deny, terminal };
+    this.actionsBox.append(approve, remember, deny, terminal, rule);
+    return { approve, remember, deny, terminal, rule };
+  }
+
+  private createRule(): void {
+    const agent = this.ctx.agent(this.item.agentId);
+    if (agent && this.item.permission) void this.ctx.openRuleEditor(agent, this.item.permission);
   }
 
   private buildOtherActions(): void {
@@ -279,6 +285,7 @@ class InboxRow {
     setDisabled(buttons.approve, off, reason);
     setDisabled(buttons.deny, off, reason);
     setDisabled(buttons.terminal, off, reason);
+    setDisabled(buttons.rule, !this.ctx.isLocal || item.expired === true, reason);
     const rememberable = this.actions.rememberable(item);
     let rememberReason = reason;
     if (rememberReason === undefined && !rememberable) rememberReason = item.risk !== undefined ? t('inbox.remember.risky') : t('inbox.remember.none');

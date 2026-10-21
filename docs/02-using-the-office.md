@@ -139,6 +139,30 @@ Dangerous requests (deleting files recursively, `sudo`, forced pushes, hard rese
 | `E` | Mark as seen. |
 | `Esc` | Cancel the confirmation or deny box, then close the inbox. |
 
+## Approval rules
+
+Some requests come again and again: `npm test`, edits in `src/`, a documentation site. An **approval rule** teaches the office to answer them for you, and to say so.
+
+**Create one from a request.** On a permission card or an inbox row, press **Create rule…**. The dialog opens with the rule filled in from the request: the tool, the command's first words (`npm test`, `npm run build`, `git status`) or the folder of the file (`src/**`) or the website, for this project. Change anything, and read the line under the form: "This rule would have answered 3 of today's 12 requests." Press **Save rule**. For a dangerous request the suggestion is a **deny** rule instead.
+
+**Manage them.** **Settings → Approval rules → Manage…**, or the shield button in the inbox, opens the **Rules** tab: what each rule does (it approves or denies), the tool and what it matches, where it applies (all projects, or one project; optionally one account), how many times it fired and when it last did. Use the switch to turn a rule off, **Edit** to change it, **Delete** to remove it (after a confirmation) and **See log** for its decisions. A rule can carry a note; when it denies, the agent reads the note as the reason.
+
+**What a rule can match.**
+
+| Matcher | Tools | Example |
+| --- | --- | --- |
+| Command starts with | Bash | `npm test` matches `npm test -- --watch`, not `npm testx` and not `npm test; rm -rf /`. |
+| Path (pattern) | Edit, Write, Read... | `src/**` (any depth), `src/*.ts` (one folder). Patterns never match dot files such as `.env`. A relative path starts at the project. |
+| Website | WebFetch | `docs.stripe.com` or `*.stripe.com`. |
+| Exactly | Bash, file tools, WebFetch, WebSearch | The whole command, file, address or query. |
+| Any request of the tool | Read-only tools, one MCP tool or server (`mcp__docs__*`) | Every request of that tool. |
+
+**Which rule wins.** A matching **deny** rule beats every allow rule. Among rules that do the same thing, the one with the most specific scope wins (a project rule beats an all-projects rule). Turned-off rules are ignored. A request no rule matches reaches you as always.
+
+**Safety.** Dangerous requests (deleting files recursively, `sudo`, forced pushes, hard resets, piping a download into a shell, wiping disks, writing secrets or system files, running inline code such as `bash -c`) are **never approved by a rule**, even when one matches: you are asked, and the log says why. Allow rules also only match single commands, never ones chained with `;`, `&&`, `||`, `|`, backticks, `$(` or redirections. When you try to save an allow rule that would cover dangerous commands (`any` on Bash, `rm`, `sudo`, `git push`...) or compound ones, the dialog refuses and explains. See [Privacy and security](05-privacy-and-security.md#approval-rules).
+
+**The log.** The **Log** tab lists the last 500 automatic decisions, newest first: approved, denied, or "asked you" (the rule matched but the request was risky), with who asked, what, and which rule answered. Filter by result, by text or by rule; **Clear log** erases it. Each automatic answer also leaves a quiet line in the agent's activity ("Rule approved: npm test"). Rules work in demo mode too.
+
 ## Hiring an agent
 
 The office is also a place to start work. Use any of these:
@@ -227,6 +251,7 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Animation** | **Calm**, **Normal**, **Lively**. Sets how fast people walk and how many speech bubbles a room may show at once. If your system asks for reduced motion, the office also stops pulsing and idle wandering. |
 | **Sounds** | On or off, with a **Sound volume** slider. |
 | **Browser notifications** | Browser notifications for alerts (asks for permission). |
+| **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
 | **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |
 | **About** | Version and build. |
 

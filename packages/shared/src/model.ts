@@ -148,6 +148,8 @@ export interface PermissionDecision {
   interrupt?: boolean;
   /** Language of the person answering: the hook phrases what it tells the agent in it. */
   locale?: Locale;
+  /** Set by the server when an approval rule answered (not a person): the hook words a denial accordingly. */
+  auto?: 'rule';
 }
 
 export interface Agent {
@@ -320,4 +322,76 @@ export interface RecentSession {
 export interface DayStats {
   date: string;
   agents: { agentId: string; name: string; projectId: string; ms: Record<AgentStatus, number> }[];
+}
+
+// ---- Approval rules -------------------------------------------------------------------------------------------------
+
+/** Why a request deserves a second look (destructive, privileged or hard to undo). */
+export type RiskReason = 'delete' | 'sudo' | 'force-push' | 'reset' | 'permissions' | 'pipe-shell' | 'disk' | 'data' | 'sensitive-file';
+
+/** Why an allow rule never answers a request: a {@link RiskReason}, or code that runs inline (`bash -c`, `node -e`). */
+export type RuleBlockReason = RiskReason | 'inline-code';
+
+export type RuleEffect = 'allow' | 'deny';
+
+/**
+ * What a rule looks at. `command-prefix` (Bash): the command starts with these words. `exact`: the whole command, file,
+ * URL or query. `path-glob` (file tools): `*` and `**` never match dot files. `host` (WebFetch): `docs.stripe.com` or
+ * `*.stripe.com`. `any`: every request of the tool (`value` is empty).
+ */
+export type RuleMatcherKind = 'command-prefix' | 'exact' | 'path-glob' | 'host' | 'any';
+
+export interface RuleMatcher {
+  kind: RuleMatcherKind;
+  value: string;
+}
+
+/** Where a rule applies. Everything omitted applies everywhere. */
+export interface RuleScope {
+  /** Absolute project path (the room): omitted = all projects. */
+  projectPath?: string;
+  accountId?: string;
+}
+
+/** A standing answer to a recurring permission request, taught by the user. */
+export interface Rule {
+  id: string;
+  effect: RuleEffect;
+  /** Tool name (`Bash`, `Edit`, `WebFetch`...) or an MCP prefix (`mcp__github__*`). */
+  tool: string;
+  matcher: RuleMatcher;
+  scope: RuleScope;
+  enabled: boolean;
+  note?: string;
+  /** Language the rule was written in: the reason sent to the agent follows it. */
+  locale?: Locale;
+  createdAt: number;
+  hits: number;
+  lastHitAt?: number;
+}
+
+/** allow/deny: a rule answered. ask: an allow rule matched but the request is risky, so you were asked. */
+export type AutoDecisionOutcome = 'allow' | 'deny' | 'ask';
+
+/** One entry of the auto-decision log (the last 500 are kept). */
+export interface AutoDecision {
+  id: string;
+  at: number;
+  outcome: AutoDecisionOutcome;
+  /** The rule that matched, as it was then (the rule may have been edited or deleted since). */
+  ruleId: string;
+  effect: RuleEffect;
+  tool: string;
+  matcher: RuleMatcher;
+  /** The tool the agent asked to use. */
+  requestTool: string;
+  /** Command, file, address or summary that was asked (cut, without URL queries). */
+  subject: string;
+  agentId: string;
+  agentName: string;
+  projectPath?: string;
+  accountId?: string;
+  /** Only for `ask`: what made the request risky. */
+  blockedBy?: RuleBlockReason;
+  demo?: boolean;
 }

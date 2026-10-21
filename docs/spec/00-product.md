@@ -90,6 +90,22 @@ the source catalog the other two are translated from. Code, comments and docs in
     (`ai-office:inbox`). Sound and notifications are unchanged. Demo mode raises identical, similar and dangerous
     permission requests, up to four at once.
 
+16. **Approval rules** ("Regras de aprovação"): teach the office to answer recurring permission requests on its own,
+    safely and visibly. A rule approves or denies by tool plus a matcher (the command starts with `npm test`; a file
+    glob such as `src/**`; a website; any request of a read-only or single MCP tool), for all projects or one project
+    and optionally one account, and can carry a note (denials tell the agent why). Rules are created from "Criar
+    regra…" on a permission card or an inbox row, pre-filled from the request (tool, normalized command prefix or folder
+    glob, this project) and editable before saving, with a live preview of how many of today's requests the rule would
+    have answered; they are managed in a dialog (Settings → "Regras de aprovação", or the shield button of the inbox):
+    switch on/off, edit, delete with confirmation, hit count and last use, and a log tab of every automatic decision with
+    filters. Deny rules win over allow rules, the most specific scope wins, disabled rules are ignored, and a matched
+    request is answered immediately and left as a quiet line in the agent's activity ("Regra aprovou: npm test").
+    Safety is not negotiable: dangerous requests are never auto-approved even when an allow rule matches (the person is
+    asked, and the log says why), allow rules cannot be created or edited into something that would cover dangerous
+    commands (`any` on Bash, `rm`, `sudo`, `git push`...) or compound commands (`;`, `&&`, `||`, `|`, backticks, `$(`,
+    redirections), and unmatched requests behave exactly as before. Demo and `?mock=1` requests go through the same
+    engine.
+
 16. **Hire an agent**: the office is also a place to start work. Click an empty desk of a room (hover shows a dashed
     outline with a "+"), use the **Hire agent** button of the room drawer, the "+" of a room in the sidebar, the "+" at
     the top of the sidebar or `H`. A dialog asks for the project folder (an existing room, or **New project…** with a

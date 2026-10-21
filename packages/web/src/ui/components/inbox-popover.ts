@@ -9,6 +9,7 @@ import { InboxActions } from '../inbox-actions';
 import type { InboxItem, InboxKind } from '../model/inbox';
 import { groupOf } from '../model/inbox-bulk';
 import { resolveInboxKey, type InboxKeyAction } from '../model/inbox-keys';
+import { iconButton } from '../widgets';
 import { closeButton, Popover } from './overlay';
 import { InboxConfirm } from './inbox-confirm';
 import { createInboxEntry, rowKey, type InboxRowModel } from './inbox-row';
@@ -45,7 +46,7 @@ export class InboxPopover extends Popover {
     );
     this.scroller.append(this.listEl);
     this.el.append(
-      h('header', { class: 'ao-popover-head ao-inbox-titlebar' }, icon('bell', 18), h('strong', null, t('inbox.title')), this.count, closeButton(t('inbox.close'), () => ctx.closePopover())),
+      h('header', { class: 'ao-popover-head ao-inbox-titlebar' }, icon('bell', 18), h('strong', null, t('inbox.title')), this.count, iconButton({ icon: 'shield', label: t('rules.manage'), className: 'ao-iconbtn--small', size: 16, onClick: () => ctx.openRules() }), closeButton(t('inbox.close'), () => ctx.closePopover())),
       this.toolbar.el,
       this.empty,
       this.scroller,

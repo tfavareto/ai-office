@@ -30,6 +30,8 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `token` | The random access token (mode 0600). |
 | `names.json` | The name picked for each agent, keyed by account, session and agent id. |
 | `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
+| `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
+| `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
 
 Messages, permission requests and notifications live in the server's memory and are gone when it stops. The browser stores your interface preferences, including the interface language, in `localStorage` (`ai-office:prefs`). The page also sends the language code in use (`pt-BR`, `en` or `es`) with the messages and permission answers it posts, so the plugin can phrase its output in that language; the code stays on this computer like everything else. No transcript content is written to disk by AI Office.
 
@@ -63,9 +65,9 @@ Every request passes through a guard before any handler runs:
 | --- | --- |
 | `Host` header must be a loopback name (or the bind address, or an IP literal for a wildcard bind) and carry the right port. Protects against DNS rebinding. | 403 `host-not-allowed` |
 | `Sec-Fetch-Site`, when sent, must be `same-origin` or `none`. | 403 `cross-site` |
-| Only `GET`, `HEAD` and `POST` are served. | 405 |
-| `POST` must be `application/json`. | 415 |
-| `POST` `Origin`, when present, must be the page's own origin (hooks send none). | 403 `origin-not-allowed` |
+| Only `GET`, `HEAD`, `POST`, `PATCH` and `DELETE` are served. | 405 |
+| `POST` and `PATCH` must be `application/json`. | 415 |
+| `POST`, `PATCH` and `DELETE` `Origin`, when present, must be the page's own origin (hooks send none). | 403 `origin-not-allowed` |
 | Request bodies are limited to 256 KB. | 413 |
 
 Limits: a request must arrive within 30 seconds and its headers within 15 seconds (this does not apply to long-lived responses), at most 20 simultaneous live streams (more get 503 `too-many-streams`), and long-poll waits are capped at 25 seconds per request.
@@ -80,6 +82,18 @@ Referrer-Policy: no-referrer
 ```
 
 The page cannot be framed, cannot load scripts from other origins and cannot connect anywhere but its own server. The UI builds text with `textContent`, never `innerHTML` with session data.
+
+## Approval rules
+
+[Approval rules](02-using-the-office.md#approval-rules) let AI Office answer permission requests without you, so they are the one place where a mistake would approve something you did not see. The safety rules are enforced by the server and shared with the page, and covered by tests:
+
+- **Dangerous requests are never approved by a rule.** Recursive deletes, `sudo`, forced pushes, hard resets, recursive permission changes, piping a download into a shell, disk and database wipes, writes to secrets and system files, and code run inline (`bash -c`, `node -e`, `python -c`) always go to you, even when an allow rule matches. The log records that the rule matched and why you were asked. A deny rule can still refuse them.
+- **Allow rules cannot be broad by accident.** Saving an allow rule is refused, with an explanation, when it would also cover a dangerous request: `any` on Bash or on file tools, `mcp__*`, prefixes such as `rm`, `sudo`, `git` or `git push`, shells, `env`, `xargs`, globs at the root, in system folders or on secrets, and hosts such as `*.com`. Rules found in `rules.json` that fail this policy are loaded switched off.
+- **Only simple commands.** An allow rule matches a command only when it is a single command: anything with `;`, `&&`, `||`, `|`, `&`, a backtick, `$(`, a redirection, parentheses or a line break (even inside quotes) never matches, so `npm test; rm -rf /` is not covered by `npm test`. Prefixes match whole words (`npm testx` is not `npm test`). Deny rules, in contrast, look inside compound commands and through `sudo`/`env`.
+- **Paths are judged as asked.** Globs never match dot files (`.env`, `.ssh`, `.git`), `..` cannot escape a folder, and symbolic links are not followed.
+- **Deny wins.** A matching deny rule beats any allow rule; disabled rules do nothing.
+- **Local, authenticated, validated.** The `/api/rules` endpoints are local-only, need the token, pass the request guards above and validate every field (sizes, types, at most 200 rules); the files are written atomically with mode 0600, and a file that cannot be read is moved aside, never overwritten.
+- **Visible.** Every automatic decision is logged, shows as a quiet line in the agent's activity, and counts as a hit on the rule.
 
 ## Hiring an agent
 

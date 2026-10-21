@@ -1,7 +1,7 @@
 // Contract of the demo simulator (implemented in ./simulator.ts): fake but realistic sessions used by the server's
 // demo mode and by the web app's fully client-side `?mock=1` mode.
 import type { Locale } from '../i18n/i18n';
-import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, Project } from '../model';
+import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project } from '../model';
 
 export interface DemoOptions {
   /** Deterministic seed (same seed + same clock = same story). */
@@ -11,6 +11,11 @@ export interface DemoOptions {
   /** Time speed multiplier (default 1). */
   speed?: number;
   now?: () => number;
+  /**
+   * Asked for every permission request before it blocks an agent (the approval rules of the server answer here). A
+   * decision answers the request on the spot; `undefined` leaves it for the user.
+   */
+  autoDecide?: (request: PermissionRequest, agent: Agent) => PermissionDecision | undefined;
 }
 
 export interface DemoTick {

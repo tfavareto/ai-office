@@ -1,8 +1,8 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import { API, type HireRequest, type PermissionDecision } from '@ai-office/shared';
+import { API, type HireRequest, type PermissionDecision, type RuleDraft } from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
-import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parseSessions, parseTranscriptPage } from './parse';
+import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
+import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parsePermission, parseRule, parseRuleLog, parseRulePreview, parseRuleRejection, parseRules, parseSessions, parseTranscriptPage } from './parse';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -50,6 +50,20 @@ export class HttpBackend implements Backend {
     return result;
   }
 
+  /** POST, PATCH or DELETE a rule route; a refused rule becomes a RuleRejectedError the editor can explain. */
+  private async writeRule(method: 'POST' | 'PATCH' | 'DELETE', path: string, payload?: unknown): Promise<unknown> {
+    const hasBody = payload !== undefined;
+    const { status, body } = await this.request(this.url(path), {
+      method,
+      headers: { Accept: 'application/json', ...(hasBody ? { 'Content-Type': 'application/json' } : {}) },
+      ...(hasBody ? { body: JSON.stringify({ ...(isRecord(payload) ? payload : {}), ...(method === 'DELETE' ? {} : { locale: locale() }) }) } : {}),
+    });
+    if (status >= 200 && status < 300) return body;
+    const rejection = parseRuleRejection(body);
+    if (rejection !== undefined && status < 500) throw new RuleRejectedError(rejection, status);
+    throw new BackendError(errorText(body), status);
+  }
+
   async sendMessage(agentIds: readonly string[], text: string) {
     const { body } = await this.post(API.messages, { agents: agentIds, text, locale: locale() });
     return parseMessages(body);
@@ -62,6 +76,10 @@ export class HttpBackend implements Backend {
   async decidePermission(requestId: string, decision: PermissionDecision): Promise<DecisionResult> {
     const { status } = await this.post(`${API.permissions}/${encodeURIComponent(requestId)}/decision`, { ...decision, locale: locale() }, true);
     return status === 409 ? 'already-answered' : 'ok';
+  }
+
+  async permission(requestId: string) {
+    return parsePermission(await this.get(`${API.permissions}/${encodeURIComponent(requestId)}`));
   }
 
   async history(agentId: string) {
@@ -80,6 +98,34 @@ export class HttpBackend implements Backend {
 
   async day(date: string) {
     return parseDay(await this.get(API.day, { date }));
+  }
+
+  async rules() {
+    return parseRules(await this.get(API.rules));
+  }
+
+  async createRule(draft: RuleDraft) {
+    return parseRule(await this.writeRule('POST', API.rules, draft));
+  }
+
+  async updateRule(id: string, patch: Parameters<Backend['updateRule']>[1]) {
+    return parseRule(await this.writeRule('PATCH', `${API.rules}/${encodeURIComponent(id)}`, patch));
+  }
+
+  async deleteRule(id: string) {
+    await this.writeRule('DELETE', `${API.rules}/${encodeURIComponent(id)}`);
+  }
+
+  async ruleLog() {
+    return parseRuleLog(await this.get(`${API.rules}/log`));
+  }
+
+  async clearRuleLog() {
+    await this.writeRule('DELETE', `${API.rules}/log`);
+  }
+
+  async previewRule(draft: RuleDraft) {
+    return parseRulePreview(await this.writeRule('POST', `${API.rules}/preview`, draft));
   }
 
   async hireAgent(request: HireRequest) {

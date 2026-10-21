@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { Agent, FeedItem, Notice } from '../model';
+import type { Agent, FeedItem, Notice, PermissionDecision, PermissionRequest } from '../model';
 import { createDemoSimulator } from './simulator';
 
 const T0 = 1_800_000_000_000;
@@ -259,3 +259,43 @@ describe('createDemoSimulator', () => {
     expect(fastCount).toBeGreaterThan(slowCount);
   });
 });
+
+describe('automatic answers (approval rules)', () => {
+  function runWith(autoDecide: (request: PermissionRequest, agent: Agent) => PermissionDecision | undefined, seconds = 300) {
+    let clock = T0;
+    const asked: PermissionRequest[] = [];
+    const sim = createDemoSimulator({
+      seed: 1,
+      now: () => clock,
+      autoDecide: (request, agent) => {
+        asked.push(request);
+        return autoDecide(request, agent);
+      },
+    });
+    const feed: FeedItem[] = [];
+    for (let t = 0; t <= seconds * 1000; t += 250) {
+      clock = T0 + t;
+      feed.push(...sim.tick(clock).feed);
+    }
+    return { sim, asked, feed };
+  }
+
+  test('asks before blocking, and a decision keeps the agent working with a quiet feed line', () => {
+    const { sim, asked, feed } = runWith(() => ({ behavior: 'allow', auto: 'rule' }));
+    expect(asked.length).toBeGreaterThan(0);
+    expect(sim.agents().some((agent) => agent.permission !== undefined)).toBe(false);
+    expect(feed.some((item) => item.activity.msg?.key === 'activity.rule.allow')).toBe(true);
+  });
+
+  test('a refusal by a rule is not reported as refused by the user', () => {
+    const { feed } = runWith(() => ({ behavior: 'deny', auto: 'rule', message: 'Bash: x' }));
+    expect(feed.some((item) => item.activity.msg?.key === 'activity.rule.deny')).toBe(true);
+    expect(feed.some((item) => item.activity.msg?.key === 'activity.denied')).toBe(false);
+  });
+
+  test('requests nobody answers still wait for the user', () => {
+    const { sim } = runWith(() => undefined, 8);
+    expect(sim.agents().some((agent) => agent.permission !== undefined)).toBe(true);
+  });
+});
+

@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, RecentSession, TranscriptPage } from '@ai-office/shared';
+import type { Activity, AutoDecision, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -16,11 +16,23 @@ export interface Backend {
   sendMessage(agentIds: readonly string[], text: string): Promise<BossMessage[]>;
   messages(agentId: string): Promise<BossMessage[]>;
   decidePermission(requestId: string, decision: PermissionDecision): Promise<DecisionResult>;
+  /** The request with its tool input (the snapshot leaves the input out). */
+  permission(requestId: string): Promise<PermissionRequest>;
   history(agentId: string): Promise<Activity[]>;
   transcript(query: TranscriptQuery): Promise<TranscriptPage>;
   sessions(): Promise<RecentSession[]>;
   day(date: string): Promise<DayStats>;
   setDemo(on: boolean): Promise<boolean>;
+  rules(): Promise<Rule[]>;
+  createRule(draft: RuleDraft): Promise<Rule>;
+  /** Fields named in `patch` replace the rule's; `note: null` removes the note. */
+  updateRule(id: string, patch: Partial<Omit<RuleDraft, 'note'>> & { note?: string | null }): Promise<Rule>;
+  deleteRule(id: string): Promise<void>;
+  /** The auto-decision log, newest first. */
+  ruleLog(): Promise<AutoDecision[]>;
+  clearRuleLog(): Promise<void>;
+  /** How many of today's requests the rule would have answered. */
+  previewRule(draft: RuleDraft): Promise<RulePreview>;
   /** Opens a terminal running Claude Code in the folder (local access only); the placeholder then arrives in the snapshot. */
   hireAgent(request: HireRequest): Promise<PendingHire>;
   /** Whether a folder can host a new agent (feedback while typing a path). */
@@ -34,6 +46,17 @@ export class BackendError extends Error {
   ) {
     super(message);
     this.name = 'BackendError';
+  }
+}
+
+/** A rule the server refused (too broad, dangerous, compound, duplicate...): `rejection` says why, by code. */
+export class RuleRejectedError extends BackendError {
+  constructor(
+    readonly rejection: RuleErrorBody,
+    status: number,
+  ) {
+    super(rejection.error, status);
+    this.name = 'RuleRejectedError';
   }
 }
 

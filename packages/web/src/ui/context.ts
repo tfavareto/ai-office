@@ -1,5 +1,5 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
@@ -8,6 +8,7 @@ import type { InboxController } from './inbox-controller';
 import type { MessageCenter } from './message-center';
 import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
+import type { RulesController, RulesTab } from './rules-controller';
 import type { DialogId, DrawerTab, PopoverId, UiState } from './state';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
@@ -34,6 +35,7 @@ export interface AppContext {
   readonly messages: MessageCenter;
   readonly board: BoardStore;
   readonly inbox: InboxController;
+  readonly rules: RulesController;
 
   readonly snapshot: OfficeSnapshot | null;
   /** Terminal, permissions and messages are available. */
@@ -76,5 +78,9 @@ export interface AppContext {
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
   /** Opens a terminal with Claude Code for a new agent; rejects with the server's error. */
   hireAgent(request: HireRequest): Promise<PendingHire>;
+  /** Opens the approval rules dialog on a tab. */
+  openRules(tab?: RulesTab): void;
+  /** "Create rule…": opens the rule editor pre-filled from a permission request of an agent. */
+  openRuleEditor(agent: Agent, permission: PermissionRequest): Promise<void>;
   setDemo(on: boolean): Promise<void>;
 }

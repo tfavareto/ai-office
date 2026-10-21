@@ -1,8 +1,7 @@
 // Detects permission requests that deserve a second look: destructive, privileged or hard-to-undo commands.
-// The inbox never includes these in bulk approvals and flags them with a warning badge.
-import type { PermissionRequest } from '@ai-office/shared';
-
-export type RiskReason = 'delete' | 'sudo' | 'force-push' | 'reset' | 'permissions' | 'pipe-shell' | 'disk' | 'data' | 'sensitive-file';
+// The inbox never includes these in bulk approvals and flags them with a warning badge; approval rules never
+// auto-allow them (the server and the web app share this module).
+import type { PermissionRequest, RiskReason } from './model';
 
 type RiskInput = Pick<PermissionRequest, 'toolName' | 'input' | 'summary'>;
 
@@ -39,6 +38,11 @@ const COMMAND_RULES: readonly CommandRule[] = [
 const WRITE_TOOLS: ReadonlySet<string> = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const SENSITIVE_FILE = /(^|\/)(\.env(\.[\w.-]+)?|id_[a-z0-9]+|authorized_keys|\.npmrc|\.netrc|\.zshrc|\.bashrc|\.zprofile|\.bash_profile)$|(^|\/)\.(ssh|aws|gnupg)\/|^\/(etc|usr|bin|sbin|System)\//;
 
+/** True for paths of secrets, shell profiles and system folders. */
+export function isSensitivePath(path: string): boolean {
+  return SENSITIVE_FILE.test(path);
+}
+
 function inputString(input: unknown, key: string): string | undefined {
   if (typeof input !== 'object' || input === null) return undefined;
   const value = (input as Record<string, unknown>)[key];
@@ -67,7 +71,7 @@ export function detectRisk(permission: RiskInput): RiskReason | null {
   }
   if (WRITE_TOOLS.has(permission.toolName)) {
     const path = filePathOf(permission);
-    if (path !== undefined && SENSITIVE_FILE.test(path)) return 'sensitive-file';
+    if (path !== undefined && isSensitivePath(path)) return 'sensitive-file';
   }
   return null;
 }

@@ -209,6 +209,12 @@ export function permissionDraft(summary: string, summaryMsg?: Msg): ActivityDraf
   return draft('permission', '🔐', msg('activity.permission', { summary: summaryMsg ?? param(summary) }), summary, summaryMsg);
 }
 
+/** An approval rule answered a request ("Regra aprovou: npm test"); `summary` is the request, as in permissionDraft. */
+export function ruleDraft(effect: 'allow' | 'deny', summary: string, summaryMsg?: Msg): ActivityDraft {
+  const key = effect === 'allow' ? 'activity.rule.allow' : 'activity.rule.deny';
+  return draft('permission', effect === 'allow' ? '✅' : '🚫', msg(key, { summary: summaryMsg ?? param(summary) }), summary, summaryMsg);
+}
+
 /** Gives a draft its id and timestamp. */
 export function toActivity(draftValue: ActivityDraft, id: string, at: number): Activity {
   return { id, at, ...draftValue };

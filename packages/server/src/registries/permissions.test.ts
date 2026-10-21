@@ -133,3 +133,24 @@ describe('permission text', () => {
     expect(JSON.stringify(trimmed.deep)).toContain('…');
   });
 });
+
+describe('PermissionRegistry.createDecided', () => {
+  test('is answered at once, never pending, and does not disturb the office', async () => {
+    const permissions = registry();
+    const before = changes;
+    const id = permissions.createDecided(request, 'agent-main', { behavior: 'allow', auto: 'rule' });
+    expect(changes).toBe(before);
+    expect(permissions.pendingFor('agent-main')).toBeUndefined();
+    expect(await permissions.wait(id, 0)).toEqual({ status: 'decided', behavior: 'allow', auto: 'rule' });
+    expect(permissions.decide(id, { behavior: 'deny' })).toBe('conflict');
+  });
+
+  test('is forgotten like any finished request', () => {
+    const permissions = registry();
+    const id = permissions.createDecided(request, 'agent-main', { behavior: 'allow', auto: 'rule' });
+    clock += 120_000;
+    permissions.sweep();
+    expect(permissions.get(id)).toBeUndefined();
+  });
+});
+

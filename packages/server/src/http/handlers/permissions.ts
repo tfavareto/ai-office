@@ -1,10 +1,32 @@
 // Permission routes: the hook creates and long-polls, the page reads details and decides (local access only).
-import { API, type PermissionRequest, permissionDraft } from '@ai-office/shared';
+import { API, type PermissionHookRequest, type PermissionRequest, autoAnswer, permissionDraft, ruleDraft } from '@ai-office/shared';
 import { MAX_WAIT_MS } from '../../registries/permissions';
+import { describePermission } from '../../registries/permission-text';
 import type { AppContext } from '../context';
 import { HttpError, closeSignal, readJsonBody, sendError, sendJson } from '../respond';
 import type { Router } from '../router';
 import { parseDecision, parsePermissionHookRequest, parseTimeoutMs } from '../validate';
+
+/** Lets the approval rules answer a hook request; the id of the already-answered request, or undefined. */
+function answerWithRules(app: AppContext, hook: PermissionHookRequest): string | undefined {
+  const agent = app.office.findAgent(hook.session_id, hook.agent_id);
+  if (agent === undefined) return undefined;
+  const answer = autoAnswer(app.rules.book, {
+    toolName: hook.tool_name,
+    input: hook.tool_input,
+    summary: describePermission(hook.tool_name, hook.tool_input).summary,
+    projectPath: agent.projectId,
+    accountId: agent.accountId,
+    agentId: agent.id,
+    agentName: agent.name,
+    ...(agent.demo === true ? { demo: true } : {}),
+  });
+  if (answer === undefined) return undefined;
+  const id = app.permissions.createDecided(hook, agent.id, answer.decision);
+  const { summary, summaryMsg } = describePermission(hook.tool_name, hook.tool_input);
+  app.office.addExternalActivity(agent.id, ruleDraft(answer.effect, summary, summaryMsg));
+  return id;
+}
 
 export function registerPermissionRoutes(router: Router, app: AppContext): void {
   const base = API.permissions;
@@ -12,6 +34,9 @@ export function registerPermissionRoutes(router: Router, app: AppContext): void 
   router.add('POST', base, async ({ req, res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
     const hook = parsePermissionHookRequest(await readJsonBody(req));
+    // Rules answer first, whether or not a page is open: a standing answer does not need a viewer.
+    const answered = answerWithRules(app, hook);
+    if (answered !== undefined) return sendJson(res, 201, { id: answered });
     if (app.hub.localViewers() === 0) return sendJson(res, 200, { skip: 'no-viewer' });
     const created = app.permissions.create(hook);
     if ('skip' in created) return sendJson(res, 200, created);

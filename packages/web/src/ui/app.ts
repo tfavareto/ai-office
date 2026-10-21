@@ -1,5 +1,5 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import type { Account, Agent, BossMessage, HireRequest, Msg, Notice, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, Project, RecentSession } from '@ai-office/shared';
+import { suggestRule, type Account, type Agent, type BossMessage, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
@@ -9,6 +9,7 @@ import type { Selection } from '../world/api';
 import { notifyPermission, showBrowserNotification } from './browser-notify';
 import { BoardDialog } from './components/board-dialog';
 import { Drawer } from './components/drawer';
+import { RulesDialog } from './components/rules-dialog';
 import { DayDialog } from './components/day-dialog';
 import { EmptyState } from './components/empty-state';
 import { Feed } from './components/feed';
@@ -28,10 +29,11 @@ import { TopBar } from './components/topbar';
 import { localOnlyHint, type AppContext, type Component } from './context';
 import { BoardStore } from './board-store';
 import { bindLanguage } from './language';
-import { agentRole, agentTitle, localized, localizedOptional } from './display';
+import { agentRole, agentTitle, localized, localizedOptional, permissionSummary } from './display';
 import { h, isEditable, toggleClass } from './dom';
 import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { InboxController } from './inbox-controller';
+import { RulesController, type RulesTab } from './rules-controller';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
 import type { HireTarget } from './model/hire';
@@ -61,6 +63,7 @@ export class App implements AppContext {
   readonly messages: MessageCenter;
   readonly board = new BoardStore();
   readonly inbox: InboxController;
+  readonly rules: RulesController;
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
@@ -94,6 +97,7 @@ export class App implements AppContext {
     const initial = prefs.get();
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
+    this.rules = new RulesController(() => this.store.backend);
     this.inbox = new InboxController({ snapshot: () => this.snapshot, notifications: () => this.notifications.get().items, now: () => this.now() });
     this.messages = new MessageCenter({
       backend: store.backend,
@@ -131,7 +135,7 @@ export class App implements AppContext {
     const feed = new Feed(this);
     const toasts = new Toasts(this);
     const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
-    const dialogs = [new DayDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this)];
+    const dialogs = [new DayDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this), new RulesDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
@@ -346,6 +350,27 @@ export class App implements AppContext {
 
   // --- AppContext: actions -------------------------------------------------------------------------------------------
 
+  openRules(tab: RulesTab = 'rules'): void {
+    this.rules.start(tab);
+    this.ui.set({ dialog: 'rules', popover: null });
+  }
+
+  async openRuleEditor(agent: Agent, permission: PermissionRequest): Promise<void> {
+    if (!this.isLocal) return;
+    // The snapshot leaves the tool input out; the rule suggestion needs it (a command, a file, an address).
+    const detailed = await this.store.backend.permission(permission.id).catch(() => permission);
+    const draft = suggestRule({
+      toolName: detailed.toolName,
+      input: detailed.input,
+      summary: detailed.summary,
+      projectPath: this.project(agent.projectId)?.path ?? agent.projectId,
+      accountId: agent.accountId,
+    });
+    this.rules.start('rules');
+    this.rules.startNew(draft, { agentName: agent.name, summary: permissionSummary(permission) });
+    this.ui.set({ dialog: 'rules', popover: null });
+  }
+
   async decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean> {
     const permission = agent.permission;
     if (!permission) return false;
@@ -394,7 +419,7 @@ export class App implements AppContext {
       else if (event.type === 'notice') this.handleNotice(event.notice);
       this.refresh();
     });
-    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox, this.board]) observable.subscribe(() => this.refresh());
+    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox, this.board, this.rules]) observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
       // Opening an agent counts as having seen that its work finished.
       if (data.selection?.type === 'agent') this.inbox.markAgentSeen(data.selection.id);

@@ -1,6 +1,8 @@
 // HTTP + Server-Sent Events protocol between the AI Office server and the web app / plugin hooks.
 import type { Locale } from './i18n/i18n';
-import type { BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, RecentSession, TranscriptEntry } from './model';
+import type { AutoDecision, BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, RecentSession, Rule, TranscriptEntry } from './model';
+import type { RuleBookErrorCode, RulePreview } from './rules';
+import type { RuleDanger, RuleErrorCode, RuleField } from './rules/validate';
 
 /** Default port. Override with AI_OFFICE_PORT (server) — the plugin hooks read the same variable. */
 export const DEFAULT_PORT = 4848;
@@ -49,6 +51,12 @@ export const API = {
   messages: '/api/messages',
   /** POST { session_id, agent_id?, message? } from the Notification hook: the agent needs the user (local only). */
   attention: '/api/attention',
+  /**
+   * Approval rules (local access only). GET → RulesResponse · POST RuleInput → 201 RuleResponse · PATCH /:id (partial) →
+   * RuleResponse · DELETE /:id → { ok } · GET /log[?limit=] → RuleLogResponse · DELETE /log → { ok } ·
+   * POST /preview RuleInput → RulePreview. A refused rule answers 400 RuleErrorBody.
+   */
+  rules: '/api/rules',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
   hire: '/api/agents/hire',
   /** GET ?path=<absolute folder> → HireCheckResponse: whether a folder can host a new agent. Local access only. */
@@ -117,6 +125,30 @@ export interface MessagesResponse {
  * GET /api/messages/wait?session=&agent=&timeout=<s> → same shape; long-poll (≤ 25 s) used by the Stop hook.
  */
 export type InboxResponse = { messages: { id: string; text: string; createdAt: number; locale?: Locale }[] } | { skip: string };
+
+/** GET /api/rules */
+export interface RulesResponse {
+  rules: Rule[];
+}
+
+/** POST /api/rules, PATCH /api/rules/:id */
+export interface RuleResponse {
+  rule: Rule;
+}
+
+/** GET /api/rules/log: newest first, at most 500. */
+export interface RuleLogResponse {
+  entries: AutoDecision[];
+}
+
+export type RulePreviewResponse = RulePreview;
+
+/** Body of a refused rule (HTTP 400; 404 unknown rule; 409 duplicate or too many rules): the web app explains `error`. */
+export interface RuleErrorBody {
+  error: RuleErrorCode | RuleBookErrorCode;
+  field?: RuleField;
+  detail?: RuleDanger;
+}
 
 // ---- hiring an agent ------------------------------------------------------------------------------------------------
 

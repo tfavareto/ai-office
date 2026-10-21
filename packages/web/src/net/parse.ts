@@ -1,18 +1,25 @@
 // Defensive parsing of everything that comes from the network: never trust external data.
-import type {
-  Activity,
-  Agent,
-  AgentStats,
-  BossMessage,
-  DayStats,
-  FeedItem,
-  HireCheckResponse,
-  Notice,
-  OfficeSnapshot,
-  PendingHire,
-  RecentSession,
-  TranscriptEntry,
-  TranscriptPage,
+import {
+  parseLogFile,
+  parseRulesFile,
+  type Activity,
+  type Agent,
+  type AgentStats,
+  type AutoDecision,
+  type BossMessage,
+  type DayStats,
+  type FeedItem,
+  type HireCheckResponse,
+  type Notice,
+  type OfficeSnapshot,
+  type PendingHire,
+  type PermissionRequest,
+  type RecentSession,
+  type Rule,
+  type RuleErrorBody,
+  type RulePreview,
+  type TranscriptEntry,
+  type TranscriptPage,
 } from '@ai-office/shared';
 import { t } from '../i18n';
 
@@ -186,4 +193,51 @@ export function parseDay(data: unknown): DayStats {
   if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
   const agents = arr(data.agents, (item): item is DayStats['agents'][number] => isRecord(item) && typeof item.agentId === 'string' && isRecord(item.ms));
   return { date: str(data.date), agents };
+}
+
+/** `GET /api/permissions/:id`: the request with the tool input the rules look at. */
+export function parsePermission(data: unknown): PermissionRequest {
+  if (!isRecord(data) || typeof data.id !== 'string' || typeof data.toolName !== 'string') throw new Error(t('error.invalidResponse'));
+  return {
+    id: data.id,
+    agentId: str(data.agentId),
+    toolName: data.toolName,
+    summary: str(data.summary),
+    input: data.input,
+    suggestions: [],
+    createdAt: num(data.createdAt),
+    expiresAt: num(data.expiresAt),
+  };
+}
+
+/** Rules from `GET /api/rules`; anything unreadable is left out. */
+export function parseRules(data: unknown): Rule[] {
+  return parseRulesFile({ version: 1, rules: isRecord(data) ? data.rules : undefined }).rules;
+}
+
+export function parseRule(data: unknown): Rule {
+  const [rule] = parseRulesFile({ version: 1, rules: [isRecord(data) ? data.rule : undefined] }).rules;
+  if (rule === undefined) throw new Error(t('error.invalidResponse'));
+  return rule;
+}
+
+/** The auto-decision log, newest first as the server sends it. */
+export function parseRuleLog(data: unknown): AutoDecision[] {
+  const entries = isRecord(data) ? data.entries : undefined;
+  return parseLogFile({ version: 1, entries: Array.isArray(entries) ? [...entries].reverse() : undefined }).entries.reverse();
+}
+
+export function parseRulePreview(data: unknown): RulePreview {
+  if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
+  return { matches: num(data.matches), total: num(data.total), since: num(data.since) };
+}
+
+/** The body of a refused rule (`{ error, field?, detail? }`), or undefined when the body is something else. */
+export function parseRuleRejection(data: unknown): RuleErrorBody | undefined {
+  if (!isRecord(data) || typeof data.error !== 'string') return undefined;
+  return {
+    error: data.error as RuleErrorBody['error'],
+    ...(typeof data.field === 'string' ? { field: data.field as RuleErrorBody['field'] } : {}),
+    ...(typeof data.detail === 'string' ? { detail: data.detail as RuleErrorBody['detail'] } : {}),
+  };
 }

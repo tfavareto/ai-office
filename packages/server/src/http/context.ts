@@ -8,6 +8,7 @@ import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
 import type { MessageRegistry } from '../registries/messages';
 import type { PermissionRegistry } from '../registries/permissions';
+import type { RulesStore } from '../rules/rules-store';
 import type { HireService } from '../hire/service';
 import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
@@ -24,6 +25,7 @@ export interface AppContext {
   hub: SseHub;
   snapshots: SnapshotPublisher;
   permissions: PermissionRegistry;
+  rules: RulesStore;
   messages: MessageRegistry;
   attention: AttentionRegistry;
   hires: HireService;

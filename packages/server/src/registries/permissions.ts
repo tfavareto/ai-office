@@ -35,12 +35,31 @@ export class PermissionRegistry {
   create(request: PermissionHookRequest): CreateResult {
     const agentId = this.deps.resolveAgent(request.session_id, request.agent_id);
     if (agentId === undefined) return { skip: 'unknown-session' };
+    const entry = this.entryFor(request, agentId);
+    this.entries.set(entry.request.id, entry);
+    this.deps.onChange();
+    return { id: entry.request.id };
+  }
+
+  /**
+   * Registers a request that is already answered (by an approval rule): the hook's long-poll finds the decision at
+   * once, and the request never shows up as pending, so nothing in the office changes.
+   */
+  createDecided(request: PermissionHookRequest, agentId: string, decision: PermissionDecision): string {
+    const entry = this.entryFor(request, agentId);
+    entry.outcome = { status: 'decided', decision };
+    entry.finishedAt = this.deps.now();
+    this.entries.set(entry.request.id, entry);
+    return entry.request.id;
+  }
+
+  private entryFor(request: PermissionHookRequest, agentId: string): Entry {
     const now = this.deps.now();
     const hookBudget = request.timeout_ms !== undefined && request.timeout_ms > 0 ? request.timeout_ms : PERMISSION_TTL_MS;
     const id = newId(8);
     const { summary, summaryMsg } = describePermission(request.tool_name, request.tool_input);
     const suggestions = (request.permission_suggestions ?? []).map(describeSuggestion);
-    const entry: Entry = {
+    return {
       request: {
         id,
         agentId,
@@ -57,9 +76,6 @@ export class PermissionRegistry {
       finishedAt: 0,
       waiters: new Set(),
     };
-    this.entries.set(id, entry);
-    this.deps.onChange();
-    return { id };
   }
 
   /** Full request (with input), pending or not. */

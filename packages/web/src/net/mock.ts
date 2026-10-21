@@ -1,7 +1,7 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { createDemoSimulator, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision } from '@ai-office/shared';
+import { RuleBook, autoAnswer, createDemoSimulator, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult } from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
+import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
 import type { Transport, TransportHandlers } from './transport';
 
@@ -51,12 +51,20 @@ class MockTransport implements Transport {
   }
 }
 
+/** Throws what the server would answer for a refused rule. */
+function unwrap<T>(result: RuleResult<T>): T {
+  if (result.ok) return result.value;
+  const { code, field, detail } = result.error;
+  throw new RuleRejectedError({ error: code, ...(field !== undefined ? { field } : {}), ...(detail !== undefined ? { detail } : {}) }, code === 'not-found' ? 404 : code === 'duplicate-rule' || code === 'too-many-rules' ? 409 : 400);
+}
+
 class MockBackend implements Backend {
   latest: OfficeSnapshot | null = null;
 
   constructor(
     private readonly sim: DemoSimulator,
     private readonly log: MockLog,
+    private readonly book: RuleBook,
   ) {}
 
   private snapshot(): OfficeSnapshot {
@@ -74,6 +82,12 @@ class MockBackend implements Backend {
 
   async decidePermission(requestId: string, decision: PermissionDecision): Promise<DecisionResult> {
     return this.sim.decidePermission(requestId, decision) ? 'ok' : 'already-answered';
+  }
+
+  async permission(requestId: string) {
+    const found = this.sim.agents().find((agent) => agent.permission?.id === requestId)?.permission;
+    if (found === undefined) throw new BackendError(t('error.notFound'), 404);
+    return found;
   }
 
   async history(agentId: string) {
@@ -97,6 +111,34 @@ class MockBackend implements Backend {
     return on;
   }
 
+  async rules() {
+    return [...this.book.rules()];
+  }
+
+  async createRule(draft: RuleDraft) {
+    return unwrap(this.book.create(draft));
+  }
+
+  async updateRule(id: string, patch: Parameters<Backend['updateRule']>[1]) {
+    return unwrap(this.book.update(id, patch));
+  }
+
+  async deleteRule(id: string) {
+    if (!this.book.remove(id)) throw new RuleRejectedError({ error: 'not-found' }, 404);
+  }
+
+  async ruleLog() {
+    return this.book.log();
+  }
+
+  async clearRuleLog() {
+    this.book.clearLog();
+  }
+
+  async previewRule(draft: RuleDraft) {
+    return unwrap(this.book.preview(draft));
+  }
+
   async hireAgent(request: HireRequest) {
     return this.sim.hire({
       project: request.projectPath,
@@ -113,9 +155,16 @@ class MockBackend implements Backend {
 }
 
 export function createMockEnvironment(): { transport: Transport; backend: Backend } {
-  const sim = createDemoSimulator({ sessions: 4 });
+  // The simulated office answers its own requests through the same rules engine as the server's.
+  let ruleIds = 0;
+  const book = new RuleBook({ now: Date.now, newId: () => `mock-rule-${++ruleIds}` });
+  const sim = createDemoSimulator({
+    sessions: 4,
+    autoDecide: (request, agent) =>
+      autoAnswer(book, { toolName: request.toolName, input: request.input, summary: request.summary, projectPath: agent.projectId, accountId: agent.accountId, agentId: agent.id, agentName: agent.name, demo: true })?.decision,
+  });
   const log = new MockLog();
-  const backend = new MockBackend(sim, log);
+  const backend = new MockBackend(sim, log, book);
   const transport = new MockTransport(sim, log, (snapshot) => {
     backend.latest = snapshot;
   });

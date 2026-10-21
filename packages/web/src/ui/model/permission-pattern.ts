@@ -1,8 +1,7 @@
 // "Looks like" key of a permission request: requests with the same key can be approved together.
 // Shell commands must be identical (after folding whitespace); file tools match by folder and extension; web
 // fetches by host. Everything else matches on the exact summary.
-import type { PermissionRequest } from '@ai-office/shared';
-import { commandOf, filePathOf } from './permission-risk';
+import { type PermissionRequest, commandOf, filePathOf } from '@ai-office/shared';
 
 type PatternInput = Pick<PermissionRequest, 'toolName' | 'input' | 'summary'>;
 

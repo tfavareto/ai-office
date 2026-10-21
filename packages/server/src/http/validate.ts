@@ -135,6 +135,14 @@ export function parseAttention(body: unknown): { sessionId: string; agentId?: st
   return result;
 }
 
+const DEFAULT_LOG_LIMIT = 500;
+
+/** `limit` of the rule log: a whole number from 1 to 500 (500 when absent or unreadable). */
+export function parseLogLimit(raw: string | null): number {
+  const limit = raw === null ? DEFAULT_LOG_LIMIT : Number(raw);
+  return Number.isInteger(limit) && limit >= 1 ? Math.min(limit, DEFAULT_LOG_LIMIT) : DEFAULT_LOG_LIMIT;
+}
+
 /** Seconds query parameter converted to milliseconds, clamped to [0, maxSeconds]. */
 export function parseTimeoutMs(raw: string | null, maxSeconds: number, fallbackSeconds: number): number {
   const seconds = raw === null ? fallbackSeconds : Number(raw);

@@ -10,7 +10,7 @@
 //   4. A decision becomes the PermissionRequest hook output:
 //        allow    -> { behavior: "allow" } plus the chosen original permission suggestion as `updatedPermissions`
 //        deny     -> { behavior: "deny", message, interrupt }  (the fixed part of the message follows the decision's
-//                    `locale`: pt-BR, en or es; pt-BR when absent)
+//                    `locale`: pt-BR, en or es; pt-BR when absent; "by an AI Office rule" when `auto` is "rule")
 //        terminal / expired / any error -> no output (the terminal dialog stays in charge; first answer wins).
 //
 // Environment: AI_OFFICE_PORT (default 4848), AI_OFFICE_STATE_DIR (token location), AI_OFFICE_PERMISSION_TIMEOUT, AI_OFFICE_HOOK_DEBUG=1.
@@ -48,6 +48,13 @@ const DENIED = {
   'pt-BR': 'Recusado pelo usuário no AI Office',
   en: 'Denied by the user in AI Office',
   es: 'Rechazado por el usuario en AI Office',
+};
+
+/** The same, when an approval rule (not a person) refused the request. */
+const DENIED_BY_RULE = {
+  'pt-BR': 'Recusado por regra do AI Office',
+  en: 'Denied by an AI Office rule',
+  es: 'Rechazado por una regla de AI Office',
 };
 
 const OMITTED_INPUT = { aviso: 'Entrada grande demais, omitida pelo plugin.' };
@@ -127,7 +134,7 @@ export function buildPermissionBody(input, timeoutMs) {
 
 /**
  * Converts the user's decision into the hook output (or `null` when the terminal should answer).
- * @param {{ behavior?: string, suggestion?: number, message?: string, interrupt?: boolean, locale?: string }} decision
+ * @param {{ behavior?: string, suggestion?: number, message?: string, interrupt?: boolean, locale?: string, auto?: string }} decision
  * @param {unknown[] | undefined} suggestions  The original `permission_suggestions` of the request.
  * @returns {Record<string, unknown> | null}
  */
@@ -143,9 +150,10 @@ export function buildDecisionOutput(decision, suggestions) {
   }
   if (decision.behavior === 'deny') {
     const reason = typeof decision.message === 'string' ? decision.message.trim() : '';
+    const prefix = (decision.auto === 'rule' ? DENIED_BY_RULE : DENIED)[normalizeLocale(decision.locale)];
     return hookOutput({
       behavior: 'deny',
-      message: reason === '' ? `${DENIED[normalizeLocale(decision.locale)]}.` : `${DENIED[normalizeLocale(decision.locale)]}: ${reason}`,
+      message: reason === '' ? `${prefix}.` : `${prefix}: ${reason}`,
       interrupt: decision.interrupt === true,
     });
   }

@@ -37,6 +37,8 @@ export class PermissionCard {
   private allowBtn: HTMLButtonElement;
   private denyBtn: HTMLButtonElement;
   private terminalBtn: HTMLButtonElement;
+  private ruleBtn: HTMLButtonElement;
+  private permission: PermissionRequest | null = null;
   private requestId = '';
   private agent: Agent | null = null;
   private busy = false;
@@ -66,7 +68,14 @@ export class PermissionCard {
       title: t('permission.terminal.hint'),
       onClick: () => void this.answerInTerminal(),
     });
-    this.actions.append(this.allowBtn, this.denyBtn, this.terminalBtn);
+    this.ruleBtn = button({
+      label: t('rules.create'),
+      icon: 'shield',
+      variant: 'ghost',
+      title: t('rules.create.title'),
+      onClick: () => this.agent && this.permission && void this.ctx.openRuleEditor(this.agent, this.permission),
+    });
+    this.actions.append(this.allowBtn, this.denyBtn, this.terminalBtn, this.ruleBtn);
     this.el.append(
       h('header', { class: 'ao-urgent-head' }, icon('shield', 18), h('strong', null, t('permission.title')), h('span', { class: 'ao-urgent-spacer' }), h('span', { class: 'ao-urgent-sub' }, t('permission.expiresIn'), this.expires)),
       h('div', { class: 'ao-permission-tool' }, this.tool, this.summary),
@@ -81,6 +90,7 @@ export class PermissionCard {
 
   update(agent: Agent, permission: PermissionRequest): void {
     this.agent = agent;
+    this.permission = permission;
     if (permission.id !== this.requestId) {
       this.requestId = permission.id;
       this.busy = false;
@@ -120,7 +130,7 @@ export class PermissionCard {
   private syncDisabled(): void {
     const reason = this.ctx.isLocal ? undefined : t('permission.localOnly');
     const off = this.busy || !this.ctx.isLocal;
-    for (const btn of [this.allowBtn, this.denyBtn, this.terminalBtn]) setDisabled(btn, off, reason);
+    for (const btn of [this.allowBtn, this.denyBtn, this.terminalBtn, this.ruleBtn]) setDisabled(btn, off, reason);
     for (const btn of this.rememberBox.querySelectorAll('button')) setDisabled(btn, off, reason);
   }
 

@@ -21,7 +21,7 @@ treated as offline too. When the server uses `--state-dir`, set `AI_OFFICE_STATE
    GET /api/permissions/:id/wait?timeout=25 until decided or 300 s; output
    `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedPermissions":[<the
    chosen original suggestion>]}}}` or `{"behavior":"deny","message":"<fixed phrase>: <reason>",
-   "interrupt":<bool>}` where the fixed phrase follows the decision's `locale` ("Recusado pelo usuário no AI Office", "Denied by the user in AI Office" or "Rechazado por el usuario en AI Office"; pt-BR when absent); "terminal"/expired/any error: no output.
+   "interrupt":<bool>}` where the fixed phrase follows the decision's `locale` ("Recusado pelo usuário no AI Office", "Denied by the user in AI Office" or "Rechazado por el usuario en AI Office"; pt-BR when absent). When the decision carries `auto: "rule"` (an approval rule answered, see 02-server.md) the phrase says so instead ("Recusado por regra do AI Office", "Denied by an AI Office rule", "Rechazado por una regla de AI Office") and the reason is the rule's note or `Tool: matcher`; an old plugin that ignores `auto` still denies, with the user phrase. "terminal"/expired/any error: no output.
 2. `messages.mjs` — PostToolUse (matcher "*", timeout 10): POST /api/messages/inbox {session, agent?, via:"tool"} → output
    `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<preamble>\n\n<text>"}}`. Stop (timeout 660, statusMessage "De plantão: aguardando ordens no AI Office"):
    inbox via=stop (POST), else long-poll /api/messages/wait (25 s steps, total AI_OFFICE_STANDBY_MIN default 10, 0 disables;
