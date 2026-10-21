@@ -11,6 +11,7 @@ import { registerPermissionRoutes } from './handlers/permissions';
 import { registerReportRoutes } from './handlers/report';
 import { registerRuleRoutes } from './handlers/rules';
 import { registerSystemRoutes } from './handlers/system';
+import { registerTimelapseRoutes } from './handlers/timelapse';
 import { registerUsageRoutes } from './handlers/usage';
 import { guardRequest } from './guard';
 import { HttpError, sendError } from './respond';
@@ -51,6 +52,7 @@ export function buildRouter(app: AppContext): Router {
   registerMessageRoutes(router, app);
   registerRuleRoutes(router, app);
   registerReportRoutes(router, app);
+  registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
   registerGitRoutes(router, app);
   return router;

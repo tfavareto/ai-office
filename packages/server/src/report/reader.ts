@@ -5,6 +5,7 @@ import { type FileHandle, open } from 'node:fs/promises';
 import { JsonlTailer } from '../claude/jsonl-tailer';
 import { parseLine } from '../claude/line-parser';
 import { asRecord, asString } from '../util/fs-safe';
+import { TraceRecorder } from '../timelapse/recorder';
 import { type DayWindow, FileDayAccumulator, type FileRole } from './accumulator';
 
 const SLICE_BYTES = 1024 * 1024;
@@ -30,6 +31,8 @@ export interface ReadState extends FileStamp {
   /** Stopped at the byte budget: the numbers cover only part of the day. */
   truncated: boolean;
   acc: FileDayAccumulator;
+  /** The moments of the day (time-lapse), kept up to date alongside `acc` once someone asked for them. */
+  trace?: TraceRecorder;
 }
 
 export interface ReadBudget {
@@ -123,20 +126,25 @@ export function isResumable(previous: ReadState, stamp: FileStamp): boolean {
   return previous.ino === stamp.ino && stamp.size >= previous.offset;
 }
 
+export interface ReadOptions {
+  /** Also record the moments of the day. A cached read without them is read again from the start of the day. */
+  trace?: boolean;
+}
+
 /**
- * Brings the accumulator of one file up to date for the day. `previous` is resumed when the file only grew;
- * otherwise the file is read again from the start of the day.
+ * Brings the accumulator of one file up to date for the day. `previous` is resumed when the file only grew (and, when
+ * the moments are wanted, already has them); otherwise the file is read again from the start of the day.
  */
-export async function readFileDay(path: string, stamp: FileStamp, window: DayWindow, role: FileRole, previous: ReadState | undefined, budget: ReadBudget): Promise<ReadState> {
-  if (previous !== undefined && isResumable(previous, stamp)) {
-    if (previous.done || (previous.size === stamp.size && !previous.truncated)) return { ...previous, ...stamp };
-  }
-  const resume = previous !== undefined && isResumable(previous, stamp) ? previous : undefined;
+export async function readFileDay(path: string, stamp: FileStamp, window: DayWindow, role: FileRole, previous: ReadState | undefined, budget: ReadBudget, options: ReadOptions = {}): Promise<ReadState> {
+  const resume = previous !== undefined && isResumable(previous, stamp) && (options.trace !== true || previous.trace !== undefined) ? previous : undefined;
+  if (resume !== undefined && (resume.done || (resume.size === stamp.size && !resume.truncated))) return { ...resume, ...stamp };
   let acc = resume?.acc;
+  let trace = resume?.trace;
   let startOffset = resume?.offset ?? 0;
   if (acc === undefined) {
     const seek = await seekDayStart(path, stamp.size, window);
     acc = new FileDayAccumulator(window, role, seek.startedInDay);
+    trace = options.trace === true ? new TraceRecorder(window, role === 'sub') : undefined;
     startOffset = seek.offset;
   }
   const tailer = new JsonlTailer(path, { startOffset, maxBytesPerRead: SLICE_BYTES });
@@ -148,7 +156,10 @@ export async function readFileDay(path: string, stamp: FileStamp, window: DayWin
     for (let i = 0; i < read.lines.length && !done; i++) {
       const line = parseLine(read.lines[i] as string);
       if (line !== undefined && 'at' in line && line.at >= window.end) done = true;
-      else if (line !== undefined) acc.ingest(line);
+      else if (line !== undefined) {
+        acc.ingest(line);
+        trace?.ingest(line);
+      }
       if (i % LINES_PER_TURN === LINES_PER_TURN - 1) await budget.yieldTurn();
     }
     if (tailer.atEnd || done) break;
@@ -158,5 +169,5 @@ export async function readFileDay(path: string, stamp: FileStamp, window: DayWin
     }
     await budget.yieldTurn();
   }
-  return { ...stamp, offset: tailer.position, done, truncated, acc };
+  return { ...stamp, offset: tailer.position, done, truncated, acc, ...(trace !== undefined ? { trace } : {}) };
 }

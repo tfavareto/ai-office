@@ -260,6 +260,17 @@ The **Report** tab of **My day** (press `R` to open it directly) tells what each
 
 Token and cost figures are estimates. If the usage index is still being built you will see a note, and the report may say that it was limited by size or time on a very busy day. Demo mode shows believable demo data for every day.
 
+### Watch the day (time-lapse)
+
+**Watch the day** in **My day** (or the `L` key) replays today or any of the last six days in the office itself, at 30x, 120x, 600x or 1800x, so you can see what happened while you were away.
+
+![The time-lapse in the 2D office](assets/readme/en/timelapse-2d.png)
+
+- **What you see.** People walk in when their sessions began, work, wait for a permission (standing with a raised hand), rest, run commands and call subagents who meet in the meeting room; rooms open and close with them and the light follows the time of day. Names, activities, tasks and the activity feed are those of the moment you are at.
+- **The controls** sit above the feed: play and pause (`Space`), the time of the replay in big digits, a timeline over the part of the day that had activity, the speeds, a day picker and **Back to live** (`Esc`). On the timeline, diamonds mark commits (blue), failed test runs (red), times the agent waited for you (amber) and arrivals (green); hover to read what happened and when, click to jump there. Drag to scrub: the office is rebuilt at that moment at once. `←` `→` skip 1 minute (`Shift` 10 minutes), `PgUp` `PgDn` go to the previous or next mark.
+- **It is the past.** The top bar turns violet and says `REPLAY`, and the page is read-only: you cannot message, approve, hire or open terminals until you go back to live. If agents need you in the live office, a note above the controls says how many and takes you back.
+- **How the day is rebuilt.** From the session transcripts, the same way the day report is. There is no registry in a transcript, so some things are inferred: a person is "in the office" while their events are less than 30 minutes apart, and a wait for permission is only detected for file edits and writes and for questions. Nothing you or the agents wrote is shown, only what they were doing (reading a file, running a command). A busy day is thinned to fit, and the controls say so.
+
 ## Session history
 
 **Session history** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
@@ -356,13 +367,14 @@ Plain keys are ignored while you type in a field.
 | `U` | Open the detailed **Consumo** (usage) view. |
 | `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
+| `L` | Watch the day as a [time-lapse](#watch-the-day-time-lapse), or go back to live. In it: `Space` plays or pauses, `←` `→` skip a minute (`Shift`: ten), `PgUp` `PgDn` previous or next mark. |
 | `O` | Overview of the whole office. |
 | `[` | Show or hide the sidebar. |
 | `]` | Expand or collapse the activity feed. |
 | `?` | Open help. |
 | `Cmd+Enter` / `Ctrl+Enter` | Send the message you are writing. |
 | `Cmd+F` / `Ctrl+F` | Search inside the terminal (only while it is open). |
-| `Esc` | Close the topmost thing: terminal search, terminal, panels, selection. |
+| `Esc` | Close the topmost thing: terminal search, terminal, panels, selection, then the time-lapse. |
 | `W` `A` `S` `D` / arrows, `Shift` | Pan the camera; `Shift` is faster. |
 | `+` / `-` | Zoom. |
 

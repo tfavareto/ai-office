@@ -1,5 +1,5 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, GitSettings, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
+import type { Account, Agent, BossMessage, FeedItem, GitSettings, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
@@ -8,6 +8,7 @@ import type { InboxController } from './inbox-controller';
 import type { MessageCenter } from './message-center';
 import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
+import type { ReplayController } from './replay-controller';
 import type { RulesController, RulesTab } from './rules-controller';
 import type { DayTab, DialogId, DrawerTab, PopoverId, UiState } from './state';
 import type { WorldHost } from './world-host';
@@ -20,9 +21,16 @@ export interface Component {
   dispose?(): void;
 }
 
-/** Why a feature is off when the page is not opened on the computer that runs AI Office. */
+let replayHint = false;
+
+/** While a time-lapse is on, the features that act on live sessions explain that with `hint.replay` instead. */
+export function setReplayHint(on: boolean): void {
+  replayHint = on;
+}
+
+/** Why a feature is off: the page is not opened on the computer that runs AI Office, or a time-lapse is playing. */
 export function localOnlyHint(): string {
-  return t('hint.localOnly');
+  return t(replayHint ? 'hint.replay' : 'hint.localOnly');
 }
 
 export interface AppContext {
@@ -36,12 +44,18 @@ export interface AppContext {
   readonly board: BoardStore;
   readonly inbox: InboxController;
   readonly rules: RulesController;
+  readonly replay: ReplayController;
 
+  /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
   readonly snapshot: OfficeSnapshot | null;
-  /** Terminal, permissions and messages are available. */
+  /** The office now, whatever the panels show. */
+  readonly liveSnapshot: OfficeSnapshot | null;
+  /** Terminal, permissions and messages are available (never while a time-lapse is on). */
   readonly isLocal: boolean;
   /** Server-aligned current time (epoch ms). */
   now(): number;
+  /** The activity feed: the latest items of the office now, or up to the replay's time. */
+  feed(): readonly FeedItem[];
   agent(id: string): Agent | undefined;
   account(id: string): Account | undefined;
   project(id: string): Project | undefined;
@@ -60,6 +74,10 @@ export interface AppContext {
   closeDialog(): void;
   /** Opens "Meu dia" on a tab (closes it when it is already open there). */
   openDay(tab: DayTab): void;
+  /** Plays a day (default: today) as a time-lapse; the page is read-only until `stopReplay`. */
+  startReplay(date?: string): void;
+  /** Leaves the time-lapse and shows the live office again. */
+  stopReplay(): void;
   /** Opens the "hire an agent" dialog (no-op with a hint when the page is not local). */
   openHire(target?: HireTarget): void;
   jumpToShell(): void;

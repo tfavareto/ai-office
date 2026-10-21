@@ -43,7 +43,7 @@ export class EmptyState implements Component {
 
   render(): void {
     const snapshot = this.ctx.snapshot;
-    const empty = snapshot !== null && computeCounters(snapshot).agents === 0 && snapshot.agents.every((agent) => agent.status === 'offline' || agent.status === 'done');
+    const empty = snapshot !== null && !this.ctx.replay.engaged && computeCounters(snapshot).agents === 0 && snapshot.agents.every((agent) => agent.status === 'offline' || agent.status === 'done');
     this.el.hidden = !empty;
     if (!empty) return;
     const canDemo = this.ctx.isLocal && this.ctx.store.mode === 'live';

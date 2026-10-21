@@ -89,4 +89,24 @@ describe('readFileDay', () => {
     const state = await readFileDay(path, await stamp(), DAY, 'main', undefined, budget({ now: () => 10, deadline: 5 }));
     expect(state.truncated).toBe(true);
   });
+
+  test('records the moments of the day only when asked, and a cached read without them is read again to get them', async () => {
+    await writeFile(path, jsonl(...prompts(3, 0, 'a')));
+    const plain = await readFileDay(path, await stamp(), DAY, 'main', undefined, budget());
+    expect(plain.trace).toBeUndefined();
+    const traced = await readFileDay(path, await stamp(), DAY, 'main', plain, budget(), { trace: true });
+    expect(traced.trace?.result().firstAt).toBe(T0);
+    expect(traced.acc).not.toBe(plain.acc);
+    expect(traced.acc.result().prompts).toBe(3);
+  });
+
+  test('keeps feeding the moments of a cached read, even when a later read does not ask for them', async () => {
+    await writeFile(path, jsonl(...prompts(3, 0, 'a')));
+    const traced = await readFileDay(path, await stamp(), DAY, 'main', undefined, budget(), { trace: true });
+    await appendFile(path, jsonl(...prompts(2, 10_000, 'b')));
+    const grown = await readFileDay(path, await stamp(), DAY, 'main', traced, budget());
+    expect(grown.trace).toBe(traced.trace);
+    expect(grown.trace?.result().lastAt).toBe(T0 + 11_000);
+    expect(grown.acc).toBe(traced.acc);
+  });
 });

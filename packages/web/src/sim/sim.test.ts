@@ -52,6 +52,35 @@ describe('simulation', () => {
     expect(sim.areaAt(ana.x, ana.y)).toBe('room:/work/proj-0');
   });
 
+  it('resets the scene: the next snapshot puts everybody at their desks and opens every room at once, as for a jump in a replay', () => {
+    const sim = seeded();
+    sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0)]), 1_000_000);
+    sim.runFor(1);
+    sim.setSnapshot(makeSnapshot(2, [makeAgent('ana', 0), makeAgent('caio', 1)], 2), 1_001_000);
+    expect(sim.character('caio')?.alpha).toBe(0);
+    expect(sim.roomStates.some((room) => room.phase === 'building')).toBe(true);
+
+    sim.reset();
+    expect(sim.characters).toHaveLength(0);
+    expect(sim.roomStates).toHaveLength(0);
+    sim.setSnapshot(makeSnapshot(3, [makeAgent('ana', 0), makeAgent('caio', 1), makeAgent('duda', 2)], 3), 2_000_000);
+    sim.runFor(0.1);
+
+    expect(sim.characters.map((c) => c.id).sort()).toEqual(['ana', 'caio', 'duda']);
+    expect(sim.characters.every((c) => c.alpha === 1 && !c.moving && c.seat === 'desk')).toBe(true);
+    expect(sim.roomStates.every((room) => room.phase === 'open' && room.progress === 1)).toBe(true);
+    expect(sim.serverNow()).toBeGreaterThanOrEqual(2_000_000);
+  });
+
+  it('after a reset the rooms of the new snapshot take the slots by their order', () => {
+    const sim = seeded();
+    sim.setSnapshot(makeSnapshot(2, [makeAgent('ana', 0), makeAgent('bia', 1)]), 1_000_000);
+    sim.reset();
+    sim.setSnapshot(makeSnapshot(1, [makeAgent('bia', 1)], 2), 2_000_000);
+
+    expect(sim.roomStates.map((room) => room.projectId)).toEqual(['/work/proj-0']);
+  });
+
   it('brings a new agent in through an elevator, walks it to its desk and types', () => {
     const sim = seeded();
     sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0)]), 1_000_000);

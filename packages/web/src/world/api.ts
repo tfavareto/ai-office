@@ -55,6 +55,13 @@ export interface WorldApi {
   readonly kind: '2d' | '3d';
   /** New state from the server (or the mock). Called at most once per frame by the UI. */
   setSnapshot(snapshot: OfficeSnapshot, serverNow: number): void;
+  /**
+   * Forgets the people and rooms drawn so far: the next snapshot is shown at once, everybody already at their desk and
+   * every room built, instead of walking in (a time-lapse that jumps in the day, or goes back to live).
+   */
+  resetScene(): void;
+  /** The instant "automatic" daylight follows (a replay's time of day); `null` goes back to the real clock. */
+  setClock(at: number | null): void;
   setOptions(options: Partial<WorldOptions>): void;
   getOptions(): WorldOptions;
   setInsets(insets: ViewInsets): void;

@@ -19,18 +19,28 @@ export class DayNight {
   night = 0;
   private mode: DaylightMode = 'auto';
   private initialised = false;
+  private clock: number | null = null;
+
+  /** Makes "auto" follow an instant of a replay instead of the real time; `null` goes back to the real clock. */
+  setClock(at: number | null): void {
+    this.clock = at;
+  }
+
+  private now(): Date {
+    return this.clock === null ? new Date() : new Date(this.clock);
+  }
 
   setMode(mode: DaylightMode): void {
     this.mode = mode;
   }
 
-  target(date = new Date()): number {
+  target(date = this.now()): number {
     if (this.mode === 'day') return 0;
     if (this.mode === 'night') return 1;
     return nightFromHour(localHour(date));
   }
 
-  update(dt: number, date = new Date()): void {
+  update(dt: number, date = this.now()): void {
     const target = this.target(date);
     if (!this.initialised) {
       this.night = target;

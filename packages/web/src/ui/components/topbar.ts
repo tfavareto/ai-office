@@ -2,7 +2,8 @@
 import { t, type UiKey } from '../../i18n';
 import type { CameraMode } from '../../world/api';
 import type { AppContext, Component } from '../context';
-import { h, setText, toggleClass } from '../dom';
+import { h, setAttr, setText, toggleClass } from '../dom';
+import { formatDateKey } from '../format';
 import { icon, type IconName } from '../icons';
 import { logo } from '../logo';
 import { computeCounters, type Counters } from '../model/counters';
@@ -164,7 +165,12 @@ export class TopBar implements Component {
     const mock = this.ctx.store.mode === 'mock';
     let kind: string;
     let text: string;
-    if (connection === 'live') {
+    const replay = this.ctx.replay.get();
+    if (this.ctx.replay.engaged) {
+      kind = 'replay';
+      text = t('replay.pill', { date: formatDateKey(replay.date) });
+      setAttr(this.pill, 'title', t('replay.pill.hint'));
+    } else if (connection === 'live') {
       kind = mock ? 'mock' : 'live';
       text = mock ? t('topbar.connection.mock') : this.ctx.snapshot?.meta.demo ? t('topbar.connection.liveDemo') : t('topbar.connection.live');
     } else if (connection === 'reconnecting') {
@@ -174,6 +180,7 @@ export class TopBar implements Component {
       kind = 'connecting';
       text = t('topbar.connection.connecting');
     }
+    if (kind !== 'replay') setAttr(this.pill, 'title', null);
     const next = `ao-pill ao-pill--${kind}`;
     if (this.pill.className !== next) this.pill.className = next;
     setText(this.pillText, text);

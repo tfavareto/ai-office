@@ -38,7 +38,7 @@ export class Feed implements Component {
 
   render(): void {
     const open = this.ctx.ui.get().feedOpen;
-    const feed = this.ctx.store.data.feed;
+    const feed = this.ctx.feed();
     const newest = feed[feed.length - 1];
     if (open !== this.lastOpen) {
       this.lastOpen = open;

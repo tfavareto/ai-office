@@ -38,7 +38,7 @@ function text(locale: Locale, key: SharedMessageKey): string {
   return translateShared(locale, msg(key));
 }
 
-interface Shift {
+export interface Shift {
   from: number;
   to: number;
 }
@@ -142,12 +142,19 @@ function usageOf(agent: Agent, range: DayRange, rows: readonly UsageRow[], activ
   return { tokens: synthetic, costUSD: synthetic * USD_PER_TOKEN };
 }
 
+/** When a demo person worked on a day (the report and the time-lapse tell the same story), and the generator that went with it. */
+export function demoShiftPlan(agentId: string, range: DayRange, now: number): { plan: Shift[]; rng: () => number } | undefined {
+  const rng = mulberry32(fnv1a(`${agentId}|${range.date}`));
+  const weekend = [0, 6].includes(new Date(range.start).getDay());
+  if (rng() < (weekend ? 0.7 : 0.12) && now >= range.end) return undefined;
+  const plan = shifts(range, now, rng);
+  return plan.length === 0 ? undefined : { plan, rng };
+}
+
 function agentReport(agent: Agent, input: DemoReportInput): ReportAgent | undefined {
-  const rng = mulberry32(fnv1a(`${agent.id}|${input.range.date}`));
-  const weekend = [0, 6].includes(new Date(input.range.start).getDay());
-  if (rng() < (weekend ? 0.7 : 0.12) && input.now >= input.range.end) return undefined;
-  const plan = shifts(input.range, input.now, rng);
-  if (plan.length === 0) return undefined;
+  const shiftPlan = demoShiftPlan(agent.id, input.range, input.now);
+  if (shiftPlan === undefined) return undefined;
+  const { plan, rng } = shiftPlan;
   const activity = activityOf(input.range, plan, rng);
   const activeMs = activity.reduce((sum, ms) => sum + ms, 0);
   const scale = Math.min(1, 0.4 + activeMs / (4 * HOUR_MS));

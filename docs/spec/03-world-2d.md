@@ -77,6 +77,8 @@ or selected. Nothing here changes the static layers or the cost of a frame.
 Implement `createWorld2D(container, opts): WorldApi` from `packages/web/src/world/api.ts` (do not change that file
 without updating every implementation).
 
+`WorldApi.resetScene()` (`OfficeSim.reset`) drops every person, spot and room so the next snapshot is placed at once, and `WorldApi.setClock(at)` feeds `DayNight` an instant of a time-lapse (see [04-ui.md](04-ui.md#time-lapse-mode)); `setClock(null)` returns to the real clock.
+
 ## Camera
 - The visible area is always covered by the drawn world: the minimum zoom is the zoom at which the world (the building plus
   its city frame) covers the whole canvas, and panning is clamped to the world edge. The city frame is large enough

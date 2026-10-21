@@ -1,19 +1,26 @@
 // The day report service: finds the transcripts that were written during the day, reads the day's slice of each one
 // (cached, resumable, off the event loop, one scan at a time), and joins the result with the usage index, the names of
 // the people and the status times the office recorded.
+import { readFile } from 'node:fs/promises';
 import {
   type Account,
   type Agent,
   type DayRange,
   type DayReport,
   type DayStats,
+  type PersonName,
   type ReportCommit,
   type ReportUsage,
+  type Timelapse,
   floorToHour,
+  findPerson,
   pickName,
   rowTokens,
 } from '@ai-office/shared';
+import { parseSubagentMeta, type SubagentMeta } from '../claude/paths';
 import type { Logger } from '../log';
+import { type SessionTrace, buildTimelapse } from '../timelapse/build';
+import { asRecord } from '../util/fs-safe';
 import type { UsageIndexer } from '../usage/indexer';
 import { type TranscriptFile, discoverTranscripts } from '../usage/discover';
 import type { FileDay } from './accumulator';
@@ -55,11 +62,26 @@ export interface ReportRequest {
   includeRequests: boolean;
 }
 
+export interface TimelapseRequest {
+  range: DayRange;
+  accounts: readonly Account[];
+  label: string;
+}
+
+/** Subagent meta files read so far (they never change once written). */
+const MAX_CACHED_META = 2000;
+
+interface ScannedFile {
+  file: TranscriptFile;
+  state: ReadState;
+}
+
 const turn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 export class ReportService {
   private readonly cache = new Map<string, ReadState>();
-  private readonly inflight = new Map<string, Promise<DayReport>>();
+  private readonly metas = new Map<string, SubagentMeta>();
+  private readonly inflight = new Map<string, Promise<unknown>>();
   private queue: Promise<unknown> = Promise.resolve();
   private readonly limits: ReportLimits;
 
@@ -69,30 +91,48 @@ export class ReportService {
 
   /** The report of a day. Concurrent requests for the same report share one scan; scans run one at a time. */
   report(request: ReportRequest): Promise<DayReport> {
-    const key = `${request.range.date}|${request.label}|${request.includeRequests}`;
+    return this.enqueue(`report|${request.range.date}|${request.label}|${request.includeRequests}`, () => this.scan(request));
+  }
+
+  /** The time-lapse of a day. It shares the report's reader, its cache and its queue. */
+  timelapse(request: TimelapseRequest): Promise<Timelapse> {
+    return this.enqueue(`timelapse|${request.range.date}|${request.label}`, () => this.scanTimelapse(request));
+  }
+
+  private enqueue<T>(key: string, job: () => Promise<T>): Promise<T> {
     const running = this.inflight.get(key);
-    if (running !== undefined) return running;
-    const job = this.queue.then(() => this.scan(request));
-    this.queue = job.catch(() => undefined);
-    const tracked = job.finally(() => this.inflight.delete(key));
+    if (running !== undefined) return running as Promise<T>;
+    const started = this.queue.then(job);
+    this.queue = started.catch(() => undefined);
+    const tracked = started.finally(() => this.inflight.delete(key));
     this.inflight.set(key, tracked);
     return tracked;
   }
 
-  private async scan(request: ReportRequest): Promise<DayReport> {
+  /** Reads the day's slice of every transcript written that day, within the file, byte and time limits. */
+  private async readDay(request: { range: DayRange; accounts: readonly Account[] }, trace: boolean): Promise<{ files: ScannedFile[]; truncated: boolean }> {
     const started = this.deps.now();
     const budget: ReadBudget = { maxBytes: this.limits.maxBytesPerFile, deadline: started + this.limits.timeoutMs, now: this.deps.now, yieldTurn: turn };
     const candidates = await this.candidates(request);
     let truncated = candidates.length > this.limits.maxFiles;
-    const sessions = new Map<string, { accountId: string; sessionId: string; files: FileDay[] }>();
+    const files: ScannedFile[] = [];
     for (const file of candidates.slice(0, this.limits.maxFiles)) {
       if (this.deps.now() >= budget.deadline) {
         truncated = true;
         break;
       }
-      const state = await this.read(file, request.range, budget);
+      const state = await this.read(file, request.range, budget, trace);
       if (state === undefined) continue;
       if (state.truncated) truncated = true;
+      files.push({ file, state });
+    }
+    return { files, truncated };
+  }
+
+  private async scan(request: ReportRequest): Promise<DayReport> {
+    const { files, truncated } = await this.readDay(request, false);
+    const sessions = new Map<string, { accountId: string; sessionId: string; files: FileDay[] }>();
+    for (const { file, state } of files) {
       const key = `${file.account}:${file.session}`;
       const session = sessions.get(key) ?? { accountId: file.account, sessionId: file.session, files: [] };
       session.files.push(state.acc.result());
@@ -116,7 +156,35 @@ export class ReportService {
     return this.withGitCommits(report, request.range);
   }
 
-  private async candidates(request: ReportRequest): Promise<TranscriptFile[]> {
+  private async scanTimelapse(request: TimelapseRequest): Promise<Timelapse> {
+    const { files, truncated } = await this.readDay(request, true);
+    const sessions = new Map<string, { accountId: string; sessionId: string; files: SessionTrace['files'][number][] }>();
+    for (const { file, state } of files) {
+      if (state.trace === undefined) continue;
+      const key = `${file.account}:${file.session}`;
+      const session = sessions.get(key) ?? { accountId: file.account, sessionId: file.session, files: [] };
+      const meta = file.agent === '' ? undefined : await this.metaOf(file);
+      session.files.push({ agent: file.agent, day: state.acc.result(), trace: state.trace.result(), ...(meta !== undefined ? { meta } : {}) });
+      sessions.set(key, session);
+    }
+    const status = await this.statusByAgent(request.range.date);
+    const git = await this.gitCommitsByProject([...sessions.values()], request.range);
+    const person = this.personLookup();
+    return buildTimelapse({
+      date: request.range.date,
+      start: request.range.start,
+      end: request.range.end,
+      now: this.deps.now(),
+      account: request.label,
+      sessions: [...sessions.values()],
+      personOf: person,
+      recordedOf: (agentId) => status.get(agentId),
+      gitCommitsOf: (projectPath) => git.get(projectPath) ?? [],
+      truncated,
+    });
+  }
+
+  private async candidates(request: { range: DayRange; accounts: readonly Account[] }): Promise<TranscriptFile[]> {
     const found: TranscriptFile[] = [];
     for (const account of request.accounts) {
       const { files } = await discoverTranscripts(account.id, account.dir);
@@ -125,11 +193,11 @@ export class ReportService {
     return found.sort((a, b) => b.mtimeMs - a.mtimeMs);
   }
 
-  private async read(file: TranscriptFile, range: DayRange, budget: ReadBudget): Promise<ReadState | undefined> {
+  private async read(file: TranscriptFile, range: DayRange, budget: ReadBudget, trace: boolean): Promise<ReadState | undefined> {
     const key = `${file.account}|${file.rel}|${range.date}`;
     const previous = this.cache.get(key);
     try {
-      const state = await readFileDay(file.path, { size: file.size, mtimeMs: file.mtimeMs, ino: file.ino }, range, file.agent === '' ? 'main' : 'sub', previous, budget);
+      const state = await readFileDay(file.path, { size: file.size, mtimeMs: file.mtimeMs, ino: file.ino }, range, file.agent === '' ? 'main' : 'sub', previous, budget, { trace });
       this.cache.delete(key);
       this.cache.set(key, state);
       if (this.cache.size > MAX_CACHED_FILES) this.cache.delete(this.cache.keys().next().value as string);
@@ -168,6 +236,48 @@ export class ReportService {
       const key = `${accountId}:${sessionId}`;
       return live.get(key) ?? this.deps.storedName(key) ?? pickName(key, new Set()).name;
     };
+  }
+
+  /** The `agent-<id>.meta.json` next to a subagent transcript (type, description, the tool call that spawned it). */
+  private async metaOf(file: TranscriptFile): Promise<SubagentMeta | undefined> {
+    const known = this.metas.get(file.path);
+    if (known !== undefined) return known;
+    try {
+      const meta = parseSubagentMeta(asRecord(JSON.parse(await readFile(file.path.replace(/\.jsonl$/, '.meta.json'), 'utf8')) as unknown));
+      this.metas.set(file.path, meta);
+      if (this.metas.size > MAX_CACHED_META) this.metas.delete(this.metas.keys().next().value as string);
+      return meta;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** The person of an agent id: the name the office shows (live, else stored), else a stable pick. */
+  private personLookup(): (agentId: string, taken: ReadonlySet<string>) => PersonName {
+    const live = new Map(this.deps.agents().map((agent) => [agent.id, agent]));
+    return (agentId, taken) => {
+      const agent = live.get(agentId);
+      const name = agent?.name ?? this.deps.storedName(agentId);
+      if (name === undefined || taken.has(name)) return pickName(agentId, taken);
+      return { name, look: agent?.look ?? findPerson(name)?.look ?? pickName(agentId, new Set()).look };
+    };
+  }
+
+  private async gitCommitsByProject(sessions: readonly { files: readonly { day: FileDay }[] }[], range: DayRange): Promise<Map<string, readonly ReportCommit[]>> {
+    const provider = this.deps.gitCommits;
+    const found = new Map<string, readonly ReportCommit[]>();
+    if (provider === undefined) return found;
+    const paths = [...new Set(sessions.flatMap((session) => session.files.map((file) => file.day.cwd).filter((cwd): cwd is string => cwd !== undefined && cwd !== '')))].slice(0, MAX_GIT_PROJECTS);
+    await Promise.all(
+      paths.map(async (path) => {
+        try {
+          found.set(path, await provider(path, range));
+        } catch (error) {
+          this.deps.log.debug(`Time-lapse: Git indisponível em ${path}: ${String(error)}`);
+        }
+      }),
+    );
+    return found;
   }
 
   private async withGitCommits(report: DayReport, range: DayRange): Promise<DayReport> {

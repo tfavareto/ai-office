@@ -1,0 +1,475 @@
+/* Time-lapse of the day: the controls bar, and everything that tells the replay apart from the live office. */
+.ao-root {
+  --replay: #a78bfa;
+  --replay-strong: #8b6cf0;
+  --replay-soft: rgba(167, 139, 250, 0.16);
+  --replay-line: rgba(167, 139, 250, 0.42);
+  }
+
+/* ---- what tells it apart from live ------------------------------------------------------------------------------ */
+.ao-root.is-replay .ao-topbar {
+  background: linear-gradient(180deg, rgba(52, 37, 100, 0.95), rgba(31, 24, 62, 0.92));
+  border-bottom-color: var(--replay-line);
+  box-shadow: 0 4px 22px rgba(70, 48, 150, 0.38);
+}
+
+.ao-root.is-replay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px rgba(167, 139, 250, 0.32);
+}
+
+.ao-pill--replay {
+  border-color: var(--replay-line);
+  background: var(--replay-soft);
+  color: var(--replay);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ao-pill--replay .ao-pill-dot {
+  background: var(--replay);
+}
+
+.ao-replay-badge {
+  position: absolute;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  z-index: 19;
+  padding: 3px 12px;
+  border: 1px solid var(--replay-line);
+  border-radius: 999px;
+  background: rgba(31, 24, 62, 0.72);
+  color: var(--replay);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+/* The live-only parts of the top bar rest while the past is on screen. */
+.ao-root.is-replay .ao-usage,
+.ao-root.is-replay .ao-counter--needsYou,
+.ao-root.is-replay [data-popover-trigger='notifications'],
+.ao-root.is-replay [data-popover-trigger='sessions'],
+.ao-root.is-replay .ao-toasts {
+  display: none;
+}
+
+.ao-sidebar-replay {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--replay-soft);
+  color: var(--replay);
+  font-size: 12px;
+}
+
+/* ---- the controls ----------------------------------------------------------------------------------------------- */
+.ao-replay {
+  position: absolute;
+  right: var(--panel-right);
+  bottom: calc(var(--feed-h) + 2 * var(--gap));
+  left: var(--panel-left);
+  z-index: 21;
+  padding: 10px 14px 8px;
+  border: 1px solid var(--replay-line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  transition: left var(--t-base) var(--ease), right var(--t-base) var(--ease), bottom var(--t-base) var(--ease);
+}
+
+.ao-replay[hidden] {
+  display: none;
+}
+
+.ao-replay-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ao-replay-spacer {
+  flex: 1;
+}
+
+.ao-replay-play {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--replay-strong);
+  color: #fff;
+}
+
+.ao-replay-play:hover:not(:disabled) {
+  background: var(--replay);
+}
+
+.ao-replay-play:disabled {
+  opacity: 0.45;
+}
+
+.ao-replay-clock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-width: 118px;
+  line-height: 1.1;
+}
+
+.ao-replay-time {
+  color: var(--text);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ao-replay-date {
+  overflow: hidden;
+  max-width: 190px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The scrubber: marks above, the track, the hours below. */
+.ao-replay-track {
+  position: relative;
+  height: 50px;
+  margin-top: 8px;
+}
+
+.ao-replay-markers {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 14px;
+  pointer-events: none;
+}
+
+.ao-replay-mark {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: 0 0 0 -7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  --mark: var(--accent);
+}
+
+.ao-replay-mark::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--mark);
+  box-shadow: 0 0 0 2px rgba(15, 20, 30, 0.8);
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.ao-replay-mark:hover::before,
+.ao-replay-mark:focus-visible::before {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.45);
+}
+
+.ao-replay-mark--failed {
+  --mark: var(--error);
+}
+
+.ao-replay-mark--wait {
+  --mark: var(--waiting);
+}
+
+.ao-replay-mark--arrival {
+  --mark: var(--working);
+}
+
+.ao-replay-mark--arrival::before {
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+}
+
+.ao-replay-mark--arrival:hover::before {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+
+.ao-replay-range {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  left: 0;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  --p: 0%;
+}
+
+.ao-replay-range:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.ao-replay-range:focus-visible {
+  outline: 2px solid var(--replay);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.ao-replay-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--replay) var(--p), rgba(148, 163, 184, 0.28) var(--p));
+}
+
+.ao-replay-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border: 3px solid var(--replay);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ao-replay-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.ao-replay-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--replay);
+}
+
+.ao-replay-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 3px solid var(--replay);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.ao-replay-axis {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  left: 0;
+  height: 12px;
+  color: var(--faint);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.ao-replay-axis span {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.ao-replay-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: var(--x, 50%);
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  max-width: 300px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.ao-replay-tip[hidden] {
+  display: none;
+}
+
+.ao-replay-tip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-replay-tip-more {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-replay-dayrow {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.ao-replay-days {
+  max-width: 190px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+}
+
+.ao-replay-live {
+  flex: none;
+}
+
+.ao-replay-live .ao-kbd {
+  margin-left: 2px;
+}
+
+.ao-replay-status {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.ao-replay-status.is-error {
+  color: var(--error);
+}
+
+.ao-replay-status[hidden],
+.ao-replay-attention[hidden] {
+  display: none;
+}
+
+.ao-replay.is-loading .ao-replay-track,
+.ao-replay.is-empty .ao-replay-track {
+  opacity: 0.45;
+}
+
+/* Small notices above the bar: made-up demo content, partial days, and live agents that need the person. */
+.ao-replay-notes {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.ao-replay-notes[hidden] {
+  display: none;
+}
+
+.ao-replay-note,
+.ao-replay-attention {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-solid);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-replay-attention {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: rgba(245, 181, 68, 0.5);
+  color: var(--waiting);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ao-replay-attention:hover {
+  background: rgba(245, 181, 68, 0.14);
+}
+
+/* ---- narrow screens --------------------------------------------------------------------------------------------- */
+@media (max-width: 899px) {
+  .ao-replay {
+    right: var(--gap);
+    left: var(--gap);
+    padding: 8px 12px;
+  }
+
+  .ao-replay-main {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+  }
+
+  .ao-replay-clock {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ao-replay-time {
+    font-size: 22px;
+  }
+
+  .ao-replay-spacer {
+    display: none;
+  }
+
+  .ao-replay-live .ao-kbd {
+    display: none;
+  }
+
+  .ao-replay-dayrow svg {
+    display: none;
+  }
+
+  .ao-replay-days {
+    max-width: 130px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-replay,
+  .ao-replay-mark::before {
+    transition: none;
+  }
+}
+
+/* "Meu dia" carries the button that starts the time-lapse. */
+.ao-dialog--day .ao-dialog-head h2 {
+  white-space: nowrap;
+}
+
+.ao-day-watch {
+  flex: none;
+}

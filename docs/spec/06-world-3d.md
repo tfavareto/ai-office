@@ -25,3 +25,5 @@ the first time the room has git state (a `CanvasScreen` in the area's dynamic gr
 changes; rooms that are not repositories get none and no static geometry changes). It shows a marker (green, amber, red as in 2D), the
 branch fitted to the plate (`fitBranch` and `fitFont`), a right-hand note (the operation in progress as a localized word from the world
 catalog, `git.op.*`, else the commits ahead and behind as `↑n ↓n`) and a lit CI disc while the branch has an open pull request.
+
+`resetScene()` and `setClock(at)` of the `WorldApi` (time-lapse) are the same calls as in 2D: they act on the shared `OfficeSim` and `DayNight`, so people and rooms are placed at once after a jump and the sun follows the replay's time of day.

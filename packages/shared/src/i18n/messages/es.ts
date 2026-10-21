@@ -31,6 +31,7 @@ export const es: Readonly<Record<SharedMessageKey, string>> = {
   'activity.think': 'Pensando…',
   'activity.reply': 'Escribiendo la respuesta',
   'activity.prompt': 'Nueva tarea: “{prompt}”',
+  'timelapse.activity.prompt': 'Nueva tarea',
   'activity.error': 'Error en {tool}',
   'activity.done': 'Terminó en {duration}',
   'activity.message': 'Mensaje tuyo: {text}',

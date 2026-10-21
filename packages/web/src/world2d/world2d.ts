@@ -149,6 +149,14 @@ export class World2D implements WorldApi {
     this.canvas.setAttribute('aria-label', worldText(this.options.locale).t('world.aria2d'));
   }
 
+  resetScene(): void {
+    this.sim.reset();
+  }
+
+  setClock(at: number | null): void {
+    this.dayNight.setClock(at);
+  }
+
   setOptions(options: Partial<WorldOptions>): void {
     const previous = this.options.locale;
     this.options = { ...this.options, ...options };

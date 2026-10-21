@@ -1,5 +1,5 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import { suggestRule, type Account, type Agent, type BossMessage, type GitSettings, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
+import { suggestRule, type Account, type Agent, type BossMessage, type FeedItem, type GitSettings, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
@@ -11,6 +11,7 @@ import { BoardDialog } from './components/board-dialog';
 import { Drawer } from './components/drawer';
 import { RulesDialog } from './components/rules-dialog';
 import { DayDialog } from './components/day-dialog';
+import { ReplayBadge, ReplayBar } from './components/replay-bar';
 import { EmptyState } from './components/empty-state';
 import { Feed } from './components/feed';
 import { HelpDialog } from './components/help-dialog';
@@ -27,14 +28,16 @@ import { ConnectionBanner, Splash } from './components/splash';
 import { TerminalPanel } from './components/terminal-panel';
 import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
-import { localOnlyHint, type AppContext, type Component } from './context';
+import { localOnlyHint, setReplayHint, type AppContext, type Component } from './context';
 import { BoardStore } from './board-store';
 import { bindLanguage } from './language';
 import { accountLabel, agentRole, agentTitle, localized, localizedOptional, permissionSummary } from './display';
 import { h, isEditable, toggleClass } from './dom';
-import { formatClock } from './format';
+import { formatClock, formatDateKey, toDateKey } from './format';
 import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { InboxController } from './inbox-controller';
+import { BIG_SKIP_MS, SKIP_MS } from '../timelapse/clock';
+import { ReplayController } from './replay-controller';
 import { RulesController, type RulesTab } from './rules-controller';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
@@ -57,6 +60,9 @@ const RELOAD_GUARD_MS = 15_000;
 /** Scrollable panels whose position survives the rebuild after a language change. */
 const SCROLL_SELECTORS = ['.ao-sidebar-list', '.ao-agent-body', '.ao-feed-list', '.ao-settings-body', '.ao-help-body', '.ao-sessions-body', '.ao-notif-list', '.ao-inbox-list'] as const;
 
+/** What acts on live sessions or reads live data: it explains itself instead of running while a time-lapse is on. */
+const LIVE_ONLY_ACTIONS: ReadonlySet<ShortcutAction> = new Set(['inbox', 'permission', 'usage', 'hire', 'message', 'terminal']);
+
 const CUE_BY_LEVEL: Record<NoticeLevel, CueKind> = { alert: 'alert', warn: 'info', info: 'info', success: 'success' };
 
 export class App implements AppContext {
@@ -67,6 +73,7 @@ export class App implements AppContext {
   readonly board = new BoardStore();
   readonly inbox: InboxController;
   readonly rules: RulesController;
+  readonly replay: ReplayController;
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
@@ -102,11 +109,24 @@ export class App implements AppContext {
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
     this.rules = new RulesController(() => this.store.backend);
-    this.inbox = new InboxController({ snapshot: () => this.snapshot, notifications: () => this.notifications.get().items, now: () => this.now() });
+    // The inbox is about the live office, whatever the panels show.
+    this.inbox = new InboxController({ snapshot: () => this.liveSnapshot, notifications: () => this.notifications.get().items, now: () => this.store.now() });
+    this.replay = new ReplayController({
+      backend: () => this.store.backend,
+      account: () => {
+        const filter = this.ui.get().accountFilter;
+        return filter.length === 1 ? (filter[0] as string) : 'all';
+      },
+      base: () => ({ accounts: this.store.snapshot?.accounts ?? [], meta: this.store.snapshot?.meta }),
+      present: (snapshot, at, jump) => this.presentReplay(snapshot, at, jump),
+      render: () => this.refresh(),
+      frame: (callback) => requestAnimationFrame(callback),
+      cancelFrame: (handle) => cancelAnimationFrame(handle),
+    });
     this.messages = new MessageCenter({
       backend: store.backend,
-      nameOf: (id) => this.agent(id)?.name ?? t('agent.fallback'),
-      now: () => this.now(),
+      nameOf: (id) => this.liveSnapshot?.agents.find((agent) => agent.id === id)?.name ?? t('agent.fallback'),
+      now: () => this.store.now(),
       onDelivery: (summary, agentId, final) => {
         this.notifications.upsertGrouped({ key: summary.key, at: this.now(), level: summary.level, kind: 'message', text: summary.text, agentId });
         if (final) this.flash(summary.level, summary.text, { agentId });
@@ -141,9 +161,11 @@ export class App implements AppContext {
     const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
     const dialogs = [new DayDialog(this), new UsageDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this), new RulesDialog(this)];
     const empty = new EmptyState(this);
+    const replayBar = new ReplayBar(this);
+    const replayBadge = new ReplayBadge(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
-    this.components = [topbar, this.sidebar, drawer, this.terminal, feed, toasts, ...popovers, ...dialogs, empty, banner, ...(splash ? [splash] : [])];
+    this.components = [topbar, this.sidebar, drawer, this.terminal, feed, replayBar, replayBadge, toasts, ...popovers, ...dialogs, empty, banner, ...(splash ? [splash] : [])];
 
     for (const child of Array.from(this.root.children)) if (child !== this.worldContainer) child.remove();
     if (this.worldContainer.parentElement !== this.root) this.root.prepend(this.worldContainer);
@@ -154,6 +176,8 @@ export class App implements AppContext {
       drawer.el,
       this.terminal.el,
       feed.el,
+      replayBar.el,
+      replayBadge.el,
       toasts.el,
       empty.el,
       this.scrim,
@@ -191,15 +215,25 @@ export class App implements AppContext {
   // --- AppContext: data ----------------------------------------------------------------------------------------------
 
   get snapshot(): OfficeSnapshot | null {
+    return this.replay.engaged && this.replay.snapshot !== null ? this.replay.snapshot : this.store.snapshot;
+  }
+
+  get liveSnapshot(): OfficeSnapshot | null {
     return this.store.snapshot;
   }
 
+  /** A time-lapse only looks: nothing that acts on a live session works while it is on. */
   get isLocal(): boolean {
-    return this.store.isLocal;
+    return this.store.isLocal && !this.replay.engaged;
   }
 
+  /** The time the panels live in: the replay's while a time-lapse is on. */
   now(): number {
-    return this.store.now();
+    return this.replay.engaged ? (this.replay.clock?.t ?? this.store.now()) : this.store.now();
+  }
+
+  feed(): readonly FeedItem[] {
+    return this.replay.engaged && this.replay.snapshot !== null ? this.replay.feed() : this.store.data.feed;
   }
 
   agent(id: string): Agent | undefined {
@@ -311,6 +345,44 @@ export class App implements AppContext {
       return;
     }
     this.ui.set({ hire: target, dialog: 'hire', popover: null });
+  }
+
+  startReplay(date?: string): void {
+    if (!this.store.isLocal) {
+      this.announce(localOnlyHint());
+      this.flash('info', localOnlyHint());
+      return;
+    }
+    const day = date ?? toDateKey(this.store.now());
+    if (!this.replay.engaged) {
+      setReplayHint(true);
+      this.ui.set({ dialog: null, popover: null, terminal: null, selection: null, following: false });
+      this.world.select(null);
+    }
+    void this.replay.start(day).then(() => {
+      if (this.replay.active) this.announce(t('announce.replay.on', { date: formatDateKey(day) }));
+    });
+    this.refresh();
+  }
+
+  stopReplay(): void {
+    if (!this.replay.engaged) return;
+    this.replay.stop();
+    setReplayHint(false);
+    this.ui.set({ selection: null, following: false });
+    this.world.select(null);
+    this.world.setClock(null);
+    this.world.resetScene();
+    this.pendingSnapshot = this.store.snapshot;
+    this.announce(t('announce.replay.off'));
+    this.refresh();
+  }
+
+  /** The replay's snapshot goes to the world; a jump in the day places everybody at once. */
+  private presentReplay(snapshot: OfficeSnapshot, at: number, jump: boolean): void {
+    if (jump) this.world.resetScene();
+    this.world.setClock(at);
+    this.world.setSnapshot(snapshot, at);
   }
 
   jumpToShell(): void {
@@ -443,7 +515,7 @@ export class App implements AppContext {
     for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox, this.board, this.rules]) observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
       // Opening an agent counts as having seen that its work finished.
-      if (data.selection?.type === 'agent') this.inbox.markAgentSeen(data.selection.id);
+      if (data.selection?.type === 'agent' && !this.replay.engaged) this.inbox.markAgentSeen(data.selection.id);
       if (!data.narrow) this.prefs.set({ sidebarOpen: data.sidebarOpen });
       this.prefs.set({ feedOpen: data.feedOpen });
     });
@@ -511,18 +583,23 @@ export class App implements AppContext {
 
   private onSnapshot(snapshot: OfficeSnapshot): void {
     this.pendingSnapshot = snapshot;
-    this.toasts.resolve(snapshot.agents, this.now());
+    this.toasts.resolve(snapshot.agents, this.store.now());
+    if (!this.replay.engaged) this.dropGoneSelection(snapshot);
+    this.checkBuild(snapshot.meta.build);
+    this.checkUsageForecast(snapshot);
+  }
+
+  /** Clears the selection when its agent or room is not in the snapshot any more. */
+  private dropGoneSelection(snapshot: OfficeSnapshot): void {
     const selection = this.ui.get().selection;
     if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id)) this.clearSelection();
     if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id)) this.clearSelection();
-    this.checkBuild(snapshot.meta.build);
-    this.checkUsageForecast(snapshot);
   }
 
   /** One notification per account and window when the limit is about to be reached (the toast respects "Do not disturb"). */
   private checkUsageForecast(snapshot: OfficeSnapshot): void {
     const limits = this.prefs.get().usageLimits;
-    const now = this.now();
+    const now = this.store.now();
     const { fresh, seen } = takeFreshAlerts(
       usageAlerts(snapshot.usage, (id) => limits[id], now),
       this.usageAlertsSeen,
@@ -570,14 +647,16 @@ export class App implements AppContext {
 
   private currentInsets(): ViewInsets {
     const ui = this.ui.get();
-    return computeInsets({ sidebarOpen: ui.sidebarOpen, drawerOpen: ui.selection !== null, feedOpen: ui.feedOpen, narrow: ui.narrow });
+    return computeInsets({ sidebarOpen: ui.sidebarOpen, drawerOpen: ui.selection !== null, feedOpen: ui.feedOpen, narrow: ui.narrow, replay: this.replay.engaged });
   }
 
   private renderAll(): void {
-    if (this.pendingSnapshot) {
+    // While a time-lapse is on, the world shows the replay's snapshots; the live ones wait for the way back.
+    if (this.pendingSnapshot && !this.replay.engaged) {
       this.world.setSnapshot(this.pendingSnapshot, this.store.now());
       this.pendingSnapshot = null;
     }
+    if (this.replay.active && this.snapshot) this.dropGoneSelection(this.snapshot);
     const insets = this.currentInsets();
     if (!this.appliedInsets || !sameInsets(this.appliedInsets, insets)) {
       this.appliedInsets = insets;
@@ -598,6 +677,7 @@ export class App implements AppContext {
     toggleClass(this.root, 'has-sidebar', ui.sidebarOpen);
     toggleClass(this.root, 'has-terminal', ui.terminal !== null);
     toggleClass(this.root, 'feed-open', ui.feedOpen);
+    toggleClass(this.root, 'is-replay', this.replay.engaged);
     toggleClass(this.scrim, 'is-open', ui.narrow && (ui.sidebarOpen || ui.selection !== null));
 
     for (const component of this.components) component.render();
@@ -606,7 +686,7 @@ export class App implements AppContext {
   }
 
   private updateTitle(): void {
-    const needs = computeCounters(this.snapshot).needsYou;
+    const needs = computeCounters(this.liveSnapshot).needsYou;
     const title = needs > 0 ? `(${needs}) AI Office` : 'AI Office';
     if (title !== this.lastTitle) {
       this.lastTitle = title;
@@ -631,7 +711,9 @@ export class App implements AppContext {
   private onKeyDown(event: KeyboardEvent): void {
     this.sound.unlock();
     if (event.defaultPrevented) return;
-    const action = resolveShortcut(event, isEditable(event.target), this.ui.get().terminal !== null);
+    const ui = this.ui.get();
+    const replayKeys = this.replay.active && ui.dialog === null && ui.popover === null && ui.terminal === null;
+    const action = resolveShortcut(event, isEditable(event.target), ui.terminal !== null, replayKeys);
     if (!action) return;
     if (action !== 'escape') event.preventDefault();
     this.runShortcut(action);
@@ -640,7 +722,30 @@ export class App implements AppContext {
 
   private runShortcut(action: ShortcutAction): void {
     const ui = this.ui.get();
+    if (this.replay.engaged && LIVE_ONLY_ACTIONS.has(action)) {
+      this.announce(localOnlyHint());
+      return;
+    }
     switch (action) {
+      case 'replay':
+        if (this.replay.engaged) this.stopReplay();
+        else this.startReplay();
+        return;
+      case 'replayPlay':
+        this.replay.togglePlay();
+        return;
+      case 'replayBack':
+        this.replay.skip(-SKIP_MS);
+        return;
+      case 'replayForward':
+        this.replay.skip(SKIP_MS);
+        return;
+      case 'replayBackBig':
+        this.replay.skip(-BIG_SKIP_MS);
+        return;
+      case 'replayForwardBig':
+        this.replay.skip(BIG_SKIP_MS);
+        return;
       case 'search':
         this.ui.set({ sidebarOpen: true });
         this.refresh();
@@ -739,6 +844,7 @@ export class App implements AppContext {
     else if (ui.popover) this.closePopover();
     else if (ui.terminal) this.closeTerminal();
     else if (ui.selection) this.clearSelection();
+    else if (this.replay.engaged) this.stopReplay();
     else if (ui.narrow && ui.sidebarOpen) this.ui.set({ sidebarOpen: false });
   }
 }

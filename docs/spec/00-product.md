@@ -144,9 +144,21 @@ the source catalog the other two are translated from. Code, comments and docs in
     pull requests with passing, failing and running checks). The state is the optional `Project.git` field of the
     snapshot, also used by the day report for the commits of a day.
 
+20. **Time-lapse of the day**: "Watch the day" in **Meu dia** (or `L`) replays today or any of the last six days at accelerated speed
+    (30x, 120x, 600x, 1800x), to understand what happened while the person was away. The same 2D or 3D office is drawn from the day's
+    events instead of the live stream: people walk in and out when their sessions began and went quiet, work, wait for a permission
+    (the standing-with-a-hand pose), rest, run shells, call subagents who meet in the meeting room; rooms open and close with them and
+    the light follows the time of day. A controls bar above the feed has play/pause (`Space`), the replay time in big digits, a scrubber
+    over the day's active range with marks (commits, failed tests, waits for the person, arrivals; hover describes the mark under the
+    pointer), the speeds, a day picker and **Back to live** (`Esc`). A violet top bar, a `REPLAY` pill and badge and a frame say it is
+    the past. The page is read-only meanwhile (no messages, approvals, hiring, terminal, usage or inbox; the sidebar, the task board and
+    the feed show the replayed moment). If agents need the person live, a note says so and takes them back. How the day is derived, and
+    what is approximated, is in [02-server.md](02-server.md#day-time-lapse-apitimelapse). Demo mode tells a believable day (several
+    rooms, subagent meetings, waits, commits, a failed test) for every day.
+
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
 Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
-H hire an agent, [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
+H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1 min, Shift+arrows 10 min), [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection, then the time-lapse).
 
 ## Non-goals
 Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a

@@ -22,6 +22,7 @@ export class Sidebar implements Component {
   private readonly chips = h('div', { class: 'ao-chips', role: 'group', 'aria-label': t('sidebar.accountFilter') });
   private readonly list = h('div', { class: 'ao-sidebar-list' });
   private readonly note = h('p', { class: 'ao-note ao-sidebar-note' });
+  private readonly replayNote = h('p', { class: 'ao-sidebar-replay', hidden: true }, t('replay.sidebar.note'));
   private readonly rooms: KeyedList<RoomModel>;
   private signature = '';
   private chipSignature = '';
@@ -48,7 +49,7 @@ export class Sidebar implements Component {
     this.clearBtn = h('button', { type: 'button', class: 'ao-search-clear', 'aria-label': t('sidebar.search.clear'), hidden: true, onclick: () => this.setQuery('') }, icon('x', 14));
     const search = h('label', { class: 'ao-search' }, icon('search', 16), this.input, h('kbd', { class: 'ao-kbd' }, '/'), this.clearBtn);
     this.hireBtn = iconButton({ icon: 'plus', label: t('hire.action'), className: 'ao-sidebar-hire', onClick: () => ctx.openHire() });
-    this.el.append(h('div', { class: 'ao-sidebar-head' }, h('div', { class: 'ao-sidebar-searchrow' }, search, this.hireBtn), this.chips), this.list, this.note);
+    this.el.append(h('div', { class: 'ao-sidebar-head' }, h('div', { class: 'ao-sidebar-searchrow' }, search, this.hireBtn), this.chips), this.replayNote, this.list, this.note);
     this.rooms = new KeyedList(this.list, (room) => room.project.id, (room) => this.createRoom(room));
     this.list.addEventListener('keydown', (event) => this.onListKey(event));
   }
@@ -82,6 +83,7 @@ export class Sidebar implements Component {
     if (ui.sidebarOpen) this.el.removeAttribute('inert');
     else this.el.setAttribute('inert', '');
     if (!ui.sidebarOpen || !snapshot) return;
+    this.replayNote.hidden = !this.ctx.replay.engaged;
     if (this.input.value !== ui.query) this.input.value = ui.query;
     this.clearBtn.hidden = ui.query.length === 0;
     setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());

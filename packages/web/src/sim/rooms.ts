@@ -48,6 +48,12 @@ export class RoomManager {
     return this.rooms;
   }
 
+  /** Forgets every room: the next sync builds them all at once. */
+  reset(): void {
+    this.rooms = [];
+    this.seenFirst = false;
+  }
+
   live(projectId: string): RoomState | undefined {
     return this.rooms.find((r) => !r.ghost && r.projectId === projectId);
   }

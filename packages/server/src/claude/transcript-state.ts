@@ -25,7 +25,8 @@ import { END_STOP_REASONS, type ParsedLine, type StructuredResult } from './type
 const RECENT_LIMIT = 30;
 const HISTORY_LIMIT = 300;
 const MAX_RESULT_IDS = 2000;
-const FOREGROUND_SHELL_AFTER_MS = 10_000;
+/** A foreground Bash call running this long counts as a shell job. */
+export const FOREGROUND_SHELL_AFTER_MS = 10_000;
 const USER_TOOLS: Readonly<Record<string, Msg>> = {
   AskUserQuestion: msg('waiting.answerQuestion'),
   ExitPlanMode: msg('waiting.approvePlan'),
@@ -66,6 +67,8 @@ export interface TranscriptStateOptions {
   /** Prefix for activity ids. */
   idPrefix: string;
   isSub: boolean;
+  /** Activities kept in the history (default 300); the time-lapse recorder keeps none, it reads them from the effects. */
+  historyLimit?: number;
 }
 
 export type TurnState = 'working' | 'idle';
@@ -235,7 +238,7 @@ export class TranscriptState {
   private push(draft: ActivityDraft, at: number, effects: ApplyEffects): void {
     const activity = toActivity(draft, `${this.options.idPrefix}#${++this.seq}`, at);
     this.history.push(activity);
-    if (this.history.length > HISTORY_LIMIT) this.history.shift();
+    if (this.history.length > (this.options.historyLimit ?? HISTORY_LIMIT)) this.history.shift();
     effects.activities.push(activity);
   }
 

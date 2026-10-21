@@ -21,6 +21,7 @@ export class WorldHost {
   private insets: ViewInsets = { top: 0, right: 0, bottom: 0, left: 0 };
   private snapshot: OfficeSnapshot | null = null;
   private snapshotTime = 0;
+  private clock: number | null = null;
   private selection: Selection = null;
   private loadToken = 0;
   private unsubscribers: (() => void)[] = [];
@@ -76,6 +77,7 @@ export class WorldHost {
     ];
     world.setOptions(this.options);
     world.setInsets(this.insets);
+    world.setClock(this.clock);
     if (this.snapshot) world.setSnapshot(this.snapshot, this.snapshotTime);
     if (this.selection) world.select(this.selection);
   }
@@ -92,6 +94,17 @@ export class WorldHost {
     this.snapshot = snapshot;
     this.snapshotTime = serverNow;
     this.world?.setSnapshot(snapshot, serverNow);
+  }
+
+  /** See `WorldApi.resetScene`. */
+  resetScene(): void {
+    this.world?.resetScene();
+  }
+
+  /** See `WorldApi.setClock`. */
+  setClock(at: number | null): void {
+    this.clock = at;
+    this.world?.setClock(at);
   }
 
   setOptions(patch: Partial<WorldOptions>): void {

@@ -2,7 +2,7 @@ import type { Agent, Msg, OfficeSnapshot } from '@ai-office/shared';
 import { computeBuilding } from '../layout/building';
 import { isWalkable, nearestWalkable } from '../layout/grid';
 import { clamp, hash32 } from '../layout/rng';
-import type { AreaLayout, BuildingLayout, Spot, TilePos } from '../layout/types';
+import type { AreaLayout, BuildingLayout, RoomSpec, Spot, TilePos } from '../layout/types';
 import { Actor, approach, dirFromVector, type ActivityPlan } from './actor';
 import { type DeskTarget, emptyDeskAt } from './desks';
 import { hireAgentId, placeholderAgent, waitingHires, withHireProjects } from './hires';
@@ -30,6 +30,9 @@ export interface SimStats {
   walking: number;
 }
 
+/** Everything the building depends on. */
+const layoutKey = (specs: readonly RoomSpec[]): string => JSON.stringify(specs);
+
 const centerOf = (t: TilePos): Vec => ({ x: t.x + 0.5, y: t.y + 0.5 });
 
 /** Deterministic office simulation: people derived from snapshot agents, rooms, bubbles. No DOM, fixed 30 Hz tick. */
@@ -55,6 +58,8 @@ export class OfficeSim {
   private serverBaseTime = 0;
   private bubbleList: readonly Bubble[] = [];
   private tickCount = 0;
+  /** What the current building was computed from. */
+  private builtKey = '';
 
   constructor(seed = 1) {
     this.seed = seed;
@@ -111,7 +116,8 @@ export class OfficeSim {
     this.serverBase = serverNow;
     this.serverBaseTime = this.time;
     const waiting = waitingHires(snapshot.hires);
-    if (this.rooms.sync(withHireProjects(snapshot.projects, waiting))) this.relayout();
+    // After a reset the rooms come back as they were most of the time: then the building is already right.
+    if (this.rooms.sync(withHireProjects(snapshot.projects, waiting)) && layoutKey(this.rooms.specs()) !== this.builtKey) this.relayout();
     const instant = this.firstSnapshot;
     this.firstSnapshot = false;
     this.handOverHires(snapshot);
@@ -134,6 +140,19 @@ export class OfficeSim {
         this.updateAgent(actor, { ...actor.agent, status: 'offline' });
       }
     }
+  }
+
+  /** Forgets everybody and every room; the next snapshot is placed at once (see `WorldApi.resetScene`). */
+  reset(): void {
+    for (const actor of this.list) {
+      this.spots.releaseAll(actor.id);
+      this.bubbleManager.withdraw(actor.id);
+    }
+    this.actors = new Map();
+    this.list = [];
+    this.bubbleList = [];
+    this.rooms.reset();
+    this.firstSnapshot = true;
   }
 
   /** A pending hire whose session appeared: the placeholder person becomes that agent, right where it sits. */
@@ -176,6 +195,7 @@ export class OfficeSim {
 
   private relayout(): void {
     this.building = computeBuilding(this.rooms.specs());
+    this.builtKey = layoutKey(this.rooms.specs());
     this.layoutVersion++;
     this.spots.rebuild(this.building);
     this.elevators = this.building.elevators.map((_, i) => this.elevators[i] ?? { hold: 0, openness: 0, nextFree: 0 });

@@ -27,4 +27,33 @@ describe('resolveShortcut', () => {
     expect(resolveShortcut(key('Escape'), true, false)).toBe('escape');
     expect(resolveShortcut(key('f', { ctrlKey: true }), false, true)).toBe('find');
   });
+
+  it('maps L to the time-lapse, but not while typing', () => {
+    expect(resolveShortcut(key('l'), false, false)).toBe('replay');
+    expect(resolveShortcut(key('L'), false, false)).toBe('replay');
+    expect(resolveShortcut(key('l'), true, false)).toBeNull();
+  });
+});
+
+describe('resolveShortcut during a time-lapse', () => {
+  const press = (name: string, shiftKey = false, replay = true, editing = false) => resolveShortcut({ ...key(name), shiftKey }, editing, false, replay);
+
+  it('drives the playback with Space and the arrows, Shift for the big skip', () => {
+    expect(press(' ')).toBe('replayPlay');
+    expect(press('ArrowLeft')).toBe('replayBack');
+    expect(press('ArrowRight')).toBe('replayForward');
+    expect(press('ArrowLeft', true)).toBe('replayBackBig');
+    expect(press('ArrowRight', true)).toBe('replayForwardBig');
+  });
+
+  it('leaves those keys alone when no time-lapse has the keyboard, and while typing', () => {
+    expect(press(' ', false, false)).toBeNull();
+    expect(press('ArrowRight', false, false)).toBeNull();
+    expect(press(' ', false, true, true)).toBeNull();
+  });
+
+  it('keeps the other shortcuts, Esc included', () => {
+    expect(press('l')).toBe('replay');
+    expect(press('Escape')).toBe('escape');
+  });
 });

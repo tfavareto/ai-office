@@ -31,6 +31,7 @@ export const ptBR = {
   'activity.think': 'Pensando…',
   'activity.reply': 'Escrevendo a resposta',
   'activity.prompt': 'Nova tarefa: “{prompt}”',
+  'timelapse.activity.prompt': 'Nova tarefa',
   'activity.error': 'Erro em {tool}',
   'activity.done': 'Concluiu em {duration}',
   'activity.message': 'Mensagem sua: {text}',

@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, GitSettings, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
+import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, GitSettings, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, Timelapse, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -19,6 +19,13 @@ export interface ReportQuery {
   includeRequests: boolean;
 }
 
+export interface TimelapseQuery {
+  /** Local date, YYYY-MM-DD. */
+  date: string;
+  /** An account id or "all". */
+  account: string;
+}
+
 export type DecisionResult = 'ok' | 'already-answered';
 
 export interface Backend {
@@ -33,6 +40,8 @@ export interface Backend {
   day(date: string): Promise<DayStats>;
   /** What each agent did on one of the last seven days (local access only). */
   dayReport(query: ReportQuery): Promise<DayReport>;
+  /** The day as a list of moments to replay at accelerated speed (local access only). */
+  timelapse(query: TimelapseQuery): Promise<Timelapse>;
   /** Usage history of an account (`all` for every account) over today, this week or this month. */
   usageDetail(account: string, period: UsagePeriod): Promise<UsageDetail>;
   setDemo(on: boolean): Promise<boolean>;

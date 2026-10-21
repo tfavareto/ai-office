@@ -52,9 +52,14 @@ export class ReportView {
     this.el = h('div', { class: 'ao-report' }, toolbar, this.notices, this.content);
   }
 
+  /** The day being shown, YYYY-MM-DD. */
+  get day(): string {
+    return this.date;
+  }
+
   /** The tab was opened: start on today. */
   show(): void {
-    this.date = toDateKey(this.ctx.now());
+    this.date = toDateKey(this.ctx.store.now());
     this.includeRequests = false;
     this.loadedKey = '';
     this.report = null;
@@ -87,7 +92,7 @@ export class ReportView {
   private async load(quiet: boolean): Promise<void> {
     const token = ++this.token;
     this.loadedKey = this.key();
-    this.loadedAt = this.ctx.now();
+    this.loadedAt = this.ctx.store.now();
     if (!quiet || this.report === null) this.state = 'loading';
     this.signature = '';
     this.ctx.refresh();
@@ -140,7 +145,7 @@ export class ReportView {
   update(): void {
     this.syncControls();
     const key = this.key();
-    const stale = this.state === 'ready' && this.date === toDateKey(this.ctx.now()) && this.ctx.now() - this.loadedAt >= REFRESH_MS;
+    const stale = this.state === 'ready' && this.date === toDateKey(this.ctx.store.now()) && this.ctx.store.now() - this.loadedAt >= REFRESH_MS;
     if (this.state !== 'loading' && (key !== this.loadedKey || stale)) void this.load(key === this.loadedKey);
     const signature = `${this.state}|${this.report?.generatedAt ?? 0}|${this.groupBy}|${this.report?.includeRequests ?? false}`;
     if (signature === this.signature) return;
@@ -149,7 +154,7 @@ export class ReportView {
   }
 
   private syncControls(): void {
-    const dates = reportDates(this.ctx.now());
+    const dates = reportDates(this.ctx.store.now());
     const signature = `${dates.join(',')}|${this.date}`;
     if (signature !== this.pickerSignature) {
       this.pickerSignature = signature;
@@ -178,7 +183,7 @@ export class ReportView {
     const notices = [report.demo === true ? t('report.notice.demo') : null, report.usageIndexing === true ? t('report.notice.indexing') : null, report.truncated === true ? t('report.notice.truncated') : null];
     this.notices.replaceChildren(...notices.filter((text): text is string => text !== null).map((text) => h('p', { class: 'ao-report-notice' }, text)));
     if (!hasActivity(report)) return this.content.replaceChildren(emptyNote(t('report.empty')));
-    const start = dayRange(report.date)?.start ?? this.ctx.now();
+    const start = dayRange(report.date)?.start ?? this.ctx.store.now();
     this.content.replaceChildren(...reportBody(report, start, this.groupBy, reportHighlights(report)));
   }
 }

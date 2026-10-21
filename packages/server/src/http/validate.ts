@@ -161,17 +161,39 @@ export interface ReportQuery {
   locale: Locale;
 }
 
-/** Query of GET /api/report/day: a date within the last seven days, an account, the opt-in for prompts, a language. */
-export function parseReportQuery(params: URLSearchParams, now: number): ReportQuery {
+/** The `date` (today or one of the six days before it) and `account` shared by the day routes. */
+function parseDayAndAccount(params: URLSearchParams, now: number): { range: DayRange; account: string } {
   const date = params.get('date') ?? localDateString(now);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpError(400, 'invalid-date');
   const range = reportDayRange(date, now);
   if (range === undefined) throw new HttpError(400, 'date-out-of-range');
   const account = params.get('account') ?? 'all';
   if (account !== 'all' && !isSafeSegment(account)) throw new HttpError(400, 'invalid-account');
+  return { range, account };
+}
+
+/** Query of GET /api/report/day: a date within the last seven days, an account, the opt-in for prompts, a language. */
+export function parseReportQuery(params: URLSearchParams, now: number): ReportQuery {
+  const { range, account } = parseDayAndAccount(params, now);
   const requests = params.get('requests');
   if (requests !== null && requests !== '0' && requests !== '1') throw new HttpError(400, 'invalid-requests');
   const locale = params.get('locale') ?? 'pt-BR';
   if (!isLocale(locale)) throw new HttpError(400, 'invalid-locale');
   return { range, account, includeRequests: requests === '1', locale };
+}
+
+export interface TimelapseQuery {
+  range: DayRange;
+  /** An account id or "all". */
+  account: string;
+  /** Only picks the language of the demo's commit subjects. */
+  locale: Locale;
+}
+
+/** Query of GET /api/timelapse: a date within the last seven days, an account and (for demo content) a language. */
+export function parseTimelapseQuery(params: URLSearchParams, now: number): TimelapseQuery {
+  const { range, account } = parseDayAndAccount(params, now);
+  const locale = params.get('locale') ?? 'pt-BR';
+  if (!isLocale(locale)) throw new HttpError(400, 'invalid-locale');
+  return { range, account, locale };
 }

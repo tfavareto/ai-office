@@ -49,6 +49,12 @@ export const API = {
    * Local access only.
    */
   report: '/api/report/day',
+  /**
+   * GET ?date=YYYY-MM-DD (today or one of the 6 days before)&account=<id|all> → Timelapse: the day as a time ordered
+   * list of arrivals, status changes, activities, commits and test runs, to replay at accelerated speed. No message
+   * bodies. Local access only.
+   */
+  timelapse: '/api/timelapse',
   /** GET ?account=<id|all>&period=today|week|month → UsageDetail (usage history index). Local access only. */
   usageDetail: '/api/usage/detail',
   /** GET → GitSettings · POST { pullRequests: boolean } → GitSettings. Local access only. */

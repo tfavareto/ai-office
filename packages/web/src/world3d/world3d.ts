@@ -213,6 +213,14 @@ export class World3D implements WorldApi {
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
   }
 
+  resetScene(): void {
+    this.sim.reset();
+  }
+
+  setClock(at: number | null): void {
+    this.dayNight.setClock(at);
+  }
+
   setOptions(options: Partial<WorldOptions>): void {
     const previous = this.options.locale;
     this.options = { ...this.options, ...options };
