@@ -229,6 +229,12 @@ Everything here is computed on your computer from the files Claude Code already 
 | **Know the state of each repository** | The room drawer, the sidebar and the sign on the room's door | Branch, uncommitted changes, ahead and behind, last commit, rebase or merge in progress. Pull requests and CI status are optional and off by default: turning them on is the only feature that goes online, through your own `gh` CLI |
 | **Catch up on what happened while you were away** | **My day → Watch the day** (`L`) | The day replayed in the office at up to 1800× speed, with a timeline you can scrub and markers for arrivals, commits, failed tests and permission waits |
 
+<p align="center">
+  <img src="docs/assets/readme/en/timelapse-2d.png" alt="The day replay: the 2D office as it was at 6:52 AM, with a timeline of arrivals, commits, failed tests and permission waits along the bottom and a Back to live button." width="1200" loading="lazy" />
+  <br />
+  <sub>Watch the day: the office replayed from the first session, with markers on the timeline</sub>
+</p>
+
 The [user guide](docs/02-using-the-office.md) details each view; the [privacy guide](docs/05-privacy-and-security.md) lists what the usage index and the report keep on disk (numbers per project and session, never conversation text).
 
 <a id="views"></a>
@@ -353,7 +359,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 1600+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 2200+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |

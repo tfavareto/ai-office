@@ -58,10 +58,11 @@ Ves quién está trabajando, quién te necesita y quién espera un comando en el
 | **Quiero que esté siempre encendido** | [Prompt 02](docs/prompts/02-run-at-login.md) | AI Office arranca al iniciar sesión (launchd en macOS, systemd en Linux) |
 | **Uso más de una cuenta de Claude** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Todas las cuentas en la misma oficina, con el plugin instalado en cada una |
 | **Quiero iniciar agentes desde la oficina** | [Dirige a tu equipo](#team) | Contrata agentes en escritorios vacíos, despeja la bandeja, sigue el tablero de tareas y automatiza las aprobaciones |
+| **Quiero saber a dónde van mis tokens y mi tiempo** | [Consumo, informes y Git](#insights) | Consumo por día, semana y mes, previsión de límite, informe del día, estado de Git por sala, time-lapse |
 | **Algo no funciona** | [Solución de problemas](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | Primero un diagnóstico de solo lectura, luego correcciones que tú apruebas |
 | **Quiero contribuir** | [Contribuir](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Entorno de desarrollo, verificaciones y convenciones |
 
-**En esta página:** [Instalación](#install) · [Agentes](#watch) · [Permisos y mensajes](#direct) · [Tu equipo](#team) · [2D y 3D](#views) · [Cómo funciona](#how-it-works) · [Privacidad](#privacy) · [Prompts](#prompts) · [Configuración](#configuration) · [Evidencia](#evidence) · [Repositorio](#repository) · [Comunidad](#community).
+**En esta página:** [Instalación](#install) · [Agentes](#watch) · [Permisos y mensajes](#direct) · [Tu equipo](#team) · [Consumo y día](#insights) · [2D y 3D](#views) · [Cómo funciona](#how-it-works) · [Privacidad](#privacy) · [Prompts](#prompts) · [Configuración](#configuration) · [Evidencia](#evidence) · [Repositorio](#repository) · [Comunidad](#community).
 
 <a id="install"></a>
 
@@ -203,9 +204,42 @@ La oficina es también el lugar donde empieza el trabajo y donde lo mantienes en
 
 Contratar requiere tener la página abierta en este computador y abre tu terminal de siempre (Terminal o iTerm en macOS, el terminal de tu escritorio en Linux). La [guía de uso](docs/02-using-the-office.md) detalla cada una, y la [guía del plugin](docs/03-plugin.md) explica cómo las reglas responden a las solicitudes.
 
+<a id="insights"></a>
+
+## 05 / Entérate de a dónde fueron tus tokens y tu día
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/es/usage.png" alt="El diálogo Consumo: total de tokens, costo estimado, variación frente a la semana pasada y aprovechamiento del caché, un gráfico diario dividido por tipo de token y la previsión de límite." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/day-report.png" alt="El informe del día: agentes, tiempo activo, archivos, commits, pruebas, tareas y costo del día, destacados y una sección por proyecto." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Consumo de hoy, de la semana y del mes, con previsión de límite</sub></td>
+    <td align="center"><sub>Un informe del día que copias o descargas en Markdown</sub></td>
+  </tr>
+</table>
+
+Todo esto se calcula en tu computador a partir de los archivos que Claude Code ya escribe.
+
+| Quieres | En la oficina | Lo que obtienes |
+|---|---|---|
+| **Ver a dónde fueron los tokens** | Haz clic en una tarjeta de uso de la barra superior, o pulsa `U` | **Consumo** de hoy, de la semana y del mes, por cuenta o todas: tokens por tipo, costo estimado, variación frente al período anterior, aprovechamiento del caché, un gráfico por hora o día, y desglose por modelo, proyecto y sesión |
+| **No toparte con el límite por sorpresa** | **Previsión de límite** en el mismo diálogo | Hasta dónde te lleva tu ritmo actual al final de la ventana de 5 h y de la semana, y más o menos cuándo alcanzarías el límite; la tarjeta de uso se pone ámbar cuando faltan menos de 30 minutos. Los planes no exponen sus límites en local, así que indica los tuyos en **Límites (opcional)** o la previsión usa tu bloque reciente más alto |
+| **Escribir el estado de hoy** | **Mi día → Informe** (`R`) | Lo que hizo cada agente: archivos cambiados, comandos, pruebas que pasaron y fallaron, commits, tareas cerradas, tiempo y costo, de hoy o de cualquiera de los últimos 6 días; **Copiar Markdown** o **Descargar .md**. Tus pedidos quedan fuera salvo que los incluyas |
+| **Saber el estado de cada repositorio** | El panel de la sala, la barra lateral y el letrero en la puerta de la sala | Rama, cambios sin confirmar, commits por delante y por detrás, último commit, rebase o merge en curso. Los pull requests y el estado del CI son opcionales y vienen desactivados: activarlos es la única función que sale a internet, a través de tu propio CLI `gh` |
+| **Ponerte al día de lo que pasó mientras no estabas** | **Mi día → Ver el día** (`L`) | El día reproducido en la oficina hasta a 1800× de velocidad, con una línea de tiempo que puedes recorrer y marcadores de llegadas, commits, pruebas fallidas y esperas por permisos |
+
+<p align="center">
+  <img src="docs/assets/readme/es/timelapse-2d.png" alt="La reproducción del día: la oficina 2D como estaba a las 06:52, con la línea de tiempo de llegadas, commits, pruebas fallidas y esperas por permisos abajo y el botón Volver al vivo." width="1200" loading="lazy" />
+  <br />
+  <sub>Ver el día: la oficina reproducida desde la primera sesión, con marcadores en la línea de tiempo</sub>
+</p>
+
+La [guía de uso](docs/02-using-the-office.md) detalla cada vista; la [guía de privacidad](docs/05-privacy-and-security.md) enumera lo que el índice de consumo y el informe guardan en disco (números por proyecto y sesión, nunca el texto de las conversaciones).
+
 <a id="views"></a>
 
-## 05 / 2D por defecto, 3D cuando quieras
+## 06 / 2D por defecto, 3D cuando quieras
 
 <table>
   <tr>
@@ -230,7 +264,7 @@ Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfa
 
 <a id="how-it-works"></a>
 
-## 06 / Cómo funciona
+## 07 / Cómo funciona
 
 <p align="center">
   <picture>
@@ -255,7 +289,7 @@ La [guía de arquitectura](docs/07-architecture.md) y las [especificaciones](doc
 
 <a id="privacy"></a>
 
-## 07 / Privado por diseño
+## 08 / Privado por diseño
 
 <p align="center">
   <picture>
@@ -264,11 +298,12 @@ La [guía de arquitectura](docs/07-architecture.md) y las [especificaciones](doc
   </picture>
 </p>
 
-AI Office se hizo pensando en código que quizá no quieras compartir. Nunca envía nada a ningún lado.
+AI Office se hizo pensando en código que quizá no quieras compartir. No envía nada a ningún lado; la única excepción es opcional y viene desactivada: consultar pull requests a través de tu propio CLI `gh`.
 
 | Protección | Cómo |
 |---|---|
 | **Solo local** | Escucha en `127.0.0.1`; cualquier otra dirección se rechaza salvo que lo actives con `AI_OFFICE_ALLOW_REMOTE=1` |
+| **Números, no conversaciones** | El índice de consumo y el informe del día guardan conteos de tokens, costos, nombres de archivos y comandos; los prompts y las respuestas nunca se guardan |
 | **Solo lectura sobre Claude Code** | Lee los archivos de sesión; nunca los edita |
 | **Autenticado** | Un token aleatorio en `~/.ai-office/token` (modo 0600); la página recibe una cookie HttpOnly y los hooks demuestran que tienen el token |
 | **Superficie del navegador reforzada** | Content Security Policy estricta, solicitudes entre sitios rechazadas, incrustación en frames denegada |
@@ -278,7 +313,7 @@ Lee la [guía de privacidad y seguridad](docs/05-privacy-and-security.md) y repo
 
 <a id="prompts"></a>
 
-## 08 / Prompts para cada paso
+## 09 / Prompts para cada paso
 
 Elige una tarea, abre el prompt y pega el bloque indicado en un agente con acceso a la terminal. El [catálogo](docs/prompts/README.md) explica cada uno.
 
@@ -294,7 +329,7 @@ Elige una tarea, abre el prompt y pega el bloque indicado en un agente con acces
 
 <a id="configuration"></a>
 
-## 09 / Configúralo a tu manera
+## 10 / Configúralo a tu manera
 
 Los valores por defecto sirven para la mayoría de las personas. Define variables de entorno (o las flags equivalentes) solo cuando lo necesites:
 
@@ -319,12 +354,12 @@ El texto que viene de tus propias sesiones (prompts, títulos de tareas, comando
 
 <a id="evidence"></a>
 
-## 10 / Evidencia y límites
+## 11 / Evidencia y límites
 
 | Verificación | Cómo |
 |---|---|
 | **Tipos** | TypeScript estricto en los cuatro paquetes: `npm run typecheck` |
-| **Comportamiento** | Más de 1600 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
+| **Comportamiento** | Más de 2200 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
 | **Estilo** | ESLint y Prettier: `npm run lint` |
 | **Build** | Bundle web y bundle del servidor: `npm run build` |
 | **Documentación** | Todo enlace local, ancla y traducción del README verificados: `npm run docs:check` |
@@ -341,7 +376,7 @@ Tu pantalla limita lo que ves (normalmente 60 fps). La escena nocturna en 3D es 
 
 <a id="repository"></a>
 
-## 11 / Explora el repositorio
+## 12 / Explora el repositorio
 
 ```text
 ai-office/
@@ -381,7 +416,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 12 / Sigue el proyecto
+## 13 / Sigue el proyecto
 
 Si AI Office hizo que tus agentes fueran más fáciles de seguir, una estrella ayuda a que otras personas lo encuentren.
 
