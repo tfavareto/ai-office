@@ -21,14 +21,14 @@ npm run typecheck && npm run lint && npm test && npm run build && npm run docs:t
 
 ### Tests
 
-At the time of writing (2026-10-19) the suite has **1225 tests in 75 files**:
+At the time of writing (2026-10-20) the suite has **1614 tests in 106 files**, from one `npx vitest run --project <name>` run per package:
 
 | Package | Tests | Files | What is exercised |
 | --- | --- | --- | --- |
-| `shared` | 568 | 20 | Activity text, names, colors, formatting, hashing and the demo simulator; the localization core (message format, plural rules, translator fallbacks) and the **server and demo message catalogs**, whose tests check that pt-BR, English and Spanish define exactly the same keys and placeholders. |
-| `server` | 193 | 19 | Transcript parsing and tailing, status derivation, subagent lifecycle, stats and cost, registries (permissions, messages, attention), the request guard, `locale` validation, token auth, configuration, and an **end-to-end HTTP suite that boots the real server** on a free port. |
-| `web` | 347 | 29 | The store and reconnection, the stream parser, preferences (including the language), UI models (counters, notifications, delivery, terminal, day) in all three languages, locale-aware formatting, the **UI and world catalogs** (same keys in every language, no unused or missing keys), the 2D layout and simulation, cameras and picking in both worlds, and pure parts of the 3D scene. |
-| `plugins` | 117 | 7 | Each hook **run as a real child process** against a small in-process fake server (allow, deny, terminal, offline exit speed, message delivery, stand-by wake-up, subagent guard, the language of denials and message preambles), the token and challenge logic, the installer's planning with a fake `claude` CLI, and the plugin and marketplace manifests. |
+| `shared` | 498 | 20 | Activity text, names, colors, formatting, hashing and the demo simulator; the localization core (message format, plural rules, translator fallbacks) and the **server and demo message catalogs**, whose tests check that pt-BR, English and Spanish define exactly the same keys and placeholders. |
+| `server` | 383 | 31 | Transcript parsing and tailing, status derivation, subagent lifecycle, stats and cost, registries (permissions, messages, attention), the hiring service (folder checks, terminal launch command, limits), the approval-rules store, the request guard, `locale` validation, token auth, configuration, and an **end-to-end HTTP suite that boots the real server** on a free port. |
+| `web` | 611 | 48 | The store and reconnection, the stream parser, preferences (including the language), the inbox controller (bulk and keyboard triage, risky requests), the task board store, the approval-rules controller, UI models (counters, notifications, delivery, terminal, day) in all three languages, locale-aware formatting, the **UI and world catalogs** (same keys in every language, no unused or missing keys), the 2D layout and simulation, cameras and picking in both worlds, and pure parts of the 3D scene. |
+| `plugins` | 122 | 7 | Each hook **run as a real child process** against a small in-process fake server (allow, deny, terminal, offline exit speed, message delivery, stand-by wake-up, subagent guard, the language of denials and message preambles), the token and challenge logic, the installer's planning with a fake `claude` CLI, and the plugin and marketplace manifests. |
 
 All fixtures are synthetic: temporary directories and invented transcripts, never real sessions.
 

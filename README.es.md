@@ -57,10 +57,11 @@ Ves quién está trabajando, quién te necesita y quién espera un comando en el
 | **Quiero mis agentes en la oficina** | [Instalar con un prompt](#install) · [Prompt 01](docs/prompts/01-install-and-run.md) | Servidor en marcha, plugin instalado y la oficina abierta en tu navegador |
 | **Quiero que esté siempre encendido** | [Prompt 02](docs/prompts/02-run-at-login.md) | AI Office arranca al iniciar sesión (launchd en macOS, systemd en Linux) |
 | **Uso más de una cuenta de Claude** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Todas las cuentas en la misma oficina, con el plugin instalado en cada una |
+| **Quiero iniciar agentes desde la oficina** | [Dirige a tu equipo](#team) | Contrata agentes en escritorios vacíos, despeja la bandeja, sigue el tablero de tareas y automatiza las aprobaciones |
 | **Algo no funciona** | [Solución de problemas](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | Primero un diagnóstico de solo lectura, luego correcciones que tú apruebas |
 | **Quiero contribuir** | [Contribuir](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Entorno de desarrollo, verificaciones y convenciones |
 
-**En esta página:** [Instalación](#install) · [Agentes](#watch) · [Permisos y mensajes](#direct) · [2D y 3D](#views) · [Cómo funciona](#how-it-works) · [Privacidad](#privacy) · [Prompts](#prompts) · [Configuración](#configuration) · [Evidencia](#evidence) · [Repositorio](#repository) · [Comunidad](#community).
+**En esta página:** [Instalación](#install) · [Agentes](#watch) · [Permisos y mensajes](#direct) · [Tu equipo](#team) · [2D y 3D](#views) · [Cómo funciona](#how-it-works) · [Privacidad](#privacy) · [Prompts](#prompts) · [Configuración](#configuration) · [Evidencia](#evidence) · [Repositorio](#repository) · [Comunidad](#community).
 
 <a id="install"></a>
 
@@ -176,9 +177,35 @@ El diálogo de la terminal sigue funcionando: gana la respuesta que llegue prime
 
 La [guía del plugin](docs/03-plugin.md) detalla cada hook, las vías de entrega y el stand-by de 10 minutos.
 
+<a id="team"></a>
+
+## 04 / Dirige a tu equipo desde la oficina
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/es/inbox.png" alt="La bandeja lista todas las solicitudes de permiso que esperan por ti, agrupa las idénticas en Aprobar todas las parecidas y señala los comandos peligrosos." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/task-board.png" alt="El tablero de tareas muestra las tareas de cada agente en las columnas Pendiente, En curso y Completada, con el agente, la sala y la antigüedad en cada tarjeta." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Una sola bandeja para todo lo que te espera</sub></td>
+    <td align="center"><sub>Las tareas de todos los agentes en un solo tablero</sub></td>
+  </tr>
+</table>
+
+La oficina es también el lugar donde empieza el trabajo y donde lo mantienes en marcha, sin saltar entre terminales.
+
+| Quieres | En la oficina | Qué pasa |
+|---|---|---|
+| **Iniciar un agente nuevo** | Haz clic en un escritorio vacío, en **Contratar un agente** en una sala, o pulsa `H` | Se abre una nueva ventana de terminal con Claude Code en esa carpeta, con tu primera tarea, el modelo y el modo de permisos; una persona camina hasta el escritorio y toma el relevo cuando empieza la sesión |
+| **Despejar lo que te espera** | La **Bandeja** (`I`) | Permisos, preguntas, errores y agentes que terminaron, por orden de prioridad; **Aprobar todas las parecidas** para solicitudes idénticas, triaje con el teclado y los comandos peligrosos nunca se aprueban en bloque |
+| **Ver todo el trabajo** | El **Tablero de tareas** (`K`) o la pizarra de la sala de reuniones | Las tareas de cada agente en **Pendiente**, **En curso** y **Completada**; arrastrar una tarjeta escribe un mensaje al agente, que revisas antes de enviarlo |
+| **Dejar de responder la misma pregunta** | **Crear regla…** en cualquier solicitud, o **Configuración → Reglas de aprobación** | Las solicitudes recurrentes (por ejemplo, `npm test` en un proyecto) se responden al instante y quedan registradas; los comandos peligrosos o compuestos siempre te llegan a ti |
+
+Contratar requiere tener la página abierta en este computador y abre tu terminal de siempre (Terminal o iTerm en macOS, el terminal de tu escritorio en Linux). La [guía de uso](docs/02-using-the-office.md) detalla cada una, y la [guía del plugin](docs/03-plugin.md) explica cómo las reglas responden a las solicitudes.
+
 <a id="views"></a>
 
-## 04 / 2D por defecto, 3D cuando quieras
+## 05 / 2D por defecto, 3D cuando quieras
 
 <table>
   <tr>
@@ -203,7 +230,7 @@ Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfa
 
 <a id="how-it-works"></a>
 
-## 05 / Cómo funciona
+## 06 / Cómo funciona
 
 <p align="center">
   <picture>
@@ -228,7 +255,7 @@ La [guía de arquitectura](docs/07-architecture.md) y las [especificaciones](doc
 
 <a id="privacy"></a>
 
-## 06 / Privado por diseño
+## 07 / Privado por diseño
 
 <p align="center">
   <picture>
@@ -251,7 +278,7 @@ Lee la [guía de privacidad y seguridad](docs/05-privacy-and-security.md) y repo
 
 <a id="prompts"></a>
 
-## 07 / Prompts para cada paso
+## 08 / Prompts para cada paso
 
 Elige una tarea, abre el prompt y pega el bloque indicado en un agente con acceso a la terminal. El [catálogo](docs/prompts/README.md) explica cada uno.
 
@@ -267,7 +294,7 @@ Elige una tarea, abre el prompt y pega el bloque indicado en un agente con acces
 
 <a id="configuration"></a>
 
-## 08 / Configúralo a tu manera
+## 09 / Configúralo a tu manera
 
 Los valores por defecto sirven para la mayoría de las personas. Define variables de entorno (o las flags equivalentes) solo cuando lo necesites:
 
@@ -292,12 +319,12 @@ El texto que viene de tus propias sesiones (prompts, títulos de tareas, comando
 
 <a id="evidence"></a>
 
-## 09 / Evidencia y límites
+## 10 / Evidencia y límites
 
 | Verificación | Cómo |
 |---|---|
 | **Tipos** | TypeScript estricto en los cuatro paquetes: `npm run typecheck` |
-| **Comportamiento** | Más de 1200 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
+| **Comportamiento** | Más de 1600 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
 | **Estilo** | ESLint y Prettier: `npm run lint` |
 | **Build** | Bundle web y bundle del servidor: `npm run build` |
 | **Documentación** | Todo enlace local, ancla y traducción del README verificados: `npm run docs:check` |
@@ -314,7 +341,7 @@ Tu pantalla limita lo que ves (normalmente 60 fps). La escena nocturna en 3D es 
 
 <a id="repository"></a>
 
-## 10 / Explora el repositorio
+## 11 / Explora el repositorio
 
 ```text
 ai-office/
@@ -354,7 +381,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 11 / Sigue el proyecto
+## 12 / Sigue el proyecto
 
 Si AI Office hizo que tus agentes fueran más fáciles de seguir, una estrella ayuda a que otras personas lo encuentren.
 
