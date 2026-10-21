@@ -8,6 +8,7 @@ import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
 import type { MessageRegistry } from '../registries/messages';
 import type { PermissionRegistry } from '../registries/permissions';
+import type { ReportService } from '../report/service';
 import type { UsageIndexer } from '../usage/indexer';
 import type { RulesStore } from '../rules/rules-store';
 import type { HireService } from '../hire/service';
@@ -32,6 +33,7 @@ export interface AppContext {
   hires: HireService;
   day: DayRecorder;
   usage: UsageIndexer;
+  report: ReportService;
   transcripts: TranscriptCache;
   isDemo: () => boolean;
   setDemo: (on: boolean) => void;

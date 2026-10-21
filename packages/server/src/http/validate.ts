@@ -11,9 +11,12 @@ import {
   type Locale,
   type PermissionDecision,
   type PermissionHookRequest,
+  type DayRange,
   isLocale,
+  reportDayRange,
 } from '@ai-office/shared';
 import { asArray, asNumber, asRecord, asString } from '../util/fs-safe';
+import { isSafeSegment, localDateString } from '../util/ids';
 import { HttpError } from './respond';
 
 const MAX_ID = 300;
@@ -148,4 +151,27 @@ export function parseTimeoutMs(raw: string | null, maxSeconds: number, fallbackS
   const seconds = raw === null ? fallbackSeconds : Number(raw);
   if (!Number.isFinite(seconds)) return fallbackSeconds * 1000;
   return Math.min(Math.max(seconds, 0), maxSeconds) * 1000;
+}
+
+export interface ReportQuery {
+  range: DayRange;
+  /** An account id or "all". */
+  account: string;
+  includeRequests: boolean;
+  locale: Locale;
+}
+
+/** Query of GET /api/report/day: a date within the last seven days, an account, the opt-in for prompts, a language. */
+export function parseReportQuery(params: URLSearchParams, now: number): ReportQuery {
+  const date = params.get('date') ?? localDateString(now);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpError(400, 'invalid-date');
+  const range = reportDayRange(date, now);
+  if (range === undefined) throw new HttpError(400, 'date-out-of-range');
+  const account = params.get('account') ?? 'all';
+  if (account !== 'all' && !isSafeSegment(account)) throw new HttpError(400, 'invalid-account');
+  const requests = params.get('requests');
+  if (requests !== null && requests !== '0' && requests !== '1') throw new HttpError(400, 'invalid-requests');
+  const locale = params.get('locale') ?? 'pt-BR';
+  if (!isLocale(locale)) throw new HttpError(400, 'invalid-locale');
+  return { range, account, includeRequests: requests === '1', locale };
 }

@@ -28,6 +28,11 @@ export class NameStore {
     }
   }
 
+  /** The name stored for `key`, if any (read only: nothing is assigned or saved). */
+  peek(key: string): string | undefined {
+    return this.names.get(key);
+  }
+
   /**
    * Name for `key` (account, session[, agent]). A stored name is reused unless another present agent already
    * uses it; otherwise a deterministic pick avoids the names in `taken`.

@@ -1,7 +1,8 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
 import { API, type HireRequest, type PermissionDecision, type RuleDraft, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
+import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type ReportQuery, type TranscriptQuery } from './backend';
+import { parseDayReport } from './parse-report';
 import { parseUsageDetail } from './parse-usage';
 import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parsePermission, parseRule, parseRuleLog, parseRulePreview, parseRuleRejection, parseRules, parseSessions, parseTranscriptPage } from './parse';
 
@@ -103,6 +104,10 @@ export class HttpBackend implements Backend {
 
   async usageDetail(account: string, period: UsagePeriod) {
     return parseUsageDetail(await this.get(API.usageDetail, { account, period }));
+  }
+
+  async dayReport(query: ReportQuery) {
+    return parseDayReport(await this.get(API.report, { date: query.date, account: query.account, requests: query.includeRequests ? 1 : undefined, locale: locale() }));
   }
 
   async rules() {

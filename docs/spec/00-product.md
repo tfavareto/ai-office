@@ -61,7 +61,7 @@ the source catalog the other two are translated from. Code, comments and docs in
    text, collapsed thinking, tool calls with summaries and results), live-updating, search (Ctrl/Cmd+F). T toggles for
    the selected agent. Session history popover: sessions of the last 7 days grouped by day, searchable; opens closed
    sessions read-only.
-10. **My day**: dialog with time per status per agent today (bar per agent + totals), from the server's day recorder.
+10. **My day**: dialog with two tabs. **Time**: time per status per agent (bar per agent + totals), from the server's day recorder. **Report** (`R`): what each agent did on today or one of the six days before it, built from the transcripts and the usage index: headline numbers (agents, active time, files changed with lines, commits, test runs passed or failed, tasks completed, tokens and estimated cost), a half-hour activity strip, highlights ("Ana closed 4 tasks and made 3 commits in loja-online") and sections per project or per agent. Exports as Markdown (copy, or `ai-office-<date>.md`) in the interface language. Prompts are never included unless the user turns on "Include the requests" (first line of each, off by default).
 11. **Settings**: language (Automatic (system) / English / Português (Brasil) / Español; switches live, keeping
     selection, panels and camera; "Automatic" resolves from the browser languages: pt → Português, es → Español,
     otherwise English), visual (2D/3D; applies immediately), day and night (automatic/day/night), names above people,
@@ -131,7 +131,7 @@ the source catalog the other two are translated from. Code, comments and docs in
 18. **Consumo (usage)**: dialog opened from a usage card or with `U`. Account picker (each account and "All"), period tabs (Today / Week / Month), KPI tiles (total tokens, estimated cost, change against the same elapsed part of the previous period, cache hit share), stacked bars of the token types over time (hours for today, days for the week and the month), the open 5 h window of each account, a **limit forecast** (burn rate of the last 30-60 minutes projected to the end of the 5 h window and of the week, against a limit you type in or, without one, your highest recent block or week), and breakdown tables by model, project and session or subagent (people and rooms the office knows are links). Numbers come from a persisted, incremental hourly index of every transcript (previous month onwards, kept up to 13 months), computed locally. Everything is an estimate and says so.
 
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
-Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, U usage, K task board (on a focused card: M moves it), O overview,
+Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
 H hire an agent, [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
 
 ## Non-goals

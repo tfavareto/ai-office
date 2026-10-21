@@ -7,6 +7,7 @@ export type ShortcutAction =
   | 'permission'
   | 'inbox'
   | 'day'
+  | 'report'
   | 'usage'
   | 'board'
   | 'overview'
@@ -32,6 +33,7 @@ const PLAIN_KEYS: Readonly<Record<string, ShortcutAction>> = {
   p: 'permission',
   i: 'inbox',
   m: 'day',
+  r: 'report',
   u: 'usage',
   k: 'board',
   o: 'overview',

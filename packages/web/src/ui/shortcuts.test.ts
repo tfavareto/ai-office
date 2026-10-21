@@ -15,6 +15,13 @@ describe('resolveShortcut', () => {
     expect(resolveShortcut(key('h', { altKey: true }), false, false)).toBeNull();
   });
 
+  it('maps R to the day report, but not while typing or with modifiers', () => {
+    expect(resolveShortcut(key('r'), false, false)).toBe('report');
+    expect(resolveShortcut(key('R'), false, false)).toBe('report');
+    expect(resolveShortcut(key('r'), true, false)).toBeNull();
+    expect(resolveShortcut(key('r', { metaKey: true }), false, false)).toBeNull();
+  });
+
   it('keeps the other shortcuts', () => {
     expect(resolveShortcut(key('n'), false, false)).toBe('message');
     expect(resolveShortcut(key('Escape'), true, false)).toBe('escape');

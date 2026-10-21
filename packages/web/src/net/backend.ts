@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, AutoDecision, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
+import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -8,6 +8,15 @@ export interface TranscriptQuery {
   /** Subagent id, when reading a subagent's transcript. */
   agentId?: string;
   after?: number;
+}
+
+export interface ReportQuery {
+  /** Local date, YYYY-MM-DD. */
+  date: string;
+  /** An account id or "all". */
+  account: string;
+  /** Ask for the first line of each user prompt. */
+  includeRequests: boolean;
 }
 
 export type DecisionResult = 'ok' | 'already-answered';
@@ -22,6 +31,8 @@ export interface Backend {
   transcript(query: TranscriptQuery): Promise<TranscriptPage>;
   sessions(): Promise<RecentSession[]>;
   day(date: string): Promise<DayStats>;
+  /** What each agent did on one of the last seven days (local access only). */
+  dayReport(query: ReportQuery): Promise<DayReport>;
   /** Usage history of an account (`all` for every account) over today, this week or this month. */
   usageDetail(account: string, period: UsagePeriod): Promise<UsageDetail>;
   setDemo(on: boolean): Promise<boolean>;

@@ -1,7 +1,7 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
+import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, dayRange, demoDayReport, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
+import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type ReportQuery, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
 import type { Transport, TransportHandlers } from './transport';
 
@@ -115,6 +115,13 @@ class MockBackend implements Backend {
     const accounts = account === 'all' ? snapshot.accounts.map((candidate) => candidate.id) : [account];
     const detail = buildUsageDetail(rows, { accounts, label: account, period, now }, (id) => maps.get(id) ?? new Map());
     return { ...withOfficeSessions(detail, snapshot.agents), demo: true as const };
+  }
+
+  async dayReport(query: ReportQuery) {
+    const range = dayRange(query.date);
+    if (range === undefined) throw new BackendError(t('error.generic'), 400);
+    const now = Date.now();
+    return demoDayReport({ range, now, locale: locale(), agents: this.sim.agents(), usageRows: this.sim.usageRows(now), account: query.account, includeRequests: query.includeRequests });
   }
 
   async setDemo(on: boolean): Promise<boolean> {

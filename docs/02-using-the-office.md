@@ -232,6 +232,20 @@ The first time (or after the saved history is reset) the server reads all your t
 
 **My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
 
+### Day report
+
+The **Report** tab of **My day** (press `R` to open it directly) tells what each agent actually did on **today or any of the last six days**, read from the session transcripts and the usage index, so it also covers days when AI Office was not running.
+
+- **Day picker.** Seven chips: Today, Yesterday and the five days before.
+- **Headline numbers.** Agents, active time, files changed (with lines added and removed), commits, test runs (passed and failed), tasks completed, and tokens with the estimated cost, plus a strip showing when the day was busy.
+- **Highlights.** A few plain sentences, for example "Ana closed 4 tasks and made 3 commits in loja-online", and a warning when test runs failed.
+- **Sections.** Group by **Project** (each project, then its agents) or by **Agent**. Open **Details** on an agent for the files, commits, test runs per runner, completed tasks, tools, and the commands it ran. Subagents' work is counted in the session that launched them.
+- **How things are detected.** Commits come from successful `git commit` calls, test runs from commands such as `npm test`, `vitest`, `pytest`, `go test` or `cargo test` (passed or failed from the output and exit status), tasks from the agent's task list, and files from its Edit and Write calls.
+- **Requests.** The report never includes what you asked. **Include the requests** adds the first line of each of your prompts; it is off every time you open the report.
+- **Export.** **Copy Markdown** and **Download .md** (`ai-office-<date>.md`) produce a work diary or a status update in the language of the interface. Share it as you like: it contains project names, file paths, commit subjects, task titles and commands.
+
+Token and cost figures are estimates. If the usage index is still being built you will see a note, and the report may say that it was limited by size or time on a very busy day. Demo mode shows believable demo data for every day.
+
 ## Session history
 
 **Session history** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
@@ -321,6 +335,7 @@ Plain keys are ignored while you type in a field.
 | `N` | Send a message to the agent, or to the room's team. |
 | `P` | Go to the next permission request. |
 | `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
+| `R` | Open the **day report** (the Report tab of **My day**). |
 | `M` | Open **My day**. On the task board, with a card focused: move the task. |
 | `U` | Open the detailed **Consumo** (usage) view. |
 | `K` | Open or close the [task board](#the-task-board). |

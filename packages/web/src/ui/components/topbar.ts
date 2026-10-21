@@ -82,7 +82,7 @@ export class TopBar implements Component {
     this.bellBtn.dataset.popoverTrigger = 'notifications';
     this.bellBtn.appendChild(this.bellBadge);
     this.boardBtn = iconButton({ icon: 'board', label: t('topbar.board'), onClick: () => ctx.openDialog('board') });
-    this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDialog('day') });
+    this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDay('time') });
     this.helpBtn = iconButton({ icon: 'help', label: t('topbar.help'), className: 'ao-help-btn', onClick: () => ctx.openDialog('help') });
 
     this.el.append(

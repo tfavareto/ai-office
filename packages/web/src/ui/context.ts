@@ -9,7 +9,7 @@ import type { MessageCenter } from './message-center';
 import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
 import type { RulesController, RulesTab } from './rules-controller';
-import type { DialogId, DrawerTab, PopoverId, UiState } from './state';
+import type { DayTab, DialogId, DrawerTab, PopoverId, UiState } from './state';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
 
@@ -58,6 +58,8 @@ export interface AppContext {
   closePopover(): void;
   openDialog(id: DialogId): void;
   closeDialog(): void;
+  /** Opens "Meu dia" on a tab (closes it when it is already open there). */
+  openDay(tab: DayTab): void;
   /** Opens the "hire an agent" dialog (no-op with a hint when the page is not local). */
   openHire(target?: HireTarget): void;
   jumpToShell(): void;

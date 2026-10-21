@@ -44,7 +44,7 @@ import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
 import { SoundPlayer, type CueKind } from './sound';
-import { NARROW_BREAKPOINT, UiState, initialUiData, type DialogId, type DrawerTab, type PopoverId, type TerminalTarget } from './state';
+import { NARROW_BREAKPOINT, UiState, initialUiData, type DayTab, type DialogId, type DrawerTab, type PopoverId, type TerminalTarget } from './state';
 import { tickLive } from './widgets';
 import type { WorldHost } from './world-host';
 import type { ViewInsets } from '../world/api';
@@ -293,6 +293,15 @@ export class App implements AppContext {
 
   closeDialog(): void {
     this.ui.set({ dialog: null });
+  }
+
+  openDay(tab: DayTab): void {
+    const ui = this.ui.get();
+    if (ui.dialog === 'day' && ui.dayTab === tab) {
+      this.ui.set({ dialog: null });
+      return;
+    }
+    this.ui.set({ dialog: 'day', dayTab: tab, popover: null });
   }
 
   openHire(target: HireTarget = {}): void {
@@ -645,7 +654,10 @@ export class App implements AppContext {
         this.togglePopover('inbox');
         return;
       case 'day':
-        this.openDialog('day');
+        this.openDay('time');
+        return;
+      case 'report':
+        this.openDay('report');
         return;
       case 'usage':
         this.openDialog('usage');

@@ -5,6 +5,8 @@ import { Observable } from './observable';
 
 export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
+/** The tabs of the "Meu dia" dialog. */
+export type DayTab = 'time' | 'report';
 export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
@@ -37,6 +39,8 @@ export interface UiData {
   composerFocus: number;
   /** Account the usage dialog should show when it opens (set by the card that was clicked, consumed by the dialog). */
   usageAccount: string | null;
+  /** Which tab "Meu dia" shows. */
+  dayTab: DayTab;
   /** Where the "hire an agent" dialog starts (the room or desk it was opened from). */
   hire: HireTarget;
 }
@@ -59,6 +63,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     narrow: init.narrow,
     composerFocus: 0,
     usageAccount: null,
+    dayTab: 'time',
     hire: {},
   };
 }

@@ -11,6 +11,8 @@ export * from './permission-risk';
 export * from './rules';
 export * from './i18n';
 export * from './usage';
+export * from './report';
 export { DEMO_ACCOUNTS, DEMO_PROJECTS } from './demo/content';
 export { createDemoSimulator } from './demo/simulator';
+export { demoDayReport, type DemoReportInput } from './demo/report';
 export { type DemoSessionAnchor, demoAccountUsage, demoUsageRows } from './demo/usage-history';

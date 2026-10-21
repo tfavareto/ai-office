@@ -1,115 +1,78 @@
-// "Meu dia": time per status per agent (stacked bars) and totals, for any of the recorded days.
-import type { DayStats } from '@ai-office/shared';
+// "Meu dia": two tabs, the time per status per agent (Tempo) and what each agent did (Relatório).
 import { t } from '../../i18n';
-import { describeError } from '../../net/backend';
 import type { AppContext } from '../context';
-import { h } from '../dom';
-import { formatDateKey, formatDuration, shiftDateKey, toDateKey } from '../format';
+import { h, toggleClass } from '../dom';
+import { formatDateKey, shiftDateKey, toDateKey } from '../format';
 import { icon } from '../icons';
-import { DAY_STATUSES, aggregateDay, dayStatusLabel, type DayStatus, type DayView } from '../model/day';
-import { emptyNote } from '../widgets';
+import type { DayTab } from '../state';
+import { createSegmented } from '../widgets';
+import { DayTimeView } from './day-time-view';
 import { Dialog, closeButton } from './overlay';
-
-type LoadState = 'idle' | 'loading' | 'ready' | 'error';
+import { ReportView } from './report-view';
 
 export class DayDialog extends Dialog {
-  private readonly body = h('div', { class: 'ao-day-body' });
+  private readonly time: DayTimeView;
+  private readonly report: ReportView;
+  private readonly tabs = createSegmented<DayTab>(
+    t('day.tabs'),
+    [
+      { value: 'time', label: t('day.tab.time') },
+      { value: 'report', label: t('day.tab.report') },
+    ],
+    (tab) => {
+      if (this.ctx.ui.get().dayTab !== tab) this.ctx.ui.set({ dayTab: tab });
+    },
+  );
+  private readonly nav: HTMLElement;
   private readonly dateLabel = h('span', { class: 'ao-day-date' });
   private readonly nextBtn: HTMLButtonElement;
   private date = '';
-  private state: LoadState = 'idle';
-  private view: DayView | null = null;
-  private error = '';
-  private token = 0;
-  private signature = '';
+  private tab: DayTab | null = null;
 
   constructor(ctx: AppContext) {
     super(ctx, 'day', 'ao-day-title', 'ao-dialog--day');
+    this.time = new DayTimeView(ctx);
+    this.report = new ReportView(ctx);
     const prev = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.prev'), title: t('day.prev'), onclick: () => this.shift(-1) }, icon('chevronLeft', 16));
     this.nextBtn = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.next'), title: t('day.next'), onclick: () => this.shift(1) }, icon('chevronRight', 16));
+    this.nav = h('div', { class: 'ao-day-nav' }, prev, this.dateLabel, this.nextBtn);
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-day-title' }, t('day.title')), h('div', { class: 'ao-day-nav' }, prev, this.dateLabel, this.nextBtn), closeButton(t('common.close'), () => ctx.closeDialog())),
-      this.body,
+      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-day-title' }, t('day.title')), this.tabs.el, this.nav, closeButton(t('common.close'), () => ctx.closeDialog())),
+      this.time.el,
+      this.report.el,
     );
   }
 
   protected onOpen(): void {
     this.date = toDateKey(this.ctx.now());
-    void this.load();
+    this.tab = null;
+    this.report.show();
   }
 
   private shift(days: number): void {
     const next = shiftDateKey(this.date, days);
     if (next > toDateKey(this.ctx.now())) return;
     this.date = next;
-    void this.load();
-  }
-
-  private async load(): Promise<void> {
-    const token = ++this.token;
-    this.state = 'loading';
-    this.signature = '';
-    this.ctx.refresh();
-    try {
-      const stats: DayStats = await this.ctx.store.backend.day(this.date);
-      if (token !== this.token) return;
-      this.view = aggregateDay(stats);
-      this.state = 'ready';
-    } catch (error) {
-      if (token !== this.token) return;
-      this.state = 'error';
-      this.error = describeError(error);
-    }
-    this.signature = '';
-    this.ctx.refresh();
+    this.time.show(this.date);
   }
 
   protected update(): void {
+    const tab = this.ctx.ui.get().dayTab;
+    this.tabs.set(tab);
+    if (tab !== this.tab) {
+      this.tab = tab;
+      this.time.el.hidden = tab !== 'time';
+      this.report.el.hidden = tab !== 'report';
+      this.nav.hidden = tab !== 'time';
+      toggleClass(this.panel, 'is-report', tab === 'report');
+      if (tab === 'time') this.time.show(this.date);
+    }
+    if (tab === 'report') {
+      this.report.update();
+      return;
+    }
     this.dateLabel.textContent = this.date === toDateKey(this.ctx.now()) ? t('day.today', { date: formatDateKey(this.date) }) : formatDateKey(this.date);
     this.nextBtn.disabled = this.date >= toDateKey(this.ctx.now());
-    const signature = `${this.state}|${this.date}|${this.view?.totalMs ?? 0}|${this.view?.rows.length ?? 0}`;
-    if (signature === this.signature) return;
-    this.signature = signature;
-    if (this.state === 'loading') {
-      this.body.replaceChildren(emptyNote(t('day.loading')));
-    } else if (this.state === 'error') {
-      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
-    } else if (!this.view || this.view.rows.length === 0) {
-      this.body.replaceChildren(emptyNote(t('day.empty')));
-    } else {
-      this.body.replaceChildren(this.totals(this.view), this.legend(), this.bars(this.view));
-    }
-  }
-
-  private totals(view: DayView): HTMLElement {
-    return h(
-      'div',
-      { class: 'ao-day-totals' },
-      ...DAY_STATUSES.map((status) => h('div', { class: `ao-day-total ao-day-total--${status}` }, h('span', { class: 'ao-day-total-label' }, dayStatusLabel(status)), h('strong', null, formatDuration(view.totals[status])))),
-    );
-  }
-
-  private legend(): HTMLElement {
-    return h('ul', { class: 'ao-day-legend', 'aria-hidden': 'true' }, ...DAY_STATUSES.map((status) => h('li', null, h('span', { class: `ao-day-swatch ao-day-seg--${status}` }), dayStatusLabel(status))));
-  }
-
-  private bars(view: DayView): HTMLElement {
-    return h(
-      'ul',
-      { class: 'ao-day-rows' },
-      ...view.rows.map((row) => {
-        const summary = DAY_STATUSES.map((status: DayStatus) => `${dayStatusLabel(status)} ${formatDuration(row.segments.find((s) => s.status === status)?.ms ?? 0)}`).join(', ');
-        return h(
-          'li',
-          { class: 'ao-day-row' },
-          h('div', { class: 'ao-day-row-head' }, h('strong', null, row.name), h('span', { class: 'ao-day-row-room' }, this.ctx.project(row.projectId)?.name ?? ''), h('span', { class: 'ao-day-row-total' }, formatDuration(row.totalMs))),
-          h(
-            'div',
-            { class: 'ao-day-bar', role: 'img', 'aria-label': `${row.name}: ${summary}` },
-            ...row.segments.filter((s) => s.ms > 0).map((s) => h('span', { class: `ao-day-seg ao-day-seg--${s.status}`, style: `width:${s.widthPct}%`, title: `${dayStatusLabel(s.status)}: ${formatDuration(s.ms)}` })),
-          ),
-        );
-      }),
-    );
+    this.time.update();
   }
 }

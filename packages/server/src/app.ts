@@ -27,6 +27,7 @@ import { SnapshotPublisher } from './office/snapshot';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
+import { ReportService } from './report/service';
 import { UsageIndexer } from './usage/indexer';
 import { RulesStore } from './rules/rules-store';
 import { asString } from './util/fs-safe';
@@ -214,6 +215,14 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     hires,
     day,
     usage: indexer,
+    report: new ReportService({
+      now,
+      log,
+      usage: indexer,
+      dayStats: (date) => day.get(date),
+      agents: () => office.state().agents,
+      storedName: (key) => names.peek(key),
+    }),
     transcripts: new TranscriptCache(),
     isDemo: () => demoOn,
     setDemo,

@@ -43,6 +43,12 @@ export const API = {
   sessions: '/api/sessions',
   /** GET ?date=YYYY-MM-DD → DayStats. */
   day: '/api/day',
+  /**
+   * GET ?date=YYYY-MM-DD (today or one of the 6 days before)&account=<id|all>[&requests=1][&locale=<locale>] → DayReport.
+   * `requests=1` adds the first line of each user prompt; `locale` only picks the language of demo content.
+   * Local access only.
+   */
+  report: '/api/report/day',
   /** GET ?account=<id|all>&period=today|week|month → UsageDetail (usage history index). Local access only. */
   usageDetail: '/api/usage/detail',
   /** POST { on: boolean } → { demo } */

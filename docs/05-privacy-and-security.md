@@ -14,10 +14,12 @@ The server reads files that Claude Code already writes in each account's config 
 | `<dir>/projects/<project>/<session>.jsonl` | The session transcript: prompts, replies, tool calls and results, token usage and model. Tailed incrementally. At startup only the last 2 MB of each transcript is read; after that, only new lines. |
 | `<dir>/projects/<project>/<session>/subagents/agent-<id>.jsonl` and `.meta.json` | Subagent activity, type and description. |
 
-Beyond live tailing, two features read more on request:
+Beyond live tailing, three features read more on request:
 
 - **Terminal panel and session history** read a transcript on demand to show the conversation, and scan the last 7 days of transcripts for titles. Entries keep at most 4 KB of text each, a view pages at 500 entries, and the cached view is capped at about 8 MB.
 - **Usage cards and the Consumo view** are filled by a background indexer that reads every transcript of this and the previous month (then only what is appended) and keeps only token counts, the model, the message id, the timestamp and the working directory. It never keeps or logs prompts, replies, tool calls or file contents.
+
+- **Day report** (the Report tab of **My day**) reads the part of each transcript that belongs to the chosen day, up to seven days back, on request and in the background. From it the server keeps in memory only counters and short strings: tool call counts, the paths of files edited, the first line of each command (credential-looking values such as `--token x`, `API_KEY=x` and bearer tokens are masked), commit subjects printed by `git commit`, completed task titles, test outcomes, timestamps and, for the optional **Include the requests** switch, the first line of each of your prompts (140 characters). The request texts are only sent to the page when the switch is on, which is off by default. Nothing from the report is written to disk by AI Office, and the Markdown export only happens when you press the buttons. Read the exported file before sharing it: it names your projects, files, commands and commits.
 
 It does not read your credentials, your Claude Code settings, your API keys or your project source files. Statistics only cover what it has read: the tail at startup plus everything new.
 

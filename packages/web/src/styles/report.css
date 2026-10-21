@@ -1,0 +1,335 @@
+/* "Meu dia" > Relatório: day picker, headline tiles, activity strip, highlights and the sections per project or agent. */
+.ao-dialog--day .ao-dialog-head .ao-segmented {
+  margin-left: 8px;
+}
+
+.ao-dialog--day.is-report {
+  width: min(980px, 100%);
+  max-height: min(900px, calc(100vh - 32px));
+}
+
+.ao-dialog--day.is-report .ao-dialog-head .ao-segmented {
+  margin-right: auto;
+}
+
+.ao-report {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ao-report[hidden],
+.ao-day-body[hidden] {
+  display: none;
+}
+
+.ao-report-toolbar {
+  display: grid;
+  flex: none;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-report-days,
+.ao-report-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ao-report-days .ao-chip {
+  padding: 0 12px;
+}
+
+.ao-report-spacer {
+  flex: 1;
+}
+
+.ao-report-notices:empty {
+  display: none;
+}
+
+.ao-report-notices {
+  display: grid;
+  gap: 6px;
+  padding: 10px 16px 0;
+}
+
+.ao-report .ao-report-notice {
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(245, 181, 68, 0.35);
+  border-radius: 8px;
+  background: rgba(245, 181, 68, 0.1);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.ao-report-content {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-report-content.is-loading {
+  opacity: 0.6;
+}
+
+/* Headline tiles. */
+.ao-report-tiles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ao-report-tile {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.ao-report-tile-label {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-report-tile-value {
+  overflow: hidden;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-report-tile-hint {
+  color: var(--faint);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.ao-report-tile.is-good .ao-report-tile-hint { color: var(--working); }
+.ao-report-tile.is-bad .ao-report-tile-hint { color: var(--error); }
+
+/* Activity strip: one cell per half hour. */
+.ao-report-timeline {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-report-strip {
+  display: grid;
+  grid-template-columns: repeat(48, minmax(0, 1fr));
+  gap: 2px;
+  height: 22px;
+}
+
+.ao-report-section .ao-report-strip,
+.ao-report-agent .ao-report-strip {
+  height: 8px;
+}
+
+.ao-report-cell {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--working) calc(var(--v, 0) * 100%), var(--bg-hover));
+  transition: background var(--t-base) var(--ease);
+}
+
+.ao-report-axis {
+  position: relative;
+  height: 14px;
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+.ao-report-axis span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.ao-report-axis span:first-child {
+  transform: none;
+}
+
+.ao-report-axis span:last-child {
+  transform: translateX(-100%);
+}
+
+/* Highlights. */
+.ao-report .ao-report-highlights {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(110, 162, 255, 0.3);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-size: 13px;
+  list-style: none;
+}
+
+.ao-report-highlights li::before {
+  margin-right: 8px;
+  color: var(--accent);
+  content: '•';
+}
+
+/* Sections and agent cards. */
+.ao-report-section {
+  display: grid;
+  gap: 8px;
+}
+
+.ao-report-section-head,
+.ao-report-agent header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.ao-report-section-head h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ao-report-agent-project,
+.ao-report-section-sum,
+.ao-report-agent-prompts {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-report-section-sum {
+  margin-left: auto;
+}
+
+.ao-report-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.ao-report-sections.is-agents {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.ao-report-sections.is-agents .ao-report-agents {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ao-report-agents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ao-report-agent {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.ao-report-agent header strong {
+  font-size: 14px;
+}
+
+.ao-report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ao-report-chip {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.ao-report-chip.is-good { color: var(--working); }
+.ao-report-chip.is-bad { color: var(--error); }
+
+.ao-report-details summary {
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ao-report-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ao-report-list {
+  margin-top: 8px;
+}
+
+.ao-report-list h5 {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ao-report .ao-report-list ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12.5px;
+  list-style: disc;
+  overflow-wrap: anywhere;
+}
+
+.ao-report-list code {
+  font: 11.5px var(--mono);
+}
+
+.ao-report .ao-report-list .ao-report-more {
+  color: var(--faint);
+  list-style: none;
+  margin-left: -16px;
+}
+
+@media (max-width: 900px) {
+  .ao-report-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+
+  .ao-report-agents,
+  .ao-report-sections.is-agents {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ao-report-section-sum {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-report-cell {
+    transition: none;
+  }
+}
