@@ -51,7 +51,8 @@ export function accountsFromDirs(dirs: readonly string[], homeDir: string): Acco
 }
 
 export async function discoverAccounts(options: DiscoverOptions): Promise<Account[]> {
-  if (options.explicitDirs !== undefined) return accountsFromDirs(options.explicitDirs, options.homeDir);
+  // Configured directories that do not exist are not accounts (a typo, or an account removed since).
+  if (options.explicitDirs !== undefined) return accountsFromDirs(options.explicitDirs.filter((dir) => existsSync(dir)), options.homeDir);
   const dirs = await homeCandidates(options.homeDir);
   if (options.envDir !== undefined && options.envDir.length > 0 && existsSync(options.envDir)) dirs.push(options.envDir);
   return accountsFromDirs(dirs, options.homeDir);

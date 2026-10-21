@@ -69,6 +69,13 @@ describe('accounts', () => {
     expect(explicit.map((a) => a.dir)).toEqual([extra]);
   });
 
+  test('ignores explicit directories that do not exist', async () => {
+    const extra = join(fake.home, 'custom-config');
+    await mkdir(extra, { recursive: true });
+    const accounts = await discoverAccounts({ homeDir: fake.home, explicitDirs: [extra, join(fake.home, 'missing')], envDir: undefined });
+    expect(accounts.map((a) => a.dir)).toEqual([extra]);
+  });
+
   test('ids stay unique when folder names collide', () => {
     const accounts = accountsFromDirs(['/a/.claude-x', '/b/.claude-x'], '/home/u');
     expect(new Set(accounts.map((a) => a.id)).size).toBe(2);
