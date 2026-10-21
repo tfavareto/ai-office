@@ -5,15 +5,12 @@ import type { Account } from '@ai-office/shared';
 import type { Logger } from '../log';
 import { type Office } from '../office/office';
 import { NO_REGISTRY_SESSION_MS, type SessionRecord, type SubRecord, resetTranscript, sessionKey } from '../office/records';
-import { startOfWeek } from '../office/usage';
-import type { UsageTracker } from '../office/usage';
 import { type DiscoverOptions, discoverAccounts } from './accounts';
 import { JsonlTailer } from './jsonl-tailer';
 import { type SubagentFile, findTranscript, listMainTranscripts, listSubagents, subagentsDir } from './paths';
 import { parseLine } from './line-parser';
 import { type RegistryEntry, type PidCheck, isPidAlive, readRegistry } from './registry';
 import type { ParsedLine } from './types';
-import { listRecentTranscripts, scanUsageBackwards } from './usage-backfill';
 import { Watchers } from './watchers';
 
 export const POLL_INTERVAL_MS = 1000;
@@ -23,7 +20,6 @@ const RESOLVE_RETRY_MS = 2000;
 /** Lines older than this at the first read of a file are history: they do not create feed items or notices. */
 export const REPLAY_GRACE_MS = 15_000;
 const SUB_MAX_AGE_MS = 30 * 60_000;
-const HOUR_MS = 3_600_000;
 
 interface Tracked {
   record: SessionRecord;
@@ -36,7 +32,6 @@ interface Tracked {
 export interface EngineDeps {
   discover: DiscoverOptions;
   office: Office;
-  usage: UsageTracker;
   log: Logger;
   now: () => number;
   pidAlive?: PidCheck;
@@ -63,7 +58,6 @@ export class Engine {
     await this.scan();
     this.timer = setInterval(() => void this.scan(), POLL_INTERVAL_MS);
     this.timer.unref();
-    void this.backfillUsage();
   }
 
   stop(): void {
@@ -264,25 +258,5 @@ export class Engine {
     if (record.registryMode || record.closedAt !== undefined) return;
     const last = record.main.lastEventAt;
     if (last > 0 && now - last > NO_REGISTRY_SESSION_MS) this.close(record.key);
-  }
-
-  // ---- usage backfill -----------------------------------------------------------------------------------------
-
-  private async backfillUsage(): Promise<void> {
-    const now = this.deps.now();
-    const since = Math.min(startOfWeek(now), now - 24 * HOUR_MS);
-    try {
-      for (const account of this.accounts) {
-        const files = await listRecentTranscripts(account.dir, since);
-        for (const file of files) {
-          if (this.stopped) return;
-          await scanUsageBackwards(file, since, (record) => this.deps.usage.add(account.id, file, record));
-          await new Promise<void>((resolve) => setImmediate(resolve));
-        }
-      }
-      this.deps.log.debug('Uso das contas carregado');
-    } catch (error) {
-      this.deps.log.debug(`Falha ao carregar o uso: ${String(error)}`);
-    }
   }
 }

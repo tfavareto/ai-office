@@ -1,0 +1,704 @@
+/* "Consumo": the detailed usage dialog (KPIs, token chart, window gauge, forecast, breakdown tables, limits form). */
+.ao-root {
+  /* Token types of the chart: also told apart by their fill pattern and by the legend, never by color alone. */
+  --usage-input: var(--accent);
+  --usage-output: var(--working);
+  --usage-cache-write: var(--waiting);
+  --usage-cache-read: var(--idle);
+}
+
+.ao-dialog--usage {
+  width: min(1080px, 100%);
+  max-height: min(920px, calc(100vh - 32px));
+}
+
+.ao-usage-heading {
+  min-width: 0;
+}
+
+.ao-usage-heading p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-usage-toolbar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-usage-toolbar-group {
+  min-width: 0;
+}
+
+.ao-usage-toolbar .ao-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ao-usage-body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-usage-body[aria-busy='true'] {
+  opacity: 0.7;
+}
+
+.ao-usage-status:empty {
+  display: none;
+}
+
+.ao-usage-progress {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 162, 255, 0.35);
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+/* KPI tiles. */
+.ao-usage-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ao-usage-kpi {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.ao-usage-kpi-label {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-usage-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ao-usage-kpi-hint {
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.ao-usage-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Blocks (chart, tables, forecast). */
+.ao-usage-card-block,
+.ao-usage-forecasts {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.ao-usage-h {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ao-usage-chartcard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ao-usage-chart {
+  position: relative;
+  min-height: 120px;
+}
+
+.ao-usage-svg {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.ao-usage-chart-empty {
+  display: grid;
+  min-height: 120px;
+  margin: 0;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ao-usage-chart-hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-usage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-usage-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ao-usage-swatch {
+  flex: none;
+}
+
+.ao-usage-fill--input,
+.ao-usage-seg--input { fill: var(--usage-input); }
+.ao-usage-fill--output,
+.ao-usage-seg--output { fill: var(--usage-output); }
+.ao-usage-fill--cacheWrite { fill: var(--usage-cache-write); }
+.ao-usage-fill--cacheRead { fill: var(--usage-cache-read); }
+.ao-usage-hatch { fill: rgba(11, 17, 27, 0.55); }
+
+.ao-usage-gridline,
+.ao-usage-axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.ao-usage-axis {
+  stroke: var(--line-strong);
+}
+
+.ao-usage-tick {
+  fill: var(--faint);
+  font-size: 11px;
+}
+
+.ao-usage-hit {
+  fill: transparent;
+}
+
+.ao-usage-stub {
+  fill: var(--line-strong);
+}
+
+.ao-usage-bar {
+  cursor: default;
+  outline: none;
+}
+
+.ao-usage-bar:hover .ao-usage-hit,
+.ao-usage-bar:focus-visible .ao-usage-hit {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+.ao-usage-bar:focus-visible .ao-usage-hit {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.ao-usage-bar.is-future .ao-usage-stub {
+  opacity: 0.4;
+}
+
+.ao-usage-tooltip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 4px;
+  min-width: 188px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-solid);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.ao-usage-tooltip[hidden] {
+  display: none;
+}
+
+.ao-usage-tooltip-head {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-usage-tooltip-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ao-usage-tooltip-total span {
+  color: var(--muted);
+}
+
+.ao-usage-tooltip ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-usage-tooltip li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ao-usage-tooltip li strong {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.ao-usage-tooltip p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Tables. */
+.ao-usage-tables {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.ao-usage-tables > .ao-note {
+  grid-column: 1 / -1;
+}
+
+.ao-usage-sessions {
+  min-width: 0;
+}
+
+.ao-usage-tablewrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.ao-usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.ao-usage-th {
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ao-usage-th--start {
+  text-align: left;
+}
+
+.ao-usage-th--end {
+  text-align: right;
+}
+
+.ao-usage-table td,
+.ao-usage-table th[scope='row'] {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  vertical-align: middle;
+}
+
+.ao-usage-table tbody tr:last-child td,
+.ao-usage-table tbody tr:last-child th[scope='row'] {
+  border-bottom: 0;
+}
+
+.ao-usage-name {
+  max-width: 280px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ao-usage-name--session {
+  max-width: 360px;
+}
+
+.ao-usage-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ao-usage-share {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+.ao-usage-share-bar {
+  display: inline-block;
+  width: 56px;
+  height: 6px;
+  margin-right: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(148, 163, 184, 0.16);
+  vertical-align: middle;
+}
+
+.ao-usage-share-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+.ao-usage-share-text {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-usage-family {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 7px;
+  border-radius: 3px;
+  background: var(--idle);
+}
+
+.ao-usage-family--opus { background: var(--accent); }
+.ao-usage-family--sonnet { background: var(--working); }
+.ao-usage-family--haiku { background: var(--waiting); }
+.ao-usage-family--fable { background: var(--shell); }
+
+.ao-usage-link {
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-usage-link:hover {
+  text-decoration: underline;
+}
+
+.ao-usage-session {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ao-usage-session-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-usage-session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.ao-usage-session-meta > * + *::before {
+  margin-right: 8px;
+  content: '·';
+}
+
+.ao-usage-session-meta .ao-usage-link {
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.ao-usage-person {
+  color: var(--muted);
+}
+
+.ao-usage-rest {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+/* Window gauge and forecast. */
+.ao-usage-estimate {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.ao-usage-account {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.ao-usage-account-head {
+  display: flex;
+  align-items: center;
+}
+
+.ao-usage-account-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 14px;
+}
+
+.ao-usage-meters {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.ao-usage-window-used {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ao-usage-idle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.ao-usage-meter {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-usage-meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-usage-meter-head strong {
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.ao-usage-meter-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.ao-usage-meter-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width var(--t-base) var(--ease);
+}
+
+.ao-usage-meter--ok .ao-usage-meter-track > span { background: var(--working); }
+.ao-usage-meter--near .ao-usage-meter-track > span { background: var(--waiting); }
+.ao-usage-meter--alert .ao-usage-meter-track > span { background: var(--error); }
+.ao-usage-meter--muted .ao-usage-meter-track > span { background: var(--idle); }
+
+.ao-usage-forecast-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.ao-usage-forecast {
+  display: grid;
+  gap: 3px;
+  padding-left: 10px;
+  border-left: 3px solid var(--idle);
+}
+
+.ao-usage-forecast--ok { border-left-color: var(--working); }
+.ao-usage-forecast--near { border-left-color: var(--waiting); }
+.ao-usage-forecast--alert { border-left-color: var(--error); }
+
+.ao-usage-forecast h4 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ao-usage-forecast p {
+  margin: 0;
+}
+
+.ao-usage-forecast-more {
+  font-weight: 600;
+}
+
+.ao-usage-forecast--alert .ao-usage-forecast-more {
+  color: var(--error);
+}
+
+.ao-usage-forecast-ref {
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+/* Limits form. */
+.ao-usage-limits {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.ao-usage-limits summary {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ao-usage-limits-hint {
+  margin: 8px 0;
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.ao-usage-limits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ao-usage-limits-field {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-usage-limits-field label {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-usage-limits-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ao-usage-limits-input .ao-input {
+  min-width: 0;
+}
+
+.ao-usage-limits-suffix {
+  color: var(--faint);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.ao-usage-limits-error {
+  margin: 6px 0 0;
+  color: var(--error);
+  font-size: 12px;
+}
+
+.ao-usage-limits-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.ao-usage-footer {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+.ao-usage-demo {
+  margin-left: 8px;
+  white-space: nowrap;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ao-usage-demo[hidden] {
+  display: none;
+}
+
+.ao-usage-updated {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .ao-usage-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ao-usage-tables,
+  .ao-usage-account-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ao-usage-limits-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .ao-usage-hide-narrow {
+    display: none;
+  }
+
+  .ao-usage-limits-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-usage-meter-track > span {
+    transition: none;
+  }
+}

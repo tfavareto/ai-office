@@ -5,6 +5,7 @@
 // app renders in the user's language. Texts that come from the user's own sessions (prompts, titles, commands) have
 // no `Msg` and are shown as they are.
 import type { Locale, Msg } from './i18n/i18n';
+import type { UsageBurn, UsagePeaks } from './usage/types';
 
 /** A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... */
 export interface Account {
@@ -201,6 +202,10 @@ export interface AccountUsage {
   window5h: { tokens: number; costUSD: number; resetsAt: number };
   week: { tokens: number; costUSD: number; resetsAt: number };
   today: { tokens: number; costUSD: number };
+  /** Recent consumption: the input of the limit forecast. */
+  burn?: UsageBurn;
+  /** Highest completed 5 h block and week in the history: the estimated reference when no limit is configured. */
+  peaks?: UsagePeaks;
 }
 
 export interface OfficeMeta {

@@ -10,5 +10,7 @@ export * from './activities';
 export * from './permission-risk';
 export * from './rules';
 export * from './i18n';
+export * from './usage';
 export { DEMO_ACCOUNTS, DEMO_PROJECTS } from './demo/content';
 export { createDemoSimulator } from './demo/simulator';
+export { type DemoSessionAnchor, demoAccountUsage, demoUsageRows } from './demo/usage-history';

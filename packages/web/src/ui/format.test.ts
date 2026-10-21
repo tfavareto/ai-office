@@ -7,10 +7,18 @@ import {
   formatCost,
   formatDateKey,
   formatDayLabel,
+  formatChange,
+  formatDateLong,
+  formatDayNumber,
+  formatDayShort,
   formatDecimal,
   formatDuration,
   formatElapsed,
+  formatHourLabel,
+  formatInteger,
+  formatMoment,
   formatResetIn,
+  formatShare,
   formatTokens,
   initials,
   percent,
@@ -191,5 +199,42 @@ describe('formatting in pt-BR (clock and dates)', () => {
     expect(formatDayLabel(now, now)).toBe('Hoje');
     expect(formatDayLabel(now - 86_400_000, now)).toBe('Ontem');
     expect(formatDayLabel(now - 3 * 86_400_000, now)).toBe('sex., 16/10');
+  });
+});
+
+describe('usage view formatters', () => {
+  const noon = new Date(2026, 9, 21, 14, 30).getTime();
+
+  it('groups whole numbers and signs relative changes', () => {
+    expect(formatInteger(1234567.4)).toBe('1.234.567');
+    expect(formatChange(0.124)).toBe('+12%');
+    expect(formatChange(-0.5)).toMatch(/^[-−]50%$/);
+    expect(formatChange(0.042)).toBe('+4,2%');
+    expect(formatChange(0)).toBe('0%');
+    setLocale('en');
+    expect(formatInteger(1234567)).toBe('1,234,567');
+    expect(formatChange(0.124)).toBe('+12%');
+  });
+
+  it('shows shares, with a floor for tiny ones', () => {
+    expect(formatShare(0.426)).toBe('43%');
+    expect(formatShare(0.004)).toBe('< 1%');
+    expect(formatShare(0)).toBe('0%');
+  });
+
+  it('labels hours the way each language writes them', () => {
+    expect(formatHourLabel(noon)).toBe('14h');
+    setLocale('en');
+    expect(formatHourLabel(noon)).toMatch(/^2\s?PM$/);
+  });
+
+  it('writes days and moments', () => {
+    expect(formatDayNumber(noon)).toBe('21');
+    expect(formatDayShort(noon)).toMatch(/^qua\.? 21$/);
+    expect(formatDateLong(noon)).toContain('21 de outubro');
+    expect(formatMoment(noon + 3_600_000, noon)).toBe('15:30');
+    expect(formatMoment(noon + 2 * 86_400_000, noon)).toMatch(/^sex\.? 14:30$/);
+    setLocale('en');
+    expect(formatMoment(noon + 2 * 86_400_000, noon)).toMatch(/^Fri 2:30 PM$/);
   });
 });

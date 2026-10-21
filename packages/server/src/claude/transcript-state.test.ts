@@ -180,12 +180,6 @@ describe('TranscriptState stats', () => {
     expect(state.statsSnapshot()).toMatchObject({ costUSD: 12, linesAdded: 40, linesRemoved: 3 });
   });
 
-  test('usage effects expose the merged record for account totals', () => {
-    const state = main();
-    const [effects] = feed(state, assistantLine([text('x')], 0, { id: 'mm' }));
-    expect(effects?.usage).toMatchObject({ messageId: 'mm', model: 'claude-sonnet-5-5' });
-  });
-
   test('subagent states do not emit prompt activities or turn completion', () => {
     const sub = new TranscriptState({ idPrefix: 'a:s:ag', isSub: true });
     const effects = feed(sub, userLine('prompt da tarefa', 0), assistantLine([text('ok')], 10, { stopReason: 'end_turn' }));

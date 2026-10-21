@@ -82,6 +82,8 @@ export abstract class Dialog implements Component {
 
   protected abstract onOpen(): void;
   protected abstract update(): void;
+  /** Called when the dialog closes (stop timers and pending requests). */
+  protected onClose(): void {}
 
   render(): void {
     const open = this.ctx.ui.get().dialog === this.id;
@@ -93,6 +95,7 @@ export abstract class Dialog implements Component {
         this.onOpen();
         queueMicrotask(() => (focusables(this.panel)[0] ?? this.panel).focus({ preventScroll: true }));
       } else {
+        this.onClose();
         this.returnFocus?.focus({ preventScroll: true });
         this.returnFocus = null;
       }

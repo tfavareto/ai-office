@@ -22,7 +22,7 @@ import {
 import type { ParsedLine } from '../claude/types';
 import type { SubagentMeta } from '../claude/paths';
 import type { RegistryEntry } from '../claude/registry';
-import type { ApplyEffects, UsageRecord } from '../claude/transcript-state';
+import type { ApplyEffects } from '../claude/transcript-state';
 import type { Logger } from '../log';
 import { newId } from '../util/ids';
 import { type Overlay, buildMainAgent, buildSubAgent, mainAgentId, subAgentId } from './agent-builder';
@@ -52,7 +52,6 @@ export interface OfficeEvents {
   onNotice(notice: Notice): void;
   /** Live transcript event of an agent (used to cancel stale permission requests and attention marks). */
   onAgentEvent(agentId: string, effects: ApplyEffects, at: number): void;
-  onUsage(accountId: string, record: UsageRecord): void;
 }
 
 export interface OfficeDeps {
@@ -156,7 +155,6 @@ export class Office {
     const items: FeedItem[] = [];
     for (const line of lines) {
       const effects = state.apply(line);
-      if (effects.usage !== undefined) this.deps.events.onUsage(record.account.id, effects.usage);
       if (!('at' in line) || line.at < replayBefore) continue;
       const person = this.personOf(record, sub);
       for (const activity of effects.activities) {

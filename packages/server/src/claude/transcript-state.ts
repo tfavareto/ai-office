@@ -20,7 +20,7 @@ import {
 import { asString } from '../util/fs-safe';
 import { StatsAccumulator } from './stats';
 import { appendTask, renameTask, stampTaskChanges, tasksFromTodoWrite, updateTask } from './tasks';
-import { END_STOP_REASONS, type ParsedLine, type StructuredResult, type UsageInfo } from './types';
+import { END_STOP_REASONS, type ParsedLine, type StructuredResult } from './types';
 
 const RECENT_LIMIT = 30;
 const HISTORY_LIMIT = 300;
@@ -51,17 +51,9 @@ export interface SpawnInfo {
   agentId?: string;
 }
 
-export interface UsageRecord {
-  messageId?: string;
-  at: number;
-  model?: string;
-  usage: UsageInfo;
-}
-
-/** What one applied line produced (consumed by the office for feed, notices, permissions and usage). */
+/** What one applied line produced (consumed by the office for feed, notices and permissions). */
 export interface ApplyEffects {
   activities: Activity[];
-  usage?: UsageRecord;
   promptSeen: boolean;
   interrupted: boolean;
   newAssistantMessage: boolean;
@@ -331,10 +323,7 @@ export class TranscriptState {
       effects.newAssistantMessage = true;
     }
     if (line.model !== undefined) this.model = line.model;
-    if (line.usage !== undefined) {
-      const merged = this.stats.addUsage(line.messageId, line.model, line.usage);
-      effects.usage = { ...(line.messageId !== undefined ? { messageId: line.messageId } : {}), at: line.at, ...(line.model !== undefined ? { model: line.model } : {}), usage: merged };
-    }
+    if (line.usage !== undefined) this.stats.addUsage(line.messageId, line.model, line.usage);
     if (line.apiError) this.push(errorDraft('API', line.blocks.map((b) => (b.type === 'text' ? b.text : '')).join(' ')), line.at, effects);
     for (const block of line.blocks) {
       if (block.type === 'thinking') this.push(thinkingDraft(), line.at, effects);

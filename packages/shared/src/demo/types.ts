@@ -2,6 +2,7 @@
 // demo mode and by the web app's fully client-side `?mock=1` mode.
 import type { Locale } from '../i18n/i18n';
 import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project } from '../model';
+import type { UsageRow } from '../usage/types';
 
 export interface DemoOptions {
   /** Deterministic seed (same seed + same clock = same story). */
@@ -31,6 +32,8 @@ export interface DemoSimulator {
   /** Demo agents and projects only (the server merges them with real ones). */
   agents(): Agent[];
   projects(): Project[];
+  /** Hourly usage history of the demo accounts up to `now` (the numbers behind the usage cards and detail view). */
+  usageRows(now: number): UsageRow[];
   /** Full standalone snapshot (for `?mock=1`, with demo accounts and usage). */
   snapshot(now: number): OfficeSnapshot;
   /** Answer a demo permission request; false if it no longer exists. */

@@ -5,7 +5,7 @@ import { Observable } from './observable';
 
 export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
-export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules';
+export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {
@@ -35,6 +35,8 @@ export interface UiData {
   narrow: boolean;
   /** Bumped to ask the visible composer to take focus. */
   composerFocus: number;
+  /** Account the usage dialog should show when it opens (set by the card that was clicked, consumed by the dialog). */
+  usageAccount: string | null;
   /** Where the "hire an agent" dialog starts (the room or desk it was opened from). */
   hire: HireTarget;
 }
@@ -56,6 +58,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     following: false,
     narrow: init.narrow,
     composerFocus: 0,
+    usageAccount: null,
     hire: {},
   };
 }

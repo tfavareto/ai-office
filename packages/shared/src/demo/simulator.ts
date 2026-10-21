@@ -16,7 +16,9 @@ import type {
   ShellJob,
   TaskItem,
 } from '../model';
+import type { UsageRow } from '../usage/types';
 import type { DemoHireOptions, DemoOptions, DemoSimulator, DemoTick } from './types';
+import { type DemoSessionAnchor, demoAccountUsage, demoUsageRows } from './usage-history';
 import {
   type ActivityDraft,
   describeToolUse,
@@ -79,7 +81,6 @@ const MAX_VISITORS = 2;
 /** A hired demo agent "walks in" for this long before its session opens. */
 const HIRE_ARRIVAL_MS = 4500;
 const ERROR_NOTICE_GAP_MS = 20_000;
-const HOUR_MS = 3_600_000;
 const MAX_DEMO_TASKS = 5;
 const MOODS = ['shell', 'subs', 'idle', 'blocked', 'blocked', 'busy', 'idle', 'busy'] as const;
 
@@ -137,7 +138,6 @@ class Simulator implements DemoSimulator {
   private readonly runtimes = new Map<string, Runtime>();
   private readonly projectMap = new Map<string, ProjectEntry>();
   private readonly messageMap = new Map<string, BossMessage[]>();
-  private readonly usageExtra = new Map<string, number>();
   private readonly hireBook = new HireBook();
   private pendingFeed: FeedItem[] = [];
   private pendingNotices: Notice[] = [];
@@ -499,8 +499,6 @@ class Simulator implements DemoSimulator {
     const tokensIn = isTool && runtime !== undefined ? randInt(runtime.rng, 2000, 18000) : 0;
     const tokensOut = isTool && runtime !== undefined ? randInt(runtime.rng, 150, 1800) : 0;
     const cost = tokensIn * 0.0000011 + tokensOut * 0.000015;
-    const account = agent.accountId;
-    this.usageExtra.set(account, (this.usageExtra.get(account) ?? 0) + tokensIn + tokensOut);
     this.agentMap.set(id, {
       ...agent,
       activity,
@@ -921,24 +919,18 @@ class Simulator implements DemoSimulator {
 
   // ---- usage ------------------------------------------------------------------------------------------------
 
+  private usageAnchors(): DemoSessionAnchor[] {
+    return Array.from(this.agentMap.values())
+      .filter((agent) => agent.kind === 'main')
+      .map((agent) => ({ account: agent.accountId, session: agent.sessionId, project: agent.projectId }));
+  }
+
+  usageRows(now: number): UsageRow[] {
+    return demoUsageRows(now, this.usageAnchors());
+  }
+
   private usage(now: number): AccountUsage[] {
-    const week = new Date(now);
-    week.setHours(0, 0, 0, 0);
-    const daysUntilMonday = (8 - week.getDay()) % 7 || 7;
-    const weekResets = week.getTime() + daysUntilMonday * 24 * HOUR_MS;
-    return DEMO_ACCOUNTS.map((account, index): AccountUsage => {
-      const extra = this.usageExtra.get(account.id) ?? 0;
-      const window = 420_000 + index * 360_000 + extra;
-      const weekly = 6_500_000 + index * 4_000_000 + extra;
-      const today = 1_300_000 + index * 800_000 + extra;
-      const cost = (tokens: number): number => Math.round(tokens * 0.0000052 * 100) / 100;
-      return {
-        accountId: account.id,
-        window5h: { tokens: window, costUSD: cost(window), resetsAt: this.startedAt + 3 * HOUR_MS + 20 * 60_000 },
-        week: { tokens: weekly, costUSD: cost(weekly), resetsAt: weekResets },
-        today: { tokens: today, costUSD: cost(today) },
-      };
-    });
+    return demoAccountUsage(now, this.usageRows(now));
   }
 }
 

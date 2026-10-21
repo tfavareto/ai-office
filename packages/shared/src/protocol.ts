@@ -43,6 +43,8 @@ export const API = {
   sessions: '/api/sessions',
   /** GET ?date=YYYY-MM-DD → DayStats. */
   day: '/api/day',
+  /** GET ?account=<id|all>&period=today|week|month → UsageDetail (usage history index). Local access only. */
+  usageDetail: '/api/usage/detail',
   /** POST { on: boolean } → { demo } */
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */

@@ -20,6 +20,7 @@ import { InboxPopover } from './components/inbox-popover';
 import { NotificationCenter } from './components/notification-center';
 import { SessionHistory } from './components/session-history';
 import { FOCUS_KEY_ATTR, Settings } from './components/settings';
+import { UsageDialog } from './components/usage-dialog';
 import { UsagePopover } from './components/usage-popover';
 import { Sidebar } from './components/sidebar';
 import { ConnectionBanner, Splash } from './components/splash';
@@ -29,14 +30,16 @@ import { TopBar } from './components/topbar';
 import { localOnlyHint, type AppContext, type Component } from './context';
 import { BoardStore } from './board-store';
 import { bindLanguage } from './language';
-import { agentRole, agentTitle, localized, localizedOptional, permissionSummary } from './display';
+import { accountLabel, agentRole, agentTitle, localized, localizedOptional, permissionSummary } from './display';
 import { h, isEditable, toggleClass } from './dom';
+import { formatClock } from './format';
 import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { InboxController } from './inbox-controller';
 import { RulesController, type RulesTab } from './rules-controller';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
 import type { HireTarget } from './model/hire';
+import { takeFreshAlerts, usageAlerts } from './model/usage-forecast';
 import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
@@ -81,6 +84,7 @@ export class App implements AppContext {
   private lastTitle = '';
   private lastNeeds = 0;
   private buildId: string | undefined;
+  private usageAlertsSeen: ReadonlySet<string> = new Set();
   private localId = 0;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -135,7 +139,7 @@ export class App implements AppContext {
     const feed = new Feed(this);
     const toasts = new Toasts(this);
     const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
-    const dialogs = [new DayDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this), new RulesDialog(this)];
+    const dialogs = [new DayDialog(this), new UsageDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this), new RulesDialog(this)];
     const empty = new EmptyState(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
@@ -440,6 +444,7 @@ export class App implements AppContext {
     bindLanguage(this.prefs);
     this.prefs.subscribe((prefs, changed) => {
       if (changed.includes('dnd')) this.notifications.setDnd(prefs.dnd);
+      if (changed.includes('usageLimits') && this.snapshot) this.checkUsageForecast(this.snapshot);
       if (changed.includes('visual')) void this.switchVisual(prefs.visual);
       this.applyWorldOptions();
       this.refresh();
@@ -494,6 +499,23 @@ export class App implements AppContext {
     if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id)) this.clearSelection();
     if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id)) this.clearSelection();
     this.checkBuild(snapshot.meta.build);
+    this.checkUsageForecast(snapshot);
+  }
+
+  /** One notification per account and window when the limit is about to be reached (the toast respects "Do not disturb"). */
+  private checkUsageForecast(snapshot: OfficeSnapshot): void {
+    const limits = this.prefs.get().usageLimits;
+    const now = this.now();
+    const { fresh, seen } = takeFreshAlerts(
+      usageAlerts(snapshot.usage, (id) => limits[id], now),
+      this.usageAlertsSeen,
+    );
+    this.usageAlertsSeen = seen;
+    for (const alert of fresh) {
+      const account = this.account(alert.accountId);
+      const time = formatClock(alert.forecast.hitsAt ?? now);
+      this.notifyLocal('warn', { key: 'usage.alert.hit', params: { account: account ? accountLabel(account) : alert.accountId, time } });
+    }
   }
 
   private checkBuild(build: string | undefined): void {
@@ -624,6 +646,9 @@ export class App implements AppContext {
         return;
       case 'day':
         this.openDialog('day');
+        return;
+      case 'usage':
+        this.openDialog('usage');
         return;
       case 'board':
         this.openDialog('board');

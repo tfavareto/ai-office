@@ -1,13 +1,13 @@
 // Builds OfficeSnapshots and publishes them at most 4 times per second.
-import type { OfficeMeta, OfficeSnapshot, PendingHire } from '@ai-office/shared';
-import type { UsageTracker } from './usage';
+import type { AccountUsage, OfficeMeta, OfficeSnapshot, PendingHire } from '@ai-office/shared';
 import type { Office } from './office';
 
 export const SNAPSHOT_MIN_INTERVAL_MS = 250;
 
 export interface SnapshotDeps {
   office: Office;
-  usage: UsageTracker;
+  /** The figures of the usage cards for these accounts. */
+  usage: { compute(accountIds: readonly string[], now: number): AccountUsage[] };
   now: () => number;
   meta: () => Omit<OfficeMeta, 'local'>;
   /** Real agents being hired (the demo's come with the office state). */

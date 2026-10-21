@@ -5,23 +5,19 @@ import type { FeedItem, Notice } from '@ai-office/shared';
 import { silentLogger } from '../log';
 import { NameStore } from '../office/name-store';
 import { Office } from '../office/office';
-import { UsageTracker } from '../office/usage';
 import { type FakeClaudeDir, T0, assistantLine, jsonl, makeFakeClaude, text, toolResultLine, toolUse, userLine } from '../test-helpers';
 import { Engine } from './engine';
-import { scanUsageBackwards } from './usage-backfill';
 
 let fake: FakeClaudeDir;
 let clock: number;
 let feed: FeedItem[];
 let notices: Notice[];
 let office: Office;
-let usage: UsageTracker;
 let engine: Engine;
 
 function build(pidAlive: (pid: number) => boolean = () => true): void {
   feed = [];
   notices = [];
-  usage = new UsageTracker();
   office = new Office({
     now: () => clock,
     names: new NameStore(undefined, silentLogger),
@@ -32,10 +28,9 @@ function build(pidAlive: (pid: number) => boolean = () => true): void {
       onFeed: (items) => void feed.push(...items),
       onNotice: (notice) => void notices.push(notice),
       onAgentEvent: () => undefined,
-      onUsage: (accountId, record) => usage.add(accountId, 'live', record),
     },
   });
-  engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, usage, log: silentLogger, now: () => clock, pidAlive });
+  engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, log: silentLogger, now: () => clock, pidAlive });
 }
 
 beforeEach(async () => {
@@ -243,20 +238,5 @@ describe('Engine without a registry', () => {
     clock += 31 * 60_000;
     await engine.scan();
     expect(agents()[0]?.status).toBe('offline');
-  });
-});
-
-describe('usage backfill', () => {
-  test('reads usage records backwards and stops at the cutoff', async () => {
-    const lines = [
-      assistantLine([text('a')], -3_600_000 * 30, { id: 'old', usage: { input_tokens: 1000, output_tokens: 1 } }),
-      assistantLine([text('b')], -3_600_000, { id: 'new1', usage: { input_tokens: 10, output_tokens: 2 } }),
-      userLine('x', -1000),
-      assistantLine([text('c')], 0, { id: 'new2', usage: { input_tokens: 20, output_tokens: 3 } }),
-    ];
-    const path = await fake.writeTranscript('big', jsonl(...lines));
-    const seen: string[] = [];
-    await scanUsageBackwards(path, T0 - 3_600_000 * 24, (record) => void seen.push(record.messageId ?? '?'));
-    expect(seen).toEqual(['new2', 'new1']);
   });
 });

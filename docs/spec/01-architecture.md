@@ -43,7 +43,7 @@ page, page decisions go back to the hooks.
   arbitrary names, against DNS rebinding) with the port; `Sec-Fetch-Site`, when sent, must be `same-origin` or `none`;
   POST requires `Content-Type: application/json` and an Origin that is the page itself (or no Origin, for hooks); body
   limit 256 KB. Endpoints that consume state are POSTs (`POST /api/messages/inbox`).
-- Local-only features (terminal, sessions history, permissions, messages) require both loopback bind and loopback Host.
+- Local-only features (terminal, sessions history, usage detail, permissions, messages) require both loopback bind and loopback Host.
 - Every response (static and API): `Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src
   'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'`, `X-Frame-Options: DENY`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`. Note `connect-src 'self'` blocks `fetch`/XHR of

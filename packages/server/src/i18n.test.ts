@@ -8,7 +8,6 @@ import { silentLogger } from './log';
 import { NameStore } from './office/name-store';
 import { Office } from './office/office';
 import { deriveStatus, NEEDS_YOU_MSG } from './office/status';
-import { UsageTracker } from './office/usage';
 import { MessageRegistry } from './registries/messages';
 import { describePermission, describeSuggestion } from './registries/permission-text';
 import { type FakeClaudeDir, T0, assistantLine, jsonl, makeFakeClaude, toolUse, userLine } from './test-helpers';
@@ -136,7 +135,6 @@ describe('office model messages', () => {
   function build(): void {
     feed = [];
     notices = [];
-    const usage = new UsageTracker();
     office = new Office({
       now: () => clock,
       names: new NameStore(undefined, silentLogger),
@@ -147,10 +145,9 @@ describe('office model messages', () => {
         onFeed: (items) => void feed.push(...items),
         onNotice: (notice) => void notices.push(notice),
         onAgentEvent: () => undefined,
-        onUsage: (accountId, record) => usage.add(accountId, 'live', record),
       },
     });
-    engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, usage, log: silentLogger, now: () => clock, pidAlive: () => true });
+    engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, log: silentLogger, now: () => clock, pidAlive: () => true });
   }
 
   beforeEach(async () => {

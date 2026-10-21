@@ -17,7 +17,7 @@ The server reads files that Claude Code already writes in each account's config 
 Beyond live tailing, two features read more on request:
 
 - **Terminal panel and session history** read a transcript on demand to show the conversation, and scan the last 7 days of transcripts for titles. Entries keep at most 4 KB of text each, a view pages at 500 entries, and the cached view is capped at about 8 MB.
-- **Usage cards** are filled by a background scan of recent transcripts that looks only at token counts, model and timestamps.
+- **Usage cards and the Consumo view** are filled by a background indexer that reads every transcript of this and the previous month (then only what is appended) and keeps only token counts, the model, the message id, the timestamp and the working directory. It never keeps or logs prompts, replies, tool calls or file contents.
 
 It does not read your credentials, your Claude Code settings, your API keys or your project source files. Statistics only cover what it has read: the tail at startup plus everything new.
 
@@ -30,6 +30,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `token` | The random access token (mode 0600). |
 | `names.json` | The name picked for each agent, keyed by account, session and agent id. |
 | `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
+| `usage-index/` | Mode 0700, files 0600. `YYYY-MM.json` shards: per hour, account, project (working directory path), model, session id and subagent id, the counts of input, output, cache-write and cache-read tokens and the estimated cost. `meta.json`: for each transcript, its path relative to the account directory, session and subagent ids, how many bytes were read, its size, modification time, inode, a hash of its first bytes and the ids and counts of the last 16 messages. Numbers and identifiers only: no conversation text. Up to 13 months are kept; delete the folder at any time and it is rebuilt. |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
 
@@ -119,7 +120,7 @@ Exposing the server to a network is your responsibility. If you want to see the 
 
 ## Cost figures are estimates
 
-Costs shown in the usage cards and the **Custo** tile are computed locally from public list prices per model family and token counts. They ignore plan discounts, subscriptions and anything your account is actually billed. Token counts exclude cache reads. Treat them as a rough guide, not an invoice.
+Costs shown in the usage cards, the **Consumo** view and the **Custo** tile are computed locally from public list prices per model family and token counts. They ignore plan discounts, subscriptions and anything your account is actually billed. Token counts exclude cache reads. Treat them as a rough guide, not an invoice. The limit forecast in **Consumo** is a projection of your recent pace against a limit you typed in (or your highest recent block): Claude's real plan limits are not visible on this computer.
 
 ## Reporting a vulnerability
 

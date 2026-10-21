@@ -24,10 +24,10 @@ import { DayRecorder, RECORD_INTERVAL_MS } from './office/day-recorder';
 import { NameStore } from './office/name-store';
 import { Office } from './office/office';
 import { SnapshotPublisher } from './office/snapshot';
-import { UsageTracker } from './office/usage';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
+import { UsageIndexer } from './usage/indexer';
 import { RulesStore } from './rules/rules-store';
 import { asString } from './util/fs-safe';
 import { newId } from './util/ids';
@@ -95,8 +95,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
 
   const auth = new TokenAuth();
   const names = NameStore.forStateDir(config.stateDir, log);
-  const usage = new UsageTracker();
   const day = new DayRecorder(config.stateDir, log);
+  const indexer = new UsageIndexer({ stateDir: config.stateDir, accounts: () => engine.accountList(), log, now });
   const rules = new RulesStore(config.stateDir, log, now);
 
   // The registries and the office reference each other through callbacks; `office` is assigned before any call.
@@ -131,7 +131,6 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       onChange: () => snapshots.markDirty(),
       onFeed: (items) => hub.broadcastFeed(items),
       onNotice: (notice) => hub.broadcastNotice(notice),
-      onUsage: (accountId, record) => usage.add(accountId, 'live', record),
       onAgentEvent: (agentId, effects, at) => {
         attention.clearIfEventAfter(agentId, at);
         const pending = permissions.pendingFor(agentId);
@@ -141,16 +140,15 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   });
   const snapshots: SnapshotPublisher = new SnapshotPublisher({
     office,
-    usage,
+    usage: indexer,
     now,
     meta: () => ({ version, startedAt, demo: demoOn, ...(build !== undefined ? { build } : {}) }),
     hires: (time) => hireRegistry.list(time),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
   });
-  const engine = new Engine({
+  const engine: Engine = new Engine({
     discover: { homeDir: config.homeDir, explicitDirs: config.claudeDirs, envDir: options.envDir },
     office,
-    usage,
     log,
     now,
     ...(options.pidAlive !== undefined ? { pidAlive: options.pidAlive } : {}),
@@ -215,6 +213,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     attention,
     hires,
     day,
+    usage: indexer,
     transcripts: new TranscriptCache(),
     isDemo: () => demoOn,
     setDemo,
@@ -267,6 +266,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
         http.server.listen(config.port, config.host, resolveListen);
       });
       await engine.start();
+      await indexer.start();
       ticker = setInterval(tick, TICK_MS);
       buildTimer = setInterval(() => void refreshBuild(), BUILD_CHECK_MS);
       log.info(`AI Office em http://${config.host}:${this.port()}`);
@@ -275,6 +275,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
       engine.stop();
+      await indexer.stop();
       snapshots.stop();
       hub.closeAll();
       await new Promise<void>((resolveClose) => {

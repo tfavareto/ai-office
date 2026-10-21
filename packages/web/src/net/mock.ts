@@ -1,5 +1,5 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { RuleBook, autoAnswer, createDemoSimulator, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult } from '@ai-office/shared';
+import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
@@ -105,6 +105,16 @@ class MockBackend implements Backend {
 
   async day(date: string) {
     return mockDay(this.snapshot(), date);
+  }
+
+  async usageDetail(account: string, period: UsagePeriod) {
+    const snapshot = this.snapshot();
+    const now = Date.now();
+    const rows = this.sim.usageRows(now);
+    const maps = hourMapsFromRows(rows);
+    const accounts = account === 'all' ? snapshot.accounts.map((candidate) => candidate.id) : [account];
+    const detail = buildUsageDetail(rows, { accounts, label: account, period, now }, (id) => maps.get(id) ?? new Map());
+    return { ...withOfficeSessions(detail, snapshot.agents), demo: true as const };
   }
 
   async setDemo(on: boolean): Promise<boolean> {

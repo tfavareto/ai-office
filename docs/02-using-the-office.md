@@ -26,7 +26,7 @@ When no session is open, a card says **No open sessions** with the steps to star
 | Logo and "AI Office" | Brand. |
 | Connection pill | **Live**, **Live · demo**, **Reconnecting…** (the page retries with a growing delay up to 30 s), **Connecting…**, or **Local demo** when you opened `?mock=1`. |
 | Counters | **rooms**, **agents**, **working**, **subagents**, **shells running**, **need you**. **Shells running** jumps to the next agent with a shell and is disabled at zero. **Need you** opens the [inbox](#the-inbox-what-needs-you) (`I`); a green pill next to it counts agents that finished since you last looked. |
-| Usage cards | One per account: tokens and estimated cost for the **5 h** window and the **Week**. Hover for the tooltip, which adds **Today** and when each window resets. Costs are estimates from public list prices. |
+| Usage cards | One per account: tokens and estimated cost for the **5 h** window and the **Week**. Hover for the tooltip, which adds **Today** and when each window resets. Click a card (or press `U`) to open the detailed **Consumo** view. An amber ring and a small mark mean the limit may be reached in less than 30 minutes. Costs are estimates from public list prices. |
 | Overview (O), Zoom out (-), Zoom in (+) | Fit the whole office, zoom out, zoom in. |
 | Camera button | 3D only. Cycles **Overview**, **First person** and **Over the shoulder**. |
 | Bell | **Notifications** with an unread badge. |
@@ -215,6 +215,19 @@ Notices appear as toasts. Alerts (**Needs you**) stay until resolved; repeats wi
 
 Sounds and browser notifications are set in **Settings**. Browser notifications fire for alerts when the tab is hidden and need your browser's permission.
 
+## Usage (Consumo)
+
+Click a usage card, or press `U`, to open **Consumo**: a detailed view of the tokens you spent **today**, **this week** (from Monday 00:00) or **this month**.
+
+- **Account and period.** Pick one account or **All**, and **Today**, **Week** or **Month**.
+- **Tiles.** Total tokens (input, output and cache writes; cache reads are left out), estimated cost, the change against the same stretch of the previous period (yesterday up to this hour, last week up to this point, last month up to this day) and how much of the context came from the cache.
+- **Chart.** Stacked bars per hour (today) or per day (week and month). Hover a bar, or move with the arrow keys, to see the exact numbers. **Include cache reads** adds the cache reads, which are usually far larger than everything else.
+- **5 h window.** For each account: how much of the open window you used, how long ago it opened and when it resets.
+- **Limit forecast.** From the pace of the last 30 to 60 minutes, the view says where you will be at the end of the window and of the week ("At the current pace you reach US$ 18 by 17:00") and, when it would cross your limit first, roughly when. Claude's plan limits are **not** visible on this computer, so the reference is either the limit you type under **Limits (optional)** (US$ of estimated cost or millions of tokens, per 5 h window and per week; saved in this browser) or, without one, your highest recent 5 h block or week. It is an estimate and the view says so. When the projected hit is less than 30 minutes away the card gets an amber ring and you get one notification (**Do not disturb** keeps it quiet).
+- **Tables.** By model, by project and by session or subagent. Names that are open in the office are buttons that select the person or the room.
+
+The first time (or after the saved history is reset) the server reads all your transcripts of this and the previous month in the background; the view shows **Calculating the history… 42 %** and the numbers can still grow until it finishes. It never slows the office down.
+
 ## My day
 
 **My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
@@ -309,6 +322,7 @@ Plain keys are ignored while you type in a field.
 | `P` | Go to the next permission request. |
 | `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
 | `M` | Open **My day**. On the task board, with a card focused: move the task. |
+| `U` | Open the detailed **Consumo** (usage) view. |
 | `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
 | `O` | Overview of the whole office. |

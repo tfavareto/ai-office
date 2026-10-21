@@ -1,5 +1,5 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
-import { LOCALES, type Locale } from '@ai-office/shared';
+import { LOCALES, type AccountLimits, type Locale } from '@ai-office/shared';
 import { systemLocale } from '../i18n';
 import { DEFAULT_WORLD_OPTIONS, type DaylightMode, type WorldOptions } from '../world/api';
 
@@ -26,6 +26,8 @@ export interface Prefs {
   dnd: boolean;
   sidebarOpen: boolean;
   feedOpen: boolean;
+  /** Plan limits the user typed in per account id (the reference of the usage forecast). */
+  usageLimits: Readonly<Record<string, AccountLimits>>;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -41,6 +43,7 @@ export const DEFAULT_PREFS: Prefs = {
   dnd: false,
   sidebarOpen: true,
   feedOpen: false,
+  usageLimits: {},
 };
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -53,6 +56,30 @@ function bool(value: unknown, fallback: boolean): boolean {
 
 function unit(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
+}
+
+const MAX_LIMIT_ACCOUNTS = 32;
+const MAX_ACCOUNT_ID_LENGTH = 80;
+const MAX_LIMIT_VALUE = 1e12;
+
+function limitValue(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= MAX_LIMIT_VALUE ? value : undefined;
+}
+
+/** Limits per account: only well-formed entries survive. An account with no value and the default unit has no entry. */
+export function parseUsageLimits(raw: unknown): Record<string, AccountLimits> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  const result: Record<string, AccountLimits> = {};
+  for (const [accountId, entry] of Object.entries(raw).slice(0, MAX_LIMIT_ACCOUNTS)) {
+    if (accountId.length === 0 || accountId.length > MAX_ACCOUNT_ID_LENGTH || typeof entry !== 'object' || entry === null) continue;
+    const data = entry as Record<string, unknown>;
+    const window5h = limitValue(data.window5h);
+    const week = limitValue(data.week);
+    const unit = data.unit === 'tokens' ? 'tokens' : 'usd';
+    if (window5h === undefined && week === undefined && unit === 'usd') continue;
+    result[accountId] = { unit, ...(window5h !== undefined ? { window5h } : {}), ...(week !== undefined ? { week } : {}) };
+  }
+  return result;
 }
 
 /** Validates unknown data (parsed JSON) into complete preferences; invalid fields fall back to defaults. */
@@ -72,6 +99,7 @@ export function parsePrefs(raw: unknown): Prefs {
     dnd: bool(data.dnd, DEFAULT_PREFS.dnd),
     sidebarOpen: bool(data.sidebarOpen, DEFAULT_PREFS.sidebarOpen),
     feedOpen: bool(data.feedOpen, DEFAULT_PREFS.feedOpen),
+    usageLimits: parseUsageLimits(data.usageLimits),
   };
 }
 

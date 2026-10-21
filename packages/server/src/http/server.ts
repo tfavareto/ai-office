@@ -9,6 +9,7 @@ import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
 import { registerRuleRoutes } from './handlers/rules';
 import { registerSystemRoutes } from './handlers/system';
+import { registerUsageRoutes } from './handlers/usage';
 import { guardRequest } from './guard';
 import { HttpError, sendError } from './respond';
 import { Router } from './router';
@@ -43,6 +44,7 @@ export function buildRouter(app: AppContext): Router {
   const router = new Router();
   registerSystemRoutes(router, app);
   registerDataRoutes(router, app);
+  registerUsageRoutes(router, app);
   registerPermissionRoutes(router, app);
   registerMessageRoutes(router, app);
   registerRuleRoutes(router, app);

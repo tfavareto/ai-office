@@ -4,7 +4,6 @@ import { silentLogger } from '../log';
 import { NameStore } from './name-store';
 import { Office } from './office';
 import { SnapshotPublisher } from './snapshot';
-import { UsageTracker } from './usage';
 
 let clock = 10_000;
 const emitted: OfficeSnapshot[] = [];
@@ -15,13 +14,13 @@ function publisher(hires: PendingHire[] = []): SnapshotPublisher {
     names: new NameStore(undefined, silentLogger),
     log: silentLogger,
     overlays: { permissionFor: () => undefined, attentionFor: () => undefined },
-    events: { onChange: () => undefined, onFeed: () => undefined, onNotice: () => undefined, onAgentEvent: () => undefined, onUsage: () => undefined },
+    events: { onChange: () => undefined, onFeed: () => undefined, onNotice: () => undefined, onAgentEvent: () => undefined },
   });
   office.setAccounts([{ id: 'claude', label: 'Pessoal', initial: 'P', color: '#fff', dir: '/x' }]);
   office.refresh(clock);
   return new SnapshotPublisher({
     office,
-    usage: new UsageTracker(),
+    usage: { compute: (ids) => ids.map((accountId) => ({ accountId, window5h: { tokens: 0, costUSD: 0, resetsAt: 0 }, week: { tokens: 0, costUSD: 0, resetsAt: 0 }, today: { tokens: 0, costUSD: 0 } })) },
     now: () => clock,
     meta: () => ({ version: '1.2.3', startedAt: 1, demo: false }),
     hires: () => hires,

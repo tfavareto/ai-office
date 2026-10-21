@@ -67,12 +67,22 @@ initial snapshot + last 100 feed items on connect, at most 20 clients (503 beyon
 page is open.
 
 ## REST (see shared/protocol.ts)
-health, stream, history, transcript (TranscriptEntry list rendered from JSONL, paginated by `after`, at most 500 entries per page, text ≤ 4 KB,
+health, stream, history, usage detail (`GET /api/usage/detail?account=<id|all>&period=today|week|month`: local-only and token-protected; 400 `invalid-period` / `invalid-account`, 404 `account-not-found`; returns totals by token type and cost, the same slice of the previous period, a time series (hourly for today, daily for the week and the month), by model, by project and by session or subagent (top 12, with titles and `officeId` for people the office knows), the open 5 h window of each account and the indexing progress), transcript (TranscriptEntry list rendered from JSONL, paginated by `after`, at most 500 entries per page, text ≤ 4 KB,
 view cache ≤ ~8 MB), sessions (scan
 projects dirs for sessions modified in 7 days; title from custom-title or first prompt), day (day recorder), demo
 toggle, permissions (create from hook into a pending map with 5 min expiry; wait long-poll 25 s max; detail;
 decision; auto-cancel when the agent's session moves on; answered first by the approval rules, see below), messages (queue per agent, TTL 2 h, keep 50; `POST` inbox; wait
 long-poll; team send to 24 agents max with a group id; delivery adds a "📨 Mensagem sua: …" activity). `POST /api/messages` and `POST /api/permissions/:id/decision` accept an optional `locale` (`pt-BR`, `en` or `es`; anything else is a 400 `invalid-locale`); the server keeps it with the queued message and returns it from the inbox so the hooks can phrase their output in that language.
+
+## Usage index
+A background indexer (`packages/server/src/usage/`) turns every transcript (main and `subagents/`) of every account into hourly rows and keeps them current. The usage cards and `GET /api/usage/detail` both read from it.
+- **Rows.** One row per UTC hour x account x project (the first `cwd` seen in the file) x model x session x subagent id (`""` for the main transcript): `input`, `output`, `cacheWrite` (5 m and 1 h writes together), `cacheRead` and an estimated `costUSD` (shared price table, computed when indexed). Only numbers and ids are stored: no prompt, reply, tool call or file content.
+- **Duplicates.** Claude Code writes one line per content block of an assistant message; every line repeats the `message.id` and a usage that may still be growing. The indexer counts one message once, keeping the field-wise maximum of its lines (`mergeUsage`), and remembers the last 16 messages of each file between runs so a message split across two reads (or a restart) is still counted once. Synthetic messages and lines without a valid timestamp are skipped.
+- **Incremental reading.** Per file: byte offset (always the end of a complete line), size, mtime, inode and a hash of the first 256 bytes. A pass reads only what was appended, in 1 MB slices that yield to the event loop, so snapshots, hooks and the HTTP server are never blocked. A new file is picked up within 10 s (directory walk); files written in the last 15 min are re-checked every 2 s. A file whose inode, size or head no longer matches (replaced or truncated) rebuilds the whole index instead of counting twice.
+- **Backfill.** At startup, in the background, newest files first (so the 5 h window, today and the week are right early): everything from the start of the previous calendar month. Progress (`indexing` with a percentage by bytes, then `ready`) is exposed in `GET /api/usage/detail`.
+- **Persistence.** `<stateDir>/usage-index/` (mode 0700): one shard per UTC month, `YYYY-MM.json` (dictionary-coded rows, mode 0600), and `meta.json` (what was read of each transcript, relative to the account directory). Versioned (`v`), written atomically (temp file and rename), shards before `meta.json`, each carrying the generation of its save. A damaged or unknown-version file, a shard newer than `meta.json` (a save interrupted between the two) or a shard that lost rows means the index is ignored and rebuilt from the transcripts: it is only a cache. Saved at most every 15 s while dirty, after the first backfill and on stop. Rows older than 13 months (and their shards) are pruned.
+- **Cards.** `UsageIndexer.compute` replaces the former in-memory tracker: the 5 h block (opens at the hour of the first message after the previous block expired, lasts 5 h), the week (Monday 00:00 local) and today (local midnight) come from the hourly totals, plus `burn` (tokens and cost of the last 30 and 60 minutes, hours with activity this week) and `peaks` (highest completed 5 h block and week of the last 90 days, with how many there were) that feed the limit forecast.
+- **Time zones.** Rows are keyed by UTC hour; day, week and month boundaries are local midnights built with the local calendar (23 and 25 hour days at daylight saving changes work). In zones with a half-hour offset the hour that straddles midnight is counted in the day it starts in.
 
 ## Approval rules (`/api/rules`)
 Standing answers to recurring permission requests. The engine is pure and lives in `packages/shared/src/rules/`
@@ -167,7 +177,7 @@ Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD
 
 ## Demo
 Fake sessions (3-4 projects, 4-8 agents with subagents) driven by a script of realistic activities, statuses, shells,
-permission requests (answerable; decision simulated) and errors. The same simulator (pure, in shared) powers the
+permission requests (answerable; decision simulated) and errors. The demo accounts also have ten weeks of synthesized hourly usage (working-day pattern, several projects, models and sessions; today's sessions are the demo agents; the last hours are always active); the cards and `GET /api/usage/detail` are computed from it with the same code as real data. The same simulator (pure, in shared) powers the
 client's `?mock=1`.
 
 ## Static web

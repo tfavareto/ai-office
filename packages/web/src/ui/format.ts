@@ -108,6 +108,49 @@ export function formatCost(usd: number | undefined): string {
   return `${symbol}${amount}`;
 }
 
+/** A whole number with the locale's grouping ("1.234.567" / "1,234,567"). */
+export function formatInteger(value: number): string {
+  return numberFormat('int', { maximumFractionDigits: 0 }).format(Math.round(value));
+}
+
+/** A signed relative change, "+12%" or "−5%" (a ratio of 0.12 is 12%); one decimal below 10%. */
+export function formatChange(ratio: number): string {
+  const digits = Math.abs(ratio) < 0.095 ? 1 : 0;
+  return numberFormat(`chg${digits}`, { style: 'percent', signDisplay: 'exceptZero', maximumFractionDigits: digits }).format(ratio);
+}
+
+/** A share, "42%" (a ratio of 0.42); below 1% it reads "< 1%". */
+export function formatShare(ratio: number): string {
+  if (ratio > 0 && ratio < 0.01) return `< ${numberFormat('shr', { style: 'percent', maximumFractionDigits: 0 }).format(0.01)}`;
+  return numberFormat('shr', { style: 'percent', maximumFractionDigits: 0 }).format(ratio);
+}
+
+/** "14h" in pt-BR/Spanish and "2 PM" in English: the label of an hour on a chart axis. */
+export function formatHourLabel(ts: number): string {
+  return locale() === 'en' ? dateFormat('hour-en', { hour: 'numeric', hour12: true }).format(ts) : `${pad2(new Date(ts).getHours())}h`;
+}
+
+/** Short weekday and day of the month, "ter. 21" / "Tue 21". */
+export function formatDayShort(ts: number): string {
+  return dateFormat('day-short', { weekday: 'short', day: 'numeric' }).format(ts).replace(/,/g, '').replace(/[\u00a0\u202f]/g, ' ');
+}
+
+/** Day of the month, "21". */
+export function formatDayNumber(ts: number): string {
+  return String(new Date(ts).getDate());
+}
+
+/** Weekday, day and month in full, "terça-feira, 21 de outubro". */
+export function formatDateLong(ts: number): string {
+  return dateFormat('date-long', { weekday: 'long', day: 'numeric', month: 'long' }).format(ts);
+}
+
+/** A moment on a chart or forecast: the clock when it is today, otherwise short weekday and clock ("sex. 14:30"). */
+export function formatMoment(ts: number, now: number): string {
+  if (startOfDay(ts) === startOfDay(now)) return formatClock(ts);
+  return `${dateFormat('weekday-short', { weekday: 'short' }).format(ts).replace(/[\u00a0\u202f]/g, ' ')} ${formatClock(ts)}`;
+}
+
 /** "14:30" in pt-BR/Spanish, "2:30 PM" in English. */
 export function formatClock(ts: number): string {
   return dateFormat('clock', clockOptions(false)).format(ts);

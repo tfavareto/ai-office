@@ -29,7 +29,7 @@ the source catalog the other two are translated from. Code, comments and docs in
 2. **Top bar**: brand "AI Office" (logo + wordmark), connection pill, counters (rooms, agents, working,
    subagents, shells running, need you; the last two clickable to jump to the next one), usage cards per
    account (tokens and estimated cost: 5h window, week, today; they shrink to a compact form when space is short and
-   collapse into a "+N" button that opens a popover with all of them), buttons: overview, zoom, notifications (bell with
+   collapse into a "+N" button that opens a popover with all of them; every card is a button that opens the **Consumo** dialog, and gets an amber ring when the projected limit is less than 30 minutes away), buttons: overview, zoom, notifications (bell with
    unread badge), My day, session history, feed, settings, help.
 3. **Sidebar**: search (agent, project, account; "/" focuses), account filter chips, list of rooms with their agents
    and subagents (avatar, name, account chip, role, current activity, status dot, elapsed time for long shells), room
@@ -68,7 +68,7 @@ the source catalog the other two are translated from. Code, comments and docs in
     bubbles (all/important/none), animation (calm/normal/lively), sounds (on/off + volume), browser notifications,
     demo mode (fake agents), about (version). Preferences live in the browser.
 12. **Help**: legend (statuses, icons), shortcuts, how to install the plugin.
-13. **Demo mode**: fake sessions that behave realistically (screenshots, first run with no sessions). `?mock=1` runs a
+13. **Demo mode**: fake sessions that behave realistically (screenshots, first run with no sessions); the demo accounts also get ten weeks of believable hourly usage history. `?mock=1` runs a
     fully client-side simulation without a server.
 14. **Claude Code plugin**: one plugin "ai-office" (marketplace in this repo) with hooks: PermissionRequest (answer from
     the office), PostToolUse + Stop + SubagentStop (deliver messages), Notification (mark "needs you").
@@ -128,8 +128,10 @@ the source catalog the other two are translated from. Code, comments and docs in
     change. Agents without a task list are listed apart. The whiteboard of the meeting room (2D and 3D) shows the live
     summary: cards per column and the first tasks in progress.
 
+18. **Consumo (usage)**: dialog opened from a usage card or with `U`. Account picker (each account and "All"), period tabs (Today / Week / Month), KPI tiles (total tokens, estimated cost, change against the same elapsed part of the previous period, cache hit share), stacked bars of the token types over time (hours for today, days for the week and the month), the open 5 h window of each account, a **limit forecast** (burn rate of the last 30-60 minutes projected to the end of the 5 h window and of the week, against a limit you type in or, without one, your highest recent block or week), and breakdown tables by model, project and session or subagent (people and rooms the office knows are links). Numbers come from a persisted, incremental hourly index of every transcript (previous month onwards, kept up to 13 months), computed locally. Everything is an estimate and says so.
+
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
-Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, K task board (on a focused card: M moves it), O overview,
+Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, U usage, K task board (on a focused card: M moves it), O overview,
 H hire an agent, [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection).
 
 ## Non-goals

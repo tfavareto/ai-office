@@ -186,6 +186,7 @@
 }
 
 .ao-usage-card {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -194,6 +195,37 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg-soft);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), box-shadow var(--t-base) var(--ease);
+}
+
+.ao-usage-card:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-hover);
+}
+
+/* The projected limit is closer than 30 minutes: an amber ring and a small mark (not only a color). */
+.ao-usage-card.is-warning,
+.ao-usage-more.is-warning {
+  border-color: rgba(245, 181, 68, 0.75);
+  box-shadow: 0 0 0 2px rgba(245, 181, 68, 0.22);
+  animation: ao-attention 2.4s ease-in-out infinite;
+}
+
+.ao-usage-warn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 99px;
+  background: var(--waiting);
+  color: #1c1405;
 }
 
 .ao-usage-lines {

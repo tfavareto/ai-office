@@ -18,6 +18,10 @@ export interface TailRead {
 export interface TailerOptions {
   /** On the first read, start this many bytes before the end (the first partial line is dropped). */
   initialTailBytes?: number;
+  /** Resume at this byte offset, which must be the start of a line (see `position`). Wins over `initialTailBytes`. */
+  startOffset?: number;
+  /** Most bytes a single `read()` consumes (default 8 MB), to bound the work done between two event-loop turns. */
+  maxBytesPerRead?: number;
 }
 
 export class JsonlTailer {
@@ -26,11 +30,22 @@ export class JsonlTailer {
   private skippingOversized = false;
   private started = false;
   private inode: number | undefined;
+  private lastSize = 0;
 
   constructor(
     readonly path: string,
     private readonly options: TailerOptions = {},
   ) {}
+
+  /** Bytes consumed up to the end of the last complete line: where a new tailer can resume without losing or repeating lines. */
+  get position(): number {
+    return this.offset - this.remainder.length;
+  }
+
+  /** The whole file, as it was at the last read, has been consumed (partial last line aside). */
+  get atEnd(): boolean {
+    return this.offset >= this.lastSize;
+  }
 
   /** Reads new complete lines. Returns undefined when the file does not exist (yet). */
   async read(): Promise<TailRead | undefined> {
@@ -51,10 +66,13 @@ export class JsonlTailer {
         reset = true;
       }
       this.inode = stats.ino;
+      this.lastSize = stats.size;
       if (!this.started) {
         this.started = true;
         const window = this.options.initialTailBytes ?? DEFAULT_TAIL_BYTES;
-        if (stats.size > window) {
+        if (this.options.startOffset !== undefined) {
+          this.offset = Math.min(this.options.startOffset, stats.size);
+        } else if (stats.size > window) {
           this.offset = stats.size - window;
           this.skippingOversized = true;
         }
@@ -68,7 +86,7 @@ export class JsonlTailer {
 
   private async drain(handle: FileHandle, size: number): Promise<string[]> {
     const lines: string[] = [];
-    const end = Math.min(size, this.offset + MAX_BYTES_PER_READ);
+    const end = Math.min(size, this.offset + (this.options.maxBytesPerRead ?? MAX_BYTES_PER_READ));
     while (this.offset < end) {
       const length = Math.min(CHUNK_BYTES, end - this.offset);
       const buffer = Buffer.alloc(length);

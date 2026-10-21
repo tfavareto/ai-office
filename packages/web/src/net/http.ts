@@ -1,7 +1,8 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import { API, type HireRequest, type PermissionDecision, type RuleDraft } from '@ai-office/shared';
+import { API, type HireRequest, type PermissionDecision, type RuleDraft, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type TranscriptQuery } from './backend';
+import { parseUsageDetail } from './parse-usage';
 import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parsePermission, parseRule, parseRuleLog, parseRulePreview, parseRuleRejection, parseRules, parseSessions, parseTranscriptPage } from './parse';
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -98,6 +99,10 @@ export class HttpBackend implements Backend {
 
   async day(date: string) {
     return parseDay(await this.get(API.day, { date }));
+  }
+
+  async usageDetail(account: string, period: UsagePeriod) {
+    return parseUsageDetail(await this.get(API.usageDetail, { account, period }));
   }
 
   async rules() {

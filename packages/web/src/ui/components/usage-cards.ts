@@ -9,7 +9,7 @@ import { setPressed } from '../widgets';
 import { usageCard, usageEntries, usageSignature } from './usage-card';
 
 export class UsageCards implements Component {
-  readonly el = h('div', { class: 'ao-usage', role: 'list', 'aria-label': t('usage.label') });
+  readonly el = h('div', { class: 'ao-usage', role: 'group', 'aria-label': t('usage.label') });
   private readonly more = h('button', { type: 'button', class: 'ao-usage-more', 'aria-haspopup': 'dialog', hidden: true, onclick: () => this.ctx.togglePopover('usage') });
   private observer: ResizeObserver | null = null;
   private signature = '';
@@ -91,6 +91,8 @@ export class UsageCards implements Component {
     });
     const left = cards.length - result.visible;
     this.more.hidden = !result.showMore || left === 0;
+    // A card folded into "+N" that is about to hit its limit still warns, on the button.
+    this.more.classList.toggle('is-warning', !this.more.hidden && cards.some((card, index) => index >= result.visible && card.classList.contains('is-warning')));
     this.el.hidden = result.visible === 0 && this.more.hidden;
     setText(this.more, `+${left}`);
     this.more.setAttribute('aria-label', t('usage.more', { n: left }));

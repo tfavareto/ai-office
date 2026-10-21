@@ -6,7 +6,7 @@ import { usageCard, usageEntries, usageSignature } from './usage-card';
 import { Popover } from './overlay';
 
 export class UsagePopover extends Popover {
-  private readonly list = h('div', { class: 'ao-usage-list', role: 'list' });
+  private readonly list = h('div', { class: 'ao-usage-list' });
   private signature = '';
 
   constructor(ctx: AppContext) {

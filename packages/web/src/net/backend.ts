@@ -1,6 +1,6 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, AutoDecision, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage } from '@ai-office/shared';
+import type { Activity, AutoDecision, BossMessage, DayStats, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -22,6 +22,8 @@ export interface Backend {
   transcript(query: TranscriptQuery): Promise<TranscriptPage>;
   sessions(): Promise<RecentSession[]>;
   day(date: string): Promise<DayStats>;
+  /** Usage history of an account (`all` for every account) over today, this week or this month. */
+  usageDetail(account: string, period: UsagePeriod): Promise<UsageDetail>;
   setDemo(on: boolean): Promise<boolean>;
   rules(): Promise<Rule[]>;
   createRule(draft: RuleDraft): Promise<Rule>;

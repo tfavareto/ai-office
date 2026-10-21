@@ -1,55 +1,12 @@
-// Cost estimates from public API list prices, per model family. Always an estimate (plans bill differently).
+// Cost estimates from public API list prices (the table lives in the shared package). Always an estimate.
+import { type ModelPrice, priceFor, tokensCostUSD } from '@ai-office/shared';
 import type { UsageInfo } from './types';
 
-/** USD per million tokens. */
-export interface ModelPrice {
-  input: number;
-  output: number;
-  cacheWrite5m: number;
-  cacheWrite1h: number;
-  cacheRead: number;
-}
-
-const round = (value: number): number => Math.round(value * 1e6) / 1e6;
-
-function price(input: number, output: number): ModelPrice {
-  return { input, output, cacheWrite5m: round(input * 1.25), cacheWrite1h: round(input * 2), cacheRead: round(input * 0.1) };
-}
-
-const OPUS_LEGACY = price(15, 75);
-const OPUS = price(5, 25);
-const SONNET = price(3, 15);
-const HAIKU = price(1, 5);
-const HAIKU_LEGACY = price(0.8, 4);
-/** Fable is priced like the current Opus tier (estimate). */
-const FABLE = OPUS;
-
-/** Price table lookup by model id ("claude-opus-5-5", "claude-3-5-haiku-20241022"...). */
-export function priceFor(model: string | undefined): ModelPrice | undefined {
-  if (model === undefined) return undefined;
-  const id = model.toLowerCase();
-  if (id.includes('opus')) {
-    return /opus-4(-1)?(-\d{8})?$/.test(id) || id.includes('3-opus') || id.includes('opus-3') ? OPUS_LEGACY : OPUS;
-  }
-  if (id.includes('sonnet')) return SONNET;
-  if (id.includes('haiku')) return /3-5-haiku|haiku-3/.test(id) ? HAIKU_LEGACY : HAIKU;
-  if (id.includes('fable')) return FABLE;
-  return undefined;
-}
+export { type ModelPrice, priceFor };
 
 /** Estimated cost in USD of one message, or undefined when the model has no known price. */
 export function usageCostUSD(model: string | undefined, usage: UsageInfo): number | undefined {
-  const table = priceFor(model);
-  if (table === undefined) return undefined;
-  const million = 1_000_000;
-  return (
-    (usage.input * table.input +
-      usage.output * table.output +
-      usage.cacheWrite5m * table.cacheWrite5m +
-      usage.cacheWrite1h * table.cacheWrite1h +
-      usage.cacheRead * table.cacheRead) /
-    million
-  );
+  return tokensCostUSD(model, usage);
 }
 
 /** Tokens that count towards "tokens used": fresh input, cache writes and output (cache reads are excluded). */
