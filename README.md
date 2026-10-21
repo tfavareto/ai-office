@@ -58,10 +58,11 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 | **I want it always on** | [Prompt 02](docs/prompts/02-run-at-login.md) | AI Office starts at login (launchd on macOS, systemd on Linux) |
 | **I use more than one Claude account** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Every account in the same office, plugin installed in each one |
 | **I want to start agents from the office** | [Run your team](#team) | Hire agents at empty desks, triage the inbox, follow the task board, automate approvals |
+| **I want to know where my tokens and time go** | [Usage, reports and Git](#insights) | Usage by day, week and month, limit forecast, day report, Git state per room, time-lapse |
 | **Something is not working** | [Troubleshooting](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | A read-only diagnosis first, then fixes you approve |
 | **I want to contribute** | [Contributing](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Dev setup, checks and conventions |
 
-**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
+**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [Insights](#insights) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
 
 <a id="install"></a>
 
@@ -203,9 +204,36 @@ The office is also where work starts and where you keep it moving, without hoppi
 
 Hiring needs the page open on this computer and opens your usual terminal (Terminal or iTerm on macOS, your desktop terminal on Linux). The [user guide](docs/02-using-the-office.md) covers each one, and the [plugin guide](docs/03-plugin.md) explains how rules answer requests.
 
+<a id="insights"></a>
+
+## 05 / Know where your tokens and your day went
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/en/usage.png" alt="The Usage dialog: total tokens, estimated cost, change against last week and cache reuse, a daily chart split by token type and the limit forecast." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/day-report.png" alt="The day report: agents, active time, files, commits, tests, tasks and cost for the day, highlights and a section per project." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Usage today, this week and this month, with a limit forecast</sub></td>
+    <td align="center"><sub>A day report you can copy or download as Markdown</sub></td>
+  </tr>
+</table>
+
+Everything here is computed on your computer from the files Claude Code already writes.
+
+| You want to | In the office | What you get |
+|---|---|---|
+| **See where the tokens went** | Click a usage card in the top bar, or `U` | **Usage** for today, this week and this month, per account or all: tokens by type, estimated cost, change against the previous period, cache reuse, a chart by hour or day, and breakdowns by model, project and session |
+| **Avoid hitting the limit by surprise** | **Limit forecast** in the same dialog | How far your current pace takes you by the end of the 5 h window and the week, and roughly when you would reach your limit; the usage card turns amber when it is under 30 minutes away. Plans do not expose their limits locally, so enter yours in **Limits (optional)** or the forecast uses your highest recent block |
+| **Write today's status update** | **My day → Report** (`R`) | What each agent did: files changed, commands, tests passed and failed, commits, tasks closed, time and cost, for today or any of the last 6 days; **Copy Markdown** or **Download .md**. Your prompts stay out unless you include them |
+| **Know the state of each repository** | The room drawer, the sidebar and the sign on the room's door | Branch, uncommitted changes, ahead and behind, last commit, rebase or merge in progress. Pull requests and CI status are optional and off by default: turning them on is the only feature that goes online, through your own `gh` CLI |
+| **Catch up on what happened while you were away** | **Time-lapse** in **My day** (`L`) | The day replayed in the office at up to 1800× speed, with a timeline you can scrub and markers for arrivals, commits, failed tests and permission waits |
+
+The [user guide](docs/02-using-the-office.md) details each view; the [privacy guide](docs/05-privacy-and-security.md) lists what the usage index and the report keep on disk (numbers per project and session, never conversation text).
+
 <a id="views"></a>
 
-## 05 / 2D by default, 3D when you want it
+## 06 / 2D by default, 3D when you want it
 
 <table>
   <tr>
@@ -230,7 +258,7 @@ Both views share the same building, the same people and the same interface; only
 
 <a id="how-it-works"></a>
 
-## 06 / How it works
+## 07 / How it works
 
 <p align="center">
   <picture>
@@ -255,7 +283,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
 
 <a id="privacy"></a>
 
-## 07 / Private by design
+## 08 / Private by design
 
 <p align="center">
   <picture>
@@ -264,11 +292,12 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
   </picture>
 </p>
 
-AI Office was built for code you may not want to share. It never sends anything anywhere.
+AI Office was built for code you may not want to share. It sends nothing anywhere; the one exception is optional and off by default: looking up pull requests through your own `gh` CLI.
 
 | Protection | How |
 |---|---|
 | **Local only** | Binds to `127.0.0.1`; any other address is refused unless you opt in with `AI_OFFICE_ALLOW_REMOTE=1` |
+| **Numbers, not conversations** | The usage index and the day report keep token counts, costs, file names and commands; prompts and replies are never stored |
 | **Read-only on Claude Code** | Reads session files; it never edits them |
 | **Authenticated** | A random token in `~/.ai-office/token` (mode 0600); the page gets an HttpOnly cookie, the hooks prove they hold the token |
 | **Hardened browser surface** | Strict Content Security Policy, cross-site requests rejected, framing denied |
@@ -278,7 +307,7 @@ Read the [privacy and security guide](docs/05-privacy-and-security.md), and repo
 
 <a id="prompts"></a>
 
-## 08 / Prompts for every step
+## 09 / Prompts for every step
 
 Pick a task, open the prompt and paste the indicated block into an agent with terminal access. The [catalog](docs/prompts/README.md) explains each one.
 
@@ -294,7 +323,7 @@ Pick a task, open the prompt and paste the indicated block into an agent with te
 
 <a id="configuration"></a>
 
-## 09 / Configure it your way
+## 10 / Configure it your way
 
 Defaults work for most people. Set environment variables (or the matching flags) only when you need to:
 
@@ -319,7 +348,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 
 <a id="evidence"></a>
 
-## 10 / Evidence and limits
+## 11 / Evidence and limits
 
 | Check | How |
 |---|---|
@@ -341,7 +370,7 @@ Your screen caps what you see (usually 60 fps). The 3D night scene is the expens
 
 <a id="repository"></a>
 
-## 11 / Explore the repository
+## 12 / Explore the repository
 
 ```text
 ai-office/
@@ -381,7 +410,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 12 / Follow the project
+## 13 / Follow the project
 
 If AI Office made your agents easier to follow, a star helps other people find it.
 
