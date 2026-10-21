@@ -57,10 +57,11 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 | **I want my agents in the office** | [Install with one prompt](#install) · [Prompt 01](docs/prompts/01-install-and-run.md) | Server running, plugin installed, office open in your browser |
 | **I want it always on** | [Prompt 02](docs/prompts/02-run-at-login.md) | AI Office starts at login (launchd on macOS, systemd on Linux) |
 | **I use more than one Claude account** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Every account in the same office, plugin installed in each one |
+| **I want to start agents from the office** | [Run your team](#team) | Hire agents at empty desks, triage the inbox, follow the task board, automate approvals |
 | **Something is not working** | [Troubleshooting](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | A read-only diagnosis first, then fixes you approve |
 | **I want to contribute** | [Contributing](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Dev setup, checks and conventions |
 
-**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
+**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
 
 <a id="install"></a>
 
@@ -176,9 +177,35 @@ The terminal dialog keeps working: whichever answer comes first wins. Every mess
 
 The [plugin guide](docs/03-plugin.md) details each hook, the delivery paths and the 10-minute stand-by.
 
+<a id="team"></a>
+
+## 04 / Run your team from the office
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/en/inbox.png" alt="The inbox lists every permission request waiting on you, groups identical ones under Approve all similar and flags risky commands." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/task-board.png" alt="The task board shows every agent's tasks in Pending, In progress and Completed columns, with the agent, room and age on each card." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>One inbox for everything that waits on you</sub></td>
+    <td align="center"><sub>Every agent's tasks on one board</sub></td>
+  </tr>
+</table>
+
+The office is also where work starts and where you keep it moving, without hopping between terminals.
+
+| You want to | In the office | What happens |
+|---|---|---|
+| **Start a new agent** | Click an empty desk, **Hire an agent** in a room, or `H` | A new terminal window opens with Claude Code in that folder, with your first task, model and permission mode; a person walks to the desk and takes over when the session starts |
+| **Clear what waits on you** | The **Inbox** (`I`) | Permissions, questions, errors and finished agents in priority order; **Approve all similar** for identical requests, keyboard triage, risky commands never approved in bulk |
+| **See all the work** | The **Task board** (`K`) or the meeting-room whiteboard | Every agent's tasks in **Pending**, **In progress** and **Completed**; dragging a card writes a message to the agent, which you review before sending |
+| **Stop answering the same question** | **Create rule…** on any request, or **Settings → Approval rules** | Recurring requests (say, `npm test` in one project) are answered at once and logged; risky or compound commands always come to you |
+
+Hiring needs the page open on this computer and opens your usual terminal (Terminal or iTerm on macOS, your desktop terminal on Linux). The [user guide](docs/02-using-the-office.md) covers each one, and the [plugin guide](docs/03-plugin.md) explains how rules answer requests.
+
 <a id="views"></a>
 
-## 04 / 2D by default, 3D when you want it
+## 05 / 2D by default, 3D when you want it
 
 <table>
   <tr>
@@ -203,7 +230,7 @@ Both views share the same building, the same people and the same interface; only
 
 <a id="how-it-works"></a>
 
-## 05 / How it works
+## 06 / How it works
 
 <p align="center">
   <picture>
@@ -228,7 +255,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
 
 <a id="privacy"></a>
 
-## 06 / Private by design
+## 07 / Private by design
 
 <p align="center">
   <picture>
@@ -251,7 +278,7 @@ Read the [privacy and security guide](docs/05-privacy-and-security.md), and repo
 
 <a id="prompts"></a>
 
-## 07 / Prompts for every step
+## 08 / Prompts for every step
 
 Pick a task, open the prompt and paste the indicated block into an agent with terminal access. The [catalog](docs/prompts/README.md) explains each one.
 
@@ -267,7 +294,7 @@ Pick a task, open the prompt and paste the indicated block into an agent with te
 
 <a id="configuration"></a>
 
-## 08 / Configure it your way
+## 09 / Configure it your way
 
 Defaults work for most people. Set environment variables (or the matching flags) only when you need to:
 
@@ -292,12 +319,12 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 
 <a id="evidence"></a>
 
-## 09 / Evidence and limits
+## 10 / Evidence and limits
 
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 1200+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 1600+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |
@@ -314,7 +341,7 @@ Your screen caps what you see (usually 60 fps). The 3D night scene is the expens
 
 <a id="repository"></a>
 
-## 10 / Explore the repository
+## 11 / Explore the repository
 
 ```text
 ai-office/
@@ -354,7 +381,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 11 / Follow the project
+## 12 / Follow the project
 
 If AI Office made your agents easier to follow, a star helps other people find it.
 
