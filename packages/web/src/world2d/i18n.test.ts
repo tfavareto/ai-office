@@ -15,14 +15,23 @@ import { boardLineForms, fit, pickFitting, roomInfoKey, summarizeRoom, type Room
 import { tickerText } from './runtime/ticker';
 
 const KEYS = Object.keys(worldPtBR) as WorldKey[];
-const placeholders = (template: string): string[] => [...template.matchAll(/\{(\w+)/g)].map((m) => m[1] as string).sort();
+const placeholders = (template: string): string[] =>
+  [...template.matchAll(/\{(\w+)/g)].map((m) => m[1] as string).sort();
 
 /** Inner width (px) of a project room's wall board and of the meeting-room TV header. */
 const BOARD_W = 3 * 16 - 4 - 4;
 const BOARD_TEXT_PX = BOARD_W - 5;
 const MENU_W = 4 * 16 - 2;
 
-const info = (patch: Partial<RoomInfo> = {}): RoomInfo => ({ agents: 2, working: 1, waiting: 0, tasksTotal: 0, tasksDone: 0, current: null, ...patch });
+const info = (patch: Partial<RoomInfo> = {}): RoomInfo => ({
+  agents: 2,
+  working: 1,
+  waiting: 0,
+  tasksTotal: 0,
+  tasksDone: 0,
+  current: null,
+  ...patch,
+});
 
 describe('world catalogs', () => {
   it('define every key in every locale with the same placeholders', () => {
@@ -74,7 +83,12 @@ describe('area names', () => {
 
 describe('locale change invalidation', () => {
   const building = computeBuilding([{ id: 'p1', seed: 1, name: 'loja-online', slot: 0 }]);
-  const key = (kind: string, locale: Locale): string => areaKey(building.areas.find((a) => a.kind === kind)!, '', locale);
+  const key = (kind: string, locale: Locale): string =>
+    areaKey(
+      building.areas.find((a) => a.kind === kind)!,
+      '',
+      locale,
+    );
 
   it('redraws the area that paints translated words (the pantry menu) when the language changes', () => {
     expect(key('copa', 'en')).not.toBe(key('copa', 'pt-BR'));
@@ -83,12 +97,19 @@ describe('locale change invalidation', () => {
   });
 
   it('leaves the other cached area layers alone', () => {
-    for (const kind of ['reception', 'meeting', 'lounge', 'bathrooms', 'project']) expect(key(kind, 'en')).toBe(key(kind, 'es'));
+    for (const kind of ['reception', 'meeting', 'lounge', 'bathrooms', 'project'])
+      expect(key(kind, 'en')).toBe(key(kind, 'es'));
   });
 
   it('keys boards by language and by the localizable task message', () => {
-    const a = summarizeRoom([makeAgent('a', 0, 'working', { tasks: [{ id: '1', title: 'x', status: 'in_progress', titleMsg: { key: 'bubble.done' } }] })]);
-    const b = summarizeRoom([makeAgent('a', 0, 'working', { tasks: [{ id: '1', title: 'x', status: 'in_progress' }] })]);
+    const a = summarizeRoom([
+      makeAgent('a', 0, 'working', {
+        tasks: [{ id: '1', title: 'x', status: 'in_progress', titleMsg: { key: 'bubble.done' } }],
+      }),
+    ]);
+    const b = summarizeRoom([
+      makeAgent('a', 0, 'working', { tasks: [{ id: '1', title: 'x', status: 'in_progress' }] }),
+    ]);
     expect(a.currentMsg).toEqual({ key: 'bubble.done' });
     expect(roomInfoKey(a)).not.toBe(roomInfoKey(b));
   });
@@ -128,8 +149,17 @@ describe('pixel font coverage', () => {
     const text = worldText(locale);
     const states = [info({ waiting: 1 }), info(), info({ working: 0 }), info({ agents: 0, working: 0 })];
     const keys: WorldKey[] = [
-      'menu2d.title', 'menu2d.coffee', 'menu2d.juice', 'menu2d.coffeePrice', 'menu2d.juicePrice', 'meeting.free', 'area.reception', 'area.copa',
-      'area.meeting', 'area.bathrooms', 'area.lounge',
+      'menu2d.title',
+      'menu2d.coffee',
+      'menu2d.juice',
+      'menu2d.coffeePrice',
+      'menu2d.juicePrice',
+      'meeting.free',
+      'area.reception',
+      'area.copa',
+      'area.meeting',
+      'area.bathrooms',
+      'area.lounge',
     ];
     return [
       ...keys.map((key) => text.t(key)),

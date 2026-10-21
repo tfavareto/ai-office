@@ -1,7 +1,17 @@
 // Contract of the demo simulator (implemented in ./simulator.ts): fake but realistic sessions used by the server's
 // demo mode and by the web app's fully client-side `?mock=1` mode.
 import type { Locale } from '../i18n/i18n';
-import type { Agent, BossMessage, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project } from '../model';
+import type {
+  Agent,
+  BossMessage,
+  FeedItem,
+  Notice,
+  OfficeSnapshot,
+  PendingHire,
+  PermissionDecision,
+  PermissionRequest,
+  Project,
+} from '../model';
 import type { UsageRow } from '../usage/types';
 
 export interface DemoOptions {
@@ -44,7 +54,13 @@ export interface DemoSimulator {
   sendMessage(agentIds: readonly string[], text: string, now: number, locale?: Locale): BossMessage[];
   messages(agentId: string): BossMessage[];
   /** Open a new demo session (project with a main agent and `subs` subagents). Returns the new agent's id. */
-  spawnSession(opts: { project: string; subs?: number; status?: Agent['status']; accountId?: string; title?: string }): string;
+  spawnSession(opts: {
+    project: string;
+    subs?: number;
+    status?: Agent['status'];
+    accountId?: string;
+    title?: string;
+  }): string;
   /** "Hire" a demo agent: a placeholder is pending for a few seconds, then a demo session opens in that room. */
   hire(opts: DemoHireOptions): PendingHire;
   /** Hires waiting for their session, and recently taken-over ones (what the snapshot carries). */

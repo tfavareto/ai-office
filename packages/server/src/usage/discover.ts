@@ -32,24 +32,43 @@ async function names(dir: string): Promise<string[] | undefined> {
   }
 }
 
-async function describe(account: string, accountDir: string, rel: string, session: string, agent: string): Promise<TranscriptFile | undefined> {
+async function describe(
+  account: string,
+  accountDir: string,
+  rel: string,
+  session: string,
+  agent: string,
+): Promise<TranscriptFile | undefined> {
   const path = join(accountDir, rel);
   try {
     const info = await stat(path);
-    return info.isFile() ? { account, path, rel, session, agent, size: info.size, mtimeMs: info.mtimeMs, ino: info.ino } : undefined;
+    return info.isFile()
+      ? { account, path, rel, session, agent, size: info.size, mtimeMs: info.mtimeMs, ino: info.ino }
+      : undefined;
   } catch {
     // Vanished between listing and stat.
     return undefined;
   }
 }
 
-async function subagentFiles(account: string, accountDir: string, folder: string, session: string): Promise<TranscriptFile[]> {
+async function subagentFiles(
+  account: string,
+  accountDir: string,
+  folder: string,
+  session: string,
+): Promise<TranscriptFile[]> {
   const list = await names(join(accountDir, 'projects', folder, session, 'subagents'));
   const found: TranscriptFile[] = [];
   for (const name of list ?? []) {
     const agent = SUBAGENT_FILE.exec(name)?.[1];
     if (agent === undefined) continue;
-    const file = await describe(account, accountDir, join('projects', folder, session, 'subagents', name), session, agent);
+    const file = await describe(
+      account,
+      accountDir,
+      join('projects', folder, session, 'subagents', name),
+      session,
+      agent,
+    );
     if (file !== undefined) found.push(file);
   }
   return found;

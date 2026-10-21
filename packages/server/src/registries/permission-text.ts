@@ -91,14 +91,27 @@ export function describeSuggestion(raw: unknown): SuggestionLabel {
   switch (suggestion.type) {
     case 'addRules': {
       const rules = truncate(asArray(suggestion.rules).map(ruleLabel).join(', '), LABEL_MAX);
-      return labeled(msg(suggestion.behavior === 'deny' ? 'perm.suggestion.deny' : 'perm.suggestion.allow', { rules, scope }), LABEL_MAX);
+      return labeled(
+        msg(suggestion.behavior === 'deny' ? 'perm.suggestion.deny' : 'perm.suggestion.allow', { rules, scope }),
+        LABEL_MAX,
+      );
     }
     case 'setMode': {
       const mode = asString(suggestion.mode);
-      return labeled(msg('perm.suggestion.mode', { mode: mode === undefined ? msg('perm.mode.new') : truncate(mode, LABEL_MAX), scope }));
+      return labeled(
+        msg('perm.suggestion.mode', {
+          mode: mode === undefined ? msg('perm.mode.new') : truncate(mode, LABEL_MAX),
+          scope,
+        }),
+      );
     }
     case 'addDirectories': {
-      const dirs = truncate(asArray(suggestion.directories).filter((d) => typeof d === 'string').join(', '), LABEL_MAX);
+      const dirs = truncate(
+        asArray(suggestion.directories)
+          .filter((d) => typeof d === 'string')
+          .join(', '),
+        LABEL_MAX,
+      );
       return labeled(msg('perm.suggestion.dirs', { dirs, scope }), LABEL_MAX);
     }
     default:

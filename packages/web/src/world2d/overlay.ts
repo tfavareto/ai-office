@@ -56,7 +56,11 @@ export class OverlaySprites {
   }
 
   /** Returns the cached sprite for `key`, or builds it from `size()` and `draw`. Measuring only happens on a miss. */
-  private cached(key: string, size: () => { w: number; h: number }, draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void): Sprite {
+  private cached(
+    key: string,
+    size: () => { w: number; h: number },
+    draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void,
+  ): Sprite {
     const hit = this.cache.get(key);
     if (hit) return hit;
     const { w, h } = size();

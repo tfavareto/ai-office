@@ -7,7 +7,11 @@ import { makeTempDir, removeDir } from '../test-helpers';
 import { readDayCommits } from './day-commits';
 import { RunError, createGitRunner, type Runner } from './run';
 
-const DAY: DayRange = { date: '2026-10-19', start: Date.parse('2026-10-19T03:00:00Z'), end: Date.parse('2026-10-20T03:00:00Z') };
+const DAY: DayRange = {
+  date: '2026-10-19',
+  start: Date.parse('2026-10-19T03:00:00Z'),
+  end: Date.parse('2026-10-20T03:00:00Z'),
+};
 const seconds = (iso: string): number => Date.parse(iso) / 1000;
 
 let dir: string;
@@ -36,11 +40,19 @@ describe('readDayCommits with a fake runner', () => {
   test('returns the commits of the day marked as coming from git, and drops any outside the range', async () => {
     // Arrange
     await mkdir(join(dir, '.git'));
-    const { run } = fake([`a1b2c3d\t${seconds('2026-10-19T12:00:00Z')}\tfeat: inside`, `e4f5a6b\t${seconds('2026-10-18T12:00:00Z')}\tfix: day before`, 'garbage'].join('\n'));
+    const { run } = fake(
+      [
+        `a1b2c3d\t${seconds('2026-10-19T12:00:00Z')}\tfeat: inside`,
+        `e4f5a6b\t${seconds('2026-10-18T12:00:00Z')}\tfix: day before`,
+        'garbage',
+      ].join('\n'),
+    );
     // Act
     const commits = await readDayCommits(run, dir, DAY);
     // Assert
-    expect(commits).toEqual([{ hash: 'a1b2c3d', subject: 'feat: inside', at: Date.parse('2026-10-19T12:00:00Z'), source: 'git' }]);
+    expect(commits).toEqual([
+      { hash: 'a1b2c3d', subject: 'feat: inside', at: Date.parse('2026-10-19T12:00:00Z'), source: 'git' },
+    ]);
   });
 
   test('asks for read-only history of the person, between the two instants of the day', async () => {
@@ -51,7 +63,16 @@ describe('readDayCommits with a fake runner', () => {
     await readDayCommits(run, dir, DAY);
     // Assert
     const log = calls.find((args) => args.includes('log')) as string[];
-    expect(log).toEqual(expect.arrayContaining(['--no-optional-locks', 'core.fsmonitor=false', '--fixed-strings', '--author=me@example.com', `--since=${new Date(DAY.start).toISOString()}`, `--until=${new Date(DAY.end).toISOString()}`]));
+    expect(log).toEqual(
+      expect.arrayContaining([
+        '--no-optional-locks',
+        'core.fsmonitor=false',
+        '--fixed-strings',
+        '--author=me@example.com',
+        `--since=${new Date(DAY.start).toISOString()}`,
+        `--until=${new Date(DAY.end).toISOString()}`,
+      ]),
+    );
     const writing = ['fetch', 'pull', 'push', 'commit', 'add', 'checkout', 'reset', 'merge', 'rebase', 'gc'];
     for (const args of calls) expect(args.some((arg) => writing.includes(arg))).toBe(false);
   });
@@ -60,12 +81,15 @@ describe('readDayCommits with a fake runner', () => {
     await mkdir(join(dir, '.git'));
     const { run, calls } = fake('', new RunError('no key', 1, '', false));
     await readDayCommits(run, dir, DAY);
-    expect((calls.find((args) => args.includes('log')) as string[]).some((arg) => arg.startsWith('--author'))).toBe(false);
+    expect((calls.find((args) => args.includes('log')) as string[]).some((arg) => arg.startsWith('--author'))).toBe(
+      false,
+    );
   });
 
   test('rejects when git fails, so the report can leave the project as it is', async () => {
     await mkdir(join(dir, '.git'));
-    const run: Runner = (_file, args) => (args.includes('config') ? Promise.resolve('') : Promise.reject(new RunError('boom', 128, 'fatal', false)));
+    const run: Runner = (_file, args) =>
+      args.includes('config') ? Promise.resolve('') : Promise.reject(new RunError('boom', 128, 'fatal', false));
     await expect(readDayCommits(run, dir, DAY)).rejects.toBeInstanceOf(RunError);
   });
 });
@@ -85,7 +109,12 @@ describe('readDayCommits on a real repository created by the test', () => {
     // Arrange: a throw-away repository with two commits of mine and one of someone else, all at noon of the day
     const repo = await makeTempDir('ai-office-repo-');
     try {
-      const git = (...args: string[]): void => void execFileSync('git', args, { cwd: repo, env: { ...environment, GIT_AUTHOR_DATE: '2026-10-19T12:00:00Z', GIT_COMMITTER_DATE: '2026-10-19T12:00:00Z' }, stdio: 'ignore' });
+      const git = (...args: string[]): void =>
+        void execFileSync('git', args, {
+          cwd: repo,
+          env: { ...environment, GIT_AUTHOR_DATE: '2026-10-19T12:00:00Z', GIT_COMMITTER_DATE: '2026-10-19T12:00:00Z' },
+          stdio: 'ignore',
+        });
       git('init', '-q', '-b', 'main');
       git('config', 'user.name', 'Me');
       git('config', 'user.email', 'me@example.com');

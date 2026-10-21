@@ -20,7 +20,8 @@ import { StaticServer } from './static';
 
 /** Sent on every response (static files and API). */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
-  'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy':
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',

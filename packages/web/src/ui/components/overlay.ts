@@ -21,7 +21,13 @@ export abstract class Popover implements Component {
     label: string,
     className = '',
   ) {
-    this.el = h('section', { class: `ao-popover ${className}`.trim(), role: 'dialog', 'aria-label': label, tabindex: '-1', 'data-popover': id });
+    this.el = h('section', {
+      class: `ao-popover ${className}`.trim(),
+      role: 'dialog',
+      'aria-label': label,
+      tabindex: '-1',
+      'data-popover': id,
+    });
     setOpen(this.el, false);
   }
 
@@ -71,7 +77,13 @@ export abstract class Dialog implements Component {
     protected readonly titleId: string,
     className = '',
   ) {
-    this.panel = h('div', { class: `ao-dialog ${className}`.trim(), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId, tabindex: '-1' });
+    this.panel = h('div', {
+      class: `ao-dialog ${className}`.trim(),
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': titleId,
+      tabindex: '-1',
+    });
     this.el = h('div', { class: 'ao-scrim ao-dialog-scrim', 'data-dialog': id }, this.panel);
     this.el.addEventListener('pointerdown', (event) => {
       if (event.target === this.el) this.ctx.closeDialog();
@@ -124,5 +136,9 @@ export abstract class Dialog implements Component {
 }
 
 export function closeButton(label: string, onClick: () => void): HTMLButtonElement {
-  return h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': label, title: label, onclick: onClick }, icon('x', 16));
+  return h(
+    'button',
+    { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': label, title: label, onclick: onClick },
+    icon('x', 16),
+  );
 }

@@ -78,7 +78,12 @@ export class MessageRegistry {
     );
     for (const message of delivered) this.deps.onDelivered(message);
     this.deps.onChange();
-    return queued.map(({ id, text, createdAt, locale }) => ({ id, text, createdAt, ...(locale !== undefined ? { locale } : {}) }));
+    return queued.map(({ id, text, createdAt, locale }) => ({
+      id,
+      text,
+      createdAt,
+      ...(locale !== undefined ? { locale } : {}),
+    }));
   }
 
   /** Long-poll: resolves with the queued messages as soon as one exists, or an empty list after the timeout. */
@@ -106,11 +111,16 @@ export class MessageRegistry {
     const now = this.deps.now();
     let changed = false;
     for (const [agentId, messages] of this.byAgent) {
-      if (!messages.some((message) => message.status === 'queued' && now - message.createdAt > MESSAGE_TTL_MS)) continue;
+      if (!messages.some((message) => message.status === 'queued' && now - message.createdAt > MESSAGE_TTL_MS))
+        continue;
       changed = true;
       this.byAgent.set(
         agentId,
-        messages.map((message): BossMessage => (message.status === 'queued' && now - message.createdAt > MESSAGE_TTL_MS ? { ...message, status: 'expired' } : message)),
+        messages.map((message): BossMessage =>
+          message.status === 'queued' && now - message.createdAt > MESSAGE_TTL_MS
+            ? { ...message, status: 'expired' }
+            : message,
+        ),
       );
     }
     if (changed) this.deps.onChange();

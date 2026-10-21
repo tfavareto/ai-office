@@ -13,7 +13,15 @@ import {
   toggleSelected,
   type InboxSelection,
 } from './model/inbox-selection';
-import { INBOX_STORAGE_KEY, markSeen, parseInboxStateJson, pruneSeen, serializeInboxState, withBaseline, type InboxState } from './model/inbox-state';
+import {
+  INBOX_STORAGE_KEY,
+  markSeen,
+  parseInboxStateJson,
+  pruneSeen,
+  serializeInboxState,
+  withBaseline,
+  type InboxState,
+} from './model/inbox-state';
 import type { NotificationItem } from './model/notifications';
 import { Observable } from './observable';
 
@@ -62,7 +70,14 @@ export class InboxController extends Observable<InboxUiData> {
   private lastIds: readonly string[] = [];
 
   constructor(private readonly deps: InboxDeps) {
-    super({ state: loadState(resolveStorage(deps)), selection: EMPTY_SELECTION, cursor: null, denying: null, confirm: null, busy: [] });
+    super({
+      state: loadState(resolveStorage(deps)),
+      selection: EMPTY_SELECTION,
+      cursor: null,
+      denying: null,
+      confirm: null,
+      busy: [],
+    });
     this.storage = resolveStorage(deps);
   }
 
@@ -94,7 +109,10 @@ export class InboxController extends Observable<InboxUiData> {
     const cursor = settleCursor(this.lastIds, ids, this.value.cursor);
     this.lastIds = ids;
     const selection = pruneSelection(this.value.selection, ids);
-    const confirm = this.value.confirm && this.value.confirm.include.every((item) => ids.includes(item.id)) ? this.value.confirm : null;
+    const confirm =
+      this.value.confirm && this.value.confirm.include.every((item) => ids.includes(item.id))
+        ? this.value.confirm
+        : null;
     const denying = this.value.denying !== null && ids.includes(this.value.denying) ? this.value.denying : null;
     const stillBusy = this.value.busy.filter((id) => ids.includes(id));
     const busy = stillBusy.length === this.value.busy.length ? this.value.busy : stillBusy;

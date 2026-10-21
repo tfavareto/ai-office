@@ -47,7 +47,8 @@ function drawScreen(kind: ScreenKind, frame: number): HTMLCanvasElement {
       break;
     case 'read':
       rect(ctx, 0, 0, SCREEN_W, SCREEN_H, '#dfe7f1');
-      for (let i = 0; i < 3; i++) hline(ctx, 1, 2 + i * 2, 5 + Math.floor(noise2(i, frame, 3) * (SCREEN_W - 7)), '#6c7a90');
+      for (let i = 0; i < 3; i++)
+        hline(ctx, 1, 2 + i * 2, 5 + Math.floor(noise2(i, frame, 3) * (SCREEN_W - 7)), '#6c7a90');
       rect(ctx, 0, 0, SCREEN_W, 1, '#3b5b9a');
       break;
     case 'web':
@@ -91,13 +92,32 @@ export function screenSprite(kind: ScreenKind, frame: number): HTMLCanvasElement
 }
 
 const PRIMARY: Record<ActivityKind, ScreenKind> = {
-  edit: 'code', write: 'code', bash: 'term', read: 'read', search: 'read', web: 'web', think: 'think', prompt: 'think',
-  reply: 'think', task: 'code', subagent: 'code', mcp: 'code', question: 'wait', permission: 'wait', message: 'web', error: 'term',
-  done: 'idle', other: 'code',
+  edit: 'code',
+  write: 'code',
+  bash: 'term',
+  read: 'read',
+  search: 'read',
+  web: 'web',
+  think: 'think',
+  prompt: 'think',
+  reply: 'think',
+  task: 'code',
+  subagent: 'code',
+  mcp: 'code',
+  question: 'wait',
+  permission: 'wait',
+  message: 'web',
+  error: 'term',
+  done: 'idle',
+  other: 'code',
 };
 
 /** Content of the two monitors of a desk (left, right), from what its occupant is doing. */
-export function desksScreens(status: AgentStatus | null, activity: ActivityKind | undefined, shell: boolean): [ScreenKind, ScreenKind] {
+export function desksScreens(
+  status: AgentStatus | null,
+  activity: ActivityKind | undefined,
+  shell: boolean,
+): [ScreenKind, ScreenKind] {
   if (status === null) return ['off', 'off'];
   if (status === 'waiting') return ['code', 'wait'];
   if (status === 'working') {

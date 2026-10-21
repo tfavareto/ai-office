@@ -74,7 +74,14 @@ export class HireRegistry {
     for (const hire of waiting) {
       const where = this.paths.get(hire.id);
       const match = agents
-        .filter((agent) => isCandidate(agent) && !taken.has(agent.id) && agent.accountId === hire.accountId && where?.has(agent.projectId) === true && agent.startedAt >= hire.createdAt - START_SLACK_MS)
+        .filter(
+          (agent) =>
+            isCandidate(agent) &&
+            !taken.has(agent.id) &&
+            agent.accountId === hire.accountId &&
+            where?.has(agent.projectId) === true &&
+            agent.startedAt >= hire.createdAt - START_SLACK_MS,
+        )
         .sort((a, b) => a.startedAt - b.startedAt)[0];
       if (match === undefined) continue;
       taken.add(match.id);

@@ -3,14 +3,7 @@ import { TILE } from '../../layout/constants';
 import type { Rect } from '../../layout/types';
 import { noise2, shade } from '../color';
 import { type Ctx, disc, hline, rect, vline } from './ctx';
-import {
-  extraTrees,
-  paintLamp,
-  paintParkedCars,
-  paintPlaza,
-  paintSidewalkProps,
-  paintTree,
-} from './exteriorDecor';
+import { extraTrees, paintLamp, paintParkedCars, paintPlaza, paintSidewalkProps, paintTree } from './exteriorDecor';
 import { paintPark } from './exteriorPark';
 import { ALLEY_COLOR, paintRooftop } from './exteriorRoofs';
 import { PLAZA, speckle, tileRect } from './exteriorUtil';

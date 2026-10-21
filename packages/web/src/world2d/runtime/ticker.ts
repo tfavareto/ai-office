@@ -49,8 +49,20 @@ export const TICKER_SEPARATOR = '  *  ';
  * Text of the LED ticker (corridor, 2D and 3D) in upper case. The brand and the order of the items are the same in every
  * language; the 2D pixel font folds accents, the 3D texture draws them.
  */
-export function tickerText(rooms: number, agents: number, working: number, waiting: number, shells: number, text: WorldText = worldText('pt-BR')): string {
-  const parts = ['AI OFFICE', text.t('count.rooms', { n: rooms }), text.t('count.agents', { n: agents }), text.t('ticker.working', { n: working })];
+export function tickerText(
+  rooms: number,
+  agents: number,
+  working: number,
+  waiting: number,
+  shells: number,
+  text: WorldText = worldText('pt-BR'),
+): string {
+  const parts = [
+    'AI OFFICE',
+    text.t('count.rooms', { n: rooms }),
+    text.t('count.agents', { n: agents }),
+    text.t('ticker.working', { n: working }),
+  ];
   if (shells) parts.push(text.t('ticker.shells', { n: shells }));
   parts.push(waiting ? text.t('count.needsYou', { n: waiting }) : text.t('ticker.allGood'), text.t('ticker.coffee'));
   return parts.join(TICKER_SEPARATOR).toLocaleUpperCase(text.locale);

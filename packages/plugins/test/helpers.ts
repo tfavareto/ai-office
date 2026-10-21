@@ -2,7 +2,13 @@ import { spawn } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { createServer, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import {
+  createServer,
+  type IncomingHttpHeaders,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,7 +107,12 @@ export class FakeOffice {
     if (url.pathname === '/api/health') {
       const nonce = url.searchParams.get('challenge');
       if (nonce !== null) this.challenges.push(nonce);
-      const proof = nonce !== null && this.options.proveIdentity ? createHmac('sha256', this.options.token).update(HEALTH_PROOF_PREFIX + nonce).digest('hex') : undefined;
+      const proof =
+        nonce !== null && this.options.proveIdentity
+          ? createHmac('sha256', this.options.token)
+              .update(HEALTH_PROOF_PREFIX + nonce)
+              .digest('hex')
+          : undefined;
       return sendJson(res, { ok: true, ...(proof !== undefined ? { proof } : {}) });
     }
     const recorded: RecordedRequest = {
@@ -113,7 +124,8 @@ export class FakeOffice {
       bodyBytes: raw.length,
     };
     this.requests.push(recorded);
-    if (this.options.requireAuth && req.headers.authorization !== `Bearer ${this.options.token}`) return sendJson(res, { error: 'unauthorized' }, 401);
+    if (this.options.requireAuth && req.headers.authorization !== `Bearer ${this.options.token}`)
+      return sendJson(res, { error: 'unauthorized' }, 401);
     const handler = this.routes.get(`${recorded.method} ${recorded.path}`);
     if (!handler) return sendJson(res, { error: 'not found' }, 404);
     await handler(recorded, res);

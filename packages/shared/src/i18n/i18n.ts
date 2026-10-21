@@ -10,7 +10,11 @@ export const LOCALES: readonly Locale[] = ['pt-BR', 'en', 'es'];
 export const SOURCE_LOCALE: Locale = 'pt-BR';
 
 /** Native name of each locale, for language pickers. */
-export const LOCALE_NAMES: Readonly<Record<Locale, string>> = { 'pt-BR': 'Português (Brasil)', en: 'English', es: 'Español' };
+export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
+  'pt-BR': 'Português (Brasil)',
+  en: 'English',
+  es: 'Español',
+};
 
 export type MsgParam = string | number | Msg;
 

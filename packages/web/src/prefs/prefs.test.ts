@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { computeInsets } from '../ui/layout';
 import { resolveShortcut } from '../ui/shortcuts';
-import { DEFAULT_PREFS, PREFS_KEY, PrefsStore, effectiveLocale, loadPrefs, parsePrefs, parsePrefsJson, savePrefs, toWorldOptions, type StorageLike } from './prefs';
+import {
+  DEFAULT_PREFS,
+  PREFS_KEY,
+  PrefsStore,
+  effectiveLocale,
+  loadPrefs,
+  parsePrefs,
+  parsePrefsJson,
+  savePrefs,
+  toWorldOptions,
+  type StorageLike,
+} from './prefs';
 
 function memoryStorage(initial?: string): StorageLike & { data: Map<string, string> } {
   const data = new Map<string, string>(initial ? [[PREFS_KEY, initial]] : []);
@@ -16,7 +27,15 @@ describe('parsePrefs', () => {
   });
 
   it('validates each field independently', () => {
-    const prefs = parsePrefs({ visual: '3d', daylight: 'twilight', showNames: 'yes', bubbles: 'none', volume: 5, animation: 'lively', sounds: false });
+    const prefs = parsePrefs({
+      visual: '3d',
+      daylight: 'twilight',
+      showNames: 'yes',
+      bubbles: 'none',
+      volume: 5,
+      animation: 'lively',
+      sounds: false,
+    });
     expect(prefs.visual).toBe('3d');
     expect(prefs.daylight).toBe(DEFAULT_PREFS.daylight);
     expect(prefs.showNames).toBe(DEFAULT_PREFS.showNames);
@@ -68,7 +87,10 @@ describe('PrefsStore', () => {
   });
 
   it('maps preferences to world options', () => {
-    const options = toWorldOptions({ ...DEFAULT_PREFS, animation: 'lively', bubbles: 'all' }, { followSelected: true, reducedMotion: true });
+    const options = toWorldOptions(
+      { ...DEFAULT_PREFS, animation: 'lively', bubbles: 'all' },
+      { followSelected: true, reducedMotion: true },
+    );
     expect(options).toMatchObject({ liveliness: 'lively', bubbles: 'all', followSelected: true, reducedMotion: true });
   });
 
@@ -121,10 +143,29 @@ describe('layout insets', () => {
 });
 
 describe('resolveShortcut', () => {
-  const key = (k: string, extra: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean }> = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, ...extra });
+  const key = (k: string, extra: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean }> = {}) => ({
+    key: k,
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    ...extra,
+  });
 
   it('maps the documented keys', () => {
-    const expected: Record<string, string> = { '/': 'search', F: 'follow', t: 'terminal', N: 'message', p: 'permission', m: 'day', U: 'usage', K: 'board', o: 'overview', '[': 'sidebar', ']': 'feed', '?': 'help' };
+    const expected: Record<string, string> = {
+      '/': 'search',
+      F: 'follow',
+      t: 'terminal',
+      N: 'message',
+      p: 'permission',
+      m: 'day',
+      U: 'usage',
+      K: 'board',
+      o: 'overview',
+      '[': 'sidebar',
+      ']': 'feed',
+      '?': 'help',
+    };
     for (const [k, action] of Object.entries(expected)) expect(resolveShortcut(key(k), false, false)).toBe(action);
   });
 

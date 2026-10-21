@@ -78,7 +78,8 @@ export class World2D implements WorldApi {
   /** The user moved the camera by hand: the follow switch stays inert until it is toggled or something else is selected. */
   private followBroken = false;
 
-  private pointer: { id: number; x: number; y: number; startX: number; startY: number; dragging: boolean } | null = null;
+  private pointer: { id: number; x: number; y: number; startX: number; startY: number; dragging: boolean } | null =
+    null;
   private keys = new Set<string>();
 
   private readonly selectListeners = new Set<(s: Selection) => void>();
@@ -88,13 +89,17 @@ export class World2D implements WorldApi {
   private readonly deskListeners = new Set<(desk: DeskRef) => void>();
   private readonly portraitCache = new Map<string, string>();
 
-  constructor(private readonly container: HTMLElement, opts: WorldFactoryOptions) {
+  constructor(
+    private readonly container: HTMLElement,
+    opts: WorldFactoryOptions,
+  ) {
     this.options = { ...DEFAULT_WORLD_OPTIONS, ...opts.options };
     this.insets = { ...opts.insets };
     const ctx = this.canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('2D canvas context unavailable');
     this.ctx = ctx;
-    this.canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
+    this.canvas.style.cssText =
+      'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
     this.canvas.tabIndex = 0;
     this.updateAriaLabel();
     if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
@@ -138,7 +143,14 @@ export class World2D implements WorldApi {
   private refreshTicker(): void {
     const stats = this.tickerStats;
     if (!stats) return;
-    const text = tickerText(stats.rooms, stats.agents, stats.working, stats.waiting, stats.shells, worldText(this.options.locale));
+    const text = tickerText(
+      stats.rooms,
+      stats.agents,
+      stats.working,
+      stats.waiting,
+      stats.shells,
+      worldText(this.options.locale),
+    );
     if (text !== this.tickerKey) {
       this.tickerKey = text;
       this.ticker = renderTicker(text);
@@ -175,7 +187,11 @@ export class World2D implements WorldApi {
   }
 
   private applyOptions(): void {
-    this.sim.setOptions({ liveliness: this.options.liveliness, reducedMotion: this.options.reducedMotion, bubbles: this.options.bubbles });
+    this.sim.setOptions({
+      liveliness: this.options.liveliness,
+      reducedMotion: this.options.reducedMotion,
+      bubbles: this.options.bubbles,
+    });
     this.dayNight.setMode(this.options.daylight);
   }
 
@@ -304,7 +320,11 @@ export class World2D implements WorldApi {
         targetZoom: this.cam.tz,
         minZoom: this.cam.minZoom,
         pinned: this.cam.isPinned,
-        camera: { cx: Math.round(this.cam.cx), cy: Math.round(this.cam.cy), pin: this.cam.pin && { x: Math.round(this.cam.pin.x), y: Math.round(this.cam.pin.y) } },
+        camera: {
+          cx: Math.round(this.cam.cx),
+          cy: Math.round(this.cam.cy),
+          pin: this.cam.pin && { x: Math.round(this.cam.pin.x), y: Math.round(this.cam.pin.y) },
+        },
         rooms: this.sim.roomStates.length,
         bubbles: this.sim.bubbles.length,
         night: Math.round(this.dayNight.night * 100) / 100,
@@ -546,12 +566,30 @@ export class World2D implements WorldApi {
     this.canvas.style.cursor = picked || this.overBoard(p) ? 'pointer' : 'grab';
   }
 
-  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {
-    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId || desk?.deskIndex !== this.hoverDesk?.deskIndex || desk?.projectId !== this.hoverDesk?.projectId;
+  private setHover(
+    agentId: string | null,
+    roomId: string | null,
+    p: { x: number; y: number } | null,
+    desk: DeskTarget | null = null,
+  ): void {
+    const changed =
+      agentId !== this.hover.agentId ||
+      roomId !== this.hover.roomId ||
+      desk?.deskIndex !== this.hoverDesk?.deskIndex ||
+      desk?.projectId !== this.hoverDesk?.projectId;
     this.hover = { agentId, roomId };
     this.hoverDesk = desk;
     if (!changed && !(p && (agentId || roomId))) return;
-    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y, ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}) } : null;
+    const info: HoverInfo | null =
+      p && (agentId || roomId)
+        ? {
+            agentId,
+            roomId,
+            x: p.x,
+            y: p.y,
+            ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}),
+          }
+        : null;
     for (const cb of this.hoverListeners) cb(info);
   }
 

@@ -6,7 +6,8 @@ export const SUBJECT_MAX = 120;
 
 const SECRET_NAME = '(?:token|password|passwd|secret|api[-_]?key|apikey|auth|authorization|credential)s?';
 const FLAG_SECRET = new RegExp(`(--?${SECRET_NAME}(?:=|\\s+))(?!-)(\\S+)`, 'gi');
-const ENV_SECRET = /\b([A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|CREDENTIAL)[A-Za-z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/g;
+const ENV_SECRET =
+  /\b([A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|CREDENTIAL)[A-Za-z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/g;
 const BEARER = /(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi;
 const URL_PASSWORD = /(:\/\/[^\s:@/]+:)[^\s@/]+@/g;
 const MASK = '***';
@@ -53,7 +54,29 @@ const RUNNERS: readonly (readonly [string, RegExp])[] = [
 ];
 
 /** Commands that only mention a runner (searching, printing, versioning) never run it. */
-const NOT_A_RUN = new Set(['echo', 'grep', 'rg', 'cat', 'git', 'ls', 'sed', 'head', 'tail', 'find', 'which', 'printf', 'man', 'less', 'diff', 'wc', 'open', 'code', 'vim', 'nano', 'awk']);
+const NOT_A_RUN = new Set([
+  'echo',
+  'grep',
+  'rg',
+  'cat',
+  'git',
+  'ls',
+  'sed',
+  'head',
+  'tail',
+  'find',
+  'which',
+  'printf',
+  'man',
+  'less',
+  'diff',
+  'wc',
+  'open',
+  'code',
+  'vim',
+  'nano',
+  'awk',
+]);
 
 const PACKAGE_MANAGEMENT = /^(?:npm|pnpm|yarn|bun)\s+(?:install|i|add|remove|uninstall|info|view)\b/;
 
@@ -92,7 +115,8 @@ export function parseTestOutcome(output: string, isError: boolean): TestOutcome 
   const failed = lastNumber(FAILED_COUNT, output);
   const counts = { ...(passed !== undefined ? { passed } : {}), ...(failed !== undefined ? { failed } : {}) };
   if (BACKGROUND.test(output) && !isError) return { outcome: 'unknown' };
-  if (isError || (failed !== undefined && failed > 0) || FAIL_LINE.test(output)) return { outcome: 'failed', ...counts };
+  if (isError || (failed !== undefined && failed > 0) || FAIL_LINE.test(output))
+    return { outcome: 'failed', ...counts };
   if (passed !== undefined || PASS_LINE.test(output)) return { outcome: 'passed', ...counts };
   return { outcome: output.trim().length === 0 ? 'unknown' : 'passed', ...counts };
 }
@@ -117,7 +141,11 @@ export function parseCommits(output: string): ParsedCommit[] {
   const commits: ParsedCommit[] = [];
   for (const match of output.matchAll(COMMIT_LINE)) {
     const branch = (match[1] ?? '').split(' ')[0];
-    commits.push({ hash: match[2] as string, subject: cut(maskSecrets((match[3] ?? '').trim()), SUBJECT_MAX), ...(branch !== undefined && branch.length > 0 ? { branch } : {}) });
+    commits.push({
+      hash: match[2] as string,
+      subject: cut(maskSecrets((match[3] ?? '').trim()), SUBJECT_MAX),
+      ...(branch !== undefined && branch.length > 0 ? { branch } : {}),
+    });
   }
   return commits;
 }

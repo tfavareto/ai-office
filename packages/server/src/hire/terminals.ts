@@ -37,7 +37,9 @@ export interface ProcessRunner {
 export const systemRunner: ProcessRunner = {
   run: (command, args, timeoutMs) =>
     new Promise((resolve, reject) => {
-      execFile(command, [...args], { timeout: timeoutMs, windowsHide: true }, (error, stdout) => (error === null ? resolve(stdout) : reject(error)));
+      execFile(command, [...args], { timeout: timeoutMs, windowsHide: true }, (error, stdout) =>
+        error === null ? resolve(stdout) : reject(error),
+      );
     }),
   startDetached: (command, args, graceMs) =>
     new Promise((resolve, reject) => {
@@ -66,7 +68,8 @@ const PROBE_TIMEOUT_MS = 5000;
 
 /** An AppleScript string literal (double quotes). Only our own single-line command ever goes through it. */
 export function appleScriptString(value: string): string {
-  if (hasControlCharacter(value)) throw new LaunchError('terminal-failed', 'Control character in an AppleScript string');
+  if (hasControlCharacter(value))
+    throw new LaunchError('terminal-failed', 'Control character in an AppleScript string');
   return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 }
 
@@ -101,7 +104,12 @@ export function terminalAppScript(scriptPath: string): string[] {
 /** `osascript` arguments that open an iTerm2 window running the command. */
 export function iTermScript(scriptPath: string): string[] {
   const command = appleScriptString(terminalCommand(scriptPath));
-  const lines = [`tell application id "${ITERM_BUNDLE}"`, 'activate', `create window with default profile command ${command}`, 'end tell'];
+  const lines = [
+    `tell application id "${ITERM_BUNDLE}"`,
+    'activate',
+    `create window with default profile command ${command}`,
+    'end tell',
+  ];
   return lines.flatMap((line) => ['-e', line]);
 }
 
@@ -175,7 +183,11 @@ export class SystemTerminalLauncher implements TerminalLauncher {
   private async openOnMac(scriptPath: string): Promise<string> {
     const iTerm = await useITerm(this.runner);
     try {
-      await this.runner.run('osascript', iTerm ? iTermScript(scriptPath) : terminalAppScript(scriptPath), OSASCRIPT_TIMEOUT_MS);
+      await this.runner.run(
+        'osascript',
+        iTerm ? iTermScript(scriptPath) : terminalAppScript(scriptPath),
+        OSASCRIPT_TIMEOUT_MS,
+      );
     } catch (error) {
       throw new LaunchError('terminal-failed', `osascript failed: ${String(error)}`);
     }

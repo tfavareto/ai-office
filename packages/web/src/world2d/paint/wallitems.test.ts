@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest';
 import type { WallItem, WallKind } from '../../layout/types';
 import { paintWallItem, WALL_ITEMS_TOP } from './wallitems';
 
-const KINDS: WallKind[] = ['sign', 'logoSign', 'board', 'tv', 'menu', 'whiteboard', 'elevator', 'mirror', 'poster', 'clock'];
+const KINDS: WallKind[] = [
+  'sign',
+  'logoSign',
+  'board',
+  'tv',
+  'menu',
+  'whiteboard',
+  'elevator',
+  'mirror',
+  'poster',
+  'clock',
+];
 
 /** A context that only records the top row of everything it fills. */
 function topRowRecorder(): { ctx: CanvasRenderingContext2D; top: () => number } {

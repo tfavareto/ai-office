@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import type { AccountUsage } from '../model';
-import { FORECAST_ALERT_MS, burnRate, forecastAccount, forecastScope, imminentHit, referenceLimit, weekDuty } from './forecast';
+import {
+  FORECAST_ALERT_MS,
+  burnRate,
+  forecastAccount,
+  forecastScope,
+  imminentHit,
+  referenceLimit,
+  weekDuty,
+} from './forecast';
 import { HOUR_MS, startOfWeek } from './periods';
 import type { UsageBurn } from './types';
 
@@ -18,7 +26,10 @@ function usage(over: Partial<AccountUsage> = {}): AccountUsage {
     week: { tokens: 5_000_000, costUSD: 120, resetsAt: startOfWeek(NOW) + 7 * 24 * HOUR_MS },
     today: { tokens: 900_000, costUSD: 20 },
     burn: burn({ tokens30m: 100_000, costUSD30m: 3, tokens60m: 160_000, costUSD60m: 5 }),
-    peaks: { window5h: { tokens: 1_000_000, costUSD: 25, samples: 8 }, week: { tokens: 12_000_000, costUSD: 300, samples: 4 } },
+    peaks: {
+      window5h: { tokens: 1_000_000, costUSD: 25, samples: 8 },
+      week: { tokens: 12_000_000, costUSD: 300, samples: 4 },
+    },
     ...over,
   };
 }
@@ -39,16 +50,26 @@ describe('burnRate', () => {
 
 describe('referenceLimit', () => {
   test('uses the configured limit first, in the configured unit', () => {
-    expect(referenceLimit('window5h', usage(), { unit: 'tokens', window5h: 800_000 })).toEqual({ value: 800_000, unit: 'tokens', source: 'configured' });
+    expect(referenceLimit('window5h', usage(), { unit: 'tokens', window5h: 800_000 })).toEqual({
+      value: 800_000,
+      unit: 'tokens',
+      source: 'configured',
+    });
   });
 
   test('falls back to the highest completed block, in USD by default', () => {
     expect(referenceLimit('window5h', usage(), undefined)).toEqual({ value: 25, unit: 'usd', source: 'estimate' });
-    expect(referenceLimit('week', usage(), { unit: 'tokens' })).toEqual({ value: 12_000_000, unit: 'tokens', source: 'estimate' });
+    expect(referenceLimit('week', usage(), { unit: 'tokens' })).toEqual({
+      value: 12_000_000,
+      unit: 'tokens',
+      source: 'estimate',
+    });
   });
 
   test('does not estimate from too little history', () => {
-    const few = usage({ peaks: { window5h: { tokens: 1, costUSD: 1, samples: 2 }, week: { tokens: 1, costUSD: 1, samples: 1 } } });
+    const few = usage({
+      peaks: { window5h: { tokens: 1, costUSD: 1, samples: 2 }, week: { tokens: 1, costUSD: 1, samples: 1 } },
+    });
     expect(referenceLimit('window5h', few, undefined)).toBeUndefined();
   });
 
@@ -124,17 +145,27 @@ describe('forecastScope for the week', () => {
 
 describe('imminentHit', () => {
   test('flags a hit closer than 30 minutes', () => {
-    const forecast = forecastAccount(usage({ window5h: { tokens: 400_000, costUSD: 22, resetsAt: NOW + 2 * HOUR_MS } }), { unit: 'usd', window5h: 25 }, NOW);
+    const forecast = forecastAccount(
+      usage({ window5h: { tokens: 400_000, costUSD: 22, resetsAt: NOW + 2 * HOUR_MS } }),
+      { unit: 'usd', window5h: 25 },
+      NOW,
+    );
     // $3 left at $5.5/h = 33 min: not yet.
     expect(imminentHit(forecast, NOW)).toBeUndefined();
-    const closer = forecastAccount(usage({ window5h: { tokens: 400_000, costUSD: 23, resetsAt: NOW + 2 * HOUR_MS } }), { unit: 'usd', window5h: 25 }, NOW);
+    const closer = forecastAccount(
+      usage({ window5h: { tokens: 400_000, costUSD: 23, resetsAt: NOW + 2 * HOUR_MS } }),
+      { unit: 'usd', window5h: 25 },
+      NOW,
+    );
     expect(imminentHit(closer, NOW)?.scope).toBe('window5h');
     expect((imminentHit(closer, NOW)?.hitsAt as number) - NOW).toBeLessThan(FORECAST_ALERT_MS);
   });
 
   test('ignores accounts that are safe, idle or already over', () => {
     expect(imminentHit(forecastAccount(usage(), { unit: 'usd', window5h: 500, week: 5000 }, NOW), NOW)).toBeUndefined();
-    expect(imminentHit(forecastAccount(usage({ burn: burn() }), { unit: 'usd', window5h: 12 }, NOW), NOW)).toBeUndefined();
+    expect(
+      imminentHit(forecastAccount(usage({ burn: burn() }), { unit: 'usd', window5h: 12 }, NOW), NOW),
+    ).toBeUndefined();
     expect(imminentHit(forecastAccount(usage(), { unit: 'usd', window5h: 5 }, NOW), NOW)).toBeUndefined();
   });
 });

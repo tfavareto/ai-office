@@ -35,9 +35,12 @@ function optionalCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? count(value) : undefined;
 }
 
+// Control characters (C0 and DEL) never reach the UI.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+
 function text(value: unknown, max: number): string | undefined {
-  // eslint-disable-next-line no-control-regex
-  return typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : undefined;
+  return typeof value === 'string' ? value.replace(CONTROL_CHARS, ' ').trim().slice(0, max) : undefined;
 }
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
@@ -58,9 +61,18 @@ export function safeHref(value: unknown): string | undefined {
 function parseChecks(value: unknown): GitChecks {
   const raw = isRecord(value) ? value : {};
   const failing = Array.isArray(raw.failing)
-    ? raw.failing.map((name) => text(name, 80)).filter((name): name is string => name !== undefined && name.length > 0).slice(0, GIT_FAILING_MAX)
+    ? raw.failing
+        .map((name) => text(name, 80))
+        .filter((name): name is string => name !== undefined && name.length > 0)
+        .slice(0, GIT_FAILING_MAX)
     : [];
-  return { total: count(raw.total), passed: count(raw.passed), failed: count(raw.failed), pending: count(raw.pending), ...(failing.length > 0 ? { failing } : {}) };
+  return {
+    total: count(raw.total),
+    passed: count(raw.passed),
+    failed: count(raw.failed),
+    pending: count(raw.pending),
+    ...(failing.length > 0 ? { failing } : {}),
+  };
 }
 
 function parsePullRequest(value: unknown): GitPullRequest | undefined {

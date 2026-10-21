@@ -39,7 +39,12 @@ export class MessageComposer implements Component {
     private readonly ctx: AppContext,
     private readonly onSent: () => void = () => undefined,
   ) {
-    this.textarea = h('textarea', { class: 'ao-textarea', rows: 3, maxlength: MAX_MESSAGE_LENGTH + 200, spellcheck: 'true' });
+    this.textarea = h('textarea', {
+      class: 'ao-textarea',
+      rows: 3,
+      maxlength: MAX_MESSAGE_LENGTH + 200,
+      spellcheck: 'true',
+    });
     this.textarea.addEventListener('input', () => {
       if (this.target) this.drafts.set(this.target.key, this.textarea.value);
       this.error.hidden = true;
@@ -54,14 +59,32 @@ export class MessageComposer implements Component {
     this.chips = h(
       'div',
       { class: 'ao-quick', role: 'group', 'aria-label': t('composer.quick') },
-      ...quickMessages().map((text) => h('button', { type: 'button', class: 'ao-quick-chip', title: text, onclick: () => this.insertQuick(text) }, text)),
+      ...quickMessages().map((text) =>
+        h(
+          'button',
+          { type: 'button', class: 'ao-quick-chip', title: text, onclick: () => this.insertQuick(text) },
+          text,
+        ),
+      ),
     );
     this.sendLabel = h('span', null, t('common.send'));
-    this.sendBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--primary', onclick: () => void this.send() }, icon('send', 16), this.sendLabel);
+    this.sendBtn = h(
+      'button',
+      { type: 'button', class: 'ao-btn ao-btn--primary', onclick: () => void this.send() },
+      icon('send', 16),
+      this.sendLabel,
+    );
     this.hint = h('span', { class: 'ao-hint' }, this.shortcutHint());
     this.error = h('p', { class: 'ao-error', role: 'alert', hidden: true });
     this.blocked = h('p', { class: 'ao-note ao-composer-blocked', hidden: true });
-    this.form = h('div', { class: 'ao-composer-form' }, this.chips, this.textarea, h('div', { class: 'ao-composer-bar' }, this.hint, this.sendBtn), this.error);
+    this.form = h(
+      'div',
+      { class: 'ao-composer-form' },
+      this.chips,
+      this.textarea,
+      h('div', { class: 'ao-composer-bar' }, this.hint, this.sendBtn),
+      this.error,
+    );
     this.el.append(this.blocked, this.form);
   }
 
@@ -110,7 +133,11 @@ export class MessageComposer implements Component {
     const target = this.target;
     const empty = this.textarea.value.trim().length === 0;
     const reason = !this.ctx.isLocal ? localOnlyHint() : undefined;
-    setDisabled(this.sendBtn, this.sending || empty || !target || target.agentIds.length === 0 || !this.ctx.isLocal, reason);
+    setDisabled(
+      this.sendBtn,
+      this.sending || empty || !target || target.agentIds.length === 0 || !this.ctx.isLocal,
+      reason,
+    );
     setDisabled(this.textarea, !this.ctx.isLocal, reason);
   }
 

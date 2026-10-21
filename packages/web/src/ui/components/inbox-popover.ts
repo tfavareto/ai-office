@@ -16,14 +16,20 @@ import { createInboxEntry, rowKey, type InboxRowModel } from './inbox-row';
 import { InboxToolbar } from './inbox-toolbar';
 
 /** Panels with their own keyboard handling: the inbox shortcuts stay out of them. */
-const OTHER_PANELS = '.ao-topbar, .ao-sidebar, .ao-drawer, .ao-terminal, .ao-feed, .ao-dialog-scrim, .ao-popover:not(.ao-popover--inbox)';
+const OTHER_PANELS =
+  '.ao-topbar, .ao-sidebar, .ao-drawer, .ao-terminal, .ao-feed, .ao-dialog-scrim, .ao-popover:not(.ao-popover--inbox)';
 
 export class InboxPopover extends Popover {
   private readonly actions: InboxActions;
   private readonly toolbar: InboxToolbar;
   private readonly confirm: InboxConfirm;
   private readonly count = h('span', { class: 'ao-inbox-count' });
-  private readonly scroller = h('div', { class: 'ao-inbox-list', tabindex: '0', role: 'group', 'aria-label': t('inbox.list') });
+  private readonly scroller = h('div', {
+    class: 'ao-inbox-list',
+    tabindex: '0',
+    role: 'group',
+    'aria-label': t('inbox.list'),
+  });
   private readonly listEl = h('ul', { class: 'ao-inbox-items' });
   private readonly empty: HTMLElement;
   private readonly rows: KeyedList<InboxRowModel>;
@@ -46,7 +52,21 @@ export class InboxPopover extends Popover {
     );
     this.scroller.append(this.listEl);
     this.el.append(
-      h('header', { class: 'ao-popover-head ao-inbox-titlebar' }, icon('bell', 18), h('strong', null, t('inbox.title')), this.count, iconButton({ icon: 'shield', label: t('rules.manage'), className: 'ao-iconbtn--small', size: 16, onClick: () => ctx.openRules() }), closeButton(t('inbox.close'), () => ctx.closePopover())),
+      h(
+        'header',
+        { class: 'ao-popover-head ao-inbox-titlebar' },
+        icon('bell', 18),
+        h('strong', null, t('inbox.title')),
+        this.count,
+        iconButton({
+          icon: 'shield',
+          label: t('rules.manage'),
+          className: 'ao-iconbtn--small',
+          size: 16,
+          onClick: () => ctx.openRules(),
+        }),
+        closeButton(t('inbox.close'), () => ctx.closePopover()),
+      ),
       this.toolbar.el,
       this.empty,
       this.scroller,
@@ -118,7 +138,8 @@ export class InboxPopover extends Popover {
 
   /** When the focused control disappeared (its item was answered), focus returns to the list. */
   private keepFocus(hadFocus: boolean): void {
-    if (hadFocus && !this.el.contains(document.activeElement) && this.ctx.ui.get().popover === 'inbox') this.scroller.focus({ preventScroll: true });
+    if (hadFocus && !this.el.contains(document.activeElement) && this.ctx.ui.get().popover === 'inbox')
+      this.scroller.focus({ preventScroll: true });
   }
 
   private followCursor(cursor: string | null): void {
@@ -155,7 +176,8 @@ export class InboxPopover extends Popover {
 
   private handleKey(event: KeyboardEvent): void {
     const ui = this.ctx.ui.get();
-    if (ui.popover !== 'inbox' || ui.dialog !== null || event.defaultPrevented || this.ctx.inbox.get().confirm !== null) return;
+    if (ui.popover !== 'inbox' || ui.dialog !== null || event.defaultPrevented || this.ctx.inbox.get().confirm !== null)
+      return;
     if (!this.ownsKeyboard(event.target)) return;
     const onControl = event.target instanceof Element && event.target.closest('button, a[href], summary') !== null;
     const action = resolveInboxKey(event, { editing: isEditable(event.target), onControl });

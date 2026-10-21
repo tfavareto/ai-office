@@ -63,7 +63,10 @@ export class TranscriptView {
    * finishes cannot stall the paging.
    */
   page(after: number | undefined): RenderedPage {
-    const from = after === undefined ? Math.max(0, this.entries.length - PAGE_SIZE) : Math.max(0, Math.min(after - this.base, this.entries.length));
+    const from =
+      after === undefined
+        ? Math.max(0, this.entries.length - PAGE_SIZE)
+        : Math.max(0, Math.min(after - this.base, this.entries.length));
     const entries = this.entries.slice(from, from + PAGE_SIZE);
     const end = this.base + from + entries.length;
     if (from + entries.length < this.entries.length) return { entries, next: end };
@@ -137,10 +140,20 @@ export class TranscriptView {
       if (block.type === 'text') {
         this.push({ kind: 'assistant', at: line.at, text: block.text.slice(0, MAX_TEXT) });
       } else if (block.type === 'thinking') {
-        if (block.text.trim().length > 0) this.push({ kind: 'thinking', at: line.at, text: block.text.slice(0, MAX_TEXT) });
+        if (block.text.trim().length > 0)
+          this.push({ kind: 'thinking', at: line.at, text: block.text.slice(0, MAX_TEXT) });
       } else {
         const draft = describeToolUse(block.name, block.input);
-        const entry: ToolEntry = { kind: 'tool', at: line.at, id: block.id, name: block.name, summary: `${draft.icon} ${draft.text}`, icon: draft.icon, summaryMsg: draft.msg, input: trimInput(block.input) };
+        const entry: ToolEntry = {
+          kind: 'tool',
+          at: line.at,
+          id: block.id,
+          name: block.name,
+          summary: `${draft.icon} ${draft.text}`,
+          icon: draft.icon,
+          summaryMsg: draft.msg,
+          input: trimInput(block.input),
+        };
         const index = this.push(entry);
         this.toolIndex.set(block.id, index);
         this.unresolved.add(index);

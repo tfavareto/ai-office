@@ -12,7 +12,10 @@
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--bg-solid);
-  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease), right var(--t-base) var(--ease);
+  transition:
+    opacity var(--t-base) var(--ease),
+    transform var(--t-base) var(--ease),
+    right var(--t-base) var(--ease);
 }
 
 .ao-terminal:not(.is-open) {

@@ -9,7 +9,9 @@
   flex-direction: column;
   width: var(--sidebar-w);
   border-radius: var(--radius);
-  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+  transition:
+    opacity var(--t-base) var(--ease),
+    transform var(--t-base) var(--ease);
 }
 
 .ao-sidebar:not(.is-open) {
@@ -35,7 +37,9 @@
   border-radius: 9px;
   background: rgba(0, 0, 0, 0.22);
   color: var(--faint);
-  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
 }
 
 .ao-search:focus-within {
@@ -211,7 +215,10 @@
   border-radius: 10px;
   background: transparent;
   text-align: left;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), opacity var(--t-base) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    opacity var(--t-base) var(--ease);
 }
 
 .ao-agent-row:hover {

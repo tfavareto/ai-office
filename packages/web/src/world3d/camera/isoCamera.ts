@@ -97,7 +97,16 @@ export function panBy(state: IsoState, basis: Basis, dx: number, dy: number): Is
 export const clampZoom = (zoom: number, min = MIN_ZOOM, max = MAX_ZOOM): number => Math.min(max, Math.max(min, zoom));
 
 /** Zooms by a factor keeping the ground point under (sx, sy) fixed. */
-export function zoomAt(state: IsoState, basis: Basis, view: View, factor: number, sx: number, sy: number, min = MIN_ZOOM, max = MAX_ZOOM): IsoState {
+export function zoomAt(
+  state: IsoState,
+  basis: Basis,
+  view: View,
+  factor: number,
+  sx: number,
+  sy: number,
+  min = MIN_ZOOM,
+  max = MAX_ZOOM,
+): IsoState {
   const zoom = clampZoom(state.zoom * factor, min, max);
   if (zoom === state.zoom) return state;
   const anchor = screenToGround(state, basis, view, sx, sy);
@@ -113,7 +122,8 @@ export interface Box3Like {
 
 export function boxCorners(box: Box3Like): { x: number; y: number; z: number }[] {
   const out: { x: number; y: number; z: number }[] = [];
-  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) out.push({ x, y, z });
+  for (const x of [box.min.x, box.max.x])
+    for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) out.push({ x, y, z });
   return out;
 }
 
@@ -165,10 +175,15 @@ export const smoothing = (rate: number, dt: number): number => 1 - Math.exp(-rat
 
 export function approachState(current: IsoState, goal: IsoState, rate: number, dt: number): IsoState {
   const k = smoothing(rate, dt);
-  const close = Math.abs(goal.zoom - current.zoom) < 0.01 && Math.hypot(goal.target.x - current.target.x, goal.target.z - current.target.z) < 0.01;
+  const close =
+    Math.abs(goal.zoom - current.zoom) < 0.01 &&
+    Math.hypot(goal.target.x - current.target.x, goal.target.z - current.target.z) < 0.01;
   if (close) return goal;
   return {
     zoom: current.zoom * Math.pow(goal.zoom / current.zoom, k),
-    target: { x: current.target.x + (goal.target.x - current.target.x) * k, z: current.target.z + (goal.target.z - current.target.z) * k },
+    target: {
+      x: current.target.x + (goal.target.x - current.target.x) * k,
+      z: current.target.z + (goal.target.z - current.target.z) * k,
+    },
   };
 }

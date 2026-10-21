@@ -34,7 +34,8 @@ export const DEDUPE_WINDOW_MS = 120_000;
 export const EMPTY_NOTIFICATIONS: NotificationState = { items: [], dnd: false };
 
 // Notices carry their pt-BR text; the English and Spanish words cover notices written by the page itself.
-const MESSAGE_PATTERN = /\b(mensagem|mensagens|ordem|ordens|entreg|instru[cç][aã]o|message|messages|order|orders|deliver|instruction|mensaje|mensajes|orden|órdenes|entreg|instrucci[oó]n)/i;
+const MESSAGE_PATTERN =
+  /\b(mensagem|mensagens|ordem|ordens|entreg|instru[cç][aã]o|message|messages|order|orders|deliver|instruction|mensaje|mensajes|orden|órdenes|entreg|instrucci[oó]n)/i;
 
 export function classifyNotice(notice: Pick<Notice, 'level' | 'text'>): NotificationKind {
   if (notice.level === 'alert') return 'alert';
@@ -65,7 +66,9 @@ interface Draft {
 }
 
 function insert(state: NotificationState, draft: Draft, replaceText: boolean): AddResult {
-  const existingIndex = state.items.findIndex((item) => item.key === draft.key && draft.at - item.at <= DEDUPE_WINDOW_MS);
+  const existingIndex = state.items.findIndex(
+    (item) => item.key === draft.key && draft.at - item.at <= DEDUPE_WINDOW_MS,
+  );
   if (existingIndex >= 0) {
     const existing = state.items[existingIndex];
     const updated: NotificationItem = {
@@ -117,12 +120,32 @@ export function addNotice(state: NotificationState, notice: Notice): AddResult {
 /** Adds or updates a keyed entry whose text changes over time (e.g. "2 de 3 entregues"). */
 export function upsertGrouped(
   state: NotificationState,
-  entry: { key: string; at: number; level: NoticeLevel; kind: NotificationKind; text: string; msg?: Msg; agentId?: string; projectId?: string },
+  entry: {
+    key: string;
+    at: number;
+    level: NoticeLevel;
+    kind: NotificationKind;
+    text: string;
+    msg?: Msg;
+    agentId?: string;
+    projectId?: string;
+  },
 ): AddResult {
   const existing = state.items.find((item) => item.key === entry.key);
   if (existing) {
-    const updated: NotificationItem = { ...existing, at: entry.at, text: entry.text, msg: entry.msg, level: entry.level, read: existing.text === entry.text ? existing.read : false };
-    return { state: { ...state, items: [updated, ...state.items.filter((item) => item !== existing)] }, item: updated, isNew: false };
+    const updated: NotificationItem = {
+      ...existing,
+      at: entry.at,
+      text: entry.text,
+      msg: entry.msg,
+      level: entry.level,
+      read: existing.text === entry.text ? existing.read : false,
+    };
+    return {
+      state: { ...state, items: [updated, ...state.items.filter((item) => item !== existing)] },
+      item: updated,
+      isNew: false,
+    };
   }
   return insert(state, { ...entry, id: `group:${entry.key}` }, true);
 }

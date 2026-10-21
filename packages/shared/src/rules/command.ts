@@ -9,7 +9,18 @@ const COMPOUND_CHARS = /[;&|<>`\n\r()]|\$\(/;
 /** Splits a compound command into the simple commands it chains (also at subshell and substitution openers). */
 const SEGMENT_SPLIT = /;|&&|\|\||\||&|\n|\r|`|\$\(|\(|\)/;
 /** Programs that only run another command; a deny rule looks through them (`sudo rm`, `env X=1 rm`, `nohup rm`). */
-const WRAPPERS: ReadonlySet<string> = new Set(['sudo', 'doas', 'env', 'command', 'time', 'nohup', 'exec', 'nice', 'xargs', 'builtin']);
+const WRAPPERS: ReadonlySet<string> = new Set([
+  'sudo',
+  'doas',
+  'env',
+  'command',
+  'time',
+  'nohup',
+  'exec',
+  'nice',
+  'xargs',
+  'builtin',
+]);
 const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
 export const MAX_COMMAND_LENGTH = 4000;
@@ -26,7 +37,9 @@ export function isSimpleCommand(command: string): boolean {
 
 /** Words of a command (split on whitespace; quotes are not interpreted). */
 export function commandTokens(command: string): string[] {
-  return foldCommand(command).split(' ').filter((token) => token.length > 0);
+  return foldCommand(command)
+    .split(' ')
+    .filter((token) => token.length > 0);
 }
 
 /** The simple commands a compound command is made of (a simple command yields itself). */
@@ -74,5 +87,8 @@ export function matchesPrefixStrict(command: string, prefix: string): boolean {
  */
 export function matchesPrefixAnywhere(command: string, prefix: string): boolean {
   const words = commandTokens(prefix);
-  return commandSegments(command).some((segment) => startsWithTokens(commandTokens(segment), words) || startsWithTokens(unwrap(commandTokens(segment)), words));
+  return commandSegments(command).some(
+    (segment) =>
+      startsWithTokens(commandTokens(segment), words) || startsWithTokens(unwrap(commandTokens(segment)), words),
+  );
 }

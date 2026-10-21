@@ -28,7 +28,11 @@ describe('DayRecorder', () => {
     await recorder.record([agent('a', 'waiting'), agent('b', 'idle')], NOON + 10_000);
     const day = await recorder.get(localDateString(NOON));
     expect(day.date).toBe('2026-10-19');
-    expect(day.agents.find((a) => a.agentId === 'a')).toMatchObject({ name: 'A', projectId: '/p', ms: { working: 5000, waiting: 5000, idle: 0 } });
+    expect(day.agents.find((a) => a.agentId === 'a')).toMatchObject({
+      name: 'A',
+      projectId: '/p',
+      ms: { working: 5000, waiting: 5000, idle: 0 },
+    });
     expect(day.agents.find((a) => a.agentId === 'b')?.ms.idle).toBe(10_000);
   });
 

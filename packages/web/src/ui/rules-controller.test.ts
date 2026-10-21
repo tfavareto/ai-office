@@ -3,11 +3,20 @@ import { RuleBook, type RuleDraft, type RuleResult } from '@ai-office/shared';
 import { RuleRejectedError, type Backend } from '../net/backend';
 import { PREVIEW_DELAY_MS, REFRESH_MS, RulesController } from './rules-controller';
 
-const draft: RuleDraft = { effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'npm test' }, scope: { projectPath: '/demo/loja' }, enabled: true };
+const draft: RuleDraft = {
+  effect: 'allow',
+  tool: 'Bash',
+  matcher: { kind: 'command-prefix', value: 'npm test' },
+  scope: { projectPath: '/demo/loja' },
+  enabled: true,
+};
 
 function unwrap<T>(result: RuleResult<T>): T {
   if (result.ok) return result.value;
-  throw new RuleRejectedError({ error: result.error.code, ...(result.error.detail !== undefined ? { detail: result.error.detail } : {}) }, 400);
+  throw new RuleRejectedError(
+    { error: result.error.code, ...(result.error.detail !== undefined ? { detail: result.error.detail } : {}) },
+    400,
+  );
 }
 
 /** A backend whose rules live in a shared RuleBook, like the server's. */
@@ -55,7 +64,10 @@ describe('RulesController: loading', () => {
   });
 
   it('reports a failure to load', async () => {
-    const backend = { rules: async () => Promise.reject(new Error('boom')), ruleLog: async () => [] } as unknown as Backend;
+    const backend = {
+      rules: async () => Promise.reject(new Error('boom')),
+      ruleLog: async () => [],
+    } as unknown as Backend;
     const controller = new RulesController(() => backend);
     controller.start();
     await settle();
@@ -93,7 +105,11 @@ describe('RulesController: editor and preview', () => {
     const controller = new RulesController(() => backend);
     controller.startNew(draft, { agentName: 'Ana', summary: 'npm test' });
     await settle();
-    expect(controller.get().editor).toMatchObject({ ruleId: null, source: { agentName: 'Ana' }, preview: { status: 'ready', preview: { matches: 0, total: 0 } } });
+    expect(controller.get().editor).toMatchObject({
+      ruleId: null,
+      source: { agentName: 'Ana' },
+      preview: { status: 'ready', preview: { matches: 0, total: 0 } },
+    });
     controller.setForm({ value: 'npm' });
     controller.setForm({ value: 'npm t' });
     controller.setForm({ value: 'npm te' });
@@ -106,7 +122,10 @@ describe('RulesController: editor and preview', () => {
     const controller = new RulesController(() => backend);
     controller.startNew({ ...draft, matcher: { kind: 'command-prefix', value: 'git push' } });
     await settle();
-    expect(controller.get().editor?.preview).toMatchObject({ status: 'refused', rejection: { error: 'matcher-dangerous' } });
+    expect(controller.get().editor?.preview).toMatchObject({
+      status: 'refused',
+      rejection: { error: 'matcher-dangerous' },
+    });
   });
 
   it('does not preview an incomplete form', async () => {
@@ -179,7 +198,14 @@ describe('RulesController: list actions', () => {
   it('clears the log and filters it by rule', async () => {
     const { backend, book } = fakeBackend();
     book.create(draft);
-    book.decide({ toolName: 'Bash', input: { command: 'npm test' }, summary: 'npm test', agentId: 'a', agentName: 'Ana', projectPath: '/demo/loja' });
+    book.decide({
+      toolName: 'Bash',
+      input: { command: 'npm test' },
+      summary: 'npm test',
+      agentId: 'a',
+      agentName: 'Ana',
+      projectPath: '/demo/loja',
+    });
     const controller = new RulesController(() => backend);
     controller.start();
     await settle();
@@ -193,7 +219,8 @@ describe('RulesController: list actions', () => {
 
   it('reports a failure instead of throwing', async () => {
     const { backend } = fakeBackend();
-    (backend as unknown as { deleteRule: () => Promise<void> }).deleteRule = async () => Promise.reject(new Error('boom'));
+    (backend as unknown as { deleteRule: () => Promise<void> }).deleteRule = async () =>
+      Promise.reject(new Error('boom'));
     const controller = new RulesController(() => backend);
     const result = await controller.remove('r1');
     expect(result.ok).toBe(false);

@@ -30,7 +30,14 @@ export function paintTree(ctx: Ctx, t: Tree): void {
   for (let i = 0; i < 9; i++) {
     const a = noise2(t.x, i, 2) * Math.PI * 2;
     const r = 3 + noise2(t.x, i, 3) * 7;
-    rect(ctx, Math.round(cx - 3 + Math.cos(a) * r), Math.round(cy - 6 + Math.sin(a) * r), 2, 2, mix(main, PLANT.hi, 0.55));
+    rect(
+      ctx,
+      Math.round(cx - 3 + Math.cos(a) * r),
+      Math.round(cy - 6 + Math.sin(a) * r),
+      2,
+      2,
+      mix(main, PLANT.hi, 0.55),
+    );
   }
   rect(ctx, cx - 1, cy + 5, 3, 4, '#4a3320');
 }
@@ -68,7 +75,13 @@ export function paintPlanter(ctx: Ctx, x: number, y: number): void {
   disc(ctx, x + 6, y - 2, 5, PLANT.base);
   disc(ctx, x + 4, y - 3, 3, PLANT.mid);
   disc(ctx, x + 9, y - 3, 2, PLANT.mid);
-  for (const [px, py] of [[3, -5], [5, -6], [9, -5], [11, -2]] as const) rect(ctx, x + px, y + py, 1, 1, PLANT.light);
+  for (const [px, py] of [
+    [3, -5],
+    [5, -6],
+    [9, -5],
+    [11, -2],
+  ] as const)
+    rect(ctx, x + px, y + py, 1, 1, PLANT.light);
   rect(ctx, x + 5, y - 6, 1, 1, PLANT.hi);
   rect(ctx, x, y, PLANTER_W, 7, '#8c8578');
   hline(ctx, x, y, PLANTER_W, '#b9b2a4');
@@ -108,7 +121,12 @@ function inStreetGap(v: number, crossings: readonly [number, number][]): boolean
 }
 
 /** Cars parked along the curbs of the three streets (the driving traffic runs in the lanes between them). */
-export function paintParkedCars(ctx: Ctx, layout: ExteriorLayout, crossings: { horizontal: readonly Rect[]; vertical: readonly Rect[] }, keepClear: readonly Rect[]): void {
+export function paintParkedCars(
+  ctx: Ctx,
+  layout: ExteriorLayout,
+  crossings: { horizontal: readonly Rect[]; vertical: readonly Rect[] },
+  keepClear: readonly Rect[],
+): void {
   const [north, south, west] = layout.streets.map(tileRect);
   const hX = crossings.horizontal.map(tileRect).map((c): [number, number] => [c.x, c.x + c.w]);
   const vY = crossings.vertical.map(tileRect).map((c): [number, number] => [c.y, c.y + c.h]);
@@ -132,7 +150,10 @@ export function paintParkedCars(ctx: Ctx, layout: ExteriorLayout, crossings: { h
       vline(ctx, x - 3, row.curbY - 1, 14, 'rgba(236,236,236,0.55)');
     }
   });
-  for (const [side, curbX] of [[true, west.x + 3], [false, west.x + west.w - 15]] as const) {
+  for (const [side, curbX] of [
+    [true, west.x + 3],
+    [false, west.x + west.w - 15],
+  ] as const) {
     for (let y = west.y + 20; y < west.y + west.h - 40; y += CAR_SLOT) {
       if (noise2(y, side ? 1 : 2, 64) > CAR_CHANCE || inStreetGap(y, vY)) continue;
       const sprite = carSprite(CAR_COLORS[pick(y, side ? 3 : 4, 65, CAR_COLORS.length)], false, side);
@@ -151,17 +172,31 @@ export function extraTrees(layout: ExteriorLayout): Tree[] {
       trees.push({ x, y: walk.y + 1, variant: pick(x, walk.y, 41, 3) });
     }
   }
-  for (let y = Math.ceil(farWest.y / TREE_SPACING) * TREE_SPACING + 2; y < farWest.y + farWest.h - 2; y += TREE_SPACING) {
+  for (
+    let y = Math.ceil(farWest.y / TREE_SPACING) * TREE_SPACING + 2;
+    y < farWest.y + farWest.h - 2;
+    y += TREE_SPACING
+  ) {
     trees.push({ x: farWest.x + 1, y, variant: pick(y, farWest.x, 42, 3) });
   }
   return trees;
 }
 
 /** Benches and planters on the near sidewalks, skipping anything that would land on a tree, lamp or the plaza. */
-export function paintSidewalkProps(ctx: Ctx, layout: ExteriorLayout, trees: readonly Tree[], keepClear: readonly Rect[]): void {
+export function paintSidewalkProps(
+  ctx: Ctx,
+  layout: ExteriorLayout,
+  trees: readonly Tree[],
+  keepClear: readonly Rect[],
+): void {
   const taken: Rect[] = [
     ...trees.map((t) => ({ x: t.x * TILE + 8 - TREE_FOOTPRINT, y: t.y * TILE - 8, w: TREE_FOOTPRINT * 2, h: 30 })),
-    ...layout.lamps.map((l) => ({ x: l.x * TILE + 7 - LAMP_FOOTPRINT, y: l.y * TILE - 12, w: LAMP_FOOTPRINT * 2 + 2, h: 26 })),
+    ...layout.lamps.map((l) => ({
+      x: l.x * TILE + 7 - LAMP_FOOTPRINT,
+      y: l.y * TILE - 12,
+      w: LAMP_FOOTPRINT * 2 + 2,
+      h: 26,
+    })),
     ...keepClear.map(tileRect),
   ];
   const [north, south] = layout.sidewalks;

@@ -23,7 +23,18 @@ export interface ParsedLog {
 }
 
 const OUTCOMES: readonly AutoDecisionOutcome[] = ['allow', 'deny', 'ask'];
-const BLOCK_REASONS: readonly RuleBlockReason[] = ['delete', 'sudo', 'force-push', 'reset', 'permissions', 'pipe-shell', 'disk', 'data', 'sensitive-file', 'inline-code'];
+const BLOCK_REASONS: readonly RuleBlockReason[] = [
+  'delete',
+  'sudo',
+  'force-push',
+  'reset',
+  'permissions',
+  'pipe-shell',
+  'disk',
+  'data',
+  'sensitive-file',
+  'inline-code',
+];
 const ID_PATTERN = /^[\w-]{1,64}$/;
 const POLICY_CODES: readonly string[] = ['matcher-compound', 'matcher-too-broad', 'matcher-dangerous'];
 
@@ -39,7 +50,11 @@ function finiteNumber(value: unknown): number | undefined {
 function parseRule(raw: unknown): { rule: Rule; disabled: boolean } | undefined {
   if (!isRecord(raw) || typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return undefined;
   const strict = checkRuleDraft(raw);
-  const relaxed = strict.ok ? strict : POLICY_CODES.includes(strict.error.code) ? checkRuleDraft(raw, { enforcePolicy: false }) : strict;
+  const relaxed = strict.ok
+    ? strict
+    : POLICY_CODES.includes(strict.error.code)
+      ? checkRuleDraft(raw, { enforcePolicy: false })
+      : strict;
   if (!relaxed.ok) return undefined;
   const refused = !strict.ok;
   const hits = finiteNumber(raw.hits);
@@ -60,7 +75,8 @@ function rulesListOf(raw: unknown): { list: unknown[]; legacy: boolean } | 'newe
   if (Array.isArray(raw)) return { list: raw, legacy: true };
   if (!isRecord(raw)) return undefined;
   const version = finiteNumber(raw.version);
-  if (version === undefined || version < 1) return Array.isArray(raw.rules) ? { list: raw.rules, legacy: true } : undefined;
+  if (version === undefined || version < 1)
+    return Array.isArray(raw.rules) ? { list: raw.rules, legacy: true } : undefined;
   if (version > RULES_SCHEMA_VERSION) return 'newer-version';
   return Array.isArray(raw.rules) ? { list: raw.rules, legacy: false } : undefined;
 }
@@ -95,10 +111,20 @@ function parseEntry(raw: unknown): AutoDecision | undefined {
   const at = finiteNumber(raw.at);
   const outcome = OUTCOMES.find((candidate) => candidate === raw.outcome);
   const effect = raw.effect === 'allow' || raw.effect === 'deny' ? raw.effect : undefined;
-  const kind = isRecord(raw.matcher) ? MATCHER_KINDS.find((candidate) => candidate === (raw.matcher as Record<string, unknown>).kind) : undefined;
-  const matcher = kind !== undefined && typeof (raw.matcher as Record<string, unknown>).value === 'string' ? { kind, value: (raw.matcher as Record<string, string>).value } : undefined;
+  const kind = isRecord(raw.matcher)
+    ? MATCHER_KINDS.find((candidate) => candidate === (raw.matcher as Record<string, unknown>).kind)
+    : undefined;
+  const matcher =
+    kind !== undefined && typeof (raw.matcher as Record<string, unknown>).value === 'string'
+      ? { kind, value: (raw.matcher as Record<string, string>).value }
+      : undefined;
   if (at === undefined || outcome === undefined || effect === undefined || matcher === undefined) return undefined;
-  if (![raw.ruleId, raw.tool, raw.requestTool, raw.subject, raw.agentId, raw.agentName].every((field) => typeof field === 'string')) return undefined;
+  if (
+    ![raw.ruleId, raw.tool, raw.requestTool, raw.subject, raw.agentId, raw.agentName].every(
+      (field) => typeof field === 'string',
+    )
+  )
+    return undefined;
   const blockedBy = BLOCK_REASONS.find((reason) => reason === raw.blockedBy);
   return {
     id: raw.id,

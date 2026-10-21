@@ -47,7 +47,11 @@ function setup() {
   };
 }
 
-const NEW_HIRE = { projectId: '/work/app', accountId: 'claude', matchPaths: ['/work/app', '/private/work/app'] } as const;
+const NEW_HIRE = {
+  projectId: '/work/app',
+  accountId: 'claude',
+  matchPaths: ['/work/app', '/private/work/app'],
+} as const;
 
 describe('HireRegistry', () => {
   test('creating a hire announces the change and lists the placeholder', () => {
@@ -55,7 +59,14 @@ describe('HireRegistry', () => {
 
     const hire = registry.create({ ...NEW_HIRE, deskIndex: 2 });
 
-    expect(hire).toMatchObject({ id: 'hire-1', projectId: '/work/app', accountId: 'claude', deskIndex: 2, createdAt: T0, expiresAt: T0 + HIRE_WINDOW_MS });
+    expect(hire).toMatchObject({
+      id: 'hire-1',
+      projectId: '/work/app',
+      accountId: 'claude',
+      deskIndex: 2,
+      createdAt: T0,
+      expiresAt: T0 + HIRE_WINDOW_MS,
+    });
     expect(registry.list(now())).toEqual([hire]);
     expect(changes).toHaveLength(1);
   });
@@ -102,7 +113,10 @@ describe('HireRegistry', () => {
     registry.create(NEW_HIRE);
     advance(5000);
 
-    registry.sweep([agent('claude:late', { startedAt: T0 + 5000 }), agent('claude:early', { startedAt: T0 + 3000 })], now());
+    registry.sweep(
+      [agent('claude:late', { startedAt: T0 + 5000 }), agent('claude:early', { startedAt: T0 + 3000 })],
+      now(),
+    );
 
     expect(registry.list(now()).map((hire) => hire.agentId)).toEqual(['claude:early', 'claude:late']);
   });

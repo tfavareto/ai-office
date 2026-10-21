@@ -1,6 +1,13 @@
 // "Hire an agent": choose the project folder (an existing room or a new folder), the account, a first task, the model
 // and the permission mode, then open a terminal window with Claude Code for it. Cmd/Ctrl+Enter submits.
-import { type Account, HIRE_MAX_PROMPT, type HireCheckReason, type HireModel, type HirePermissionMode, type Project } from '@ai-office/shared';
+import {
+  type Account,
+  HIRE_MAX_PROMPT,
+  type HireCheckReason,
+  type HireModel,
+  type HirePermissionMode,
+  type Project,
+} from '@ai-office/shared';
 import { type UiKey, t } from '../../i18n';
 import { describeError } from '../../net/backend';
 import { localOnlyHint, type AppContext } from '../context';
@@ -46,20 +53,46 @@ const MODE_HINTS: Readonly<Record<HirePermissionMode, UiKey>> = {
   plan: 'hire.mode.hint.plan',
 };
 
-type PathCheck = { state: 'idle' } | { state: 'checking' } | { state: 'ok' } | { state: 'bad'; reason: HireCheckReason } | { state: 'unknown' };
+type PathCheck =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'ok' }
+  | { state: 'bad'; reason: HireCheckReason }
+  | { state: 'unknown' };
 
 function field(label: string, control: HTMLElement, id: string, extra?: HTMLElement): HTMLElement {
-  return h('div', { class: 'ao-hire-field' }, h('label', { class: 'ao-hire-label', for: id }, label), control, extra ?? null);
+  return h(
+    'div',
+    { class: 'ao-hire-field' },
+    h('label', { class: 'ao-hire-label', for: id }, label),
+    control,
+    extra ?? null,
+  );
 }
 
-function selectOf<T extends string>(id: string, options: readonly (readonly [T, UiKey])[], onChange: (value: T) => void): HTMLSelectElement {
-  const select = h('select', { id, class: 'ao-select ao-hire-select' }, ...options.map(([value, key]) => h('option', { value }, t(key))));
+function selectOf<T extends string>(
+  id: string,
+  options: readonly (readonly [T, UiKey])[],
+  onChange: (value: T) => void,
+): HTMLSelectElement {
+  const select = h(
+    'select',
+    { id, class: 'ao-select ao-hire-select' },
+    ...options.map(([value, key]) => h('option', { value }, t(key))),
+  );
   select.addEventListener('change', () => onChange(select.value as T));
   return select;
 }
 
 export class HireDialog extends Dialog {
-  private form: HireForm = { roomPath: undefined, path: '', accountId: '', prompt: '', model: 'default', permissionMode: 'default' };
+  private form: HireForm = {
+    roomPath: undefined,
+    path: '',
+    accountId: '',
+    prompt: '',
+    model: 'default',
+    permissionMode: 'default',
+  };
   private check: PathCheck = { state: 'idle' };
   private recent: { path: string; name: string }[] = [];
   private busy = false;
@@ -83,10 +116,19 @@ export class HireDialog extends Dialog {
     spellcheck: 'false',
     'aria-describedby': 'ao-hire-path-feedback',
   });
-  private readonly pathFeedback = h('p', { id: 'ao-hire-path-feedback', class: 'ao-hire-feedback', role: 'status', 'aria-live': 'polite' });
+  private readonly pathFeedback = h('p', {
+    id: 'ao-hire-path-feedback',
+    class: 'ao-hire-feedback',
+    role: 'status',
+    'aria-live': 'polite',
+  });
   private readonly recentBlock = h('div', { class: 'ao-hire-recent' });
   private readonly accountField = h('div', { class: 'ao-hire-field' });
-  private readonly accountGroup = h('div', { class: 'ao-chips ao-hire-accounts', role: 'radiogroup', 'aria-label': t('hire.account') });
+  private readonly accountGroup = h('div', {
+    class: 'ao-chips ao-hire-accounts',
+    role: 'radiogroup',
+    'aria-label': t('hire.account'),
+  });
   private readonly promptInput = h('textarea', {
     id: 'ao-hire-prompt',
     class: 'ao-textarea ao-hire-prompt',
@@ -110,7 +152,12 @@ export class HireDialog extends Dialog {
       this.form = { ...this.form, permissionMode };
       this.ctx.refresh();
     });
-    this.submitBtn = button({ label: t('hire.submit'), icon: 'plus', variant: 'primary', onClick: () => void this.submit() });
+    this.submitBtn = button({
+      label: t('hire.submit'),
+      icon: 'plus',
+      variant: 'primary',
+      onClick: () => void this.submit(),
+    });
     this.submitLabel = this.submitBtn.querySelector('span') as HTMLElement;
     this.submitBtn.append(h('kbd', { class: 'ao-kbd ao-hire-kbd', 'aria-hidden': 'true' }, '⌘↵'));
     this.projectSelect.addEventListener('change', () => this.chooseProject(this.projectSelect.value));
@@ -119,11 +166,11 @@ export class HireDialog extends Dialog {
       this.form = { ...this.form, prompt: this.promptInput.value };
       this.ctx.refresh();
     });
-    this.newProject.append(
-      field(t('hire.path'), this.pathInput, 'ao-hire-path', this.pathFeedback),
-      this.recentBlock,
+    this.newProject.append(field(t('hire.path'), this.pathInput, 'ao-hire-path', this.pathFeedback), this.recentBlock);
+    this.accountField.append(
+      h('span', { class: 'ao-hire-label', id: 'ao-hire-account-label' }, t('hire.account')),
+      this.accountGroup,
     );
-    this.accountField.append(h('span', { class: 'ao-hire-label', id: 'ao-hire-account-label' }, t('hire.account')), this.accountGroup);
     this.accountGroup.setAttribute('aria-labelledby', 'ao-hire-account-label');
     this.panel.addEventListener('keydown', (event) => {
       if (!isSubmitShortcut(event)) return;
@@ -131,20 +178,39 @@ export class HireDialog extends Dialog {
       void this.submit();
     });
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-hire-title' }, t('hire.title')), closeButton(t('common.close'), () => ctx.closeDialog())),
+      h(
+        'header',
+        { class: 'ao-dialog-head' },
+        h('h2', { id: 'ao-hire-title' }, t('hire.title')),
+        closeButton(t('common.close'), () => ctx.closeDialog()),
+      ),
       h(
         'form',
-        { class: 'ao-hire-body', novalidate: true, onsubmit: ((event: Event) => event.preventDefault()) as EventListener },
+        {
+          class: 'ao-hire-body',
+          novalidate: true,
+          onsubmit: ((event: Event) => event.preventDefault()) as EventListener,
+        },
         field(t('hire.project'), this.projectSelect, 'ao-hire-project', this.roomPath),
         this.newProject,
         this.accountField,
         field(t('hire.prompt'), this.promptInput, 'ao-hire-prompt', this.promptCount),
-        h('div', { class: 'ao-hire-row' }, field(t('hire.model'), this.modelSelect, 'ao-hire-model'), field(t('hire.mode'), this.modeSelect, 'ao-hire-mode')),
+        h(
+          'div',
+          { class: 'ao-hire-row' },
+          field(t('hire.model'), this.modelSelect, 'ao-hire-model'),
+          field(t('hire.mode'), this.modeSelect, 'ao-hire-mode'),
+        ),
         this.modeHint,
         h('p', { class: 'ao-hire-note' }, icon('terminal', 16), h('span', null, t('hire.note'))),
         this.errorBox,
       ),
-      h('footer', { class: 'ao-dialog-foot' }, button({ label: t('common.cancel'), variant: 'ghost', onClick: () => ctx.closeDialog() }), this.submitBtn),
+      h(
+        'footer',
+        { class: 'ao-dialog-foot' },
+        button({ label: t('common.cancel'), variant: 'ghost', onClick: () => ctx.closeDialog() }),
+        this.submitBtn,
+      ),
     );
   }
 
@@ -181,7 +247,9 @@ export class HireDialog extends Dialog {
     this.modeSelect.value = 'default';
     if (roomPath === undefined && path !== '') this.onPathInput();
     void this.loadRecent();
-    requestAnimationFrame(() => (roomPath === undefined ? this.pathInput : this.promptInput).focus({ preventScroll: true }));
+    requestAnimationFrame(() =>
+      (roomPath === undefined ? this.pathInput : this.promptInput).focus({ preventScroll: true }),
+    );
   }
 
   protected update(): void {
@@ -202,7 +270,8 @@ export class HireDialog extends Dialog {
     const blocked = !this.ctx.isLocal ? localOnlyHint() : null;
     this.submitBtn.disabled = blocked !== null || !this.canSubmit();
     this.submitBtn.title = blocked ?? '';
-    for (const control of [this.projectSelect, this.pathInput, this.promptInput, this.modelSelect, this.modeSelect]) control.disabled = this.busy;
+    for (const control of [this.projectSelect, this.pathInput, this.promptInput, this.modelSelect, this.modeSelect])
+      control.disabled = this.busy;
   }
 
   // --- data ----------------------------------------------------------------------------------------------------------
@@ -242,13 +311,26 @@ export class HireDialog extends Dialog {
       ...rooms.map((room) => h('option', { value: room.path }, room.name)),
       h('option', { value: NEW_PROJECT }, t('hire.project.new')),
     );
-    this.projectSelect.value = this.form.roomPath !== undefined && rooms.some((room) => room.path === this.form.roomPath) ? this.form.roomPath : NEW_PROJECT;
+    this.projectSelect.value =
+      this.form.roomPath !== undefined && rooms.some((room) => room.path === this.form.roomPath)
+        ? this.form.roomPath
+        : NEW_PROJECT;
   }
 
   private chooseProject(value: string): void {
     const roomPath = value === NEW_PROJECT ? undefined : value;
-    const accounts = hireAccounts(this.ctx.snapshot, isSimulatedHire(this.ctx.snapshot, roomPath ?? this.form.path.trim()));
-    this.form = { ...this.form, roomPath, accountId: accounts.some((account) => account.id === this.form.accountId) && roomPath === undefined ? this.form.accountId : defaultAccountId(this.ctx.snapshot, roomPath, accounts) };
+    const accounts = hireAccounts(
+      this.ctx.snapshot,
+      isSimulatedHire(this.ctx.snapshot, roomPath ?? this.form.path.trim()),
+    );
+    this.form = {
+      ...this.form,
+      roomPath,
+      accountId:
+        accounts.some((account) => account.id === this.form.accountId) && roomPath === undefined
+          ? this.form.accountId
+          : defaultAccountId(this.ctx.snapshot, roomPath, accounts),
+    };
     this.error = '';
     if (roomPath === undefined) this.onPathInput();
     this.update();

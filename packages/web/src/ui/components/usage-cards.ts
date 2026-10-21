@@ -10,7 +10,13 @@ import { usageCard, usageEntries, usageSignature } from './usage-card';
 
 export class UsageCards implements Component {
   readonly el = h('div', { class: 'ao-usage', role: 'group', 'aria-label': t('usage.label') });
-  private readonly more = h('button', { type: 'button', class: 'ao-usage-more', 'aria-haspopup': 'dialog', hidden: true, onclick: () => this.ctx.togglePopover('usage') });
+  private readonly more = h('button', {
+    type: 'button',
+    class: 'ao-usage-more',
+    'aria-haspopup': 'dialog',
+    hidden: true,
+    onclick: () => this.ctx.togglePopover('usage'),
+  });
   private observer: ResizeObserver | null = null;
   private signature = '';
 
@@ -25,7 +31,10 @@ export class UsageCards implements Component {
     const signature = usageSignature(this.ctx);
     if (signature === this.signature) return;
     this.signature = signature;
-    this.el.replaceChildren(...usageEntries(this.ctx).map(({ accountId, usage }) => usageCard(this.ctx, accountId, usage)), this.more);
+    this.el.replaceChildren(
+      ...usageEntries(this.ctx).map(({ accountId, usage }) => usageCard(this.ctx, accountId, usage)),
+      this.more,
+    );
     this.fit();
   }
 
@@ -50,7 +59,9 @@ export class UsageCards implements Component {
   /** Room left in the parent group next to its other children. */
   private available(parent: HTMLElement): number {
     const gap = parseFloat(getComputedStyle(parent).columnGap) || 0;
-    const others = Array.from(parent.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child !== this.el);
+    const others = Array.from(parent.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement && child !== this.el,
+    );
     const used = others.reduce((sum, child) => sum + child.offsetWidth, 0) + gap * others.length;
     return parent.clientWidth - used;
   }
@@ -92,7 +103,11 @@ export class UsageCards implements Component {
     const left = cards.length - result.visible;
     this.more.hidden = !result.showMore || left === 0;
     // A card folded into "+N" that is about to hit its limit still warns, on the button.
-    this.more.classList.toggle('is-warning', !this.more.hidden && cards.some((card, index) => index >= result.visible && card.classList.contains('is-warning')));
+    this.more.classList.toggle(
+      'is-warning',
+      !this.more.hidden &&
+        cards.some((card, index) => index >= result.visible && card.classList.contains('is-warning')),
+    );
     this.el.hidden = result.visible === 0 && this.more.hidden;
     setText(this.more, `+${left}`);
     this.more.setAttribute('aria-label', t('usage.more', { n: left }));

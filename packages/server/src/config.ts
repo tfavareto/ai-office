@@ -21,7 +21,17 @@ export interface ServerConfig {
 
 export class ConfigError extends Error {}
 
-const FLAG_NAMES = new Set(['--port', '--host', '--demo', '--state-dir', '--claude-dirs', '--web-dir', '--quiet', '--debug', '--allow-remote']);
+const FLAG_NAMES = new Set([
+  '--port',
+  '--host',
+  '--demo',
+  '--state-dir',
+  '--claude-dirs',
+  '--web-dir',
+  '--quiet',
+  '--debug',
+  '--allow-remote',
+]);
 const BOOLEAN_FLAGS = new Set(['--demo', '--quiet', '--debug', '--allow-remote']);
 
 /** Parses `--flag value`, `--flag=value` and boolean flags. Unknown flags are rejected. */
@@ -73,9 +83,13 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
   if (isTruthy(flags.get('--quiet')) || env.AI_OFFICE_LOG === 'quiet') logLevel = 'quiet';
   if (isTruthy(flags.get('--debug')) || env.AI_OFFICE_LOG === 'debug') logLevel = 'debug';
   const host = flags.get('--host') ?? env.AI_OFFICE_HOST ?? '127.0.0.1';
-  const allowRemote = flags.has('--allow-remote') ? isTruthy(flags.get('--allow-remote')) : isTruthy(env.AI_OFFICE_ALLOW_REMOTE);
+  const allowRemote = flags.has('--allow-remote')
+    ? isTruthy(flags.get('--allow-remote'))
+    : isTruthy(env.AI_OFFICE_ALLOW_REMOTE);
   if (!isLoopbackHost(host) && !allowRemote) {
-    throw new ConfigError(`Recusando escutar em ${host}: só endereços locais são permitidos. Defina AI_OFFICE_ALLOW_REMOTE=1 para aceitar outro endereço (acesso remoto pelo navegador não é suportado).`);
+    throw new ConfigError(
+      `Recusando escutar em ${host}: só endereços locais são permitidos. Defina AI_OFFICE_ALLOW_REMOTE=1 para aceitar outro endereço (acesso remoto pelo navegador não é suportado).`,
+    );
   }
   return {
     port: parsePort(flags.get('--port') ?? env.AI_OFFICE_PORT),

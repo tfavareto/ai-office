@@ -49,12 +49,14 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], code: st
 export function parseHireRequest(body: unknown): HireRequest {
   const raw = asRecord(body);
   const projectPath = asString(raw.projectPath);
-  if (projectPath === undefined || projectPath.trim().length === 0 || projectPath.length > HIRE_MAX_PATH) throw new HttpError(400, 'invalid-projectPath');
+  if (projectPath === undefined || projectPath.trim().length === 0 || projectPath.length > HIRE_MAX_PATH)
+    throw new HttpError(400, 'invalid-projectPath');
   const request: HireRequest = { projectPath };
   const accountId = optionalString(raw.accountId, 'accountId');
   if (accountId !== undefined) request.accountId = accountId;
   if (raw.prompt !== undefined && raw.prompt !== null) {
-    if (typeof raw.prompt !== 'string' || raw.prompt.length > HIRE_MAX_PROMPT || raw.prompt.includes('\0')) throw new HttpError(400, 'invalid-prompt');
+    if (typeof raw.prompt !== 'string' || raw.prompt.length > HIRE_MAX_PROMPT || raw.prompt.includes('\0'))
+      throw new HttpError(400, 'invalid-prompt');
     const prompt = raw.prompt.trim();
     if (prompt.length > 0) request.prompt = prompt;
   }
@@ -64,7 +66,8 @@ export function parseHireRequest(body: unknown): HireRequest {
   if (permissionMode !== undefined) request.permissionMode = permissionMode;
   if (raw.deskIndex !== undefined && raw.deskIndex !== null) {
     const desk = asNumber(raw.deskIndex);
-    if (desk === undefined || !Number.isInteger(desk) || desk < 0 || desk > HIRE_MAX_DESK_INDEX) throw new HttpError(400, 'invalid-deskIndex');
+    if (desk === undefined || !Number.isInteger(desk) || desk < 0 || desk > HIRE_MAX_DESK_INDEX)
+      throw new HttpError(400, 'invalid-deskIndex');
     request.deskIndex = desk;
   }
   const locale = optionalLocale(raw.locale);
@@ -79,7 +82,8 @@ export function parsePermissionHookRequest(body: unknown): PermissionHookRequest
     tool_name: requiredString(raw.tool_name, 'tool_name', 200),
     tool_input: raw.tool_input,
   };
-  if (Array.isArray(raw.permission_suggestions)) request.permission_suggestions = raw.permission_suggestions.slice(0, 20);
+  if (Array.isArray(raw.permission_suggestions))
+    request.permission_suggestions = raw.permission_suggestions.slice(0, 20);
   const agentId = optionalString(raw.agent_id, 'agent_id');
   if (agentId !== undefined) request.agent_id = agentId;
   const cwd = optionalString(raw.cwd, 'cwd', 2000);
@@ -92,11 +96,18 @@ export function parsePermissionHookRequest(body: unknown): PermissionHookRequest
 export function parseDecision(body: unknown, suggestionCount: number): PermissionDecision {
   const raw = asRecord(body);
   const behavior = raw.behavior;
-  if (behavior !== 'allow' && behavior !== 'deny' && behavior !== 'terminal') throw new HttpError(400, 'invalid-behavior');
+  if (behavior !== 'allow' && behavior !== 'deny' && behavior !== 'terminal')
+    throw new HttpError(400, 'invalid-behavior');
   const decision: PermissionDecision = { behavior };
   if (raw.suggestion !== undefined) {
     const index = asNumber(raw.suggestion);
-    if (behavior !== 'allow' || index === undefined || !Number.isInteger(index) || index < 0 || index >= suggestionCount) {
+    if (
+      behavior !== 'allow' ||
+      index === undefined ||
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index >= suggestionCount
+    ) {
       throw new HttpError(400, 'invalid-suggestion');
     }
     decision.suggestion = index;
@@ -111,9 +122,15 @@ export function parseDecision(body: unknown, suggestionCount: number): Permissio
   return decision;
 }
 
-export function parseSendMessage(body: unknown, maxAgents: number, maxText: number): { agents: string[]; text: string; locale?: Locale } {
+export function parseSendMessage(
+  body: unknown,
+  maxAgents: number,
+  maxText: number,
+): { agents: string[]; text: string; locale?: Locale } {
   const raw = asRecord(body);
-  const agents = asArray(raw.agents).filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= MAX_ID);
+  const agents = asArray(raw.agents).filter(
+    (id): id is string => typeof id === 'string' && id.length > 0 && id.length <= MAX_ID,
+  );
   if (agents.length === 0) throw new HttpError(400, 'invalid-agents');
   const text = requiredString(typeof raw.text === 'string' ? raw.text.trim() : undefined, 'text', maxText);
   const locale = optionalLocale(raw.locale);
@@ -123,12 +140,23 @@ export function parseSendMessage(body: unknown, maxAgents: number, maxText: numb
 export function parseInboxRequest(body: unknown): { sessionId: string; agentId?: string; via: 'tool' | 'stop' } {
   const raw = asRecord(body);
   const agentId = optionalString(raw.agent, 'agent');
-  return { sessionId: requiredString(raw.session, 'session'), ...(agentId !== undefined ? { agentId } : {}), via: raw.via === 'stop' ? 'stop' : 'tool' };
+  return {
+    sessionId: requiredString(raw.session, 'session'),
+    ...(agentId !== undefined ? { agentId } : {}),
+    via: raw.via === 'stop' ? 'stop' : 'tool',
+  };
 }
 
-export function parseAttention(body: unknown): { sessionId: string; agentId?: string; message?: string; type?: string } {
+export function parseAttention(body: unknown): {
+  sessionId: string;
+  agentId?: string;
+  message?: string;
+  type?: string;
+} {
   const raw = asRecord(body);
-  const result: { sessionId: string; agentId?: string; message?: string; type?: string } = { sessionId: requiredString(raw.session_id, 'session_id') };
+  const result: { sessionId: string; agentId?: string; message?: string; type?: string } = {
+    sessionId: requiredString(raw.session_id, 'session_id'),
+  };
   const agentId = optionalString(raw.agent_id, 'agent_id');
   if (agentId !== undefined) result.agentId = agentId;
   const message = asString(raw.message);

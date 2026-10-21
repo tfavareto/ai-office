@@ -1,7 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { REPORT_BUCKETS, REPORT_BUCKET_MS, reportAgent, reportProject } from '@ai-office/shared';
 import { setLocale } from '../../i18n';
-import { formatWorkTime, intensity, projectLabel, reportFilename, reportHighlights, reportSections, sumActivity, testsByRunner, toolSummary } from './report';
+import {
+  formatWorkTime,
+  intensity,
+  projectLabel,
+  reportFilename,
+  reportHighlights,
+  reportSections,
+  sumActivity,
+  testsByRunner,
+  toolSummary,
+} from './report';
 
 const commit = (hash: string) => ({ hash, subject: 'x', at: 1, source: 'transcript' as const });
 const task = (title: string) => ({ title, at: 1 });
@@ -12,7 +22,12 @@ describe('reportSections', () => {
   const ana = reportAgent({ agentId: 'a', name: 'Ana', activeMs: 100, files: [file('a.ts')] });
   const bruno = reportAgent({ agentId: 'b', name: 'Bruno', activeMs: 300, files: [file('b.ts')] });
   const blog = reportAgent({ agentId: 'c', name: 'Carla', activeMs: 50 });
-  const report = { projects: [reportProject([bruno, ana], { id: '/loja', name: 'loja' }), reportProject([blog], { id: '/blog', name: 'blog' })] };
+  const report = {
+    projects: [
+      reportProject([bruno, ana], { id: '/loja', name: 'loja' }),
+      reportProject([blog], { id: '/blog', name: 'blog' }),
+    ],
+  };
 
   it('groups by project keeping the order of the report and totals per project', () => {
     const sections = reportSections(report, 'project');
@@ -23,7 +38,11 @@ describe('reportSections', () => {
 
   it('groups by agent, busiest first, with the project as subtitle', () => {
     const sections = reportSections(report, 'agent');
-    expect(sections.map((section) => [section.title, section.subtitle])).toEqual([['Bruno', 'loja'], ['Ana', 'loja'], ['Carla', 'blog']]);
+    expect(sections.map((section) => [section.title, section.subtitle])).toEqual([
+      ['Bruno', 'loja'],
+      ['Ana', 'loja'],
+      ['Carla', 'blog'],
+    ]);
     expect(sections[0]?.totals.files).toBe(1);
   });
 
@@ -53,7 +72,10 @@ describe('small helpers', () => {
   });
 
   it('lists tool calls most used first and leaves out the unused', () => {
-    expect(toolSummary({ toolCalls: { read: 2, bash: 9, web: 0 } }).map((entry) => entry.kind)).toEqual(['bash', 'read']);
+    expect(toolSummary({ toolCalls: { read: 2, bash: 9, web: 0 } }).map((entry) => entry.kind)).toEqual([
+      'bash',
+      'read',
+    ]);
   });
 
   it('groups test runs by runner', () => {
@@ -68,7 +90,11 @@ describe('reportHighlights', () => {
   afterEach(() => setLocale('pt-BR'));
 
   it('says what each person got done, best first, in the language of the interface', () => {
-    const ana = reportAgent({ name: 'Ana', tasks: [task('a'), task('b'), task('c'), task('d')], commits: [commit('1'), commit('2'), commit('3')] });
+    const ana = reportAgent({
+      name: 'Ana',
+      tasks: [task('a'), task('b'), task('c'), task('d')],
+      commits: [commit('1'), commit('2'), commit('3')],
+    });
     const bruno = reportAgent({ agentId: 'b', name: 'Bruno', tests: [run('passed'), run('passed')] });
     const carla = reportAgent({ agentId: 'c', name: 'Carla', commits: [commit('9')] });
     const report = { projects: [reportProject([bruno, ana, carla], { name: 'loja-online' })] };
@@ -97,14 +123,22 @@ describe('reportHighlights', () => {
   it('points at who spent most of the day, only with several people and a clear lead', () => {
     const big = reportAgent({ name: 'Ana', usage: { tokens: 1, costUSD: 9 } });
     const small = reportAgent({ agentId: 'b', name: 'Bruno', usage: { tokens: 1, costUSD: 1 } });
-    expect(reportHighlights({ projects: [reportProject([big, small])] })).toEqual(['Ana concentrou 90% do custo do dia (US$ 9,00)']);
+    expect(reportHighlights({ projects: [reportProject([big, small])] })).toEqual([
+      'Ana concentrou 90% do custo do dia (US$ 9,00)',
+    ]);
     expect(reportHighlights({ projects: [reportProject([big])] })).toEqual([]);
-    const even = [reportAgent({ name: 'A', usage: { tokens: 1, costUSD: 1 } }), reportAgent({ agentId: 'b', name: 'B', usage: { tokens: 1, costUSD: 1 } }), reportAgent({ agentId: 'c', name: 'C', usage: { tokens: 1, costUSD: 1 } })];
+    const even = [
+      reportAgent({ name: 'A', usage: { tokens: 1, costUSD: 1 } }),
+      reportAgent({ agentId: 'b', name: 'B', usage: { tokens: 1, costUSD: 1 } }),
+      reportAgent({ agentId: 'c', name: 'C', usage: { tokens: 1, costUSD: 1 } }),
+    ];
     expect(reportHighlights({ projects: [reportProject(even)] })).toEqual([]);
   });
 
   it('keeps at most five sentences', () => {
-    const agents = Array.from({ length: 9 }, (_, i) => reportAgent({ agentId: `a${i}`, name: `P${i}`, commits: [commit(String(i))] }));
+    const agents = Array.from({ length: 9 }, (_, i) =>
+      reportAgent({ agentId: `a${i}`, name: `P${i}`, commits: [commit(String(i))] }),
+    );
     expect(reportHighlights({ projects: [reportProject(agents)] })).toHaveLength(5);
   });
 });

@@ -45,7 +45,12 @@ export function summarizeTaskBoard(agents: readonly Agent[], projects: readonly 
       else if (task.status === 'pending') summary.pending++;
       else {
         summary.active++;
-        if (top.length < SUMMARY_TITLES) top.push(task.activeForm ? { text: task.activeForm, msg: task.activeFormMsg } : { text: task.title, msg: task.titleMsg });
+        if (top.length < SUMMARY_TITLES)
+          top.push(
+            task.activeForm
+              ? { text: task.activeForm, msg: task.activeFormMsg }
+              : { text: task.title, msg: task.titleMsg },
+          );
       }
     }
   }

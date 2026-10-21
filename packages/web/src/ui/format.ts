@@ -41,8 +41,12 @@ function dateFormat(id: string, options: Intl.DateTimeFormatOptions): Intl.DateT
 
 /** English clocks are 12-hour ("2:30 PM"); pt-BR and Spanish use 24 hours with a leading zero ("14:30"). */
 function clockOptions(withSeconds: boolean): Intl.DateTimeFormatOptions {
-  const base: Intl.DateTimeFormatOptions = withSeconds ? { minute: '2-digit', second: '2-digit' } : { minute: '2-digit' };
-  return locale() === 'en' ? { ...base, hour: 'numeric', hour12: true } : { ...base, hour: '2-digit', hourCycle: 'h23' };
+  const base: Intl.DateTimeFormatOptions = withSeconds
+    ? { minute: '2-digit', second: '2-digit' }
+    : { minute: '2-digit' };
+  return locale() === 'en'
+    ? { ...base, hour: 'numeric', hour12: true }
+    : { ...base, hour: '2-digit', hourCycle: 'h23' };
 }
 
 function pad2(n: number): string {
@@ -94,7 +98,11 @@ export function formatTokens(count: number): string {
   if (n < 1000) return String(Math.round(n));
   const fraction = n < TOKEN_SMALL_LIMIT || n >= 1_000_000 ? TOKEN_FRACTION_SMALL : TOKEN_FRACTION_LARGE;
   // Intl separates the number from its suffix with a no-break space; a regular one wraps like the rest of the text.
-  return numberFormat(`tok${fraction}`, { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: fraction })
+  return numberFormat(`tok${fraction}`, {
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: fraction,
+  })
     .format(n)
     .replace(/[\u00a0\u202f]/g, ' ');
 }
@@ -103,8 +111,12 @@ export function formatTokens(count: number): string {
 export function formatCost(usd: number | undefined): string {
   if (usd === undefined || !Number.isFinite(usd)) return '—';
   const symbol = locale() === 'en' ? '$' : 'US$ ';
-  if (usd > 0 && usd < MIN_VISIBLE_COST) return `< ${symbol}${numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(MIN_VISIBLE_COST)}`;
-  const amount = usd >= COST_ROUND_FROM ? numberFormat('cost0', { maximumFractionDigits: 0 }).format(usd) : numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usd);
+  if (usd > 0 && usd < MIN_VISIBLE_COST)
+    return `< ${symbol}${numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(MIN_VISIBLE_COST)}`;
+  const amount =
+    usd >= COST_ROUND_FROM
+      ? numberFormat('cost0', { maximumFractionDigits: 0 }).format(usd)
+      : numberFormat('cost2', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usd);
   return `${symbol}${amount}`;
 }
 
@@ -116,23 +128,33 @@ export function formatInteger(value: number): string {
 /** A signed relative change, "+12%" or "−5%" (a ratio of 0.12 is 12%); one decimal below 10%. */
 export function formatChange(ratio: number): string {
   const digits = Math.abs(ratio) < 0.095 ? 1 : 0;
-  return numberFormat(`chg${digits}`, { style: 'percent', signDisplay: 'exceptZero', maximumFractionDigits: digits }).format(ratio);
+  return numberFormat(`chg${digits}`, {
+    style: 'percent',
+    signDisplay: 'exceptZero',
+    maximumFractionDigits: digits,
+  }).format(ratio);
 }
 
 /** A share, "42%" (a ratio of 0.42); below 1% it reads "< 1%". */
 export function formatShare(ratio: number): string {
-  if (ratio > 0 && ratio < 0.01) return `< ${numberFormat('shr', { style: 'percent', maximumFractionDigits: 0 }).format(0.01)}`;
+  if (ratio > 0 && ratio < 0.01)
+    return `< ${numberFormat('shr', { style: 'percent', maximumFractionDigits: 0 }).format(0.01)}`;
   return numberFormat('shr', { style: 'percent', maximumFractionDigits: 0 }).format(ratio);
 }
 
 /** "14h" in pt-BR/Spanish and "2 PM" in English: the label of an hour on a chart axis. */
 export function formatHourLabel(ts: number): string {
-  return locale() === 'en' ? dateFormat('hour-en', { hour: 'numeric', hour12: true }).format(ts) : `${pad2(new Date(ts).getHours())}h`;
+  return locale() === 'en'
+    ? dateFormat('hour-en', { hour: 'numeric', hour12: true }).format(ts)
+    : `${pad2(new Date(ts).getHours())}h`;
 }
 
 /** Short weekday and day of the month, "ter. 21" / "Tue 21". */
 export function formatDayShort(ts: number): string {
-  return dateFormat('day-short', { weekday: 'short', day: 'numeric' }).format(ts).replace(/,/g, '').replace(/[\u00a0\u202f]/g, ' ');
+  return dateFormat('day-short', { weekday: 'short', day: 'numeric' })
+    .format(ts)
+    .replace(/,/g, '')
+    .replace(/[\u00a0\u202f]/g, ' ');
 }
 
 /** Day of the month, "21". */
@@ -148,7 +170,9 @@ export function formatDateLong(ts: number): string {
 /** A moment on a chart or forecast: the clock when it is today, otherwise short weekday and clock ("sex. 14:30"). */
 export function formatMoment(ts: number, now: number): string {
   if (startOfDay(ts) === startOfDay(now)) return formatClock(ts);
-  return `${dateFormat('weekday-short', { weekday: 'short' }).format(ts).replace(/[\u00a0\u202f]/g, ' ')} ${formatClock(ts)}`;
+  return `${dateFormat('weekday-short', { weekday: 'short' })
+    .format(ts)
+    .replace(/[\u00a0\u202f]/g, ' ')} ${formatClock(ts)}`;
 }
 
 /** "14:30" in pt-BR/Spanish, "2:30 PM" in English. */

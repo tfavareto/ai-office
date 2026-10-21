@@ -38,7 +38,10 @@ export interface WallScreens {
 function quadGeometry(w: number, h: number, uv: [number, number, number, number]): BufferGeometry {
   const [u0, vt0, u1, vt1] = uv;
   const g = new BufferGeometry();
-  g.setAttribute('position', new Float32BufferAttribute([-w / 2, -h / 2, 0, w / 2, -h / 2, 0, w / 2, h / 2, 0, -w / 2, h / 2, 0], 3));
+  g.setAttribute(
+    'position',
+    new Float32BufferAttribute([-w / 2, -h / 2, 0, w / 2, -h / 2, 0, w / 2, h / 2, 0, -w / 2, h / 2, 0], 3),
+  );
   g.setAttribute('normal', new Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
   g.setAttribute('uv', new Float32BufferAttribute([u0, 1 - vt1, u1, 1 - vt1, u1, 1 - vt0, u0, 1 - vt0], 2));
   g.setIndex([0, 1, 2, 0, 2, 3]);
@@ -47,8 +50,16 @@ function quadGeometry(w: number, h: number, uv: [number, number, number, number]
 
 /** A static decor image as a merged quad (no extra draw call). */
 function decorQuad(
-  c: PartCollector, out: WallScreens, x: number, y: number, z: number, w: number, h: number,
-  painter: DecorPainter, text: WorldText, localized = false,
+  c: PartCollector,
+  out: WallScreens,
+  x: number,
+  y: number,
+  z: number,
+  w: number,
+  h: number,
+  painter: DecorPainter,
+  text: WorldText,
+  localized = false,
 ): void {
   out.decor ??= new DecorAtlas(text);
   const slot = out.decor.add(w, h, painter, localized);
@@ -73,12 +84,31 @@ function addScreen(dynamic: Group, screen: CanvasScreen, x: number, y: number, z
 }
 
 /** Framed screen: static frame parts + a dynamic canvas plane. */
-function framedScreen(c: PartCollector, m: Materials, dynamic: Group, screen: CanvasScreen, x: number, y: number, z: number, w: number, h: number): void {
+function framedScreen(
+  c: PartCollector,
+  m: Materials,
+  dynamic: Group,
+  screen: CanvasScreen,
+  x: number,
+  y: number,
+  z: number,
+  w: number,
+  h: number,
+): void {
   c.box(m.black, x, y, z + 0.02, w + 0.06, h + 0.06, 0.04);
   addScreen(dynamic, screen, x, y, z + 0.045, w, h);
 }
 
-function elevatorCab(c: PartCollector, m: Materials, dynamic: Group, a: number, b: number, zFace: number, index: number, rigs: ElevatorRig[]): void {
+function elevatorCab(
+  c: PartCollector,
+  m: Materials,
+  dynamic: Group,
+  a: number,
+  b: number,
+  zFace: number,
+  index: number,
+  rigs: ElevatorRig[],
+): void {
   const w = b - a;
   const mid = (a + b) / 2;
   const depth = 1.05;
@@ -119,8 +149,14 @@ function clock(c: PartCollector, m: Materials, x: number, y: number, z: number):
 }
 
 export function buildWallItems(
-  c: PartCollector, area: AreaLayout, m: Materials, dynamic: Group, out: WallScreens,
-  accent: string, projectName: string, text: WorldText = worldText('pt-BR'),
+  c: PartCollector,
+  area: AreaLayout,
+  m: Materials,
+  dynamic: Group,
+  out: WallScreens,
+  accent: string,
+  projectName: string,
+  text: WorldText = worldText('pt-BR'),
 ): void {
   const zFace = (area.rect.y + WALL_ROWS) * T;
   const z = zFace + 0.03;
@@ -130,13 +166,40 @@ export function buildWallItems(
     const a = item.x * T;
     const b = (item.x + item.w) * T;
     const mid = (a + b) / 2;
-    placeNorthItem(c, area, m, dynamic, out, item, mid, b - a, z, zFace, accent, projectName, text, () => elevatorIndex++);
+    placeNorthItem(
+      c,
+      area,
+      m,
+      dynamic,
+      out,
+      item,
+      mid,
+      b - a,
+      z,
+      zFace,
+      accent,
+      projectName,
+      text,
+      () => elevatorIndex++,
+    );
   }
 }
 
 function placeNorthItem(
-  c: PartCollector, area: AreaLayout, m: Materials, dynamic: Group, out: WallScreens, item: WallItem, mid: number, width: number, z: number,
-  zFace: number, accent: string, projectName: string, text: WorldText, nextElevator: () => number,
+  c: PartCollector,
+  area: AreaLayout,
+  m: Materials,
+  dynamic: Group,
+  out: WallScreens,
+  item: WallItem,
+  mid: number,
+  width: number,
+  z: number,
+  zFace: number,
+  accent: string,
+  projectName: string,
+  text: WorldText,
+  nextElevator: () => number,
 ): void {
   const mk = (w: number, h: number): CanvasScreen => {
     const s = new CanvasScreen(Math.round(w * 256), Math.round(h * 256));
@@ -149,12 +212,32 @@ function placeNorthItem(
       break;
     case 'logoSign': {
       c.box(m.brass, mid, 2.15, z + 0.02, 2.08, 0.58, 0.03);
-      decorQuad(c, out, mid, 2.15, z + 0.045, 2.0, 0.5, (ctx, w, h) => paintSign(ctx, w, h, 'AI Office', '#c9a456', true), text);
+      decorQuad(
+        c,
+        out,
+        mid,
+        2.15,
+        z + 0.045,
+        2.0,
+        0.5,
+        (ctx, w, h) => paintSign(ctx, w, h, 'AI Office', '#c9a456', true),
+        text,
+      );
       break;
     }
     case 'sign': {
       c.box(m.graphite, mid, 2.32, z + 0.02, 1.86, 0.48, 0.03);
-      decorQuad(c, out, mid, 2.32, z + 0.045, 1.8, 0.42, (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true), text);
+      decorQuad(
+        c,
+        out,
+        mid,
+        2.32,
+        z + 0.045,
+        1.8,
+        0.42,
+        (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true),
+        text,
+      );
       break;
     }
     case 'board': {
@@ -211,7 +294,11 @@ const PLAQUE_Y = 1.93;
  * Hangs the branch plaque under the room's sign and returns its screen (null for an area without a sign). It is created
  * the first time a room has a repository, so folders that are not repositories get no empty plate.
  */
-export function mountPlaque(dynamic: Group, out: WallScreens, area: AreaLayout): { screen: CanvasScreen; mesh: Mesh } | null {
+export function mountPlaque(
+  dynamic: Group,
+  out: WallScreens,
+  area: AreaLayout,
+): { screen: CanvasScreen; mesh: Mesh } | null {
   const sign = area.wallItems.find((item) => item.kind === 'sign' && item.side === 'north');
   if (!sign) return null;
   const screen = new CanvasScreen(PLAQUE_CANVAS_W, PLAQUE_CANVAS_H);

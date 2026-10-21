@@ -61,20 +61,40 @@ const STATUS_MOVES: Record<BoardColumnId, StatusMove> = {
   completed: { pending: 'reopen', in_progress: 'resume' },
 };
 
-const ADD_KEYS: Record<BoardColumnId, 'add' | 'addNow' | 'addDone'> = { pending: 'add', in_progress: 'addNow', completed: 'addDone' };
+const ADD_KEYS: Record<BoardColumnId, 'add' | 'addNow' | 'addDone'> = {
+  pending: 'add',
+  in_progress: 'addNow',
+  completed: 'addDone',
+};
 
 /** The message for dropping `card` on `target`, or null when nothing would change (or the move makes no sense). */
-export function buildMoveIntent(card: BoardCard, target: MoveTarget, nameOf: (agentId: string) => string): MoveIntent | null {
+export function buildMoveIntent(
+  card: BoardCard,
+  target: MoveTarget,
+  nameOf: (agentId: string) => string,
+): MoveIntent | null {
   if (card.ghost) return null;
   const base = { title: card.title, cardKey: card.key, baseStatus: card.status };
   if ('agentId' in target) {
     if (target.agentId === card.agentId || card.status === 'completed') return null;
     const key = card.status === 'in_progress' ? MESSAGE_KEYS.reassignNow : MESSAGE_KEYS.reassign;
-    return { ...base, kind: 'reassign', recipientId: target.agentId, column: card.status, text: t(key, { task: card.title, from: nameOf(card.agentId) }) };
+    return {
+      ...base,
+      kind: 'reassign',
+      recipientId: target.agentId,
+      column: card.status,
+      text: t(key, { task: card.title, from: nameOf(card.agentId) }),
+    };
   }
   const kind = STATUS_MOVES[card.status][target.column];
   if (kind === undefined) return null;
-  return { ...base, kind, recipientId: card.agentId, column: target.column, text: t(MESSAGE_KEYS[kind], { task: card.title }) };
+  return {
+    ...base,
+    kind,
+    recipientId: card.agentId,
+    column: target.column,
+    text: t(MESSAGE_KEYS[kind], { task: card.title }),
+  };
 }
 
 /** The message asking `agentId` to add a task to its list (null for an empty title). */
@@ -114,7 +134,11 @@ function isSettled(mark: SentMark, cards: readonly BoardCard[]): boolean {
 }
 
 /** Drops the marks whose change a snapshot now shows (or that waited too long). Same array when none dropped. */
-export function reconcileSent(marks: readonly SentMark[], cards: readonly BoardCard[], now: number): readonly SentMark[] {
+export function reconcileSent(
+  marks: readonly SentMark[],
+  cards: readonly BoardCard[],
+  now: number,
+): readonly SentMark[] {
   const alive = marks.filter((mark) => now - mark.sentAt < SENT_TTL_MS && !isSettled(mark, cards));
   return alive.length === marks.length ? marks : alive;
 }

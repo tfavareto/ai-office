@@ -70,7 +70,14 @@ describe('camera math', () => {
 });
 
 describe('world coverage', () => {
-  const sizes: [number, number][] = [[1280, 720], [1440, 830], [1920, 1080], [2560, 1440], [800, 1200], [3440, 1440]];
+  const sizes: [number, number][] = [
+    [1280, 720],
+    [1440, 830],
+    [1920, 1080],
+    [2560, 1440],
+    [800, 1200],
+    [3440, 1440],
+  ];
   const noInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 
   it('derives the minimum zoom from the canvas size, not from the free area', () => {
@@ -102,7 +109,12 @@ describe('world coverage', () => {
         c.world = { x: -34 * 16, y: -46 * 16, w: worldW, h: 125 * 16 };
         for (const z of [c.minZoom, c.minZoom * 1.7, 3, 6]) {
           c.zoom = c.tz = Math.min(6, z);
-          for (const [dx, dy] of [[1e5, 1e5], [-1e5, -1e5], [1e5, -1e5], [0, 0]]) {
+          for (const [dx, dy] of [
+            [1e5, 1e5],
+            [-1e5, -1e5],
+            [1e5, -1e5],
+            [0, 0],
+          ]) {
             c.nudge(dx, dy);
             const v = c.visibleWorld();
             const w = c.world;
@@ -368,7 +380,11 @@ describe('stepping from an arbitrary zoom', () => {
 });
 
 describe('overview zoom', () => {
-  const windowOf = (width: number, height: number, insets = { top: 56, right: 0, bottom: 56, left: 320 }) => ({ width, height, insets });
+  const windowOf = (width: number, height: number, insets = { top: 56, right: 0, bottom: 56, left: 320 }) => ({
+    width,
+    height,
+    insets,
+  });
   /** 4 rooms: 62 x 29 tiles. */
   const building = { w: 62 * 16, h: 29 * 16 };
 
@@ -379,7 +395,12 @@ describe('overview zoom', () => {
   }
 
   it('shows the whole building inside the insets at common sizes, at DPR 1 and 2', () => {
-    for (const [w, h] of [[1280, 720], [1440, 900], [1920, 1080], [2560, 1440]]) {
+    for (const [w, h] of [
+      [1280, 720],
+      [1440, 900],
+      [1920, 1080],
+      [2560, 1440],
+    ]) {
       for (const dpr of [1, 2]) {
         const view = windowOf(w, h);
         const z = overviewZoom(building, view, dpr);
@@ -403,7 +424,9 @@ describe('overview zoom', () => {
     const view = windowOf(1280, 720);
     const z = overviewZoom(building, view, 1);
     expect(z).toBeLessThan(1);
-    expect(z).toBeGreaterThanOrEqual(fitContinuous({ x: 0, y: 0, w: building.w + 128, h: building.h + 128 }, view, 12) - 1e-9);
+    expect(z).toBeGreaterThanOrEqual(
+      fitContinuous({ x: 0, y: 0, w: building.w + 128, h: building.h + 128 }, view, 12) - 1e-9,
+    );
   });
 
   it('never exceeds the maximum zoom for a tiny building on a huge window', () => {

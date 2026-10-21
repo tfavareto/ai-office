@@ -35,7 +35,9 @@ function sitBase(w: PoseWriter, c: PoseContext): void {
 
 function breathe(w: PoseWriter, c: PoseContext): void {
   const b = s(c.t, 0.22, c.phase);
-  w.rot('spine_02', b * 0.9).rot('spine_03', b * 0.7).rot('head', -b * 0.5);
+  w.rot('spine_02', b * 0.9)
+    .rot('spine_03', b * 0.7)
+    .rot('head', -b * 0.5);
 }
 
 function armsRelaxed(w: PoseWriter, forward = 0): void {
@@ -60,7 +62,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
     w.rot('foot_l', sw * 10).rot('foot_r', -sw * 10);
     w.rot('upperarm_l', sw * 24, 0, -STAND_ARM_Z).rot('upperarm_r', -sw * 24, 0, STAND_ARM_Z);
     w.pair('lowerarm', -22);
-    w.rot('spine_02', 0, -sw * 6).rot('spine_03', 3, -sw * 4).rot('pelvis', 0, sw * 6);
+    w.rot('spine_02', 0, -sw * 6)
+      .rot('spine_03', 3, -sw * 4)
+      .rot('pelvis', 0, sw * 6);
     w.rot('head', 0, sw * 3);
     w.offset(Math.sin(p) * 0.012, -Math.abs(Math.cos(p)) * 0.035 + 0.01, 0);
     w.curl(0.4);
@@ -96,7 +100,7 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   coffee(w, c) {
     armsRelaxed(w);
     breathe(w, c);
-    const sip = Math.max(0, s(c.t, 0.18, c.phase)) ;
+    const sip = Math.max(0, s(c.t, 0.18, c.phase));
     w.rot('upperarm_r', -30 - sip * 25, 0, STAND_ARM_Z * 0 + 18).rot('lowerarm_r', -85 - sip * 35, 0, 0);
     w.rot('head', -sip * 8, 0, 0);
     w.curl(0.4, 0.7);
@@ -114,7 +118,10 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
 
   sleep(w, c) {
     const b = s(c.t, 0.2, c.phase);
-    w.rot('spine_01', 14).rot('spine_02', 16).rot('spine_03', 12).rot('head', 20 + b * 1.5);
+    w.rot('spine_01', 14)
+      .rot('spine_02', 16)
+      .rot('spine_03', 12)
+      .rot('head', 20 + b * 1.5);
     w.pair('upperarm', -55, 0, -14).pair('lowerarm', -80);
     w.curl(0.2);
   },
@@ -128,7 +135,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
 
   stretch(w, c) {
     const b = s(c.t, 0.25, c.phase);
-    w.rot('spine_02', -8 - b * 3).rot('spine_03', -6).rot('head', 8);
+    w.rot('spine_02', -8 - b * 3)
+      .rot('spine_03', -6)
+      .rot('head', 8);
     w.pair('upperarm', -10, 0, 165).pair('lowerarm', -10);
     w.curl(0.1);
   },
@@ -146,7 +155,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
     breathe(w, c);
     const g1 = s(c.t, 1.1, c.phase);
     const g2 = s(c.t, 0.7, c.phase + 2);
-    w.rot('upperarm_r', -38 + g1 * 10, 0, 22).rot('lowerarm_r', -60 + g2 * 18, 0, 0).rot('hand_r', g1 * 14, 0, 0);
+    w.rot('upperarm_r', -38 + g1 * 10, 0, 22)
+      .rot('lowerarm_r', -60 + g2 * 18, 0, 0)
+      .rot('hand_r', g1 * 14, 0, 0);
     w.rot('upperarm_l', -12 + g2 * 8, 0, 0).rot('lowerarm_l', -18);
     w.rot('head', s(c.t, 0.9, c.phase) * 3, s(c.t, 0.3, c.phase) * 5);
     w.curl(0.3, 0.2);
@@ -175,7 +186,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
     breathe(w, c);
     const j = s(c.t, 2.2, c.phase);
     w.rot('spine_02', 6).rot('head', 5, 0);
-    w.rot('upperarm_l', -50, 0, -10).rot('lowerarm_l', -50).rot('hand_l', j * 8, 0, 0);
+    w.rot('upperarm_l', -50, 0, -10)
+      .rot('lowerarm_l', -50)
+      .rot('hand_l', j * 8, 0, 0);
     w.rot('upperarm_r', -50, 0, 10).rot('lowerarm_r', -40 + j * 6);
     w.curl(0.7, 0.4);
   },
@@ -214,5 +227,7 @@ export function newTargetPose(): PoseVec {
 
 /** Poses in which the lower body is seated (no walking blend, hips lowered). */
 export function isSeatedPose(pose: Pose): boolean {
-  return pose === 'sit' || pose === 'type' || pose === 'sleep' || pose === 'lean' || pose === 'stretch' || pose === 'popcorn';
+  return (
+    pose === 'sit' || pose === 'type' || pose === 'sleep' || pose === 'lean' || pose === 'stretch' || pose === 'popcorn'
+  );
 }

@@ -5,7 +5,17 @@ import type { FeedItem, Notice } from '@ai-office/shared';
 import { silentLogger } from '../log';
 import { NameStore } from '../office/name-store';
 import { Office } from '../office/office';
-import { type FakeClaudeDir, T0, assistantLine, jsonl, makeFakeClaude, text, toolResultLine, toolUse, userLine } from '../test-helpers';
+import {
+  type FakeClaudeDir,
+  T0,
+  assistantLine,
+  jsonl,
+  makeFakeClaude,
+  text,
+  toolResultLine,
+  toolUse,
+  userLine,
+} from '../test-helpers';
 import { Engine } from './engine';
 
 let fake: FakeClaudeDir;
@@ -30,7 +40,13 @@ function build(pidAlive: (pid: number) => boolean = () => true): void {
       onAgentEvent: () => undefined,
     },
   });
-  engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, log: silentLogger, now: () => clock, pidAlive });
+  engine = new Engine({
+    discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined },
+    office,
+    log: silentLogger,
+    now: () => clock,
+    pidAlive,
+  });
 }
 
 beforeEach(async () => {
@@ -46,8 +62,21 @@ const agents = () => office.state().agents;
 
 describe('Engine with a registry', () => {
   test('an open session becomes a main agent in a project room', async () => {
-    await fake.writeRegistry(100, { sessionId: 's1', name: 'Minha sessão', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('Corrigir o bug', 50_000), assistantLine([toolUse('t1', 'Read', { file_path: '/work/proj/src/a.ts' })], 51_000, { stopReason: 'tool_use' })));
+    await fake.writeRegistry(100, {
+      sessionId: 's1',
+      name: 'Minha sessão',
+      status: 'busy',
+      statusUpdatedAt: T0 + 59_000,
+    });
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('Corrigir o bug', 50_000),
+        assistantLine([toolUse('t1', 'Read', { file_path: '/work/proj/src/a.ts' })], 51_000, {
+          stopReason: 'tool_use',
+        }),
+      ),
+    );
     build();
     await engine.scan();
     expect(office.state().projects).toMatchObject([{ id: '/work/proj', name: 'proj', order: 0 }]);
@@ -70,12 +99,21 @@ describe('Engine with a registry', () => {
 
   test('history in the transcript tail is replayed silently; new lines hit the feed', async () => {
     await fake.writeRegistry(100, { sessionId: 's1' });
-    await fake.writeTranscript('s1', jsonl(userLine('antigo', -600_000), assistantLine([text('feito')], -590_000, { stopReason: 'end_turn' })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('antigo', -600_000), assistantLine([text('feito')], -590_000, { stopReason: 'end_turn' })),
+    );
     build();
     await engine.scan();
     expect(feed).toHaveLength(0);
     expect(notices.filter((n) => n.level === 'success')).toHaveLength(0);
-    await fake.appendTranscript('s1', jsonl(userLine('nova tarefa', 59_000), assistantLine([toolUse('t', 'Bash', { command: 'npm test', description: 'Rodando testes' })], 59_500)));
+    await fake.appendTranscript(
+      's1',
+      jsonl(
+        userLine('nova tarefa', 59_000),
+        assistantLine([toolUse('t', 'Bash', { command: 'npm test', description: 'Rodando testes' })], 59_500),
+      ),
+    );
     await engine.scan();
     expect(feed.map((item) => item.activity.text)).toEqual(['Nova tarefa: “nova tarefa”', 'Rodando testes']);
     expect(feed[0]).toMatchObject({ agentId: 'claude:s1', projectId: '/work/proj' });
@@ -104,7 +142,10 @@ describe('Engine with a registry', () => {
 
   test('AskUserQuestion makes the agent wait with "Responder uma pergunta"', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('q', 'AskUserQuestion', { questions: [] })], 58_500)));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('go', 58_000), assistantLine([toolUse('q', 'AskUserQuestion', { questions: [] })], 58_500)),
+    );
     build();
     await engine.scan();
     expect(agents()[0]).toMatchObject({ status: 'waiting', waitingFor: 'Responder uma pergunta' });
@@ -114,7 +155,10 @@ describe('Engine with a registry', () => {
 
   test('a stuck tool while the registry says idle becomes "Aprovar <ferramenta>", with an alert on the transition', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 1000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('b', 'Bash', { command: 'rm -rf x' })], 58_500)));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('go', 58_000), assistantLine([toolUse('b', 'Bash', { command: 'rm -rf x' })], 58_500)),
+    );
     build();
     await engine.scan();
     expect(agents()[0]?.status).toBe('working');
@@ -128,12 +172,34 @@ describe('Engine with a registry', () => {
 
   test('subagents arrive from their files, are linked by meta, and finish with the spawning tool result', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('tu1', 'Agent', { description: 'Explorar código', subagent_type: 'Explore' })], 58_500)));
-    await fake.writeSubagent('s1', 'ag1', jsonl(userLine('prompt do sub', 58_600, { agentId: 'ag1' }), assistantLine([toolUse('r', 'Grep', { pattern: 'foo' })], 58_700, { extra: { agentId: 'ag1' } })), { agentType: 'Explore', description: 'Explorar código', toolUseId: 'tu1' });
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('go', 58_000),
+        assistantLine([toolUse('tu1', 'Agent', { description: 'Explorar código', subagent_type: 'Explore' })], 58_500),
+      ),
+    );
+    await fake.writeSubagent(
+      's1',
+      'ag1',
+      jsonl(
+        userLine('prompt do sub', 58_600, { agentId: 'ag1' }),
+        assistantLine([toolUse('r', 'Grep', { pattern: 'foo' })], 58_700, { extra: { agentId: 'ag1' } }),
+      ),
+      { agentType: 'Explore', description: 'Explorar código', toolUseId: 'tu1' },
+    );
     build();
     await engine.scan();
     const sub = agents().find((a) => a.kind === 'sub');
-    expect(sub).toMatchObject({ id: 'claude:s1:ag1', role: 'Explore', title: 'Explorar código', status: 'working', parentId: 'claude:s1', projectId: '/work/proj', activity: { text: 'Buscando “foo”' } });
+    expect(sub).toMatchObject({
+      id: 'claude:s1:ag1',
+      role: 'Explore',
+      title: 'Explorar código',
+      status: 'working',
+      parentId: 'claude:s1',
+      projectId: '/work/proj',
+      activity: { text: 'Buscando “foo”' },
+    });
     expect(agents().find((a) => a.kind === 'main')?.stats.subagents).toBe(1);
     expect(new Set(agents().map((a) => a.name)).size).toBe(2);
 
@@ -153,7 +219,10 @@ describe('Engine with a registry', () => {
     build();
     await engine.scan();
     expect(agents().find((a) => a.kind === 'sub')).toMatchObject({ role: 'Subagente' });
-    await fake.writeSubagent('s1', 'ag2', jsonl(assistantLine([text('oi')], 59_000)), { agentType: 'Plan', description: 'Planejar' });
+    await fake.writeSubagent('s1', 'ag2', jsonl(assistantLine([text('oi')], 59_000)), {
+      agentType: 'Plan',
+      description: 'Planejar',
+    });
     await engine.scan();
     expect(agents().find((a) => a.kind === 'sub')).toMatchObject({ role: 'Plan', title: 'Planejar' });
   });
@@ -187,7 +256,10 @@ describe('Engine with a registry', () => {
     await fake.writeRegistry(101, { sessionId: 's2', cwd: '/work/b' });
     await fake.writeTranscript('s2', jsonl(userLine('b', 59_000, { cwd: '/work/b' })), '/work/b');
     await engine.scan();
-    expect(office.state().projects.map((p) => [p.name, p.order])).toEqual([['a', 0], ['b', 1]]);
+    expect(office.state().projects.map((p) => [p.name, p.order])).toEqual([
+      ['a', 0],
+      ['b', 1],
+    ]);
     await rm(join(fake.dir, 'sessions', '100.json'));
     clock += 10_000;
     await engine.scan();
@@ -196,12 +268,18 @@ describe('Engine with a registry', () => {
     await fake.writeRegistry(102, { sessionId: 's3', cwd: '/work/c' });
     await fake.writeTranscript('s3', jsonl(userLine('c', 59_000, { cwd: '/work/c' })), '/work/c');
     await engine.scan();
-    expect(office.state().projects.map((p) => [p.name, p.order])).toEqual([['c', 0], ['b', 1]]);
+    expect(office.state().projects.map((p) => [p.name, p.order])).toEqual([
+      ['c', 0],
+      ['b', 1],
+    ]);
   });
 
   test('bad lines never break the scan; a truncated transcript is re-read from the start', async () => {
     await fake.writeRegistry(100, { sessionId: 's1' });
-    const path = await fake.writeTranscript('s1', jsonl(userLine('um', 55_000), 'lixo {{{', '{"type":"user"}', assistantLine([text('dois')], 56_000)));
+    const path = await fake.writeTranscript(
+      's1',
+      jsonl(userLine('um', 55_000), 'lixo {{{', '{"type":"user"}', assistantLine([text('dois')], 56_000)),
+    );
     build();
     await engine.scan();
     expect(agents()[0]?.activity?.text).toBe('Escrevendo a resposta');
@@ -232,7 +310,15 @@ describe('Engine without a registry', () => {
     await fake.writeTranscript('s9', jsonl(userLine('sem registro', 59_000)));
     build();
     clock = Date.now();
-    await fake.writeTranscript('s9', jsonl(userLine('sem registro', 0).replace(/"timestamp":"[^"]+"/, `"timestamp":"${new Date(clock - 1000).toISOString()}"`)));
+    await fake.writeTranscript(
+      's9',
+      jsonl(
+        userLine('sem registro', 0).replace(
+          /"timestamp":"[^"]+"/,
+          `"timestamp":"${new Date(clock - 1000).toISOString()}"`,
+        ),
+      ),
+    );
     await engine.scan();
     expect(agents()).toHaveLength(1);
     clock += 31 * 60_000;

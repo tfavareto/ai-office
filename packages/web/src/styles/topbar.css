@@ -89,16 +89,37 @@
   background: var(--idle);
 }
 
-.ao-pill--live { color: var(--working); border-color: rgba(62, 207, 142, 0.3); }
-.ao-pill--live .ao-pill-dot { background: var(--working); box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18); }
-.ao-pill--mock { color: var(--accent); border-color: rgba(110, 162, 255, 0.35); }
-.ao-pill--mock .ao-pill-dot { background: var(--accent); }
-.ao-pill--warn { color: var(--waiting); border-color: rgba(245, 181, 68, 0.35); }
-.ao-pill--warn .ao-pill-dot { background: var(--waiting); animation: ao-blink 1.2s ease-in-out infinite; }
-.ao-pill--connecting .ao-pill-dot { animation: ao-blink 1.2s ease-in-out infinite; }
+.ao-pill--live {
+  color: var(--working);
+  border-color: rgba(62, 207, 142, 0.3);
+}
+.ao-pill--live .ao-pill-dot {
+  background: var(--working);
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18);
+}
+.ao-pill--mock {
+  color: var(--accent);
+  border-color: rgba(110, 162, 255, 0.35);
+}
+.ao-pill--mock .ao-pill-dot {
+  background: var(--accent);
+}
+.ao-pill--warn {
+  color: var(--waiting);
+  border-color: rgba(245, 181, 68, 0.35);
+}
+.ao-pill--warn .ao-pill-dot {
+  background: var(--waiting);
+  animation: ao-blink 1.2s ease-in-out infinite;
+}
+.ao-pill--connecting .ao-pill-dot {
+  animation: ao-blink 1.2s ease-in-out infinite;
+}
 
 @keyframes ao-blink {
-  50% { opacity: 0.3; }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* Counters. */
@@ -139,8 +160,12 @@
   cursor: default;
 }
 
-.ao-counter--shells:not(.is-zero) { color: var(--shell); }
-.ao-counter--working:not(.is-zero) { color: var(--working); }
+.ao-counter--shells:not(.is-zero) {
+  color: var(--shell);
+}
+.ao-counter--working:not(.is-zero) {
+  color: var(--working);
+}
 
 .ao-counter.is-attention {
   border-color: rgba(245, 181, 68, 0.45);
@@ -174,7 +199,9 @@
 }
 
 @keyframes ao-attention {
-  50% { box-shadow: 0 0 0 4px rgba(245, 181, 68, 0.12); }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 181, 68, 0.12);
+  }
 }
 
 /* Usage cards: full, compact (chip and the 5 h figure) or "+N" overflow, chosen by UsageCards from the room left. */
@@ -199,7 +226,10 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), box-shadow var(--t-base) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-base) var(--ease);
 }
 
 .ao-usage-card:hover {
@@ -286,7 +316,9 @@
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .ao-usage-more:hover,
@@ -357,7 +389,10 @@
 }
 
 @keyframes ao-drop {
-  from { opacity: 0; transform: translate(-50%, -8px); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
 }
 
 /* Splash. */
@@ -368,7 +403,9 @@
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 50% 40%, #16223a, #0b111b 70%);
-  transition: opacity 400ms var(--ease), visibility 400ms;
+  transition:
+    opacity 400ms var(--ease),
+    visibility 400ms;
 }
 
 .ao-splash.is-hidden {
@@ -400,7 +437,9 @@
 }
 
 @keyframes ao-float {
-  50% { transform: translateY(-4px); }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 /* Empty state over the world. */

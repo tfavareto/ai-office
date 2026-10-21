@@ -107,7 +107,10 @@ export class JsonlTailer {
         this.skippingOversized = false;
         this.remainder = Buffer.alloc(0);
       } else {
-        const piece = this.remainder.length > 0 ? Buffer.concat([this.remainder, chunk.subarray(start, newline)]) : chunk.subarray(start, newline);
+        const piece =
+          this.remainder.length > 0
+            ? Buffer.concat([this.remainder, chunk.subarray(start, newline)])
+            : chunk.subarray(start, newline);
         this.remainder = Buffer.alloc(0);
         if (piece.length > 0) lines.push(piece.toString('utf8'));
       }

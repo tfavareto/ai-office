@@ -128,7 +128,8 @@ export async function listMainTranscripts(dir: string, since: number): Promise<M
       const path = join(projects, folder, name);
       try {
         const info = await stat(path);
-        if (info.mtimeMs >= since) result.push({ sessionId: match[1], path, mtimeMs: info.mtimeMs, size: info.size, folder });
+        if (info.mtimeMs >= since)
+          result.push({ sessionId: match[1], path, mtimeMs: info.mtimeMs, size: info.size, folder });
       } catch {
         // Vanished between listing and stat.
       }

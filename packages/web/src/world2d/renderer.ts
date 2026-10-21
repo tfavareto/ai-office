@@ -187,7 +187,10 @@ export class Renderer {
       const room = s.sim.rooms.byArea(area.id);
       // every common area stays lit at night (the floor is a working office); project rooms follow their people
       const alwaysLit = !area.projectId && area.kind !== 'terrace';
-      const target = alwaysLit || (counts.get(area.id) ?? 0) > 0 || (!!projectInfo && projectInfo.agents > 0 && !room?.ghost) ? 1 : 0;
+      const target =
+        alwaysLit || (counts.get(area.id) ?? 0) > 0 || (!!projectInfo && projectInfo.agents > 0 && !room?.ghost)
+          ? 1
+          : 0;
       const current = this.lit.get(area.id) ?? target;
       const next = current + (target - current) * (1 - Math.exp(-s.dt * 2.2));
       this.lit.set(area.id, Math.abs(next - target) < 0.004 ? target : next);
@@ -201,7 +204,13 @@ export class Renderer {
     blit(ctx, ex.canvas, ex.x, ex.y, vis);
     this.traffic.draw(s.time, this.cars);
     for (const car of this.cars) {
-      if (car.x > vis.x + vis.w || car.x + car.sprite.width < vis.x || car.y > vis.y + vis.h || car.y + car.sprite.height < vis.y) continue;
+      if (
+        car.x > vis.x + vis.w ||
+        car.x + car.sprite.width < vis.x ||
+        car.y > vis.y + vis.h ||
+        car.y + car.sprite.height < vis.y
+      )
+        continue;
       ctx.drawImage(car.sprite, Math.round(car.x), Math.round(car.y));
     }
   }
@@ -294,7 +303,11 @@ export class Renderer {
       const spot = s.sim.spots.get(desk.spotId);
       const here = actor && spot ? Math.hypot(actor.x - spot.x, actor.y - spot.y) < 2.2 && !actor.moving : false;
       const agent = actor?.agent;
-      const kinds = desksScreens(here && agent ? agent.status : actor ? 'idle' : null, agent?.activity?.kind, !!agent?.shells.some((x) => !x.background));
+      const kinds = desksScreens(
+        here && agent ? agent.status : actor ? 'idle' : null,
+        agent?.activity?.kind,
+        !!agent?.shells.some((x) => !x.background),
+      );
       for (let i = 0; i < DESK_SCREENS.length; i++) {
         const r = DESK_SCREENS[i];
         ctx.drawImage(screenSprite(kinds[i], frameBase + i * 2), desk.x + r.x, desk.y + r.y, SCREEN_W, SCREEN_H);
@@ -302,27 +315,45 @@ export class Renderer {
     }
   }
 
-  private drawWallScreen(ctx: Ctx, s: FrameState, ac: AreaCanvas, screen: AreaCanvas['screens'][number], frameBase: number): void {
+  private drawWallScreen(
+    ctx: Ctx,
+    s: FrameState,
+    ac: AreaCanvas,
+    screen: AreaCanvas['screens'][number],
+    frameBase: number,
+  ): void {
     const area = ac.area;
     if (screen.kind === 'board') {
       const info = this.roomInfoOf(s, area);
       if (!info) return;
       const text = worldText(s.options.locale);
       const version = `${roomInfoKey(info)}|${area.theme.accent}|${text.locale}`;
-      const canvas = this.boardFor(`${area.id}:board`, () => renderBoard(screen.w, screen.h, info, area.theme.accent, text), version);
+      const canvas = this.boardFor(
+        `${area.id}:board`,
+        () => renderBoard(screen.w, screen.h, info, area.theme.accent, text),
+        version,
+      );
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
     if (screen.kind === 'taskboard') {
       const text = worldText(s.options.locale);
-      const canvas = this.boardFor('meeting:tasks', () => renderTaskBoard(screen.w, screen.h, s.taskBoard, text), `${text.locale}|${taskBoardKey(s.taskBoard)}`);
+      const canvas = this.boardFor(
+        'meeting:tasks',
+        () => renderTaskBoard(screen.w, screen.h, s.taskBoard, text),
+        `${text.locale}|${taskBoardKey(s.taskBoard)}`,
+      );
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
     if (area.kind === 'meeting') {
       const names = s.sim.characters.filter((c) => c.areaId === 'meeting' && c.alpha > 0.5).map((c) => c.name);
       const text = worldText(s.options.locale);
-      const canvas = this.boardFor('meeting:tv', () => renderMeetingTv(screen.w, screen.h, names, text), `${text.locale}|${names.join('|')}`);
+      const canvas = this.boardFor(
+        'meeting:tv',
+        () => renderMeetingTv(screen.w, screen.h, names, text),
+        `${text.locale}|${names.join('|')}`,
+      );
       ctx.drawImage(canvas, screen.x, screen.y);
       return;
     }
@@ -371,6 +402,4 @@ export class Renderer {
       ctx.restore();
     }
   }
-
 }
-

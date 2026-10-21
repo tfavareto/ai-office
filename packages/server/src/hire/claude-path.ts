@@ -25,7 +25,11 @@ export interface ClaudeLookup {
 }
 
 /** Absolute path of an executable `claude`, or undefined when there is none. */
-export function resolveClaudeExecutable({ env, home, isExecutable = isExecutableFile }: ClaudeLookup): string | undefined {
+export function resolveClaudeExecutable({
+  env,
+  home,
+  isExecutable = isExecutableFile,
+}: ClaudeLookup): string | undefined {
   const onPath = (env.PATH ?? '')
     .split(delimiter)
     .filter((dir) => dir !== '' && isAbsolute(dir))

@@ -107,7 +107,7 @@ function surface(ctx: Ctx, roof: Rect, base: string, kind: RoofKind, seed: numbe
   } else if (kind === 'deck') {
     for (let y = roof.y + 3; y < roof.y + roof.h; y += 4) hline(ctx, roof.x, y, roof.w, shade(base, -0.12));
   } else if (kind === 'green') {
-    for (let k = 0; k < roof.w * roof.h / 90; k++) {
+    for (let k = 0; k < (roof.w * roof.h) / 90; k++) {
       const x = roof.x + Math.floor(noise2(k, seed, 3) * roof.w);
       const y = roof.y + Math.floor(noise2(k, seed, 4) * roof.h);
       rect(ctx, x, y, 2, 2, k % 3 ? shade(base, 0.1) : shade(base, -0.12));

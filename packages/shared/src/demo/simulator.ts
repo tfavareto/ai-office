@@ -196,7 +196,11 @@ class Simulator implements DemoSimulator {
         path,
         seed: fnv1a(path),
         order: entry.order,
-        git: demoGit(DEMO_PROJECTS.findIndex((candidate) => candidate.path === path), this.startedAt, this.pullRequests()),
+        git: demoGit(
+          DEMO_PROJECTS.findIndex((candidate) => candidate.path === path),
+          this.startedAt,
+          this.pullRequests(),
+        ),
       }))
       .sort((a, b) => a.order - b.order);
   }
@@ -256,9 +260,18 @@ class Simulator implements DemoSimulator {
     return [...(this.messageMap.get(agentId) ?? [])];
   }
 
-  spawnSession(opts: { project: string; subs?: number; status?: Agent['status']; accountId?: string; title?: string }): string {
+  spawnSession(opts: {
+    project: string;
+    subs?: number;
+    status?: Agent['status'];
+    accountId?: string;
+    title?: string;
+  }): string {
     const spec = this.specFor(opts.project);
-    const id = this.createMain(spec, this.projectIndexOf(spec), this.clock, false, 1, { accountId: opts.accountId, title: opts.title });
+    const id = this.createMain(spec, this.projectIndexOf(spec), this.clock, false, 1, {
+      accountId: opts.accountId,
+      title: opts.title,
+    });
     this.noticeFor(id, 'info', msg('notice.opened', { name: this.nameOf(id), project: spec.name }), this.clock);
     const status = opts.status ?? 'working';
     if (status === 'idle') {
@@ -294,7 +307,11 @@ class Simulator implements DemoSimulator {
     };
     this.hireBook.add(hire);
     this.queue.push(this.clock + this.scale(HIRE_ARRIVAL_MS), (at) => {
-      const agentId = this.spawnSession({ project: spec.path, accountId, ...(prompt ? { title: prompt.slice(0, 80) } : {}) });
+      const agentId = this.spawnSession({
+        project: spec.path,
+        accountId,
+        ...(prompt ? { title: prompt.slice(0, 80) } : {}),
+      });
       this.hireBook.resolve(hire.id, agentId, at);
     });
     this.touch();
@@ -357,7 +374,12 @@ class Simulator implements DemoSimulator {
     if (known !== undefined) return known;
     const path = project.includes('/') ? project : `/Users/demo/projetos/${project}`;
     const name = path.split('/').filter(Boolean).pop() ?? project;
-    return { name, path, files: [`${path}/src/index.ts`, `${path}/README.md`, `${path}/package.json`], prompts: [DEMO_GENERIC_PROMPT] };
+    return {
+      name,
+      path,
+      files: [`${path}/src/index.ts`, `${path}/README.md`, `${path}/package.json`],
+      prompts: [DEMO_GENERIC_PROMPT],
+    };
   }
 
   private ensureProject(spec: DemoProjectSpec, accountIndex: number): void {
@@ -374,7 +396,10 @@ class Simulator implements DemoSimulator {
   }
 
   private projectIndexOf(spec: DemoProjectSpec): number {
-    return Math.max(0, DEMO_PROJECTS.findIndex((candidate) => candidate.path === spec.path));
+    return Math.max(
+      0,
+      DEMO_PROJECTS.findIndex((candidate) => candidate.path === spec.path),
+    );
   }
 
   /** `requested` when it is a demo account; otherwise the account the project belongs to. */
@@ -481,7 +506,10 @@ class Simulator implements DemoSimulator {
     runtime.turnStartedAt = at - randInt(runtime.rng, 20, 90) * 1000;
     runtime.stepsLeft = randInt(runtime.rng, 5, 9);
     runtime.stepsTotal = 12;
-    this.update(id, (agent) => ({ ...agent, tasks: this.planTasks(runtime, 0.45, at - randInt(runtime.rng, 5, 60) * 1000) }));
+    this.update(id, (agent) => ({
+      ...agent,
+      tasks: this.planTasks(runtime, 0.45, at - randInt(runtime.rng, 5, 60) * 1000),
+    }));
     this.setStatus(id, 'working', at - randInt(runtime.rng, 3, 25) * 1000);
   }
 
@@ -499,7 +527,8 @@ class Simulator implements DemoSimulator {
     if (agent === undefined) return;
     const activity: Activity = toActivity(draft, this.nextId('demo-act'), at);
     const runtime = this.runtimes.get(id);
-    const isTool = draft.kind !== 'prompt' && draft.kind !== 'done' && draft.kind !== 'message' && draft.kind !== 'permission';
+    const isTool =
+      draft.kind !== 'prompt' && draft.kind !== 'done' && draft.kind !== 'message' && draft.kind !== 'permission';
     const tokensIn = isTool && runtime !== undefined ? randInt(runtime.rng, 2000, 18000) : 0;
     const tokensOut = isTool && runtime !== undefined ? randInt(runtime.rng, 150, 1800) : 0;
     const cost = tokensIn * 0.0000011 + tokensOut * 0.000015;
@@ -514,12 +543,20 @@ class Simulator implements DemoSimulator {
         tokensIn: agent.stats.tokensIn + tokensIn,
         tokensOut: agent.stats.tokensOut + tokensOut,
         costUSD: (agent.stats.costUSD ?? 0) + cost,
-        linesAdded: agent.stats.linesAdded + (draft.kind === 'edit' || draft.kind === 'write' ? randInt(runtime?.rng ?? this.rng, 2, 40) : 0),
+        linesAdded:
+          agent.stats.linesAdded +
+          (draft.kind === 'edit' || draft.kind === 'write' ? randInt(runtime?.rng ?? this.rng, 2, 40) : 0),
         linesRemoved: agent.stats.linesRemoved + (draft.kind === 'edit' ? randInt(runtime?.rng ?? this.rng, 0, 12) : 0),
       },
     });
     if (quiet) return;
-    this.pendingFeed.push({ id: activity.id, agentId: id, agentName: agent.name, projectId: agent.projectId, activity });
+    this.pendingFeed.push({
+      id: activity.id,
+      agentId: id,
+      agentName: agent.name,
+      projectId: agent.projectId,
+      activity,
+    });
   }
 
   private notice(level: NoticeLevel, message: Msg, at: number, agentId?: string, projectId?: string): void {
@@ -642,7 +679,14 @@ class Simulator implements DemoSimulator {
       delay = Math.max(delay, this.runCommand(id, runtime, at));
     } else if (roll < 0.32 && (this.agentMap.get(id)?.shells.length ?? 0) === 0) {
       const shell = pick(runtime.rng, DEMO_LONG_SHELLS);
-      this.emit(id, localizeDraft(describeToolUse('Bash', { command: shell.command, run_in_background: true }), msg('activity.bash.run', { text: shell.label.msg })), at);
+      this.emit(
+        id,
+        localizeDraft(
+          describeToolUse('Bash', { command: shell.command, run_in_background: true }),
+          msg('activity.bash.run', { text: shell.label.msg }),
+        ),
+        at,
+      );
       this.startLongShell(id, at, randInt(runtime.rng, 60, 240) * 1000, shell);
     } else {
       this.emit(id, this.workDraft(runtime), at);
@@ -691,7 +735,12 @@ class Simulator implements DemoSimulator {
     this.update(id, (agent) => ({ ...agent, shells: agent.shells.filter((shell) => shell.id !== shellId) }));
   }
 
-  private startLongShell(id: string, startedAt: number, durationMs: number, preset = pick(this.rng, DEMO_LONG_SHELLS)): void {
+  private startLongShell(
+    id: string,
+    startedAt: number,
+    durationMs: number,
+    preset = pick(this.rng, DEMO_LONG_SHELLS),
+  ): void {
     const job: ShellJob = {
       id: this.nextId('demo-shell'),
       label: preset.label.text,
@@ -712,7 +761,9 @@ class Simulator implements DemoSimulator {
     this.emit(id, doneDraft(duration), at);
     this.update(id, (agent) => ({
       ...agent,
-      tasks: agent.tasks.map((task): TaskItem => (task.status === 'completed' ? task : { ...task, status: 'completed', changedAt: at })),
+      tasks: agent.tasks.map((task): TaskItem =>
+        task.status === 'completed' ? task : { ...task, status: 'completed', changedAt: at },
+      ),
       shells: agent.shells.filter((shell) => shell.background),
     }));
     this.noticeFor(id, 'success', msg('notice.done', { name: this.nameOf(id), duration: durationMsg(duration) }), at);
@@ -759,7 +810,12 @@ class Simulator implements DemoSimulator {
     }
     this.setStatus(id, 'waiting', at, { permission: request, waitingFor: undefined, waitingForMsg: undefined });
     this.emit(id, permissionDraft(spec.summary, spec.summaryMsg), at);
-    this.noticeFor(id, 'alert', msg('notice.needs.detail', { name: this.nameOf(id), detail: spec.summaryMsg ?? spec.summary }), at);
+    this.noticeFor(
+      id,
+      'alert',
+      msg('notice.needs.detail', { name: this.nameOf(id), detail: spec.summaryMsg ?? spec.summary }),
+      at,
+    );
     this.queue.push(request.expiresAt, (when) => this.resolveBlock(id, episode, { behavior: 'terminal' }, when));
   }
 
@@ -768,10 +824,16 @@ class Simulator implements DemoSimulator {
     if (runtime === undefined || runtime.phase === 'gone') return;
     runtime.phase = 'blocked';
     const episode = ++runtime.episode;
-    this.setStatus(id, 'waiting', at, { waitingFor: DEMO_QUESTION.text, waitingForMsg: DEMO_QUESTION.msg, permission: undefined });
+    this.setStatus(id, 'waiting', at, {
+      waitingFor: DEMO_QUESTION.text,
+      waitingForMsg: DEMO_QUESTION.msg,
+      permission: undefined,
+    });
     this.emit(id, describeToolUse('AskUserQuestion', {}), at);
     this.noticeFor(id, 'alert', msg('notice.question', { name: this.nameOf(id) }), at);
-    this.queue.push(at + this.dwell(runtime.rng, 18000, 40000), (when) => this.resolveBlock(id, episode, { behavior: 'terminal' }, when));
+    this.queue.push(at + this.dwell(runtime.rng, 18000, 40000), (when) =>
+      this.resolveBlock(id, episode, { behavior: 'terminal' }, when),
+    );
   }
 
   private resolveBlock(id: string, episode: number, decision: PermissionDecision, at: number): void {
@@ -799,7 +861,10 @@ class Simulator implements DemoSimulator {
     if (parent === undefined || runtime === undefined || runtime.phase === 'gone') return;
     for (let i = 0; i < count; i++) {
       const spec = pick(runtime.rng, DEMO_SUBAGENTS);
-      const delegated = localizeDraft(describeToolUse('Agent', { description: spec.description.text, subagent_type: spec.type }), msg('activity.subagent', { description: spec.description.msg }));
+      const delegated = localizeDraft(
+        describeToolUse('Agent', { description: spec.description.text, subagent_type: spec.type }),
+        msg('activity.subagent', { description: spec.description.msg }),
+      );
       this.emit(parentId, delegated, at + i * 80);
       this.update(parentId, (agent) => ({ ...agent, stats: { ...agent.stats, subagents: agent.stats.subagents + 1 } }));
       runtime.pendingSubs++;
@@ -807,7 +872,12 @@ class Simulator implements DemoSimulator {
     }
   }
 
-  private createSub(parent: Agent, parentRuntime: Runtime, spec: { type: string; description: DemoText }, at: number): void {
+  private createSub(
+    parent: Agent,
+    parentRuntime: Runtime,
+    spec: { type: string; description: DemoText },
+    at: number,
+  ): void {
     const id = this.nextId('demo');
     const person = pickName(`${this.seed}:${id}`, this.takenNames());
     const rng = mulberry32(fnv1a(`${this.seed}:${id}`));
@@ -834,7 +904,16 @@ class Simulator implements DemoSimulator {
       lastEventAt: at,
       demo: true,
     });
-    this.runtimes.set(id, { ...parentRuntime, rng, phase: 'working', stepToken: 0, stepsLeft: randInt(rng, 3, 7), pendingSubs: 0, turnsLeft: 0, visitor: false });
+    this.runtimes.set(id, {
+      ...parentRuntime,
+      rng,
+      phase: 'working',
+      stepToken: 0,
+      stepsLeft: randInt(rng, 3, 7),
+      pendingSubs: 0,
+      turnsLeft: 0,
+      visitor: false,
+    });
     this.queue.push(at + this.dwell(rng, 900, 1800), (when) => this.subStep(id, parent.id, when));
   }
 
@@ -891,7 +970,9 @@ class Simulator implements DemoSimulator {
   }
 
   private spawnVisitor(at: number): void {
-    const visitors = Array.from(this.runtimes.values()).filter((runtime) => runtime.visitor && runtime.phase !== 'gone').length;
+    const visitors = Array.from(this.runtimes.values()).filter(
+      (runtime) => runtime.visitor && runtime.phase !== 'gone',
+    ).length;
     if (visitors >= MAX_VISITORS) return;
     const index = Math.floor(this.rng() * Math.min(DEMO_PROJECTS.length, MAX_PROJECTS));
     const spec = DEMO_PROJECTS[index] as DemoProjectSpec;
@@ -913,12 +994,17 @@ class Simulator implements DemoSimulator {
     if (list === undefined || message === undefined) return;
     this.messageMap.set(
       agentId,
-      list.map((candidate) => (candidate.id === messageId ? { ...candidate, status: 'delivered' as const, deliveredAt: at, via: 'demo' as const } : candidate)),
+      list.map((candidate) =>
+        candidate.id === messageId
+          ? { ...candidate, status: 'delivered' as const, deliveredAt: at, via: 'demo' as const }
+          : candidate,
+      ),
     );
     const runtime = this.runtimes.get(agentId);
     if (runtime === undefined || runtime.phase === 'gone') return;
     this.emit(agentId, messageDraft(message.text), at);
-    if (runtime.phase === 'idle') this.queue.push(at + this.scale(1500), (when) => this.startTurn(agentId, when, message.text));
+    if (runtime.phase === 'idle')
+      this.queue.push(at + this.scale(1500), (when) => this.startTurn(agentId, when, message.text));
   }
 
   // ---- usage ------------------------------------------------------------------------------------------------

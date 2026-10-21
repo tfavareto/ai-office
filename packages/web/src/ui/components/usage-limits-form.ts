@@ -4,7 +4,14 @@ import type { AccountLimits, LimitUnit } from '@ai-office/shared';
 import { t } from '../../i18n';
 import type { AppContext } from '../context';
 import { h } from '../dom';
-import { type LimitField, limitToInput, parseLimitInput, withLimit, withUnit, withoutLimits } from '../model/usage-limits';
+import {
+  type LimitField,
+  limitToInput,
+  parseLimitInput,
+  withLimit,
+  withUnit,
+  withoutLimits,
+} from '../model/usage-limits';
 
 const FIELDS: readonly { field: LimitField; label: 'usage.limits.window5h' | 'usage.limits.week' }[] = [
   { field: 'window5h', label: 'usage.limits.window5h' },
@@ -18,7 +25,11 @@ export class UsageLimitsForm {
   private readonly unit: HTMLSelectElement;
   private readonly inputs = new Map<LimitField, HTMLInputElement>();
   private readonly suffixes: HTMLElement[] = [];
-  private readonly error = h('p', { class: 'ao-usage-limits-error', role: 'alert', hidden: true }, t('usage.limits.invalid'));
+  private readonly error = h(
+    'p',
+    { class: 'ao-usage-limits-error', role: 'alert', hidden: true },
+    t('usage.limits.invalid'),
+  );
 
   constructor(
     private readonly ctx: AppContext,
@@ -44,15 +55,34 @@ export class UsageLimitsForm {
       this.inputs.set(field, input);
       const suffix = h('span', { class: 'ao-usage-limits-suffix' });
       this.suffixes.push(suffix);
-      return h('div', { class: 'ao-usage-limits-field' }, h('label', { for: input.id }, t(label)), h('div', { class: 'ao-usage-limits-input' }, input, suffix));
+      return h(
+        'div',
+        { class: 'ao-usage-limits-field' },
+        h('label', { for: input.id }, t(label)),
+        h('div', { class: 'ao-usage-limits-input' }, input, suffix),
+      );
     });
-    const clear = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => this.clear() }, t('usage.limits.clear'));
+    const clear = h(
+      'button',
+      { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => this.clear() },
+      t('usage.limits.clear'),
+    );
     this.el = h(
       'details',
       { class: 'ao-usage-limits' },
       h('summary', null, t('usage.limits.title')),
       h('p', { class: 'ao-usage-limits-hint' }, t('usage.limits.hint')),
-      h('div', { class: 'ao-usage-limits-grid' }, h('div', { class: 'ao-usage-limits-field' }, h('label', { for: this.unit.id }, t('usage.limits.unit')), this.unit), ...fields),
+      h(
+        'div',
+        { class: 'ao-usage-limits-grid' },
+        h(
+          'div',
+          { class: 'ao-usage-limits-field' },
+          h('label', { for: this.unit.id }, t('usage.limits.unit')),
+          this.unit,
+        ),
+        ...fields,
+      ),
       this.error,
       h('div', { class: 'ao-usage-limits-actions' }, clear),
     );
@@ -72,7 +102,8 @@ export class UsageLimitsForm {
     const limits = this.current();
     const unit = this.unitNow();
     if (document.activeElement !== this.unit) this.unit.value = unit;
-    for (const [field, input] of this.inputs) if (document.activeElement !== input) input.value = limitToInput(limits?.[field], unit);
+    for (const [field, input] of this.inputs)
+      if (document.activeElement !== input) input.value = limitToInput(limits?.[field], unit);
     const suffix = unit === 'usd' ? 'US$' : t('usage.limits.unit.tokens');
     for (const el of this.suffixes) if (el.textContent !== suffix) el.textContent = suffix;
   }
@@ -89,12 +120,21 @@ export class UsageLimitsForm {
     this.error.hidden = parsed.kind !== 'invalid';
     input.setAttribute('aria-invalid', String(parsed.kind === 'invalid'));
     if (parsed.kind === 'invalid') return;
-    this.save(withLimit(this.ctx.prefs.get().usageLimits, this.accountId, field, parsed.kind === 'value' ? parsed.value : undefined));
+    this.save(
+      withLimit(
+        this.ctx.prefs.get().usageLimits,
+        this.accountId,
+        field,
+        parsed.kind === 'value' ? parsed.value : undefined,
+      ),
+    );
   }
 
   private saveUnit(): void {
     this.error.hidden = true;
-    this.save(withUnit(this.ctx.prefs.get().usageLimits, this.accountId, this.unit.value === 'tokens' ? 'tokens' : 'usd'));
+    this.save(
+      withUnit(this.ctx.prefs.get().usageLimits, this.accountId, this.unit.value === 'tokens' ? 'tokens' : 'usd'),
+    );
   }
 
   private clear(): void {

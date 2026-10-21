@@ -86,12 +86,19 @@ export class ReportService {
   private readonly limits: ReportLimits;
 
   constructor(private readonly deps: ReportDeps) {
-    this.limits = { maxFiles: MAX_FILES, maxBytesPerFile: MAX_BYTES_PER_FILE, timeoutMs: SCAN_TIMEOUT_MS, ...deps.limits };
+    this.limits = {
+      maxFiles: MAX_FILES,
+      maxBytesPerFile: MAX_BYTES_PER_FILE,
+      timeoutMs: SCAN_TIMEOUT_MS,
+      ...deps.limits,
+    };
   }
 
   /** The report of a day. Concurrent requests for the same report share one scan; scans run one at a time. */
   report(request: ReportRequest): Promise<DayReport> {
-    return this.enqueue(`report|${request.range.date}|${request.label}|${request.includeRequests}`, () => this.scan(request));
+    return this.enqueue(`report|${request.range.date}|${request.label}|${request.includeRequests}`, () =>
+      this.scan(request),
+    );
   }
 
   /** The time-lapse of a day. It shares the report's reader, its cache and its queue. */
@@ -110,9 +117,17 @@ export class ReportService {
   }
 
   /** Reads the day's slice of every transcript written that day, within the file, byte and time limits. */
-  private async readDay(request: { range: DayRange; accounts: readonly Account[] }, trace: boolean): Promise<{ files: ScannedFile[]; truncated: boolean }> {
+  private async readDay(
+    request: { range: DayRange; accounts: readonly Account[] },
+    trace: boolean,
+  ): Promise<{ files: ScannedFile[]; truncated: boolean }> {
     const started = this.deps.now();
-    const budget: ReadBudget = { maxBytes: this.limits.maxBytesPerFile, deadline: started + this.limits.timeoutMs, now: this.deps.now, yieldTurn: turn };
+    const budget: ReadBudget = {
+      maxBytes: this.limits.maxBytesPerFile,
+      deadline: started + this.limits.timeoutMs,
+      now: this.deps.now,
+      yieldTurn: turn,
+    };
     const candidates = await this.candidates(request);
     let truncated = candidates.length > this.limits.maxFiles;
     const files: ScannedFile[] = [];
@@ -158,13 +173,21 @@ export class ReportService {
 
   private async scanTimelapse(request: TimelapseRequest): Promise<Timelapse> {
     const { files, truncated } = await this.readDay(request, true);
-    const sessions = new Map<string, { accountId: string; sessionId: string; files: SessionTrace['files'][number][] }>();
+    const sessions = new Map<
+      string,
+      { accountId: string; sessionId: string; files: SessionTrace['files'][number][] }
+    >();
     for (const { file, state } of files) {
       if (state.trace === undefined) continue;
       const key = `${file.account}:${file.session}`;
       const session = sessions.get(key) ?? { accountId: file.account, sessionId: file.session, files: [] };
       const meta = file.agent === '' ? undefined : await this.metaOf(file);
-      session.files.push({ agent: file.agent, day: state.acc.result(), trace: state.trace.result(), ...(meta !== undefined ? { meta } : {}) });
+      session.files.push({
+        agent: file.agent,
+        day: state.acc.result(),
+        trace: state.trace.result(),
+        ...(meta !== undefined ? { meta } : {}),
+      });
       sessions.set(key, session);
     }
     const status = await this.statusByAgent(request.range.date);
@@ -193,11 +216,24 @@ export class ReportService {
     return found.sort((a, b) => b.mtimeMs - a.mtimeMs);
   }
 
-  private async read(file: TranscriptFile, range: DayRange, budget: ReadBudget, trace: boolean): Promise<ReadState | undefined> {
+  private async read(
+    file: TranscriptFile,
+    range: DayRange,
+    budget: ReadBudget,
+    trace: boolean,
+  ): Promise<ReadState | undefined> {
     const key = `${file.account}|${file.rel}|${range.date}`;
     const previous = this.cache.get(key);
     try {
-      const state = await readFileDay(file.path, { size: file.size, mtimeMs: file.mtimeMs, ino: file.ino }, range, file.agent === '' ? 'main' : 'sub', previous, budget, { trace });
+      const state = await readFileDay(
+        file.path,
+        { size: file.size, mtimeMs: file.mtimeMs, ino: file.ino },
+        range,
+        file.agent === '' ? 'main' : 'sub',
+        previous,
+        budget,
+        { trace },
+      );
       this.cache.delete(key);
       this.cache.set(key, state);
       if (this.cache.size > MAX_CACHED_FILES) this.cache.delete(this.cache.keys().next().value as string);
@@ -223,7 +259,8 @@ export class ReportService {
   private async statusByAgent(date: string): Promise<Map<string, { working: number; waiting: number; idle: number }>> {
     const result = new Map<string, { working: number; waiting: number; idle: number }>();
     try {
-      for (const entry of (await this.deps.dayStats(date)).agents) result.set(entry.agentId, { working: entry.ms.working, waiting: entry.ms.waiting, idle: entry.ms.idle });
+      for (const entry of (await this.deps.dayStats(date)).agents)
+        result.set(entry.agentId, { working: entry.ms.working, waiting: entry.ms.waiting, idle: entry.ms.idle });
     } catch (error) {
       this.deps.log.debug(`Relatório: sem tempos de status: ${String(error)}`);
     }
@@ -243,7 +280,9 @@ export class ReportService {
     const known = this.metas.get(file.path);
     if (known !== undefined) return known;
     try {
-      const meta = parseSubagentMeta(asRecord(JSON.parse(await readFile(file.path.replace(/\.jsonl$/, '.meta.json'), 'utf8')) as unknown));
+      const meta = parseSubagentMeta(
+        asRecord(JSON.parse(await readFile(file.path.replace(/\.jsonl$/, '.meta.json'), 'utf8')) as unknown),
+      );
       this.metas.set(file.path, meta);
       if (this.metas.size > MAX_CACHED_META) this.metas.delete(this.metas.keys().next().value as string);
       return meta;
@@ -263,11 +302,20 @@ export class ReportService {
     };
   }
 
-  private async gitCommitsByProject(sessions: readonly { files: readonly { day: FileDay }[] }[], range: DayRange): Promise<Map<string, readonly ReportCommit[]>> {
+  private async gitCommitsByProject(
+    sessions: readonly { files: readonly { day: FileDay }[] }[],
+    range: DayRange,
+  ): Promise<Map<string, readonly ReportCommit[]>> {
     const provider = this.deps.gitCommits;
     const found = new Map<string, readonly ReportCommit[]>();
     if (provider === undefined) return found;
-    const paths = [...new Set(sessions.flatMap((session) => session.files.map((file) => file.day.cwd).filter((cwd): cwd is string => cwd !== undefined && cwd !== '')))].slice(0, MAX_GIT_PROJECTS);
+    const paths = [
+      ...new Set(
+        sessions.flatMap((session) =>
+          session.files.map((file) => file.day.cwd).filter((cwd): cwd is string => cwd !== undefined && cwd !== ''),
+        ),
+      ),
+    ].slice(0, MAX_GIT_PROJECTS);
     await Promise.all(
       paths.map(async (path) => {
         try {

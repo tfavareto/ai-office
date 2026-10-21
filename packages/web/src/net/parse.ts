@@ -42,12 +42,35 @@ function arr<T>(value: unknown, guard: (item: unknown) => item is T): T[] {
 }
 
 const ACTIVITY_KINDS = new Set([
-  'prompt', 'think', 'reply', 'read', 'search', 'edit', 'write', 'bash', 'web', 'task', 'subagent', 'mcp', 'question',
-  'permission', 'message', 'error', 'done', 'other',
+  'prompt',
+  'think',
+  'reply',
+  'read',
+  'search',
+  'edit',
+  'write',
+  'bash',
+  'web',
+  'task',
+  'subagent',
+  'mcp',
+  'question',
+  'permission',
+  'message',
+  'error',
+  'done',
+  'other',
 ]);
 
 export function isActivity(value: unknown): value is Activity {
-  return isRecord(value) && typeof value.id === 'string' && typeof value.at === 'number' && typeof value.kind === 'string' && ACTIVITY_KINDS.has(value.kind) && typeof value.text === 'string';
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.at === 'number' &&
+    typeof value.kind === 'string' &&
+    ACTIVITY_KINDS.has(value.kind) &&
+    typeof value.text === 'string'
+  );
 }
 
 export function isNotice(value: unknown): value is Notice {
@@ -61,20 +84,37 @@ export function isNotice(value: unknown): value is Notice {
 }
 
 function isFeedItem(value: unknown): value is FeedItem {
-  return isRecord(value) && typeof value.id === 'string' && typeof value.agentId === 'string' && isActivity(value.activity);
+  return (
+    isRecord(value) && typeof value.id === 'string' && typeof value.agentId === 'string' && isActivity(value.activity)
+  );
 }
 
-const DEFAULT_STATS: AgentStats = { toolCalls: 0, tokensIn: 0, tokensOut: 0, linesAdded: 0, linesRemoved: 0, subagents: 0 };
+const DEFAULT_STATS: AgentStats = {
+  toolCalls: 0,
+  tokensIn: 0,
+  tokensOut: 0,
+  linesAdded: 0,
+  linesRemoved: 0,
+  subagents: 0,
+};
 
 function isAgentLike(value: unknown): value is Record<string, unknown> {
-  return isRecord(value) && typeof value.id === 'string' && typeof value.projectId === 'string' && typeof value.name === 'string';
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.projectId === 'string' &&
+    typeof value.name === 'string'
+  );
 }
 
 /** Fills the optional collections so the UI can iterate without null checks. */
 function normalizeAgent(raw: Record<string, unknown>): Agent {
   const stats = isRecord(raw.stats) ? { ...DEFAULT_STATS, ...(raw.stats as Partial<AgentStats>) } : DEFAULT_STATS;
   const permission = isRecord(raw.permission)
-    ? ({ ...raw.permission, suggestions: arr(raw.permission.suggestions, (s): s is string => typeof s === 'string') } as unknown as Agent['permission'])
+    ? ({
+        ...raw.permission,
+        suggestions: arr(raw.permission.suggestions, (s): s is string => typeof s === 'string'),
+      } as unknown as Agent['permission'])
     : undefined;
   return {
     ...(raw as unknown as Agent),
@@ -102,7 +142,8 @@ function isPendingHire(value: unknown): value is PendingHire {
     typeof value.accountId === 'string' &&
     typeof value.createdAt === 'number' &&
     typeof value.expiresAt === 'number' &&
-    (value.deskIndex === undefined || (typeof value.deskIndex === 'number' && Number.isInteger(value.deskIndex) && value.deskIndex >= 0)) &&
+    (value.deskIndex === undefined ||
+      (typeof value.deskIndex === 'number' && Number.isInteger(value.deskIndex) && value.deskIndex >= 0)) &&
     (value.agentId === undefined || typeof value.agentId === 'string')
   );
 }
@@ -122,12 +163,16 @@ const CHECK_REASONS = new Set(['not-absolute', 'not-found', 'not-directory', 'no
 
 export function parseFolderCheck(data: unknown): HireCheckResponse {
   if (!isRecord(data) || typeof data.ok !== 'boolean') throw new Error(t('error.invalidResponse'));
-  const reason = typeof data.reason === 'string' && CHECK_REASONS.has(data.reason) ? (data.reason as HireCheckResponse['reason']) : undefined;
+  const reason =
+    typeof data.reason === 'string' && CHECK_REASONS.has(data.reason)
+      ? (data.reason as HireCheckResponse['reason'])
+      : undefined;
   return { ok: data.ok, ...(reason !== undefined ? { reason } : {}) };
 }
 
 export function parseSnapshot(data: unknown): OfficeSnapshot | null {
-  if (!isRecord(data) || typeof data.rev !== 'number' || typeof data.serverTime !== 'number' || !isRecord(data.meta)) return null;
+  if (!isRecord(data) || typeof data.rev !== 'number' || typeof data.serverTime !== 'number' || !isRecord(data.meta))
+    return null;
   if (!Array.isArray(data.accounts) || !Array.isArray(data.projects) || !Array.isArray(data.agents)) return null;
   const meta = data.meta;
   const hires = parseHires(data.hires);
@@ -180,19 +225,37 @@ export function parseActivities(data: unknown): Activity[] {
 const ENTRY_KINDS = new Set(['user', 'assistant', 'thinking', 'tool', 'system']);
 
 function isTranscriptEntry(value: unknown): value is TranscriptEntry {
-  if (!isRecord(value) || typeof value.kind !== 'string' || !ENTRY_KINDS.has(value.kind) || typeof value.at !== 'number') return false;
-  if (value.kind === 'tool') return typeof value.name === 'string' && typeof value.summary === 'string' && typeof value.id === 'string';
+  if (
+    !isRecord(value) ||
+    typeof value.kind !== 'string' ||
+    !ENTRY_KINDS.has(value.kind) ||
+    typeof value.at !== 'number'
+  )
+    return false;
+  if (value.kind === 'tool')
+    return typeof value.name === 'string' && typeof value.summary === 'string' && typeof value.id === 'string';
   return typeof value.text === 'string';
 }
 
 export function parseTranscriptPage(data: unknown): TranscriptPage {
   if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
   const entries = arr(data.entries, isTranscriptEntry);
-  return { entries, next: num(data.next, entries.length), title: typeof data.title === 'string' ? data.title : undefined, open: data.open !== false };
+  return {
+    entries,
+    next: num(data.next, entries.length),
+    title: typeof data.title === 'string' ? data.title : undefined,
+    open: data.open !== false,
+  };
 }
 
 function isRecentSession(value: unknown): value is RecentSession {
-  return isRecord(value) && typeof value.sessionId === 'string' && typeof value.accountId === 'string' && typeof value.lastAt === 'number' && typeof value.projectName === 'string';
+  return (
+    isRecord(value) &&
+    typeof value.sessionId === 'string' &&
+    typeof value.accountId === 'string' &&
+    typeof value.lastAt === 'number' &&
+    typeof value.projectName === 'string'
+  );
 }
 
 export function parseSessions(data: unknown): RecentSession[] {
@@ -201,13 +264,18 @@ export function parseSessions(data: unknown): RecentSession[] {
 
 export function parseDay(data: unknown): DayStats {
   if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
-  const agents = arr(data.agents, (item): item is DayStats['agents'][number] => isRecord(item) && typeof item.agentId === 'string' && isRecord(item.ms));
+  const agents = arr(
+    data.agents,
+    (item): item is DayStats['agents'][number] =>
+      isRecord(item) && typeof item.agentId === 'string' && isRecord(item.ms),
+  );
   return { date: str(data.date), agents };
 }
 
 /** `GET /api/permissions/:id`: the request with the tool input the rules look at. */
 export function parsePermission(data: unknown): PermissionRequest {
-  if (!isRecord(data) || typeof data.id !== 'string' || typeof data.toolName !== 'string') throw new Error(t('error.invalidResponse'));
+  if (!isRecord(data) || typeof data.id !== 'string' || typeof data.toolName !== 'string')
+    throw new Error(t('error.invalidResponse'));
   return {
     id: data.id,
     agentId: str(data.agentId),
@@ -234,7 +302,10 @@ export function parseRule(data: unknown): Rule {
 /** The auto-decision log, newest first as the server sends it. */
 export function parseRuleLog(data: unknown): AutoDecision[] {
   const entries = isRecord(data) ? data.entries : undefined;
-  return parseLogFile({ version: 1, entries: Array.isArray(entries) ? [...entries].reverse() : undefined }).entries.reverse();
+  return parseLogFile({
+    version: 1,
+    entries: Array.isArray(entries) ? [...entries].reverse() : undefined,
+  }).entries.reverse();
 }
 
 export function parseRulePreview(data: unknown): RulePreview {

@@ -8,7 +8,13 @@ import { type ReadBudget, readFileDay, seekDayStart } from './reader';
 
 const HOUR = 3_600_000;
 const DAY: DayWindow = { start: T0 - 6 * HOUR, end: T0 + 18 * HOUR };
-const budget = (over: Partial<ReadBudget> = {}): ReadBudget => ({ maxBytes: 512 * 1024 * 1024, deadline: Number.MAX_SAFE_INTEGER, now: () => 0, yieldTurn: async () => undefined, ...over });
+const budget = (over: Partial<ReadBudget> = {}): ReadBudget => ({
+  maxBytes: 512 * 1024 * 1024,
+  deadline: Number.MAX_SAFE_INTEGER,
+  now: () => 0,
+  yieldTurn: async () => undefined,
+  ...over,
+});
 
 let dir: string;
 let path: string;
@@ -19,7 +25,8 @@ beforeEach(async () => {
 afterEach(() => removeDir(dir));
 
 /** `count` prompts spread from `from` with 1 s steps. */
-const prompts = (count: number, from: number, label: string): string[] => Array.from({ length: count }, (_, i) => userLine(`${label} ${i} ${'x'.repeat(40)}`, from + i * 1000));
+const prompts = (count: number, from: number, label: string): string[] =>
+  Array.from({ length: count }, (_, i) => userLine(`${label} ${i} ${'x'.repeat(40)}`, from + i * 1000));
 
 async function stamp() {
   const info = await stat(path);
@@ -50,7 +57,10 @@ describe('seekDayStart', () => {
 
 describe('readFileDay', () => {
   test('counts only the lines of the day and stops at the end of the day', async () => {
-    await writeFile(path, jsonl(...prompts(3000, -3 * 24 * HOUR, 'old'), ...prompts(7, 0, 'today'), ...prompts(4, 20 * HOUR, 'tomorrow')));
+    await writeFile(
+      path,
+      jsonl(...prompts(3000, -3 * 24 * HOUR, 'old'), ...prompts(7, 0, 'today'), ...prompts(4, 20 * HOUR, 'tomorrow')),
+    );
     const state = await readFileDay(path, await stamp(), DAY, 'main', undefined, budget());
     expect(state.acc.result().prompts).toBe(7);
     expect(state.done).toBe(true);
@@ -86,7 +96,14 @@ describe('readFileDay', () => {
 
   test('stops at the deadline', async () => {
     await writeFile(path, jsonl(...prompts(30_000, 0, 'a')));
-    const state = await readFileDay(path, await stamp(), DAY, 'main', undefined, budget({ now: () => 10, deadline: 5 }));
+    const state = await readFileDay(
+      path,
+      await stamp(),
+      DAY,
+      'main',
+      undefined,
+      budget({ now: () => 10, deadline: 5 }),
+    );
     expect(state.truncated).toBe(true);
   });
 

@@ -23,6 +23,7 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check \"packages/*/src/**/*.{ts,css}\" \"packages/plugins/**/*.{mjs,ts}\" \"scripts/*.mjs\"",
     "docs:check": "node scripts/validate-docs.mjs",
     "docs:test": "node --test scripts/validate-docs.test.mjs",
     "plugin:install": "node packages/plugins/scripts/install.mjs install",

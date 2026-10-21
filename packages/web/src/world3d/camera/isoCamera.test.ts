@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
-  approachState, boxCorners, fitPoints, frustumFor, groundFromView, isoBasis, panBy, screenToGround, worldToScreen, zoomAt,
-  type IsoState, type View,
+  approachState,
+  boxCorners,
+  fitPoints,
+  frustumFor,
+  groundFromView,
+  isoBasis,
+  panBy,
+  screenToGround,
+  worldToScreen,
+  zoomAt,
+  type IsoState,
+  type View,
 } from './isoCamera';
 
 const view: View = { width: 1440, height: 900, insets: { top: 56, right: 380, bottom: 0, left: 320 } };

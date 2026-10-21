@@ -107,7 +107,12 @@ export function computePeaks(hours: HourMap, now: number): UsagePeaks {
  * The figures the cards show for one account: open 5 h block, week from Monday 00:00 and today. `burn` and `peaks`
  * travel with them so the page can project the limits without asking the server again.
  */
-export function computeAccountUsage(accountId: string, hours: HourMap, now: number, extras: { burn?: UsageBurn; peaks?: UsagePeaks } = {}): AccountUsage {
+export function computeAccountUsage(
+  accountId: string,
+  hours: HourMap,
+  now: number,
+  extras: { burn?: UsageBurn; peaks?: UsagePeaks } = {},
+): AccountUsage {
   const upTo = floorToHour(now) + HOUR_MS;
   const block = currentBlock(hours, now);
   const weekStart = startOfWeek(now);
@@ -125,6 +130,14 @@ export function computeAccountUsage(accountId: string, hours: HourMap, now: numb
 /** The open block of an account as the detail view shows it. */
 export function windowInfo(account: string, hours: HourMap, now: number): UsageWindowInfo {
   const block = currentBlock(hours, now);
-  if (block === undefined) return { account, start: floorToHour(now), resetsAt: now + WINDOW_MS, tokens: 0, costUSD: 0, active: false };
-  return { account, start: block.start, resetsAt: block.start + WINDOW_MS, tokens: block.tokens, costUSD: block.costUSD, active: true };
+  if (block === undefined)
+    return { account, start: floorToHour(now), resetsAt: now + WINDOW_MS, tokens: 0, costUSD: 0, active: false };
+  return {
+    account,
+    start: block.start,
+    resetsAt: block.start + WINDOW_MS,
+    tokens: block.tokens,
+    costUSD: block.costUSD,
+    active: true,
+  };
 }

@@ -71,11 +71,16 @@ export const es: Readonly<Record<SharedMessageKey, string>> = {
   'perm.web.fetch': 'Acceder a {host}',
   'perm.web.search': 'Buscar “{query}”',
   'perm.mode.new': 'nuevo',
-  'perm.suggestion.allow': 'Permitir siempre {rules}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
-  'perm.suggestion.deny': 'Rechazar siempre {rules}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
-  'perm.suggestion.mode': 'Cambiar al modo {mode}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
-  'perm.suggestion.dirs': 'Permitir acceso a {dirs}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
-  'perm.suggestion.remember': 'Recordar esta decisión{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
+  'perm.suggestion.allow':
+    'Permitir siempre {rules}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
+  'perm.suggestion.deny':
+    'Rechazar siempre {rules}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
+  'perm.suggestion.mode':
+    'Cambiar al modo {mode}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
+  'perm.suggestion.dirs':
+    'Permitir acceso a {dirs}{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
+  'perm.suggestion.remember':
+    'Recordar esta decisión{scope, select, session { en esta sesión} project { en este proyecto} user { siempre} other {}}',
   'demo.prompt.store.1': 'Agregar un cupón de descuento al carrito',
   'demo.prompt.store.2': 'Corregir el cálculo del envío en pedidos internacionales',
   'demo.prompt.store.3': 'Migrar la pantalla de pago al nuevo diseño',

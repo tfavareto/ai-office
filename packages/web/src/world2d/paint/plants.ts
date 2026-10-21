@@ -70,13 +70,30 @@ function bush(ctx: Ctx): void {
   disc(ctx, 7, 3, 5, PLANT.base);
   disc(ctx, 6, 2, 3, PLANT.mid);
   disc(ctx, 11, 5, 2, PLANT.mid);
-  for (const [x, y] of [[5, 0], [6, -1], [9, 1], [4, 3]] as const) pixel(ctx, x, y, PLANT.light);
+  for (const [x, y] of [
+    [5, 0],
+    [6, -1],
+    [9, 1],
+    [4, 3],
+  ] as const)
+    pixel(ctx, x, y, PLANT.light);
   pixel(ctx, 5, 0, PLANT.hi);
-  for (const [x, y] of [[9, 6], [7, 7], [11, 3], [5, 6]] as const) pixel(ctx, x, y, PLANT.dark);
+  for (const [x, y] of [
+    [9, 6],
+    [7, 7],
+    [11, 3],
+    [5, 6],
+  ] as const)
+    pixel(ctx, x, y, PLANT.dark);
 }
 
 function snake(ctx: Ctx): void {
-  const blades = [[4, 8], [6, 11], [8, 13], [10, 9]] as const;
+  const blades = [
+    [4, 8],
+    [6, 11],
+    [8, 13],
+    [10, 9],
+  ] as const;
   blades.forEach(([x, h], i) => {
     const top = 11 - h;
     vline(ctx, x, top + 1, h - 1, i % 2 ? PLANT.mid : PLANT.base);
@@ -84,11 +101,20 @@ function snake(ctx: Ctx): void {
     pixel(ctx, x, top, PLANT.light);
   });
   pixel(ctx, 8, -2, PLANT.hi);
-  for (const [x, y] of [[8, 3], [6, 5], [4, 7]] as const) pixel(ctx, x, y, PLANT.light);
+  for (const [x, y] of [
+    [8, 3],
+    [6, 5],
+    [4, 7],
+  ] as const)
+    pixel(ctx, x, y, PLANT.light);
 }
 
 function broadleaf(ctx: Ctx): void {
-  const leaves = [[5, 7, PLANT.base, PLANT.light], [11, 6, PLANT.mid, PLANT.hi], [8, 2, PLANT.dark, PLANT.mid]] as const;
+  const leaves = [
+    [5, 7, PLANT.base, PLANT.light],
+    [11, 6, PLANT.mid, PLANT.hi],
+    [8, 2, PLANT.dark, PLANT.mid],
+  ] as const;
   for (const [x, y] of leaves) line(ctx, 8, 10, x, y, STEM);
   for (const [x, y, base, light] of leaves) {
     leaf(ctx, x, y, 4, 3, base, light);
@@ -109,7 +135,13 @@ function cactus(ctx: Ctx): void {
   hline(ctx, 9, 5, 3, PLANT.base);
   vline(ctx, 11, 2, 4, PLANT.dark);
   pixel(ctx, 11, 1, PLANT.dark);
-  for (const [x, y] of [[8, 3], [8, 7], [5, 4], [11, 3]] as const) pixel(ctx, x, y, spine);
+  for (const [x, y] of [
+    [8, 3],
+    [8, 7],
+    [5, 4],
+    [11, 3],
+  ] as const)
+    pixel(ctx, x, y, spine);
   pixel(ctx, 8, -1, '#e58aa0');
   pixel(ctx, 8, -2, '#f7c1cf');
 }
@@ -140,13 +172,33 @@ function tree(ctx: Ctx): void {
   disc(ctx, 11, -8, 3, PLANT.mid);
   leaf(ctx, 4, -4, 3, 2, PLANT.dark, PLANT.base);
   leaf(ctx, 12, -3, 3, 2, PLANT.mid, PLANT.light);
-  for (const [x, y] of [[5, -15], [6, -16], [10, -12], [3, -9]] as const) pixel(ctx, x, y, PLANT.light);
+  for (const [x, y] of [
+    [5, -15],
+    [6, -16],
+    [10, -12],
+    [3, -9],
+  ] as const)
+    pixel(ctx, x, y, PLANT.light);
   pixel(ctx, 6, -16, PLANT.hi);
-  for (const [x, y] of [[9, -6], [7, -8], [12, -11], [4, -10]] as const) pixel(ctx, x, y, PLANT.dark);
+  for (const [x, y] of [
+    [9, -6],
+    [7, -8],
+    [12, -11],
+    [4, -10],
+  ] as const)
+    pixel(ctx, x, y, PLANT.dark);
 }
 
 const FRONDS: readonly (readonly [number, number])[] = [
-  [2, -4], [3, -11], [5, -15], [8, -17], [11, -15], [13, -11], [14, -4], [6, -8], [10, -8],
+  [2, -4],
+  [3, -11],
+  [5, -15],
+  [8, -17],
+  [11, -15],
+  [13, -11],
+  [14, -4],
+  [6, -8],
+  [10, -8],
 ];
 
 /** Dracaena: a fan of blades that converge behind the pot rim. */

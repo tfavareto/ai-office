@@ -6,7 +6,18 @@ export const FEMALE_MODELS = ['humans/f1', 'humans/f2', 'humans/f3', 'humans/f4'
 
 /** Tints multiplied on a neutral-grey suit texture. */
 export const OUTFIT_COLORS = [
-  '#1f2a44', '#2b2f37', '#4a3b34', '#304a3f', '#5a2f3a', '#3c4f6e', '#6b6358', '#2f3f4a', '#7a5a3c', '#3d3a52', '#8a8f98', '#243a58',
+  '#1f2a44',
+  '#2b2f37',
+  '#4a3b34',
+  '#304a3f',
+  '#5a2f3a',
+  '#3c4f6e',
+  '#6b6358',
+  '#2f3f4a',
+  '#7a5a3c',
+  '#3d3a52',
+  '#8a8f98',
+  '#243a58',
 ] as const;
 
 export interface LookChoice {

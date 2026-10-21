@@ -79,7 +79,12 @@ describe('label placement', () => {
   });
 
   it('falls back to the next candidate when the first is taken', () => {
-    const second = item('b', 5, 100, 100, { spots: [{ x: 100, y: 100 }, { x: 100, y: 60 }] });
+    const second = item('b', 5, 100, 100, {
+      spots: [
+        { x: 100, y: 100 },
+        { x: 100, y: 60 },
+      ],
+    });
     const placed = placeLabels([item('a', 9, 100, 100), second], base);
     expect(placed.get('b')).toMatchObject({ x: 100, y: 60, overlaps: false });
   });
@@ -87,12 +92,21 @@ describe('label placement', () => {
   it('never leaves two placed labels overlapping, whatever the input', () => {
     const items: LabelItem[] = [];
     for (let i = 0; i < 40; i++) {
-      const x = 20 + (i * 37) % 300;
-      const y = 20 + (i * 53) % 240;
-      items.push(item(`i${i}`, i % 7, x, y, { spots: [{ x, y }, { x, y: y - 20 }, { x: x + 64, y }] }));
+      const x = 20 + ((i * 37) % 300);
+      const y = 20 + ((i * 53) % 240);
+      items.push(
+        item(`i${i}`, i % 7, x, y, {
+          spots: [
+            { x, y },
+            { x, y: y - 20 },
+            { x: x + 64, y },
+          ],
+        }),
+      );
     }
     const placed = [...placeLabels(items, base)].map(([, p]) => ({ x: p.x, y: p.y, w: 60, h: 18 }));
-    for (let i = 0; i < placed.length; i++) for (let j = i + 1; j < placed.length; j++) expect(overlap(placed[i], placed[j])).toBe(false);
+    for (let i = 0; i < placed.length; i++)
+      for (let j = i + 1; j < placed.length; j++) expect(overlap(placed[i], placed[j])).toBe(false);
   });
 
   it('keeps labels away from obstacles such as room pills', () => {
@@ -108,7 +122,13 @@ describe('label placement', () => {
 
   it('always places required items, overlapping as little as possible', () => {
     const first = item('first', 100, 100, 100, { required: true });
-    const second = item('second', 90, 100, 100, { required: true, spots: [{ x: 100, y: 100 }, { x: 130, y: 100 }] });
+    const second = item('second', 90, 100, 100, {
+      required: true,
+      spots: [
+        { x: 100, y: 100 },
+        { x: 130, y: 100 },
+      ],
+    });
     const placed = placeLabels([first, second], base);
     expect(placed.has('second')).toBe(true);
     expect(placed.get('second')).toMatchObject({ x: 130, overlaps: true });

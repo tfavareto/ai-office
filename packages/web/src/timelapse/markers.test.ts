@@ -14,8 +14,27 @@ function day(events: TimelapseEvent[]): Timelapse {
     end: T + 1e9,
     projects: [{ id: '/work/loja', name: 'loja', order: 0, seed: 1 }],
     agents: [
-      { id: 'a:s1', kind: 'main', name: 'Ana', role: 'Principal', accountId: 'a', projectId: '/work/loja', look: 'f', seed: 1 },
-      { id: 'a:s1:x', kind: 'sub', parentId: 'a:s1', name: 'Bruno', role: 'Explore', accountId: 'a', projectId: '/work/loja', look: 'm', seed: 2 },
+      {
+        id: 'a:s1',
+        kind: 'main',
+        name: 'Ana',
+        role: 'Principal',
+        accountId: 'a',
+        projectId: '/work/loja',
+        look: 'f',
+        seed: 1,
+      },
+      {
+        id: 'a:s1:x',
+        kind: 'sub',
+        parentId: 'a:s1',
+        name: 'Bruno',
+        role: 'Explore',
+        accountId: 'a',
+        projectId: '/work/loja',
+        look: 'm',
+        seed: 2,
+      },
     ],
     events,
   };
@@ -51,10 +70,29 @@ describe('buildMarkers', () => {
   });
 
   test('merges marks of the same kind that are too close to tell apart, keeping the first and counting them', () => {
-    const commits: TimelapseEvent[] = [0, 1, 2].map((i) => ({ at: T + i * 1000, type: 'commit', project: 0, agent: 0, hash: `h${i}`, subject: `s${i}` }));
-    const markers = buildMarkers(day([...commits, { at: T + 500, type: 'permission', agent: 0, tool: 'Bash', durationMs: 20_000 }, { at: T + 5 * MIN, type: 'commit', project: 0, agent: 0, hash: 'z', subject: 'far' }]), 5000);
+    const commits: TimelapseEvent[] = [0, 1, 2].map((i) => ({
+      at: T + i * 1000,
+      type: 'commit',
+      project: 0,
+      agent: 0,
+      hash: `h${i}`,
+      subject: `s${i}`,
+    }));
+    const markers = buildMarkers(
+      day([
+        ...commits,
+        { at: T + 500, type: 'permission', agent: 0, tool: 'Bash', durationMs: 20_000 },
+        { at: T + 5 * MIN, type: 'commit', project: 0, agent: 0, hash: 'z', subject: 'far' },
+      ]),
+      5000,
+    );
 
-    expect(markers.filter((marker) => marker.kind === 'commit').map((marker) => [marker.detail, marker.count])).toEqual([['s0', 3], ['far', 1]]);
+    expect(markers.filter((marker) => marker.kind === 'commit').map((marker) => [marker.detail, marker.count])).toEqual(
+      [
+        ['s0', 3],
+        ['far', 1],
+      ],
+    );
     expect(markers.filter((marker) => marker.kind === 'wait')).toHaveLength(1);
   });
 

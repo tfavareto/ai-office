@@ -49,7 +49,14 @@ function smallTile(ctx: Ctx, x: number, y: number, tx: number, ty: number, a: st
   }
 }
 
-function planks(ctx: Ctx, x: number, y: number, tx: number, ty: number, wood: { base: string; dark: string; light: string; mid: string }): void {
+function planks(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  tx: number,
+  ty: number,
+  wood: { base: string; dark: string; light: string; mid: string },
+): void {
   for (let row = 0; row < 4; row++) {
     const py = y + row * 4;
     const lane = ty * 4 + row;
@@ -152,12 +159,22 @@ function slate(ctx: Ctx, x: number, y: number, tx: number, ty: number): void {
 }
 
 /** Paint the floor of one 16x16 tile at pixel (x, y); (tx, ty) are absolute tile coordinates. */
-export function paintFloorTile(ctx: Ctx, theme: AreaTheme, tx: number, ty: number, x: number, y: number, areaId: string): void {
+export function paintFloorTile(
+  ctx: Ctx,
+  theme: AreaTheme,
+  tx: number,
+  ty: number,
+  x: number,
+  y: number,
+  areaId: string,
+): void {
   switch (theme.floor) {
     case 'marble':
       return marble(ctx, x, y, tx, ty);
     case 'tile':
-      return areaId === 'bathrooms' ? smallTile(ctx, x, y, tx, ty, '#e4eef0', '#bfd9de') : porcelain(ctx, x, y, tx, ty, areaId === 'copa');
+      return areaId === 'bathrooms'
+        ? smallTile(ctx, x, y, tx, ty, '#e4eef0', '#bfd9de')
+        : porcelain(ctx, x, y, tx, ty, areaId === 'copa');
     case 'wood':
       return planks(ctx, x, y, tx, ty, WALNUT);
     case 'parquet':

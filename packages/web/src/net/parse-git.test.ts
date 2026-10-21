@@ -34,16 +34,31 @@ describe('parseProjectGit', () => {
   });
 
   it('is nothing for what is not a repository state', () => {
-    for (const value of [undefined, null, 5, 'x', [], {}, { branch: '' }]) expect(parseProjectGit(value)).toBeUndefined();
+    for (const value of [undefined, null, 5, 'x', [], {}, { branch: '' }])
+      expect(parseProjectGit(value)).toBeUndefined();
   });
 
   it('accepts a detached HEAD with only a commit', () => {
-    expect(parseProjectGit({ head: 'a1b2c3d', detached: true })).toMatchObject({ head: 'a1b2c3d', detached: true, staged: 0, stash: 0 });
+    expect(parseProjectGit({ head: 'a1b2c3d', detached: true })).toMatchObject({
+      head: 'a1b2c3d',
+      detached: true,
+      staged: 0,
+      stash: 0,
+    });
   });
 
   it('clamps numbers and drops what is out of range or of another type', () => {
     // Act
-    const git = parseProjectGit({ ...valid, staged: -4, unstaged: 'many', untracked: 1e12, insertions: Number.NaN, ahead: 'x', op: 'explode', lastCommit: { hash: '', at: 1 } });
+    const git = parseProjectGit({
+      ...valid,
+      staged: -4,
+      unstaged: 'many',
+      untracked: 1e12,
+      insertions: Number.NaN,
+      ahead: 'x',
+      op: 'explode',
+      lastCommit: { hash: '', at: 1 },
+    });
     // Assert
     expect(git).toMatchObject({ staged: 0, unstaged: 0, untracked: 1_000_000, insertions: 0 });
     expect(git?.ahead).toBeUndefined();
@@ -53,7 +68,11 @@ describe('parseProjectGit', () => {
   });
 
   it('cuts long texts and strips control characters', () => {
-    const git = parseProjectGit({ ...valid, branch: `a\u0007${'b'.repeat(500)}`, lastCommit: { hash: 'abc1234', subject: `x${'y'.repeat(500)}`, at: 5 } });
+    const git = parseProjectGit({
+      ...valid,
+      branch: `a\u0007${'b'.repeat(500)}`,
+      lastCommit: { hash: 'abc1234', subject: `x${'y'.repeat(500)}`, at: 5 },
+    });
     expect(git?.branch).toHaveLength(200);
     expect(git?.branch?.includes('\u0007')).toBe(false);
     expect(git?.lastCommit?.subject).toHaveLength(120);
@@ -77,7 +96,16 @@ describe('safeHref', () => {
   it('only lets http and https through', () => {
     expect(safeHref('https://github.com/o/r/pull/1')).toBe('https://github.com/o/r/pull/1');
     expect(safeHref('http://ghe.local/o/r/pull/1')).toBe('http://ghe.local/o/r/pull/1');
-    for (const value of ['javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'not a url', 5, undefined, `https://x.test/${'a'.repeat(600)}`]) expect(safeHref(value)).toBeUndefined();
+    for (const value of [
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'file:///etc/passwd',
+      'not a url',
+      5,
+      undefined,
+      `https://x.test/${'a'.repeat(600)}`,
+    ])
+      expect(safeHref(value)).toBeUndefined();
   });
 });
 

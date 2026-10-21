@@ -1,14 +1,29 @@
 // Approval rule routes: list, create, edit, delete, preview and the auto-decision log (local access only).
-import { API, type RuleBookError, type RuleErrorBody, type RuleLogResponse, type RuleResponse, type RulesResponse } from '@ai-office/shared';
+import {
+  API,
+  type RuleBookError,
+  type RuleErrorBody,
+  type RuleLogResponse,
+  type RuleResponse,
+  type RulesResponse,
+} from '@ai-office/shared';
 import type { AppContext } from '../context';
 import { readJsonBody, sendError, sendJson } from '../respond';
 import type { Router } from '../router';
 import { parseLogLimit } from '../validate';
 
-const STATUS_BY_CODE: Readonly<Record<string, number>> = { 'not-found': 404, 'duplicate-rule': 409, 'too-many-rules': 409 };
+const STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  'not-found': 404,
+  'duplicate-rule': 409,
+  'too-many-rules': 409,
+};
 
 function sendRuleError(res: Parameters<typeof sendJson>[0], error: RuleBookError): void {
-  const body: RuleErrorBody = { error: error.code, ...(error.field !== undefined ? { field: error.field } : {}), ...(error.detail !== undefined ? { detail: error.detail } : {}) };
+  const body: RuleErrorBody = {
+    error: error.code,
+    ...(error.field !== undefined ? { field: error.field } : {}),
+    ...(error.detail !== undefined ? { detail: error.detail } : {}),
+  };
   sendJson(res, STATUS_BY_CODE[error.code] ?? 400, body);
 }
 
@@ -17,7 +32,10 @@ export function registerRuleRoutes(router: Router, app: AppContext): void {
   const book = app.rules.book;
 
   /** Applies a change and saves it; when the disk refuses, the change is undone and the page is told. */
-  const persist = async (res: Parameters<typeof sendJson>[0], undoTo: ReturnType<typeof book.rules>): Promise<boolean> => {
+  const persist = async (
+    res: Parameters<typeof sendJson>[0],
+    undoTo: ReturnType<typeof book.rules>,
+  ): Promise<boolean> => {
     if (await app.rules.flush()) return true;
     book.replaceRules(undoTo);
     sendError(res, 500, 'save-failed');

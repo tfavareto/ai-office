@@ -2,11 +2,51 @@ import { AreaBuilder } from './builder';
 import { CORE_W } from './constants';
 import type { AreaLayout, AreaTheme } from './types';
 
-const MARBLE: AreaTheme = { floor: 'marble', hue: 38, accent: '#c8a45a', carpet: '#d9cbb0', carpetAlt: '#b89a62', pattern: 0, wood: 0 };
-const TILE_THEME: AreaTheme = { floor: 'tile', hue: 190, accent: '#38b6c2', carpet: '#cfd8d8', carpetAlt: '#b4c4c4', pattern: 0, wood: 1 };
-const WOOD_THEME: AreaTheme = { floor: 'wood', hue: 28, accent: '#2f6fed', carpet: '#33415c', carpetAlt: '#27324a', pattern: 1, wood: 0 };
-const BATH_THEME: AreaTheme = { floor: 'tile', hue: 200, accent: '#4aa3c8', carpet: '#dfe7ea', carpetAlt: '#c3d1d6', pattern: 2, wood: 1 };
-const PARQUET_THEME: AreaTheme = { floor: 'parquet', hue: 24, accent: '#e0795a', carpet: '#7a3f35', carpetAlt: '#5d2f2a', pattern: 3, wood: 0 };
+const MARBLE: AreaTheme = {
+  floor: 'marble',
+  hue: 38,
+  accent: '#c8a45a',
+  carpet: '#d9cbb0',
+  carpetAlt: '#b89a62',
+  pattern: 0,
+  wood: 0,
+};
+const TILE_THEME: AreaTheme = {
+  floor: 'tile',
+  hue: 190,
+  accent: '#38b6c2',
+  carpet: '#cfd8d8',
+  carpetAlt: '#b4c4c4',
+  pattern: 0,
+  wood: 1,
+};
+const WOOD_THEME: AreaTheme = {
+  floor: 'wood',
+  hue: 28,
+  accent: '#2f6fed',
+  carpet: '#33415c',
+  carpetAlt: '#27324a',
+  pattern: 1,
+  wood: 0,
+};
+const BATH_THEME: AreaTheme = {
+  floor: 'tile',
+  hue: 200,
+  accent: '#4aa3c8',
+  carpet: '#dfe7ea',
+  carpetAlt: '#c3d1d6',
+  pattern: 2,
+  wood: 1,
+};
+const PARQUET_THEME: AreaTheme = {
+  floor: 'parquet',
+  hue: 24,
+  accent: '#e0795a',
+  carpet: '#7a3f35',
+  carpetAlt: '#5d2f2a',
+  pattern: 3,
+  wood: 0,
+};
 
 /** A pair of facing "talk" spots whose centre is (fx, fy) in floor-local coordinates. */
 function talkPair(b: AreaBuilder, fx: number, fy: number, group: string): void {
@@ -15,7 +55,15 @@ function talkPair(b: AreaBuilder, fx: number, fy: number, group: string): void {
 }
 
 export function layoutReception(): AreaLayout {
-  const b = new AreaBuilder({ id: 'reception', kind: 'reception', label: 'Recepção', row: 'north', x: 0, width: CORE_W, theme: MARBLE });
+  const b = new AreaBuilder({
+    id: 'reception',
+    kind: 'reception',
+    label: 'Recepção',
+    row: 'north',
+    x: 0,
+    width: CORE_W,
+    theme: MARBLE,
+  });
   b.wallItem('elevator', 4, 2);
   b.wallItem('elevator', 9, 2);
   b.wallItem('logoSign', 6, 3);
@@ -49,7 +97,15 @@ export function layoutReception(): AreaLayout {
 }
 
 export function layoutCopa(x0: number): AreaLayout {
-  const b = new AreaBuilder({ id: 'copa', kind: 'copa', label: 'Copa', row: 'north', x: x0, width: CORE_W, theme: TILE_THEME });
+  const b = new AreaBuilder({
+    id: 'copa',
+    kind: 'copa',
+    label: 'Copa',
+    row: 'north',
+    x: x0,
+    width: CORE_W,
+    theme: TILE_THEME,
+  });
   b.wallItem('menu', 3, 4);
   b.wallItem('clock', 9, 1);
   b.wallItem('poster', 11, 2, 1);
@@ -91,7 +147,15 @@ export function layoutCopa(x0: number): AreaLayout {
 }
 
 export function layoutMeeting(x0: number): AreaLayout {
-  const b = new AreaBuilder({ id: 'meeting', kind: 'meeting', label: 'Sala de reunião', row: 'north', x: x0, width: CORE_W, theme: WOOD_THEME });
+  const b = new AreaBuilder({
+    id: 'meeting',
+    kind: 'meeting',
+    label: 'Sala de reunião',
+    row: 'north',
+    x: x0,
+    width: CORE_W,
+    theme: WOOD_THEME,
+  });
   b.wallItem('tv', 4, 6);
   b.wallItem('whiteboard', 10, 4);
   b.wallItem('clock', 1, 1);
@@ -117,7 +181,15 @@ export function layoutMeeting(x0: number): AreaLayout {
 }
 
 export function layoutBathrooms(): AreaLayout {
-  const b = new AreaBuilder({ id: 'bathrooms', kind: 'bathrooms', label: 'Banheiros', row: 'south', x: 0, width: CORE_W, theme: BATH_THEME });
+  const b = new AreaBuilder({
+    id: 'bathrooms',
+    kind: 'bathrooms',
+    label: 'Banheiros',
+    row: 'south',
+    x: 0,
+    width: CORE_W,
+    theme: BATH_THEME,
+  });
   b.wallItem('mirror', 9, 6);
   b.wallItem('clock', 2, 1);
   for (let i = 0; i < 3; i++) b.put('stall', i * 2, 0, 2, 2, { variant: i });
@@ -135,7 +207,15 @@ export function layoutBathrooms(): AreaLayout {
 }
 
 export function layoutLounge(x0: number): AreaLayout {
-  const b = new AreaBuilder({ id: 'lounge', kind: 'lounge', label: 'Lounge', row: 'south', x: x0, width: CORE_W, theme: PARQUET_THEME });
+  const b = new AreaBuilder({
+    id: 'lounge',
+    kind: 'lounge',
+    label: 'Lounge',
+    row: 'south',
+    x: x0,
+    width: CORE_W,
+    theme: PARQUET_THEME,
+  });
   b.wallItem('tv', 3, 4);
   b.wallItem('clock', 9, 1);
   b.wallItem('poster', 10, 2, 2);

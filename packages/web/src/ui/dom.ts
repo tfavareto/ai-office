@@ -22,7 +22,9 @@ function applyProp(el: Element, key: string, value: PropValue): void {
 export function appendChildren(parent: Node, children: readonly Child[]): void {
   for (const child of children) {
     if (child === null || child === undefined || child === false) continue;
-    parent.appendChild(typeof child === 'string' || typeof child === 'number' ? document.createTextNode(String(child)) : child);
+    parent.appendChild(
+      typeof child === 'string' || typeof child === 'number' ? document.createTextNode(String(child)) : child,
+    );
   }
 }
 
@@ -134,6 +136,7 @@ export function isEditable(target: EventTarget | null): boolean {
 }
 
 export function focusables(root: HTMLElement): HTMLElement[] {
-  const selector = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const selector =
+    'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
   return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter((node) => node.offsetParent !== null);
 }

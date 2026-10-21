@@ -1,5 +1,12 @@
 // Permission routes: the hook creates and long-polls, the page reads details and decides (local access only).
-import { API, type PermissionHookRequest, type PermissionRequest, autoAnswer, permissionDraft, ruleDraft } from '@ai-office/shared';
+import {
+  API,
+  type PermissionHookRequest,
+  type PermissionRequest,
+  autoAnswer,
+  permissionDraft,
+  ruleDraft,
+} from '@ai-office/shared';
 import { MAX_WAIT_MS } from '../../registries/permissions';
 import { describePermission } from '../../registries/permission-text';
 import type { AppContext } from '../context';
@@ -41,7 +48,8 @@ export function registerPermissionRoutes(router: Router, app: AppContext): void 
     const created = app.permissions.create(hook);
     if ('skip' in created) return sendJson(res, 200, created);
     const request = app.permissions.get(created.id);
-    if (request !== undefined) app.office.addExternalActivity(request.agentId, permissionDraft(request.summary, request.summaryMsg));
+    if (request !== undefined)
+      app.office.addExternalActivity(request.agentId, permissionDraft(request.summary, request.summaryMsg));
     sendJson(res, 201, created);
   });
 
@@ -54,7 +62,8 @@ export function registerPermissionRoutes(router: Router, app: AppContext): void 
   router.add('GET', `${base}/:id`, ({ res, params, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
     const id = params.id as string;
-    const request: PermissionRequest | undefined = app.permissions.get(id) ?? app.office.state().agents.find((agent) => agent.permission?.id === id)?.permission;
+    const request: PermissionRequest | undefined =
+      app.permissions.get(id) ?? app.office.state().agents.find((agent) => agent.permission?.id === id)?.permission;
     if (request === undefined) return sendError(res, 404, 'not-found');
     sendJson(res, 200, request);
   });
@@ -63,7 +72,10 @@ export function registerPermissionRoutes(router: Router, app: AppContext): void 
     if (!local) return sendError(res, 403, 'local-only');
     const id = params.id as string;
     const body = await readJsonBody(req);
-    const suggestionCount = app.permissions.get(id)?.suggestions.length ?? app.office.state().agents.find((agent) => agent.permission?.id === id)?.permission?.suggestions.length ?? 0;
+    const suggestionCount =
+      app.permissions.get(id)?.suggestions.length ??
+      app.office.state().agents.find((agent) => agent.permission?.id === id)?.permission?.suggestions.length ??
+      0;
     const decision = parseDecision(body, suggestionCount);
     const result = app.permissions.decide(id, decision);
     if (result === 'ok') return sendJson(res, 200, { ok: true });

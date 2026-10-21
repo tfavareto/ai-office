@@ -23,7 +23,9 @@ describe('limitRunner', () => {
     const { run, peak, started } = slowRunner();
     const limited = limitRunner(run, 2);
     // Act
-    const results = await Promise.all(Array.from({ length: 9 }, (_, i) => limited(`p${i}`, [], { cwd: '/', timeoutMs: 1 })));
+    const results = await Promise.all(
+      Array.from({ length: 9 }, (_, i) => limited(`p${i}`, [], { cwd: '/', timeoutMs: 1 })),
+    );
     // Assert
     expect(results).toEqual(Array.from({ length: 9 }, (_, i) => `p${i}`));
     expect(started()).toBe(9);

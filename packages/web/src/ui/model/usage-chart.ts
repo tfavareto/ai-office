@@ -76,7 +76,12 @@ function sumOf(point: UsageSeriesPoint, kinds: readonly TokenKind[]): number {
 
 export function buildChart(series: readonly UsageSeriesPoint[], now: number, options: ChartOptions): ChartModel {
   const margin = options.margin ?? DEFAULT_MARGIN;
-  const plot = { left: margin.left, top: margin.top, width: Math.max(0, options.width - margin.left - margin.right), height: Math.max(0, options.height - margin.top - margin.bottom) };
+  const plot = {
+    left: margin.left,
+    top: margin.top,
+    width: Math.max(0, options.width - margin.left - margin.right),
+    height: Math.max(0, options.height - margin.top - margin.bottom),
+  };
   const kinds = kindsFor(options.includeCacheRead);
   const peak = series.reduce((highest, point) => Math.max(highest, sumOf(point, kinds)), 0);
   const { max, step } = niceScale(peak);
@@ -93,8 +98,19 @@ export function buildChart(series: readonly UsageSeriesPoint[], now: number, opt
       top -= height;
       segments.push({ kind, value, y: top, height });
     }
-    return { index, point, x: plot.left + index * slot + (slot - barWidth) / 2, width: barWidth, total: sumOf(point, kinds), segments, future: point.start > now };
+    return {
+      index,
+      point,
+      x: plot.left + index * slot + (slot - barWidth) / 2,
+      width: barWidth,
+      total: sumOf(point, kinds),
+      segments,
+      future: point.start > now,
+    };
   });
-  const ticks = Array.from({ length: TICK_COUNT + 1 }, (_, i): ChartTick => ({ value: i * step, y: floor - (i * step * plot.height) / max }));
+  const ticks = Array.from({ length: TICK_COUNT + 1 }, (_, i): ChartTick => ({
+    value: i * step,
+    y: floor - (i * step * plot.height) / max,
+  }));
   return { width: options.width, height: options.height, plot, bars, ticks, max, kinds, empty: peak <= 0 };
 }

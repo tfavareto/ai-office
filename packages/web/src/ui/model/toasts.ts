@@ -31,7 +31,18 @@ export function pushToast(toasts: readonly Toast[], notice: Notice, now: number)
   if (existing) {
     return toasts.map((toast) => (toast === existing ? { ...toast, count: toast.count + 1, expiresAt } : toast));
   }
-  const next: Toast = { id: notice.id, key, level: notice.level, text: notice.text, msg: notice.msg, agentId: notice.agentId, projectId: notice.projectId, count: 1, createdAt: now, expiresAt };
+  const next: Toast = {
+    id: notice.id,
+    key,
+    level: notice.level,
+    text: notice.text,
+    msg: notice.msg,
+    agentId: notice.agentId,
+    projectId: notice.projectId,
+    count: 1,
+    createdAt: now,
+    expiresAt,
+  };
   const all = [...toasts, next];
   if (all.length <= MAX_TOASTS) return all;
   // Drop the oldest expirable toast first; alerts are only dropped when nothing else is left.
@@ -55,7 +66,8 @@ export const ALERT_GRACE_MS = 5000;
 export function resolveAlertToasts(toasts: readonly Toast[], agents: readonly Agent[], now: number): Toast[] {
   const waiting = new Set(agents.filter((agent) => agent.status === 'waiting').map((agent) => agent.id));
   const next = toasts.filter(
-    (toast) => toast.level !== 'alert' || !toast.agentId || now - toast.createdAt < ALERT_GRACE_MS || waiting.has(toast.agentId),
+    (toast) =>
+      toast.level !== 'alert' || !toast.agentId || now - toast.createdAt < ALERT_GRACE_MS || waiting.has(toast.agentId),
   );
   return next.length === toasts.length ? (toasts as Toast[]) : next;
 }

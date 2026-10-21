@@ -1,7 +1,17 @@
 import type { Agent } from '@ai-office/shared';
 import { describe, expect, it } from 'vitest';
 import { activity, agent, permission, snapshot } from '../../test/fixtures';
-import { EXPIRING_SOON_MS, buildInbox, compareItems, finishedIdsOf, isExpired, isExpiringSoon, seenableIds, type InboxInput, type InboxItem } from './inbox';
+import {
+  EXPIRING_SOON_MS,
+  buildInbox,
+  compareItems,
+  finishedIdsOf,
+  isExpired,
+  isExpiringSoon,
+  seenableIds,
+  type InboxInput,
+  type InboxItem,
+} from './inbox';
 import { EMPTY_INBOX_STATE, markSeen, type InboxState } from './inbox-state';
 import type { NotificationItem } from './notifications';
 
@@ -13,9 +23,15 @@ function input(agents: Agent[], over: Partial<InboxInput> = {}): InboxInput {
 }
 
 const waitingForPermission = (id: string, createdAt: number, expiresAt: number, over = {}) =>
-  agent({ id, status: 'waiting', statusSince: createdAt, permission: permission({ id: `perm-${id}`, agentId: id, createdAt, expiresAt, ...over }) });
+  agent({
+    id,
+    status: 'waiting',
+    statusSince: createdAt,
+    permission: permission({ id: `perm-${id}`, agentId: id, createdAt, expiresAt, ...over }),
+  });
 
-const idleAfterWork = (id: string, statusSince: number) => agent({ id, status: 'idle', statusSince, stats: { ...agent().stats, toolCalls: 12 } });
+const idleAfterWork = (id: string, statusSince: number) =>
+  agent({ id, status: 'idle', statusSince, stats: { ...agent().stats, toolCalls: 12 } });
 
 function ids(items: readonly InboxItem[]): string[] {
   return items.map((item) => item.id);
@@ -31,7 +47,12 @@ describe('buildInbox', () => {
     const view = buildInbox(
       input([
         idleAfterWork('fin', 50_000),
-        agent({ id: 'err', status: 'idle', statusSince: 20_000, activity: activity({ id: 'x1', at: 20_000, error: true }) }),
+        agent({
+          id: 'err',
+          status: 'idle',
+          statusSince: 20_000,
+          activity: activity({ id: 'x1', at: 20_000, error: true }),
+        }),
         agent({ id: 'ask', status: 'waiting', statusSince: 30_000, waitingFor: 'Responder uma pergunta' }),
         waitingForPermission('perm', 90_000, 150_000),
       ]),
@@ -41,7 +62,11 @@ describe('buildInbox', () => {
 
   it('orders permissions by expiry and puts expired ones last', () => {
     const view = buildInbox(
-      input([waitingForPermission('late', 10_000, 170_000), waitingForPermission('gone', 5_000, 90_000), waitingForPermission('soon', 50_000, 120_000)]),
+      input([
+        waitingForPermission('late', 10_000, 170_000),
+        waitingForPermission('gone', 5_000, 90_000),
+        waitingForPermission('soon', 50_000, 120_000),
+      ]),
     );
     expect(view.items.map((item) => item.agentId)).toEqual(['soon', 'late', 'gone']);
     expect(view.items[2]?.expired).toBe(true);
@@ -61,7 +86,12 @@ describe('buildInbox', () => {
   });
 
   it('breaks ties by id so the order is stable', () => {
-    const view = buildInbox(input([agent({ id: 'b', status: 'waiting', statusSince: 5 }), agent({ id: 'a', status: 'waiting', statusSince: 5 })]));
+    const view = buildInbox(
+      input([
+        agent({ id: 'b', status: 'waiting', statusSince: 5 }),
+        agent({ id: 'a', status: 'waiting', statusSince: 5 }),
+      ]),
+    );
     expect(view.items.map((item) => item.agentId)).toEqual(['a', 'b']);
   });
 
@@ -69,24 +99,66 @@ describe('buildInbox', () => {
     const view = buildInbox(
       input([
         agent({ id: 'gone', status: 'offline', statusSince: 1 }),
-        agent({ id: 'sub', kind: 'sub', parentId: 'ag1', status: 'waiting', statusSince: 2, permission: permission({ id: 'p-sub', agentId: 'sub', expiresAt: 200_000 }) }),
-        agent({ id: 'sub-idle', kind: 'sub', status: 'idle', statusSince: 70_000, stats: { ...agent().stats, toolCalls: 3 } }),
+        agent({
+          id: 'sub',
+          kind: 'sub',
+          parentId: 'ag1',
+          status: 'waiting',
+          statusSince: 2,
+          permission: permission({ id: 'p-sub', agentId: 'sub', expiresAt: 200_000 }),
+        }),
+        agent({
+          id: 'sub-idle',
+          kind: 'sub',
+          status: 'idle',
+          statusSince: 70_000,
+          stats: { ...agent().stats, toolCalls: 3 },
+        }),
       ]),
     );
     expect(ids(view.items)).toEqual(['permission:p-sub']);
   });
 
   it('describes a question with what the agent says it waits for', () => {
-    const view = buildInbox(input([agent({ id: 'q', status: 'waiting', statusSince: 20_000, waitingFor: 'Aprovar o plano', waitingForMsg: { key: 'waiting.approvePlan' } })]));
-    expect(view.items[0]).toMatchObject({ kind: 'attention', waitingText: 'Aprovar o plano', waitingMsg: { key: 'waiting.approvePlan' } });
+    const view = buildInbox(
+      input([
+        agent({
+          id: 'q',
+          status: 'waiting',
+          statusSince: 20_000,
+          waitingFor: 'Aprovar o plano',
+          waitingForMsg: { key: 'waiting.approvePlan' },
+        }),
+      ]),
+    );
+    expect(view.items[0]).toMatchObject({
+      kind: 'attention',
+      waitingText: 'Aprovar o plano',
+      waitingMsg: { key: 'waiting.approvePlan' },
+    });
   });
 
   it('falls back to the alert notification of that agent when the agent says nothing', () => {
-    const notice = (over: Partial<NotificationItem>): NotificationItem => ({ id: 'n', key: 'k', at: 21_000, level: 'alert', kind: 'alert', text: 'Claude precisa da sua atenção', count: 1, read: false, agentId: 'q', ...over });
+    const notice = (over: Partial<NotificationItem>): NotificationItem => ({
+      id: 'n',
+      key: 'k',
+      at: 21_000,
+      level: 'alert',
+      kind: 'alert',
+      text: 'Claude precisa da sua atenção',
+      count: 1,
+      read: false,
+      agentId: 'q',
+      ...over,
+    });
     const waiting = agent({ id: 'q', status: 'waiting', statusSince: 20_000 });
     const withNotice = buildInbox(input([waiting], { notifications: [notice({})] }));
     expect(withNotice.items[0]?.waitingText).toBe('Claude precisa da sua atenção');
-    const stale = buildInbox(input([waiting], { notifications: [notice({ at: 5_000 }), notice({ agentId: 'other' }), notice({ kind: 'info', level: 'info' })] }));
+    const stale = buildInbox(
+      input([waiting], {
+        notifications: [notice({ at: 5_000 }), notice({ agentId: 'other' }), notice({ kind: 'info', level: 'info' })],
+      }),
+    );
     expect(stale.items[0]?.waitingText).toBeUndefined();
   });
 
@@ -175,7 +247,13 @@ describe('expiry', () => {
 });
 
 describe('helpers', () => {
-  const items = buildInbox(input([waitingForPermission('p', 10_000, 150_000), agent({ id: 'q', status: 'waiting', statusSince: 20_000 }), idleAfterWork('f', 50_000)])).items;
+  const items = buildInbox(
+    input([
+      waitingForPermission('p', 10_000, 150_000),
+      agent({ id: 'q', status: 'waiting', statusSince: 20_000 }),
+      idleAfterWork('f', 50_000),
+    ]),
+  ).items;
 
   it('lists the items that can be marked as seen: everything but permissions', () => {
     expect(seenableIds(items)).toEqual(['attention:q:20000', 'finished:f:50000']);

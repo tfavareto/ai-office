@@ -113,13 +113,19 @@ describe('simulation', () => {
     const sim = seeded();
     sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0)]), 1_000_000);
     sim.runFor(1);
-    sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0, 'waiting', { waitingFor: 'Responder uma pergunta' })], 2), 1_001_000);
+    sim.setSnapshot(
+      makeSnapshot(1, [makeAgent('ana', 0, 'waiting', { waitingFor: 'Responder uma pergunta' })], 2),
+      1_001_000,
+    );
     sim.runFor(2);
     const ana = sim.character('ana')!;
     expect(ana.pose).toBe('hand');
     expect(ana.alert).toBe(true);
     expect(sim.bubbles.some((b) => b.agentId === 'ana' && b.sticky)).toBe(true);
-    expect(sim.bubbles.find((b) => b.agentId === 'ana' && b.sticky)).toMatchObject({ text: 'Precisa de você', msg: { key: 'bubble.needsYou' } });
+    expect(sim.bubbles.find((b) => b.agentId === 'ana' && b.sticky)).toMatchObject({
+      text: 'Precisa de você',
+      msg: { key: 'bubble.needsYou' },
+    });
     sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0, 'idle')], 3), 1_002_000);
     sim.runFor(0.5);
     expect(['sit', 'celebrate']).toContain(sim.character('ana')!.pose);
@@ -128,13 +134,22 @@ describe('simulation', () => {
 
   it('leans back, stretches, eats popcorn and naps while a foreground shell runs', () => {
     const sim = seeded();
-    const shell = { id: 's', label: 'npm test', background: false, kind: 'shell' as const, startedAt: 1_000_000 - 1000 };
+    const shell = {
+      id: 's',
+      label: 'npm test',
+      background: false,
+      kind: 'shell' as const,
+      startedAt: 1_000_000 - 1000,
+    };
     sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0, 'working', { shells: [shell] })]), 1_000_000);
     sim.runFor(1);
     expect(sim.character('ana')!.pose).toBe('lean');
     const poses: string[] = [];
     for (const t of [70, 200, 500]) {
-      sim.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0, 'working', { shells: [shell] })]), 1_000_000 + t * 1000 - 1000 + 1000);
+      sim.setSnapshot(
+        makeSnapshot(1, [makeAgent('ana', 0, 'working', { shells: [shell] })]),
+        1_000_000 + t * 1000 - 1000 + 1000,
+      );
       sim.runFor(0.2);
       poses.push(sim.character('ana')!.pose);
     }
@@ -224,13 +239,25 @@ describe('room lifecycle', () => {
 
 describe('bubble rationing', () => {
   const candidate = (agentId: string, roomId: string, importance: number) => ({
-    agentId, roomId, text: agentId, icon: 'x', importance, sticky: false, ttl: 4,
+    agentId,
+    roomId,
+    text: agentId,
+    icon: 'x',
+    importance,
+    sticky: false,
+    ttl: 4,
   });
 
   it('caps visible bubbles per room by liveliness and keeps the most important', () => {
     const m = new BubbleManager();
     m.configure('all', 'normal');
-    for (const [id, imp] of [['a', 10], ['b', 40], ['c', 90], ['d', 20]] as const) m.offer(candidate(id, 'r1', imp), 0);
+    for (const [id, imp] of [
+      ['a', 10],
+      ['b', 40],
+      ['c', 90],
+      ['d', 20],
+    ] as const)
+      m.offer(candidate(id, 'r1', imp), 0);
     const visible = m.update(0, () => 'r1');
     expect(visible.map((b) => b.agentId).sort()).toEqual(['b', 'c']);
   });

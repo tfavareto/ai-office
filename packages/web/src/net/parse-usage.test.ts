@@ -17,7 +17,20 @@ describe('parseUsageDetail', () => {
       series: [{ start: 1, end: 2, ...totals }],
       byModel: [{ model: 'claude-opus-5-5', ...totals }],
       byProject: [{ project: '/p', name: 'p', ...totals }],
-      bySession: [{ account: 'a', session: 's', agent: 'ag', project: '/p', projectName: 'p', lastAt: 5, officeId: 'a:s:ag', title: 'T', role: 'Explore', ...totals }],
+      bySession: [
+        {
+          account: 'a',
+          session: 's',
+          agent: 'ag',
+          project: '/p',
+          projectName: 'p',
+          lastAt: 5,
+          officeId: 'a:s:ag',
+          title: 'T',
+          role: 'Explore',
+          ...totals,
+        },
+      ],
       sessionCount: 9,
       windows: [{ account: 'a', start: 1, resetsAt: 2, tokens: 3, costUSD: 4, active: true }],
       progress: { state: 'indexing', percent: 42.5, filesDone: 1, filesTotal: 2 },
@@ -33,7 +46,13 @@ describe('parseUsageDetail', () => {
   });
 
   it('never trusts the numbers: wrong types become zero and percentages are bounded', () => {
-    const detail = parseUsageDetail({ account: 'a', period: 'today', totals: { tokens: 'lots', costUSD: Number.NaN }, progress: { state: 'indexing', percent: 900 }, series: [null, 4, { start: 'x' }] });
+    const detail = parseUsageDetail({
+      account: 'a',
+      period: 'today',
+      totals: { tokens: 'lots', costUSD: Number.NaN },
+      progress: { state: 'indexing', percent: 900 },
+      series: [null, 4, { start: 'x' }],
+    });
     expect(detail.totals).toEqual({ input: 0, output: 0, cacheWrite: 0, cacheRead: 0, tokens: 0, costUSD: 0 });
     expect(detail.progress.percent).toBe(100);
     expect(detail.series).toHaveLength(1);
@@ -41,7 +60,10 @@ describe('parseUsageDetail', () => {
     expect(detail.granularity).toBe('day');
   });
 
-  it.each([null, 'x', [], { account: 'a' }, { account: 'a', period: 'year' }, { period: 'today' }])('rejects %j', (raw) => {
-    expect(() => parseUsageDetail(raw)).toThrow();
-  });
+  it.each([null, 'x', [], { account: 'a' }, { account: 'a', period: 'year' }, { period: 'today' }])(
+    'rejects %j',
+    (raw) => {
+      expect(() => parseUsageDetail(raw)).toThrow();
+    },
+  );
 });

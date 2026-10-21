@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { type Account, type OfficeMeta, type Timelapse, type TimelapseEvent, createDemoSimulator, dayRange, demoTimelapse } from '@ai-office/shared';
+import {
+  type Account,
+  type OfficeMeta,
+  type Timelapse,
+  type TimelapseEvent,
+  createDemoSimulator,
+  dayRange,
+  demoTimelapse,
+} from '@ai-office/shared';
 import { buildReplay, countUpTo, feedAt, presentCount, snapshotAt, type ReplayIndex } from './replay';
 
 const MIN = 60_000;
@@ -14,19 +22,66 @@ function story(): Timelapse {
     { at: T, type: 'arrive', agent: 0 },
     { at: T, type: 'status', agent: 0, status: 'idle' },
     { at: T + 10 * SEC, type: 'status', agent: 0, status: 'working' },
-    { at: T + 10 * SEC, type: 'activity', agent: 0, kind: 'prompt', icon: '📨', text: 'Nova tarefa', msg: { key: 'timelapse.activity.prompt' } },
-    { at: T + 12 * SEC, type: 'tasks', agent: 0, tasks: [{ title: 'Escrever', status: 'in_progress' }, { title: 'Publicar', status: 'pending' }] },
-    { at: T + 20 * SEC, type: 'activity', agent: 0, kind: 'read', icon: '📖', text: 'Lendo a.ts', msg: { key: 'activity.read', params: { file: 'a.ts' } } },
-    { at: T + 30 * SEC, type: 'activity', agent: 0, kind: 'subagent', icon: '👥', text: 'Delegando', msg: { key: 'activity.subagent' } },
+    {
+      at: T + 10 * SEC,
+      type: 'activity',
+      agent: 0,
+      kind: 'prompt',
+      icon: '📨',
+      text: 'Nova tarefa',
+      msg: { key: 'timelapse.activity.prompt' },
+    },
+    {
+      at: T + 12 * SEC,
+      type: 'tasks',
+      agent: 0,
+      tasks: [
+        { title: 'Escrever', status: 'in_progress' },
+        { title: 'Publicar', status: 'pending' },
+      ],
+    },
+    {
+      at: T + 20 * SEC,
+      type: 'activity',
+      agent: 0,
+      kind: 'read',
+      icon: '📖',
+      text: 'Lendo a.ts',
+      msg: { key: 'activity.read', params: { file: 'a.ts' } },
+    },
+    {
+      at: T + 30 * SEC,
+      type: 'activity',
+      agent: 0,
+      kind: 'subagent',
+      icon: '👥',
+      text: 'Delegando',
+      msg: { key: 'activity.subagent' },
+    },
     { at: T + 33 * SEC, type: 'arrive', agent: 1 },
     { at: T + 33 * SEC, type: 'status', agent: 1, status: 'working' },
     { at: T + 40 * SEC, type: 'shell', agent: 0, on: true, id: 'b1', background: false, label: 'npm test' },
-    { at: T + 50 * SEC, type: 'status', agent: 0, status: 'waiting', waitingFor: 'Aprovar Edit', waitingForMsg: { key: 'waiting.approve', params: { tool: 'Edit' } } },
+    {
+      at: T + 50 * SEC,
+      type: 'status',
+      agent: 0,
+      status: 'waiting',
+      waitingFor: 'Aprovar Edit',
+      waitingForMsg: { key: 'waiting.approve', params: { tool: 'Edit' } },
+    },
     { at: T + 50 * SEC, type: 'permission', agent: 0, tool: 'Edit', durationMs: 20 * SEC },
     { at: T + 60 * SEC, type: 'leave', agent: 1 },
     { at: T + 70 * SEC, type: 'status', agent: 0, status: 'working' },
     { at: T + 80 * SEC, type: 'shell', agent: 0, on: false, id: 'b1', background: false },
-    { at: T + 90 * SEC, type: 'tasks', agent: 0, tasks: [{ title: 'Escrever', status: 'completed' }, { title: 'Publicar', status: 'in_progress' }] },
+    {
+      at: T + 90 * SEC,
+      type: 'tasks',
+      agent: 0,
+      tasks: [
+        { title: 'Escrever', status: 'completed' },
+        { title: 'Publicar', status: 'in_progress' },
+      ],
+    },
     { at: T + 100 * SEC, type: 'status', agent: 0, status: 'idle' },
     { at: T + 5 * MIN, type: 'leave', agent: 0 },
     { at: T + 6 * MIN, type: 'arrive', agent: 0 },
@@ -47,9 +102,39 @@ function story(): Timelapse {
       { id: '/work/api', name: 'api', order: 1, seed: 2 },
     ],
     agents: [
-      { id: 'a:s1', kind: 'main', name: 'Ana', role: 'Principal', roleMsg: { key: 'agent.role.main' }, accountId: 'a', projectId: '/work/loja', look: 'f', seed: 11 },
-      { id: 'a:s1:x', kind: 'sub', parentId: 'a:s1', name: 'Bruno', role: 'Explore', title: 'Explorar', accountId: 'a', projectId: '/work/loja', look: 'm', seed: 12 },
-      { id: 'a:s2', kind: 'main', name: 'Carla', role: 'Principal', accountId: 'a', projectId: '/work/api', look: 'f', seed: 13 },
+      {
+        id: 'a:s1',
+        kind: 'main',
+        name: 'Ana',
+        role: 'Principal',
+        roleMsg: { key: 'agent.role.main' },
+        accountId: 'a',
+        projectId: '/work/loja',
+        look: 'f',
+        seed: 11,
+      },
+      {
+        id: 'a:s1:x',
+        kind: 'sub',
+        parentId: 'a:s1',
+        name: 'Bruno',
+        role: 'Explore',
+        title: 'Explorar',
+        accountId: 'a',
+        projectId: '/work/loja',
+        look: 'm',
+        seed: 12,
+      },
+      {
+        id: 'a:s2',
+        kind: 'main',
+        name: 'Carla',
+        role: 'Principal',
+        accountId: 'a',
+        projectId: '/work/api',
+        look: 'f',
+        seed: 13,
+      },
     ],
     events,
   };
@@ -79,9 +164,14 @@ describe('who is in the office', () => {
 
   test('rooms exist while somebody works in them, with the order they were first opened in', () => {
     expect(at(-1).projects).toEqual([]);
-    expect(at(10 * SEC).projects).toMatchObject([{ id: '/work/loja', name: 'loja', path: '/work/loja', order: 0, seed: 1 }]);
+    expect(at(10 * SEC).projects).toMatchObject([
+      { id: '/work/loja', name: 'loja', path: '/work/loja', order: 0, seed: 1 },
+    ]);
     expect(at(5 * MIN + SEC).projects).toEqual([]);
-    expect(at(7 * MIN + SEC).projects.map((p) => [p.id, p.order])).toEqual([['/work/loja', 0], ['/work/api', 1]]);
+    expect(at(7 * MIN + SEC).projects.map((p) => [p.id, p.order])).toEqual([
+      ['/work/loja', 0],
+      ['/work/api', 1],
+    ]);
     expect(presentCount(index(), T + 40 * SEC)).toBe(2);
   });
 });
@@ -90,13 +180,25 @@ describe('what a person is doing at an instant', () => {
   test('status, how long, and what for when waiting', () => {
     expect(agent(5 * SEC, 'a:s1')).toMatchObject({ status: 'idle', statusSince: T });
     expect(agent(15 * SEC, 'a:s1')).toMatchObject({ status: 'working', statusSince: T + 10 * SEC });
-    expect(agent(55 * SEC, 'a:s1')).toMatchObject({ status: 'waiting', statusSince: T + 50 * SEC, waitingFor: 'Aprovar Edit', waitingForMsg: { key: 'waiting.approve' } });
+    expect(agent(55 * SEC, 'a:s1')).toMatchObject({
+      status: 'waiting',
+      statusSince: T + 50 * SEC,
+      waitingFor: 'Aprovar Edit',
+      waitingForMsg: { key: 'waiting.approve' },
+    });
     expect(agent(75 * SEC, 'a:s1')?.waitingFor).toBeUndefined();
     expect(agent(110 * SEC, 'a:s1')).toMatchObject({ status: 'idle', statusSince: T + 100 * SEC });
   });
 
   test('a subagent starts working and is described by its task', () => {
-    expect(agent(40 * SEC, 'a:s1:x')).toMatchObject({ kind: 'sub', parentId: 'a:s1', status: 'working', role: 'Explore', title: 'Explorar', startedAt: T + 33 * SEC });
+    expect(agent(40 * SEC, 'a:s1:x')).toMatchObject({
+      kind: 'sub',
+      parentId: 'a:s1',
+      status: 'working',
+      role: 'Explore',
+      title: 'Explorar',
+      startedAt: T + 33 * SEC,
+    });
   });
 
   test('current activity and the recent ones, oldest first', () => {
@@ -119,14 +221,22 @@ describe('what a person is doing at an instant', () => {
     const early = agent(15 * SEC, 'a:s1')?.tasks;
     const late = agent(95 * SEC, 'a:s1')?.tasks;
 
-    expect(early?.map((task) => [task.title, task.status, task.changedAt])).toEqual([['Escrever', 'in_progress', T + 12 * SEC], ['Publicar', 'pending', T + 12 * SEC]]);
-    expect(late?.map((task) => [task.title, task.status, task.changedAt])).toEqual([['Escrever', 'completed', T + 90 * SEC], ['Publicar', 'in_progress', T + 90 * SEC]]);
+    expect(early?.map((task) => [task.title, task.status, task.changedAt])).toEqual([
+      ['Escrever', 'in_progress', T + 12 * SEC],
+      ['Publicar', 'pending', T + 12 * SEC],
+    ]);
+    expect(late?.map((task) => [task.title, task.status, task.changedAt])).toEqual([
+      ['Escrever', 'completed', T + 90 * SEC],
+      ['Publicar', 'in_progress', T + 90 * SEC],
+    ]);
     expect(agent(5 * SEC, 'a:s1')?.tasks).toEqual([]);
   });
 
   test('a shell is running between its start and its end', () => {
     expect(agent(39 * SEC, 'a:s1')?.shells).toEqual([]);
-    expect(agent(45 * SEC, 'a:s1')?.shells).toMatchObject([{ id: 'b1', label: 'npm test', background: false, kind: 'shell', startedAt: T + 40 * SEC }]);
+    expect(agent(45 * SEC, 'a:s1')?.shells).toMatchObject([
+      { id: 'b1', label: 'npm test', background: false, kind: 'shell', startedAt: T + 40 * SEC },
+    ]);
     expect(agent(81 * SEC, 'a:s1')?.shells).toEqual([]);
   });
 
@@ -153,7 +263,8 @@ describe('the snapshot', () => {
   test('seeking is deterministic: the state at an instant does not depend on how the clock got there', () => {
     const replay = index();
     const direct = snapshotAt(replay, T + 95 * SEC, context());
-    for (const offset of [0, 200 * SEC, 7 * MIN, 30 * SEC, 99 * SEC, 5 * MIN, 95 * SEC]) snapshotAt(replay, T + offset, context());
+    for (const offset of [0, 200 * SEC, 7 * MIN, 30 * SEC, 99 * SEC, 5 * MIN, 95 * SEC])
+      snapshotAt(replay, T + offset, context());
     const afterwards = snapshotAt(replay, T + 95 * SEC, context());
 
     expect(afterwards).toEqual(direct);
@@ -174,7 +285,11 @@ describe('the feed', () => {
   test('lists the latest activities up to the instant, oldest first, with who did them', () => {
     const feed = feedAt(index(), T + 35 * SEC, 10);
 
-    expect(feed.map((item) => [item.agentName, item.activity.kind])).toEqual([['Ana', 'prompt'], ['Ana', 'read'], ['Ana', 'subagent']]);
+    expect(feed.map((item) => [item.agentName, item.activity.kind])).toEqual([
+      ['Ana', 'prompt'],
+      ['Ana', 'read'],
+      ['Ana', 'subagent'],
+    ]);
     expect(feed[0]).toMatchObject({ agentId: 'a:s1', projectId: '/work/loja' });
   });
 
@@ -197,7 +312,13 @@ describe('a full demo day', () => {
   const NOW = new Date(2026, 9, 21, 15, 30).getTime();
   const range = dayRange('2026-10-20');
   if (range === undefined) throw new Error('no range');
-  const timelapse = demoTimelapse({ range, now: NOW, locale: 'en', agents: createDemoSimulator({ seed: 3, now: () => NOW }).agents(), account: 'all' });
+  const timelapse = demoTimelapse({
+    range,
+    now: NOW,
+    locale: 'en',
+    agents: createDemoSimulator({ seed: 3, now: () => NOW }).agents(),
+    account: 'all',
+  });
   const replay = buildReplay(timelapse);
   const from = timelapse.from ?? 0;
   const to = timelapse.to ?? 0;

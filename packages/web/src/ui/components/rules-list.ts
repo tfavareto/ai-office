@@ -35,17 +35,49 @@ class RuleRow {
   ) {
     this.model = initial;
     this.el.dataset.id = initial.rule.id;
-    const logBtn = button({ label: t('rules.action.log'), variant: 'ghost', className: 'ao-btn--small', onClick: () => ctx.rules.showLogOf(this.model.rule.id) });
-    const editBtn = button({ label: t('rules.action.edit'), variant: 'soft', className: 'ao-btn--small', onClick: () => ctx.rules.startEdit(this.model.rule) });
-    const deleteBtn = button({ label: t('rules.action.delete'), icon: 'trash', variant: 'ghost', className: 'ao-btn--small', onClick: () => ctx.rules.askDelete(this.model.rule.id) });
+    const logBtn = button({
+      label: t('rules.action.log'),
+      variant: 'ghost',
+      className: 'ao-btn--small',
+      onClick: () => ctx.rules.showLogOf(this.model.rule.id),
+    });
+    const editBtn = button({
+      label: t('rules.action.edit'),
+      variant: 'soft',
+      className: 'ao-btn--small',
+      onClick: () => ctx.rules.startEdit(this.model.rule),
+    });
+    const deleteBtn = button({
+      label: t('rules.action.delete'),
+      icon: 'trash',
+      variant: 'ghost',
+      className: 'ao-btn--small',
+      onClick: () => ctx.rules.askDelete(this.model.rule.id),
+    });
     this.actions.append(logBtn, editBtn, deleteBtn);
     this.confirm.append(
       h('span', null, t('rules.delete.confirm')),
-      button({ label: t('rules.delete.yes'), variant: 'danger', className: 'ao-btn--small', onClick: () => void this.onDelete() }),
-      button({ label: t('common.cancel'), variant: 'ghost', className: 'ao-btn--small', onClick: () => ctx.rules.askDelete(null) }),
+      button({
+        label: t('rules.delete.yes'),
+        variant: 'danger',
+        className: 'ao-btn--small',
+        onClick: () => void this.onDelete(),
+      }),
+      button({
+        label: t('common.cancel'),
+        variant: 'ghost',
+        className: 'ao-btn--small',
+        onClick: () => ctx.rules.askDelete(null),
+      }),
     );
     this.el.append(
-      h('div', { class: 'ao-rule-main' }, h('div', { class: 'ao-rule-head' }, this.badge, this.tool, this.kind, this.value), h('div', { class: 'ao-rule-meta' }, this.scope, this.hits), this.note),
+      h(
+        'div',
+        { class: 'ao-rule-main' },
+        h('div', { class: 'ao-rule-head' }, this.badge, this.tool, this.kind, this.value),
+        h('div', { class: 'ao-rule-meta' }, this.scope, this.hits),
+        this.note,
+      ),
       h('div', { class: 'ao-rule-side' }, this.toggle.el, this.actions),
       this.confirm,
     );
@@ -65,7 +97,10 @@ class RuleRow {
     setText(this.kind, rule.matcher.kind === 'any' ? '' : t(`rules.kind.${rule.matcher.kind}` as TextKey));
     setText(this.value, matcherValueText(rule.matcher));
     setText(this.scope, scopeText(rule.scope, accounts));
-    const used = rule.lastHitAt === undefined ? '' : ` · ${t('rules.lastHit', { when: formatAgo(this.ctx.now() - rule.lastHitAt) })}`;
+    const used =
+      rule.lastHitAt === undefined
+        ? ''
+        : ` · ${t('rules.lastHit', { when: formatAgo(this.ctx.now() - rule.lastHitAt) })}`;
     setText(this.hits, `${t('rules.hits', { n: rule.hits })}${used}`);
     this.note.hidden = rule.note === undefined;
     setText(this.note, rule.note ?? '');
@@ -81,7 +116,11 @@ class RuleRow {
     const rule = this.model.rule;
     const result = await this.ctx.rules.toggle(rule);
     if (result.ok) this.ctx.announce(t(rule.enabled ? 'announce.rules.disabled' : 'announce.rules.enabled'));
-    else this.ctx.notifyLocal('warn', result.rejection !== undefined ? explainRejection(result.rejection) : result.message);
+    else
+      this.ctx.notifyLocal(
+        'warn',
+        result.rejection !== undefined ? explainRejection(result.rejection) : result.message,
+      );
   }
 
   private async onDelete(): Promise<void> {
@@ -109,7 +148,19 @@ export class RulesList implements Component {
       h('span', { class: 'ao-rules-empty-art', 'aria-hidden': 'true' }, icon('shield', 34)),
       h('strong', null, t('rules.empty.title')),
       h('p', { class: 'ao-note' }, t('rules.empty.text')),
-      button({ label: t('rules.empty.action'), icon: 'plus', variant: 'primary', onClick: () => ctx.rules.startNew({ effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: '' }, scope: {}, enabled: true }) }),
+      button({
+        label: t('rules.empty.action'),
+        icon: 'plus',
+        variant: 'primary',
+        onClick: () =>
+          ctx.rules.startNew({
+            effect: 'allow',
+            tool: 'Bash',
+            matcher: { kind: 'command-prefix', value: '' },
+            scope: {},
+            enabled: true,
+          }),
+      }),
     );
     this.el.append(this.empty, this.list);
   }

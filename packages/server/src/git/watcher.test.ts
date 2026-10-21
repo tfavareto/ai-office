@@ -15,7 +15,13 @@ import {
 
 const OID = '0123456789abcdef0123456789abcdef01234567';
 const statusOf = (branch: string, extra = ''): string => `# branch.oid ${OID}\n# branch.head ${branch}\n${extra}`;
-const PR_JSON = JSON.stringify({ number: 7, title: 'T', state: 'OPEN', url: 'https://github.com/o/r/pull/7', statusCheckRollup: [] });
+const PR_JSON = JSON.stringify({
+  number: 7,
+  title: 'T',
+  state: 'OPEN',
+  url: 'https://github.com/o/r/pull/7',
+  statusCheckRollup: [],
+});
 
 interface Harness {
   watcher: GitWatcher;
@@ -95,7 +101,8 @@ function harness(rooms: WatchedProject[], options: { hasRepository?: (path: stri
 }
 
 const room = (name: string, active = false): WatchedProject => ({ id: `/work/${name}`, path: `/work/${name}`, active });
-const statusReads = (h: Harness, path?: string): number => h.gitCalls.filter((call) => call.sub === 'status' && (path === undefined || call.path === path)).length;
+const statusReads = (h: Harness, path?: string): number =>
+  h.gitCalls.filter((call) => call.sub === 'status' && (path === undefined || call.path === path)).length;
 
 let h: Harness;
 beforeEach(() => {

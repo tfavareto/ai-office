@@ -4,7 +4,18 @@
 import type { Account, FeedItem, OfficeMeta, OfficeSnapshot, Timelapse } from '@ai-office/shared';
 import { describeError } from '../net/backend';
 import type { Backend } from '../net/backend';
-import { DEFAULT_SPEED, type ClockState, type Speed, advance, atEnd, seek as seekClock, setSpeed as setClockSpeed, skip as skipClock, startClock, togglePlay } from '../timelapse/clock';
+import {
+  DEFAULT_SPEED,
+  type ClockState,
+  type Speed,
+  advance,
+  atEnd,
+  seek as seekClock,
+  setSpeed as setClockSpeed,
+  skip as skipClock,
+  startClock,
+  togglePlay,
+} from '../timelapse/clock';
 import { type Marker, buildMarkers } from '../timelapse/markers';
 import { type ReplayIndex, buildReplay, feedAt, snapshotAt } from '../timelapse/replay';
 import { Observable } from './observable';
@@ -47,7 +58,14 @@ export interface ReplayDeps {
   cancelFrame: (handle: number) => void;
 }
 
-const OFF: ReplayView = { phase: 'off', date: '', empty: false, playing: false, speed: DEFAULT_SPEED, notes: { truncated: false, trimmed: false, demo: false } };
+const OFF: ReplayView = {
+  phase: 'off',
+  date: '',
+  empty: false,
+  playing: false,
+  speed: DEFAULT_SPEED,
+  notes: { truncated: false, trimmed: false, demo: false },
+};
 const FALLBACK_META: OfficeMeta = { version: '', startedAt: 0, local: false, demo: false };
 
 export class ReplayController extends Observable<ReplayView> {
@@ -100,7 +118,8 @@ export class ReplayController extends Observable<ReplayView> {
   feed(): readonly FeedItem[] {
     const clock = this.clockState;
     if (this.index === undefined || clock === undefined) return [];
-    if (this.feedCache?.at !== clock.t) this.feedCache = { at: clock.t, items: feedAt(this.index, clock.t, FEED_LIMIT) };
+    if (this.feedCache?.at !== clock.t)
+      this.feedCache = { at: clock.t, items: feedAt(this.index, clock.t, FEED_LIMIT) };
     return this.feedCache.items;
   }
 
@@ -174,7 +193,11 @@ export class ReplayController extends Observable<ReplayView> {
   private open(timelapse: Timelapse): void {
     this.index = buildReplay(timelapse);
     this.feedCache = undefined;
-    const notes = { truncated: timelapse.truncated === true, trimmed: timelapse.trimmed === true, demo: timelapse.demo === true };
+    const notes = {
+      truncated: timelapse.truncated === true,
+      trimmed: timelapse.trimmed === true,
+      demo: timelapse.demo === true,
+    };
     if (timelapse.from === undefined || timelapse.to === undefined || timelapse.agents.length === 0) {
       this.markerList = [];
       this.current = this.snapshotFor(timelapse.start);
@@ -205,12 +228,17 @@ export class ReplayController extends Observable<ReplayView> {
 
   /** The view carries only what changes rarely: whether it plays and how fast. */
   private syncView(clock: ClockState): void {
-    if (this.value.playing !== clock.playing || this.value.speed !== clock.speed) this.replace({ ...this.value, playing: clock.playing, speed: clock.speed });
+    if (this.value.playing !== clock.playing || this.value.speed !== clock.speed)
+      this.replace({ ...this.value, playing: clock.playing, speed: clock.speed });
   }
 
   private snapshotFor(at: number): OfficeSnapshot {
     const base = this.deps.base();
-    return snapshotAt(this.index as ReplayIndex, at, { accounts: base.accounts, meta: { ...(base.meta ?? FALLBACK_META), demo: this.index?.timelapse.demo === true, local: false }, rev: ++this.rev });
+    return snapshotAt(this.index as ReplayIndex, at, {
+      accounts: base.accounts,
+      meta: { ...(base.meta ?? FALLBACK_META), demo: this.index?.timelapse.demo === true, local: false },
+      rev: ++this.rev,
+    });
   }
 
   private show(at: number, jump: boolean): void {

@@ -2,7 +2,10 @@
 .ao-popover--inbox {
   --inbox-w: min(580px, calc(100vw - var(--panel-left, 12px) - var(--panel-right, 12px)));
   right: auto;
-  left: calc(var(--panel-left, 12px) + max(0px, (100vw - var(--panel-left, 12px) - var(--panel-right, 12px) - var(--inbox-w)) / 2));
+  left: calc(
+    var(--panel-left, 12px) +
+      max(0px, (100vw - var(--panel-left, 12px) - var(--panel-right, 12px) - var(--inbox-w)) / 2)
+  );
   width: var(--inbox-w);
   max-width: none;
   max-height: min(720px, calc(100vh - var(--popover-top, 64px) - 16px));
@@ -174,7 +177,10 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg-soft);
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), opacity var(--t-base) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    opacity var(--t-base) var(--ease);
   animation: ao-rise var(--t-base) var(--ease);
 }
 
@@ -461,7 +467,9 @@
   margin-bottom: 6px;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 40%, rgba(62, 207, 142, 0.22), rgba(62, 207, 142, 0.05) 70%);
-  box-shadow: 0 0 0 8px rgba(62, 207, 142, 0.06), 0 0 0 18px rgba(62, 207, 142, 0.03);
+  box-shadow:
+    0 0 0 8px rgba(62, 207, 142, 0.06),
+    0 0 0 18px rgba(62, 207, 142, 0.03);
   color: var(--working);
 }
 

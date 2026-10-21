@@ -64,8 +64,15 @@ function hedge(ctx: Ctx, x: number, y: number, w: number, h: number): void {
   rect(ctx, x + 1, y + 2, w, h, 'rgba(8,10,18,0.2)');
   rect(ctx, x, y, w, h, PLANT.dark);
   rect(ctx, x + 1, y + 1, w - 2, h - 3, PLANT.base);
-  for (let k = 0; k < w * h / 14; k++) {
-    rect(ctx, x + 1 + Math.floor(noise2(k, x, 71) * (w - 3)), y + 1 + Math.floor(noise2(k, y, 72) * (h - 4)), 2, 1, PLANT.light);
+  for (let k = 0; k < (w * h) / 14; k++) {
+    rect(
+      ctx,
+      x + 1 + Math.floor(noise2(k, x, 71) * (w - 3)),
+      y + 1 + Math.floor(noise2(k, y, 72) * (h - 4)),
+      2,
+      1,
+      PLANT.light,
+    );
   }
 }
 
@@ -79,7 +86,12 @@ export function paintPark(ctx: Ctx, park: Rect): void {
   pathStrip(ctx, { x: p.x, y: cy - PATH_W / 2, w: p.w, h: PATH_W });
   fountain(ctx, cx, cy);
   hedge(ctx, p.x + 4, p.y + 6, 10, p.h - 12);
-  for (const [qx, qy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+  for (const [qx, qy] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const) {
     const bx = cx + qx * 52 - 18;
     const by = cy + qy * 120 - 8;
     flowerBed(ctx, bx, by, 36, 16, 73 + qx + qy * 2);
@@ -94,7 +106,12 @@ export function paintPark(ctx: Ctx, park: Rect): void {
     paintTree(ctx, { x: tx, y: ty, variant: Math.floor(noise2(tx, ty, 74) * 3) });
   }
   for (const gy of [-1, 1]) {
-    for (const gx of [-1, 1]) paintTree(ctx, { x: Math.round((cx + gx * 70) / TILE) - 1, y: Math.round((cy + gy * 60) / TILE) - 1, variant: (gx + gy + 4) % 3 });
+    for (const gx of [-1, 1])
+      paintTree(ctx, {
+        x: Math.round((cx + gx * 70) / TILE) - 1,
+        y: Math.round((cy + gy * 60) / TILE) - 1,
+        variant: (gx + gy + 4) % 3,
+      });
   }
   rect(ctx, p.x, p.y, 2, p.h, GRAPHITE.light);
 }

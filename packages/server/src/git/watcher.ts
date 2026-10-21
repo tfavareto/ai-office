@@ -172,7 +172,12 @@ export class GitWatcher {
   private gitDue(entry: Entry, now: number): boolean {
     if (now < this.gitBlockedUntil || entry.queued.has('git')) return false;
     if (entry.readAt === 0) return true;
-    if (entry.touchLast !== undefined && entry.touchFirst !== undefined && (now - entry.touchLast >= TOUCH_DEBOUNCE_MS || now - entry.touchFirst >= TOUCH_MAX_WAIT_MS)) return true;
+    if (
+      entry.touchLast !== undefined &&
+      entry.touchFirst !== undefined &&
+      (now - entry.touchLast >= TOUCH_DEBOUNCE_MS || now - entry.touchFirst >= TOUCH_MAX_WAIT_MS)
+    )
+      return true;
     return now - entry.readAt >= (entry.active ? ACTIVE_REFRESH_MS : IDLE_REFRESH_MS);
   }
 

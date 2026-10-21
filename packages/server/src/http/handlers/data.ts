@@ -22,7 +22,8 @@ export function registerDataRoutes(router: Router, app: AppContext): void {
     const agentParam = url.searchParams.get('agent');
     const afterRaw = url.searchParams.get('after');
     const after = afterRaw === null ? undefined : Number(afterRaw);
-    if (!isSafeSegment(sessionId) || (after !== undefined && (!Number.isInteger(after) || after < 0))) return sendError(res, 400, 'invalid-query');
+    if (!isSafeSegment(sessionId) || (after !== undefined && (!Number.isInteger(after) || after < 0)))
+      return sendError(res, 400, 'invalid-query');
     const account = app.engine.accountList().find((candidate) => candidate.id === accountId);
     if (account === undefined) return sendError(res, 404, 'account-not-found');
     const record = app.office.record(`${account.id}:${sessionId}`);
@@ -38,7 +39,8 @@ export function registerDataRoutes(router: Router, app: AppContext): void {
     if (view === undefined) return sendError(res, 404, 'transcript-not-found');
     const page = view.page(after);
     const first = page.entries.find((entry) => entry.kind === 'user');
-    const title = record?.registry?.name ?? record?.main.title() ?? (first?.kind === 'user' ? truncate(first.text, 80) : undefined);
+    const title =
+      record?.registry?.name ?? record?.main.title() ?? (first?.kind === 'user' ? truncate(first.text, 80) : undefined);
     const body: TranscriptPage = {
       entries: page.entries,
       next: page.next,
@@ -50,11 +52,15 @@ export function registerDataRoutes(router: Router, app: AppContext): void {
 
   router.add('GET', API.sessions, async ({ res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
-    const sessions: RecentSession[] = await scanRecentSessions(app.engine.accountList(), app.now(), (accountId, sessionId) => {
-      const record = app.office.record(`${accountId}:${sessionId}`);
-      if (record === undefined || record.closedAt !== undefined) return undefined;
-      return { agentId: record.key, ...(record.registry?.name !== undefined ? { title: record.registry.name } : {}) };
-    });
+    const sessions: RecentSession[] = await scanRecentSessions(
+      app.engine.accountList(),
+      app.now(),
+      (accountId, sessionId) => {
+        const record = app.office.record(`${accountId}:${sessionId}`);
+        if (record === undefined || record.closedAt !== undefined) return undefined;
+        return { agentId: record.key, ...(record.registry?.name !== undefined ? { title: record.registry.name } : {}) };
+      },
+    );
     sendJson(res, 200, { sessions });
   });
 }

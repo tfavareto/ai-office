@@ -15,4 +15,3 @@ export function blit(ctx: Ctx, canvas: HTMLCanvasElement, ox: number, oy: number
   if (x1 <= x0 || y1 <= y0) return;
   ctx.drawImage(canvas, x0 - ox, y0 - oy, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
 }
-

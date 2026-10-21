@@ -24,7 +24,12 @@ const MAX_PITCH = (65 * Math.PI) / 180;
 export type BlockedFn = (tileX: number, tileZ: number) => boolean;
 
 function collides(x: number, z: number, blocked: BlockedFn, radius: number): boolean {
-  for (const [dx, dz] of [[-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]] as const) {
+  for (const [dx, dz] of [
+    [-radius, -radius],
+    [radius, -radius],
+    [-radius, radius],
+    [radius, radius],
+  ] as const) {
     if (blocked(Math.floor((x + dx) / TILE_M), Math.floor((z + dz) / TILE_M))) return true;
   }
   return false;
@@ -34,7 +39,14 @@ export function clampPitch(pitch: number): number {
   return Math.min(MAX_PITCH, Math.max(-MAX_PITCH, pitch));
 }
 
-export function stepWalker(state: WalkerState, input: WalkInput, dt: number, blocked: BlockedFn, speed = WALK_SPEED, radius = BODY_RADIUS): WalkerState {
+export function stepWalker(
+  state: WalkerState,
+  input: WalkInput,
+  dt: number,
+  blocked: BlockedFn,
+  speed = WALK_SPEED,
+  radius = BODY_RADIUS,
+): WalkerState {
   const len = Math.hypot(input.forward, input.strafe);
   if (len === 0) return state;
   const f = input.forward / Math.max(1, len);

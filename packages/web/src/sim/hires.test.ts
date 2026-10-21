@@ -4,7 +4,14 @@ import { hireAgentId, isHireAgentId, placeholderAgent, waitingHires, withHirePro
 import { OfficeSim } from './sim';
 import { makeAgent, makeProject, makeSnapshot } from './testkit';
 
-const HIRE: PendingHire = { id: 'h1', projectId: '/work/proj-0', accountId: 'a1', createdAt: 1000, expiresAt: 91_000, deskIndex: 4 };
+const HIRE: PendingHire = {
+  id: 'h1',
+  projectId: '/work/proj-0',
+  accountId: 'a1',
+  createdAt: 1000,
+  expiresAt: 91_000,
+  deskIndex: 4,
+};
 
 function withHires(snapshot: OfficeSnapshot, hires: PendingHire[], rev = snapshot.rev): OfficeSnapshot {
   return { ...snapshot, rev, hires };
@@ -32,7 +39,13 @@ describe('placeholder helpers', () => {
   it('builds an idle main agent for the hire, always the same person for the same hire', () => {
     const first = placeholderAgent(HIRE);
 
-    expect(first).toMatchObject({ id: 'hire:h1', kind: 'main', status: 'idle', accountId: 'a1', projectId: '/work/proj-0' });
+    expect(first).toMatchObject({
+      id: 'hire:h1',
+      kind: 'main',
+      status: 'idle',
+      accountId: 'a1',
+      projectId: '/work/proj-0',
+    });
     expect(placeholderAgent(HIRE)).toEqual(first);
   });
 
@@ -63,7 +76,9 @@ describe('a pending hire in the simulation', () => {
 
     office.runFor(30);
 
-    const desk = office.building.areas.flatMap((area) => area.spots).find((spot) => spot.kind === 'desk' && spot.deskIndex === 4 && spot.areaId === 'room:/work/proj-0')!;
+    const desk = office.building.areas
+      .flatMap((area) => area.spots)
+      .find((spot) => spot.kind === 'desk' && spot.deskIndex === 4 && spot.areaId === 'room:/work/proj-0')!;
     expect(Math.hypot(person.x - desk.x, person.y - desk.y)).toBeLessThan(0.1);
     expect(person.pose).toBe('sit');
     expect(person.agent.name).toBeTruthy();
@@ -86,7 +101,12 @@ describe('a pending hire in the simulation', () => {
     office.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0)]), 1_000_000);
     office.runFor(1);
 
-    office.setSnapshot(withHires(makeSnapshot(1, [makeAgent('ana', 0)], 2), [{ ...HIRE, projectId: '/work/brand-new', deskIndex: undefined }]), 1_001_000);
+    office.setSnapshot(
+      withHires(makeSnapshot(1, [makeAgent('ana', 0)], 2), [
+        { ...HIRE, projectId: '/work/brand-new', deskIndex: undefined },
+      ]),
+      1_001_000,
+    );
     office.runFor(30);
 
     expect(office.rooms.live('/work/brand-new')?.phase).toBe('open');
@@ -100,7 +120,10 @@ describe('a pending hire in the simulation', () => {
     const where = { x: person.x, y: person.y };
 
     const real = makeAgent('a1:fresh', 0, 'working');
-    office.setSnapshot(withHires(makeSnapshot(1, [makeAgent('ana', 0, 'idle'), real], 3), [{ ...HIRE, agentId: real.id }]), 1_031_000);
+    office.setSnapshot(
+      withHires(makeSnapshot(1, [makeAgent('ana', 0, 'idle'), real], 3), [{ ...HIRE, agentId: real.id }]),
+      1_031_000,
+    );
 
     expect(office.character('hire:h1')).toBeUndefined();
     const taken = office.character(real.id)!;
@@ -121,8 +144,13 @@ describe('a pending hire in the simulation', () => {
     const office = officeWithHire();
     office.runFor(30);
     const real = makeAgent('a1:fresh', 0, 'working');
-    office.setSnapshot(withHires(makeSnapshot(1, [makeAgent('ana', 0, 'idle'), real], 3), [{ ...HIRE, agentId: real.id }]), 1_031_000);
-    const desk = office.building.areas.flatMap((area) => area.spots).find((spot) => spot.kind === 'desk' && spot.deskIndex === 4 && spot.areaId === 'room:/work/proj-0')!;
+    office.setSnapshot(
+      withHires(makeSnapshot(1, [makeAgent('ana', 0, 'idle'), real], 3), [{ ...HIRE, agentId: real.id }]),
+      1_031_000,
+    );
+    const desk = office.building.areas
+      .flatMap((area) => area.spots)
+      .find((spot) => spot.kind === 'desk' && spot.deskIndex === 4 && spot.areaId === 'room:/work/proj-0')!;
 
     expect(office.spots.claimant(desk.id)).toBe(real.id);
   });
@@ -151,7 +179,9 @@ describe('a pending hire in the simulation', () => {
 
 describe('empty desks', () => {
   function deskCenter(office: OfficeSim, index: number): { x: number; y: number } {
-    const desk = office.building.areas.find((area) => area.projectId === '/work/proj-0')!.furniture.find((item) => item.kind === 'desk' && item.variant === index)!;
+    const desk = office.building.areas
+      .find((area) => area.projectId === '/work/proj-0')!
+      .furniture.find((item) => item.kind === 'desk' && item.variant === index)!;
     return { x: desk.x + 1.5, y: desk.y + 0.5 };
   }
 
@@ -161,7 +191,8 @@ describe('empty desks', () => {
     office.runFor(1);
     const { x, y } = deskCenter(office, 5);
 
-    for (const dy of [-0.5, 0.2, 1.2]) expect(office.emptyDeskAt(x, y + dy)).toMatchObject({ projectId: '/work/proj-0', deskIndex: 5 });
+    for (const dy of [-0.5, 0.2, 1.2])
+      expect(office.emptyDeskAt(x, y + dy)).toMatchObject({ projectId: '/work/proj-0', deskIndex: 5 });
     expect(office.emptyDeskAt(x, y + 1.5)).toBeNull();
   });
 
@@ -169,8 +200,12 @@ describe('empty desks', () => {
     const office = sim();
     office.setSnapshot(makeSnapshot(1, [makeAgent('ana', 0)]), 1_000_000);
     office.runFor(1);
-    const taken = office.building.areas.flatMap((area) => area.spots).find((spot) => spot.kind === 'desk' && office.spots.claimant(spot.id) === 'ana')!;
-    const desk = office.building.areas.find((area) => area.projectId === '/work/proj-0')!.furniture.find((item) => item.kind === 'desk' && item.variant === taken.deskIndex)!;
+    const taken = office.building.areas
+      .flatMap((area) => area.spots)
+      .find((spot) => spot.kind === 'desk' && office.spots.claimant(spot.id) === 'ana')!;
+    const desk = office.building.areas
+      .find((area) => area.projectId === '/work/proj-0')!
+      .furniture.find((item) => item.kind === 'desk' && item.variant === taken.deskIndex)!;
 
     expect(office.emptyDeskAt(desk.x + 1.5, desk.y + 0.5)).toBeNull();
   });

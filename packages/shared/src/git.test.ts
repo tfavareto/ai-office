@@ -4,8 +4,22 @@ import { demoGit } from './demo/git';
 import { DEMO_PROJECTS } from './demo/content';
 import { createDemoSimulator } from './demo/simulator';
 
-const clean: ProjectGit = { branch: 'main', staged: 0, unstaged: 0, untracked: 0, conflicted: 0, insertions: 0, deletions: 0, stash: 0 };
-const checks = (passed: number, failed: number, pending: number): GitChecks => ({ total: passed + failed + pending, passed, failed, pending });
+const clean: ProjectGit = {
+  branch: 'main',
+  staged: 0,
+  unstaged: 0,
+  untracked: 0,
+  conflicted: 0,
+  insertions: 0,
+  deletions: 0,
+  stash: 0,
+};
+const checks = (passed: number, failed: number, pending: number): GitChecks => ({
+  total: passed + failed + pending,
+  passed,
+  failed,
+  pending,
+});
 
 describe('changedFiles and isDirty', () => {
   test('add every kind of change', () => {
@@ -38,7 +52,10 @@ describe('ciOfChecks', () => {
 });
 
 describe('ciLight', () => {
-  const pr = (state: 'open' | 'merged', ci: 'success' | 'failure'): ProjectGit => ({ ...clean, pr: { number: 1, title: 't', state, url: 'https://x.test/1', draft: false, ci, checks: checks(1, 0, 0) } });
+  const pr = (state: 'open' | 'merged', ci: 'success' | 'failure'): ProjectGit => ({
+    ...clean,
+    pr: { number: 1, title: 't', state, url: 'https://x.test/1', draft: false, ci, checks: checks(1, 0, 0) },
+  });
 
   test('lights up for an open pull request only', () => {
     expect(ciLight(pr('open', 'failure'))).toBe('failure');
@@ -86,7 +103,12 @@ describe('the demo simulator', () => {
   test('puts the fake git state on its rooms and follows the pull request switch', () => {
     // Arrange
     let pullRequests = true;
-    const simulator = createDemoSimulator({ seed: 1, sessions: 4, now: () => 1_700_000_000_000, pullRequests: () => pullRequests });
+    const simulator = createDemoSimulator({
+      seed: 1,
+      sessions: 4,
+      now: () => 1_700_000_000_000,
+      pullRequests: () => pullRequests,
+    });
     // Act
     const withPr = simulator.projects();
     pullRequests = false;

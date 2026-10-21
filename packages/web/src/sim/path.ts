@@ -8,8 +8,14 @@ export interface Vec {
 
 const SQRT2 = Math.SQRT2;
 const NEIGHBORS: readonly [number, number, number][] = [
-  [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
-  [1, 1, SQRT2], [-1, 1, SQRT2], [1, -1, SQRT2], [-1, -1, SQRT2],
+  [1, 0, 1],
+  [-1, 0, 1],
+  [0, 1, 1],
+  [0, -1, 1],
+  [1, 1, SQRT2],
+  [-1, 1, SQRT2],
+  [1, -1, SQRT2],
+  [-1, -1, SQRT2],
 ];
 
 /** Binary min-heap of node indices keyed by f-score. */

@@ -7,12 +7,23 @@ import { EMPTY_INBOX_STATE } from './inbox-state';
 
 const NOW = 10_000;
 
-function request(id: string, command: string, over: { expiresAt?: number; toolName?: string; input?: unknown; summary?: string } = {}): Agent {
+function request(
+  id: string,
+  command: string,
+  over: { expiresAt?: number; toolName?: string; input?: unknown; summary?: string } = {},
+): Agent {
   return agent({
     id,
     status: 'waiting',
     statusSince: 1_000,
-    permission: permission({ id: `perm-${id}`, agentId: id, toolName: over.toolName ?? 'Bash', summary: over.summary ?? command, input: over.input ?? { command }, expiresAt: over.expiresAt ?? 60_000 }),
+    permission: permission({
+      id: `perm-${id}`,
+      agentId: id,
+      toolName: over.toolName ?? 'Bash',
+      summary: over.summary ?? command,
+      input: over.input ?? { command },
+      expiresAt: over.expiresAt ?? 60_000,
+    }),
   });
 }
 
@@ -21,7 +32,12 @@ function itemsOf(agents: Agent[]): InboxItem[] {
 }
 
 describe('planBulk', () => {
-  const items = itemsOf([request('a', 'npm test'), request('b', 'sudo make install'), request('c', 'ls', { expiresAt: 5_000 }), agent({ id: 'q', status: 'waiting', statusSince: 2_000 })]);
+  const items = itemsOf([
+    request('a', 'npm test'),
+    request('b', 'sudo make install'),
+    request('c', 'ls', { expiresAt: 5_000 }),
+    agent({ id: 'q', status: 'waiting', statusSince: 2_000 }),
+  ]);
 
   it('approves ordinary requests and leaves risky, expired and non-permission items out with a reason', () => {
     const plan = planBulk('approve', items);
@@ -42,14 +58,28 @@ describe('planBulk', () => {
 
 describe('similarGroups', () => {
   it('groups identical requests and reports the group size', () => {
-    const groups = similarGroups(itemsOf([request('a', 'npm test'), request('b', 'npm  test'), request('c', 'npm test'), request('d', 'npm run build')]));
+    const groups = similarGroups(
+      itemsOf([
+        request('a', 'npm test'),
+        request('b', 'npm  test'),
+        request('c', 'npm test'),
+        request('d', 'npm run build'),
+      ]),
+    );
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({ toolName: 'Bash', label: 'npm test' });
     expect(groups[0]?.items.map((item) => item.agentId)).toEqual(['a', 'b', 'c']);
   });
 
   it('never groups dangerous commands, even when identical', () => {
-    const groups = similarGroups(itemsOf([request('a', 'rm -rf dist'), request('b', 'rm -rf dist'), request('c', 'git push --force'), request('d', 'git push --force')]));
+    const groups = similarGroups(
+      itemsOf([
+        request('a', 'rm -rf dist'),
+        request('b', 'rm -rf dist'),
+        request('c', 'git push --force'),
+        request('d', 'git push --force'),
+      ]),
+    );
     expect(groups).toEqual([]);
   });
 
@@ -66,8 +96,17 @@ describe('similarGroups', () => {
   });
 
   it('groups file edits of the same folder and extension, largest group first', () => {
-    const edit = (id: string, path: string) => request(id, '', { toolName: 'Edit', summary: path, input: { file_path: path } });
-    const groups = similarGroups(itemsOf([edit('a', 'src/a.ts'), edit('b', 'src/b.ts'), request('c', 'npm test'), request('d', 'npm test'), request('e', 'npm test')]));
+    const edit = (id: string, path: string) =>
+      request(id, '', { toolName: 'Edit', summary: path, input: { file_path: path } });
+    const groups = similarGroups(
+      itemsOf([
+        edit('a', 'src/a.ts'),
+        edit('b', 'src/b.ts'),
+        request('c', 'npm test'),
+        request('d', 'npm test'),
+        request('e', 'npm test'),
+      ]),
+    );
     expect(groups.map((group) => [group.label, group.items.length])).toEqual([
       ['npm test', 3],
       ['src/*.ts', 2],

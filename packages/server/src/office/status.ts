@@ -43,17 +43,25 @@ function approveTool(name: string): Pick<DerivedStatus, 'waitingFor' | 'waitingF
   return { waitingFor: sourceText(message), waitingForMsg: message };
 }
 
-function withMsg(waitingFor: string, waitingForMsg: Msg | undefined): Pick<DerivedStatus, 'waitingFor' | 'waitingForMsg'> {
+function withMsg(
+  waitingFor: string,
+  waitingForMsg: Msg | undefined,
+): Pick<DerivedStatus, 'waitingFor' | 'waitingForMsg'> {
   return { waitingFor, ...(waitingForMsg !== undefined ? { waitingForMsg } : {}) };
 }
 
 export function deriveStatus(input: StatusInput): DerivedStatus {
   const registry = input.registryStatus;
   if (input.permissionPending) return { status: 'waiting' };
-  if (input.attentionMessage !== undefined) return { status: 'waiting', ...withMsg(input.attentionMessage, input.attentionMsg) };
-  if (input.pendingUserTool !== undefined) return { status: 'waiting', ...withMsg(input.pendingUserTool, input.pendingUserToolMsg) };
+  if (input.attentionMessage !== undefined)
+    return { status: 'waiting', ...withMsg(input.attentionMessage, input.attentionMsg) };
+  if (input.pendingUserTool !== undefined)
+    return { status: 'waiting', ...withMsg(input.pendingUserTool, input.pendingUserToolMsg) };
   if (registry === 'waiting') {
-    return { status: 'waiting', ...(input.blockingTool ? approveTool(input.blockingTool.name) : withMsg(NEEDS_YOU_TEXT, NEEDS_YOU_MSG)) };
+    return {
+      status: 'waiting',
+      ...(input.blockingTool ? approveTool(input.blockingTool.name) : withMsg(NEEDS_YOU_TEXT, NEEDS_YOU_MSG)),
+    };
   }
   const tool = input.blockingTool;
   if (registry === 'idle' && tool !== undefined && input.now - tool.at > PENDING_TOOL_WAIT_MS) {

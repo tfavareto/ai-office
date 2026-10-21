@@ -25,7 +25,13 @@ describe('readRegistry', () => {
     const snapshot = await readRegistry(fake.dir, (pid) => pid === 111);
     expect(snapshot.supported).toBe(true);
     expect(snapshot.open).toHaveLength(1);
-    expect(snapshot.open[0]).toMatchObject({ pid: 111, sessionId: 'alive', name: 'Sessão viva', status: 'busy', cwd: '/work/proj' });
+    expect(snapshot.open[0]).toMatchObject({
+      pid: 111,
+      sessionId: 'alive',
+      name: 'Sessão viva',
+      status: 'busy',
+      cwd: '/work/proj',
+    });
   });
 
   test('ignores corrupt files, non-pid names and unsafe session ids', async () => {
@@ -44,7 +50,12 @@ describe('readRegistry', () => {
 
   test('parseRegistryEntry validates required fields', () => {
     expect(parseRegistryEntry({ pid: 1 })).toBeUndefined();
-    expect(parseRegistryEntry({ pid: 1, sessionId: 'abc', startedAt: 5 })).toMatchObject({ pid: 1, sessionId: 'abc', startedAt: 5, cwd: '' });
+    expect(parseRegistryEntry({ pid: 1, sessionId: 'abc', startedAt: 5 })).toMatchObject({
+      pid: 1,
+      sessionId: 'abc',
+      startedAt: 5,
+      cwd: '',
+    });
   });
 });
 
@@ -72,7 +83,11 @@ describe('accounts', () => {
   test('ignores explicit directories that do not exist', async () => {
     const extra = join(fake.home, 'custom-config');
     await mkdir(extra, { recursive: true });
-    const accounts = await discoverAccounts({ homeDir: fake.home, explicitDirs: [extra, join(fake.home, 'missing')], envDir: undefined });
+    const accounts = await discoverAccounts({
+      homeDir: fake.home,
+      explicitDirs: [extra, join(fake.home, 'missing')],
+      envDir: undefined,
+    });
     expect(accounts.map((a) => a.dir)).toEqual([extra]);
   });
 
@@ -102,7 +117,11 @@ describe('paths', () => {
     await fake.writeSubagent('s2', 'bbb', '{}\n');
     const files = await listSubagents(main);
     expect(files.map((f) => f.agentId).sort()).toEqual(['aaa', 'bbb']);
-    expect(files.find((f) => f.agentId === 'aaa')?.meta).toEqual({ agentType: 'Explore', description: 'Mapear', toolUseId: 'tu1' });
+    expect(files.find((f) => f.agentId === 'aaa')?.meta).toEqual({
+      agentType: 'Explore',
+      description: 'Mapear',
+      toolUseId: 'tu1',
+    });
     expect(files.find((f) => f.agentId === 'bbb')?.meta).toBeUndefined();
   });
 });

@@ -15,7 +15,10 @@ export async function readDayCommits(run: Runner, projectPath: string, range: Da
   if ((await findGitDir(projectPath)) === undefined) return [];
   const options = { cwd: projectPath, timeoutMs: GIT_TIMEOUT_MS };
   const email = (await run('git', [...BASE_ARGS, 'config', '--get', 'user.email'], options).catch(() => '')).trim();
-  const filter = email.length > 0 && email.length <= 200 && !email.startsWith('-') ? ['--fixed-strings', '--regexp-ignore-case', `--author=${email}`] : [];
+  const filter =
+    email.length > 0 && email.length <= 200 && !email.startsWith('-')
+      ? ['--fixed-strings', '--regexp-ignore-case', `--author=${email}`]
+      : [];
   const output = await run(
     'git',
     [

@@ -16,7 +16,9 @@ describe('similarityKey', () => {
   });
 
   it('keeps the tool in the key', () => {
-    expect(similarityKey(permission({ toolName: 'Bash', summary: 'x', input: { command: 'x' } }))).not.toBe(similarityKey(permission({ toolName: 'Other', summary: 'x', input: undefined })));
+    expect(similarityKey(permission({ toolName: 'Bash', summary: 'x', input: { command: 'x' } }))).not.toBe(
+      similarityKey(permission({ toolName: 'Other', summary: 'x', input: undefined })),
+    );
   });
 
   it('groups file edits by folder and extension', () => {
@@ -28,8 +30,12 @@ describe('similarityKey', () => {
 
   it('groups web fetches by host', () => {
     const fetch = (url: string) => permission({ toolName: 'WebFetch', summary: url, input: { url } });
-    expect(similarityKey(fetch('https://docs.stripe.com/api'))).toBe(similarityKey(fetch('https://DOCS.stripe.com/other')));
-    expect(similarityKey(fetch('https://docs.stripe.com/api'))).not.toBe(similarityKey(fetch('https://evil.example/api')));
+    expect(similarityKey(fetch('https://docs.stripe.com/api'))).toBe(
+      similarityKey(fetch('https://DOCS.stripe.com/other')),
+    );
+    expect(similarityKey(fetch('https://docs.stripe.com/api'))).not.toBe(
+      similarityKey(fetch('https://evil.example/api')),
+    );
   });
 
   it('falls back to the exact summary for other tools', () => {

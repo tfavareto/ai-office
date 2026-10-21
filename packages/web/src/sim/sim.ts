@@ -117,7 +117,11 @@ export class OfficeSim {
     this.serverBaseTime = this.time;
     const waiting = waitingHires(snapshot.hires);
     // After a reset the rooms come back as they were most of the time: then the building is already right.
-    if (this.rooms.sync(withHireProjects(snapshot.projects, waiting)) && layoutKey(this.rooms.specs()) !== this.builtKey) this.relayout();
+    if (
+      this.rooms.sync(withHireProjects(snapshot.projects, waiting)) &&
+      layoutKey(this.rooms.specs()) !== this.builtKey
+    )
+      this.relayout();
     const instant = this.firstSnapshot;
     this.firstSnapshot = false;
     this.handOverHires(snapshot);
@@ -168,7 +172,14 @@ export class OfficeSim {
       placeholder.adopt(agent);
       placeholder.celebrateUntil = this.time + 1.8;
       this.actors.set(agent.id, placeholder);
-      this.offerBubble(placeholder, { text: 'Cheguei!', msg: { key: 'bubble.arrived' }, icon: '👋', importance: 60, sticky: false, ttl: 3.2 });
+      this.offerBubble(placeholder, {
+        text: 'Cheguei!',
+        msg: { key: 'bubble.arrived' },
+        icon: '👋',
+        importance: 60,
+        sticky: false,
+        ttl: 3.2,
+      });
     }
   }
 
@@ -265,10 +276,24 @@ export class OfficeSim {
     const finishedTurn = previous.status === 'working' && agent.status === 'idle';
     if (finishedTurn && actor.phase === 'atHome') {
       actor.celebrateUntil = this.time + 2;
-      this.offerBubble(actor, { text: 'Terminei!', msg: { key: 'bubble.done' }, icon: '✅', importance: 60, sticky: false, ttl: 3.2 });
+      this.offerBubble(actor, {
+        text: 'Terminei!',
+        msg: { key: 'bubble.done' },
+        icon: '✅',
+        importance: 60,
+        sticky: false,
+        ttl: 3.2,
+      });
     }
     if (agent.status === 'waiting' && previous.status !== 'waiting') {
-      this.offerBubble(actor, { text: 'Precisa de você', msg: { key: 'bubble.needsYou' }, icon: '!', importance: ALERT_IMPORTANCE, sticky: true, ttl: 0 });
+      this.offerBubble(actor, {
+        text: 'Precisa de você',
+        msg: { key: 'bubble.needsYou' },
+        icon: '!',
+        importance: ALERT_IMPORTANCE,
+        sticky: true,
+        ttl: 0,
+      });
     }
     if (agent.status !== 'waiting' && previous.status === 'waiting') this.bubbleManager.withdrawSticky(actor.id);
     if (agent.status === 'idle' && previous.status !== 'idle') {
@@ -284,10 +309,14 @@ export class OfficeSim {
         ttl: 4.6,
       });
     }
-    if ((agent.status === 'done' || agent.status === 'offline') && !actor.leaving) this.beginLeave(actor, agent.status === 'done');
+    if ((agent.status === 'done' || agent.status === 'offline') && !actor.leaving)
+      this.beginLeave(actor, agent.status === 'done');
   }
 
-  private offerBubble(actor: Actor, b: { text: string; msg?: Msg; icon: string; importance: number; sticky: boolean; ttl: number }): void {
+  private offerBubble(
+    actor: Actor,
+    b: { text: string; msg?: Msg; icon: string; importance: number; sticky: boolean; ttl: number },
+  ): void {
     this.bubbleManager.offer({ agentId: actor.id, roomId: actor.areaId ?? 'corridor', ...b }, this.time);
   }
 
@@ -301,7 +330,9 @@ export class OfficeSim {
     const room = this.rooms.live(a.projectId);
     if (a.kind === 'main') {
       if (room) {
-        const desks = this.spots.free('desk', room.areaId, a.id).sort((p, q) => (p.deskIndex ?? 0) - (q.deskIndex ?? 0));
+        const desks = this.spots
+          .free('desk', room.areaId, a.id)
+          .sort((p, q) => (p.deskIndex ?? 0) - (q.deskIndex ?? 0));
         const wanted = desks.find((desk) => desk.deskIndex === a.preferredDesk);
         const spot = claim(wanted ?? desks[0]) ?? claim(this.spots.free('overflow', room.areaId, a.id)[0]);
         if (spot) return spot;
@@ -312,7 +343,9 @@ export class OfficeSim {
       const spot = claim(seat);
       if (spot) return spot;
       if (room) {
-        const desks = this.spots.free('desk', room.areaId, a.id).sort((p, q) => (q.deskIndex ?? 0) - (p.deskIndex ?? 0));
+        const desks = this.spots
+          .free('desk', room.areaId, a.id)
+          .sort((p, q) => (q.deskIndex ?? 0) - (p.deskIndex ?? 0));
         const fallback = claim(desks[0]) ?? claim(this.spots.free('overflow', room.areaId, a.id)[0]);
         if (fallback) return fallback;
       }
@@ -413,7 +446,8 @@ export class OfficeSim {
     let start = a.tile();
     const prefix: Vec[] = [];
     if (!isWalkable(grid, start.x, start.y)) {
-      const leave = a.leaveTile && isWalkable(grid, a.leaveTile.x, a.leaveTile.y) ? a.leaveTile : nearestWalkable(grid, start, 8);
+      const leave =
+        a.leaveTile && isWalkable(grid, a.leaveTile.x, a.leaveTile.y) ? a.leaveTile : nearestWalkable(grid, start, 8);
       if (!leave) return false;
       start = leave;
       prefix.push(centerOf(leave));
@@ -543,7 +577,8 @@ export class OfficeSim {
       else a.setPose(home.seat ? 'type' : 'stand');
     } else a.setPose(home.seat ? 'sit' : 'stand');
 
-    if (status === 'idle' && !a.hiring && !this.options.reducedMotion && !celebrating && this.time >= a.idleDue) this.tryWander(a);
+    if (status === 'idle' && !a.hiring && !this.options.reducedMotion && !celebrating && this.time >= a.idleDue)
+      this.tryWander(a);
     if ((home.kind === 'wait' || home.kind === 'overflow' || home.kind === 'talk') && (a.stageTimer += dt) > 2) {
       a.stageTimer = 0;
       const better = this.assignBetterHome(a);

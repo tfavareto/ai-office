@@ -48,10 +48,19 @@ function pick<T>(rng: Rng, items: readonly T[]): T | null {
 /** Chooses the next thing an idle agent does away from its desk, or null when nothing is available. */
 export function planWander(actor: Actor, ctx: WanderContext, rng: Rng): WanderResult | null {
   const { spots } = ctx;
-  const single = (kind: SpotKind, area: string | undefined, pose: ActivityStep['pose'], min: number, max: number, carry?: 'cup'): (() => WanderResult | null) => () => {
-    const spot = pick(rng, spots.free(kind, area, actor.id));
-    return spot ? { plan: plan([{ spot, pose, dur: rng.range(min, max), carry }]) } : null;
-  };
+  const single =
+    (
+      kind: SpotKind,
+      area: string | undefined,
+      pose: ActivityStep['pose'],
+      min: number,
+      max: number,
+      carry?: 'cup',
+    ): (() => WanderResult | null) =>
+    () => {
+      const spot = pick(rng, spots.free(kind, area, actor.id));
+      return spot ? { plan: plan([{ spot, pose, dur: rng.range(min, max), carry }]) } : null;
+    };
 
   const coffee = (): WanderResult | null => {
     const machine = spots.free('coffee', 'copa', actor.id)[0] ?? spots.free('vending', 'copa', actor.id)[0];
@@ -65,29 +74,53 @@ export function planWander(actor: Actor, ctx: WanderContext, rng: Rng): WanderRe
     return { plan: plan(steps) };
   };
 
-  const pair = (kind: SpotKind, group: string | null, pose: 'talk' | 'play', min: number, max: number): (() => WanderResult | null) => () => {
-    const partners = ctx.actors.filter(
-      (a) => a.id !== actor.id && a.phase === 'atHome' && a.status === 'idle' && !a.leaving && !a.activity && a.agent.status === 'idle',
-    );
-    const partner = partners.length ? partners.reduce((b, a) => (Math.hypot(a.x - actor.x, a.y - actor.y) < Math.hypot(b.x - actor.x, b.y - actor.y) ? a : b)) : null;
-    if (!partner) return null;
-    const groups = new Map<string, Spot[]>();
-    for (const s of spots.all()) {
-      if (s.kind !== kind || !s.group || (group && s.group !== group)) continue;
-      groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
-    }
-    const usable = [...groups.values()].filter((g) => g.length >= 2 && g.every((s) => spots.isFree(s.id)));
-    const chosen = nearest(actor, usable.map((g) => g[0]));
-    if (!chosen) return null;
-    const [a, b] = usable.find((g) => g[0] === chosen)!;
-    const dur = rng.range(min, max);
-    const mine = a;
-    const theirs = b;
-    return {
-      plan: { ...plan([{ spot: mine, pose, dur }]), partnerId: partner.id },
-      partner: { actor: partner, plan: { ...plan([{ spot: theirs, pose: pose === 'talk' ? 'listen' : 'play', dur }]), partnerId: actor.id } },
+  const pair =
+    (
+      kind: SpotKind,
+      group: string | null,
+      pose: 'talk' | 'play',
+      min: number,
+      max: number,
+    ): (() => WanderResult | null) =>
+    () => {
+      const partners = ctx.actors.filter(
+        (a) =>
+          a.id !== actor.id &&
+          a.phase === 'atHome' &&
+          a.status === 'idle' &&
+          !a.leaving &&
+          !a.activity &&
+          a.agent.status === 'idle',
+      );
+      const partner = partners.length
+        ? partners.reduce((b, a) =>
+            Math.hypot(a.x - actor.x, a.y - actor.y) < Math.hypot(b.x - actor.x, b.y - actor.y) ? a : b,
+          )
+        : null;
+      if (!partner) return null;
+      const groups = new Map<string, Spot[]>();
+      for (const s of spots.all()) {
+        if (s.kind !== kind || !s.group || (group && s.group !== group)) continue;
+        groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
+      }
+      const usable = [...groups.values()].filter((g) => g.length >= 2 && g.every((s) => spots.isFree(s.id)));
+      const chosen = nearest(
+        actor,
+        usable.map((g) => g[0]),
+      );
+      if (!chosen) return null;
+      const [a, b] = usable.find((g) => g[0] === chosen)!;
+      const dur = rng.range(min, max);
+      const mine = a;
+      const theirs = b;
+      return {
+        plan: { ...plan([{ spot: mine, pose, dur }]), partnerId: partner.id },
+        partner: {
+          actor: partner,
+          plan: { ...plan([{ spot: theirs, pose: pose === 'talk' ? 'listen' : 'play', dur }]), partnerId: actor.id },
+        },
+      };
     };
-  };
 
   const options: Option[] = [
     { weight: 3, build: coffee },

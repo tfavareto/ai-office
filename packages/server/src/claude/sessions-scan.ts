@@ -26,7 +26,13 @@ async function readRange(handle: FileHandle, position: number, length: number): 
 }
 
 async function readMeta(path: string, size: number): Promise<Meta> {
-  const meta: Meta = { firstAt: 0, projectPath: undefined, firstPrompt: undefined, customTitle: undefined, lastPrompt: undefined };
+  const meta: Meta = {
+    firstAt: 0,
+    projectPath: undefined,
+    firstPrompt: undefined,
+    customTitle: undefined,
+    lastPrompt: undefined,
+  };
   const handle = await open(path, 'r');
   try {
     const head = (await readRange(handle, 0, Math.min(size, HEAD_BYTES))).split('\n');

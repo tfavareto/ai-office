@@ -2,7 +2,15 @@
 // for their shifts, work in turns (read, search, edit, run the tests), call subagents who join a meeting, wait for a
 // permission, commit, and one test run fails. Deterministic for a date and an agent, and told in message keys, so the
 // activities are rendered in the user's language by the page.
-import { type ActivityDraft, describeToolUse, doneDraft, errorDraft, localizeDraft, replyDraft, thinkingDraft } from '../activities';
+import {
+  type ActivityDraft,
+  describeToolUse,
+  doneDraft,
+  errorDraft,
+  localizeDraft,
+  replyDraft,
+  thinkingDraft,
+} from '../activities';
 import { fnv1a, mulberry32 } from '../hash';
 import { type Locale, type Msg, msg, sourceText, translateShared } from '../i18n';
 import type { SharedMessageKey } from '../i18n/messages/pt-BR';
@@ -12,7 +20,17 @@ import type { DayRange } from '../report/range';
 import { basename } from '../format';
 import { sortEvents } from '../timelapse/order';
 import type { Timelapse, TimelapseAgent, TimelapseEvent, TimelapseProject, TimelapseTask } from '../timelapse/types';
-import { DEMO_ACCOUNTS, DEMO_BRANCHES, DEMO_COMMANDS, DEMO_PROJECTS, DEMO_SEARCHES, DEMO_SUBAGENTS, DEMO_TASK_PLAN, DEMO_WEB, type DemoProjectSpec } from './content';
+import {
+  DEMO_ACCOUNTS,
+  DEMO_BRANCHES,
+  DEMO_COMMANDS,
+  DEMO_PROJECTS,
+  DEMO_SEARCHES,
+  DEMO_SUBAGENTS,
+  DEMO_TASK_PLAN,
+  DEMO_WEB,
+  type DemoProjectSpec,
+} from './content';
 import { type Shift, demoShiftPlan } from './report';
 
 const SEC = 1000;
@@ -77,18 +95,37 @@ function promptActivity(agent: number, at: number): TimelapseEvent {
   return { at, type: 'activity', agent, kind: 'prompt', icon: '📨', text: sourceText(message), msg: message };
 }
 
-const commandDraft = (command: (typeof DEMO_COMMANDS)[number]): ActivityDraft => localizeDraft(describeToolUse('Bash', { command: command.command }), msg('activity.bash.run', { text: command.description.msg }));
+const commandDraft = (command: (typeof DEMO_COMMANDS)[number]): ActivityDraft =>
+  localizeDraft(
+    describeToolUse('Bash', { command: command.command }),
+    msg('activity.bash.run', { text: command.description.msg }),
+  );
 
 /** One tool call of an agent working on `spec`: mostly reading and editing, sometimes searching or thinking. */
-function toolDraft(rng: Rng, spec: DemoProjectSpec, allowCommand: boolean): { draft: ActivityDraft; command?: (typeof DEMO_COMMANDS)[number] } {
+function toolDraft(
+  rng: Rng,
+  spec: DemoProjectSpec,
+  allowCommand: boolean,
+): { draft: ActivityDraft; command?: (typeof DEMO_COMMANDS)[number] } {
   const roll = rng();
   const file = spec.files[between(rng, 0, spec.files.length - 1)] as string;
   if (roll < 0.3) return { draft: describeToolUse('Read', { file_path: file }) };
-  if (roll < 0.43) return { draft: describeToolUse('Grep', { pattern: DEMO_SEARCHES[between(rng, 0, DEMO_SEARCHES.length - 1)], path: basename(spec.path) }) };
+  if (roll < 0.43)
+    return {
+      draft: describeToolUse('Grep', {
+        pattern: DEMO_SEARCHES[between(rng, 0, DEMO_SEARCHES.length - 1)],
+        path: basename(spec.path),
+      }),
+    };
   if (roll < 0.68) return { draft: describeToolUse('Edit', { file_path: file }) };
   if (roll < 0.74) return { draft: describeToolUse('Write', { file_path: file }) };
   if (roll < 0.8) return { draft: thinkingDraft() };
-  if (roll < 0.84) return { draft: describeToolUse('WebFetch', { url: (DEMO_WEB[between(rng, 0, DEMO_WEB.length - 1)] as (typeof DEMO_WEB)[number]).url }) };
+  if (roll < 0.84)
+    return {
+      draft: describeToolUse('WebFetch', {
+        url: (DEMO_WEB[between(rng, 0, DEMO_WEB.length - 1)] as (typeof DEMO_WEB)[number]).url,
+      }),
+    };
   if (roll < 0.9) return { draft: replyDraft() };
   if (!allowCommand) return { draft: describeToolUse('Read', { file_path: file }) };
   const command = DEMO_COMMANDS[between(rng, 0, DEMO_COMMANDS.length - 1)] as (typeof DEMO_COMMANDS)[number];
@@ -116,7 +153,15 @@ function commitSubject(locale: Locale, rng: Rng): string {
 // ---- one subagent ------------------------------------------------------------------------------------------------
 
 /** A subagent walks in at `at`, works for a while on the same project and leaves; returns when it left. */
-function runSubagent(day: Day, rng: Rng, parent: Person, parentIndex: number, spec: DemoProjectSpec, at: number, until: number): number {
+function runSubagent(
+  day: Day,
+  rng: Rng,
+  parent: Person,
+  parentIndex: number,
+  spec: DemoProjectSpec,
+  at: number,
+  until: number,
+): number {
   const kind = DEMO_SUBAGENTS[between(rng, 0, DEMO_SUBAGENTS.length - 1)] as (typeof DEMO_SUBAGENTS)[number];
   const id = `${parent.id}:sub-${day.agents.length}`;
   const taken = new Set(day.agents.map((agent) => agent.name));
@@ -137,7 +182,8 @@ function runSubagent(day: Day, rng: Rng, parent: Person, parentIndex: number, sp
     seed: fnv1a(id),
   });
   day.events.push({ at, type: 'arrive', agent: index }, { at, type: 'status', agent: index, status: 'working' });
-  for (let t = at + between(rng, 4, 9) * SEC; t < at + stay; t += between(rng, 6, 16) * SEC) day.events.push(activity(index, t, toolDraft(rng, spec, false).draft));
+  for (let t = at + between(rng, 4, 9) * SEC; t < at + stay; t += between(rng, 6, 16) * SEC)
+    day.events.push(activity(index, t, toolDraft(rng, spec, false).draft));
   const leaveAt = at + stay;
   day.events.push({ at: leaveAt, type: 'leave', agent: index });
   return leaveAt;
@@ -156,17 +202,41 @@ interface TurnPlan {
   commit: boolean;
 }
 
-function runShell(day: Day, rng: Rng, plan: TurnPlan, at: number, command: (typeof DEMO_COMMANDS)[number], until: number): number {
+function runShell(
+  day: Day,
+  rng: Rng,
+  plan: TurnPlan,
+  at: number,
+  command: (typeof DEMO_COMMANDS)[number],
+  until: number,
+): number {
   const long = chance(rng, 0.18);
   const length = long ? between(rng, 150, 330) * SEC : between(rng, 18, 70) * SEC;
   const end = Math.min(until, at + length);
   const id = `shell-${plan.index}-${at}`;
-  day.events.push({ at, type: 'shell', agent: plan.index, on: true, id, background: false, label: command.description.text, labelMsg: command.description.msg });
+  day.events.push({
+    at,
+    type: 'shell',
+    agent: plan.index,
+    on: true,
+    id,
+    background: false,
+    label: command.description.text,
+    labelMsg: command.description.msg,
+  });
   day.events.push({ at: end, type: 'shell', agent: plan.index, on: false, id, background: false });
   if (command.command === 'npm test') {
     const failing = !day.failedTests.has(plan.person.id) && chance(rng, 0.45);
     if (failing) day.failedTests.add(plan.person.id);
-    day.events.push({ at: end, type: 'test', agent: plan.index, runner: 'npm test', outcome: failing ? 'failed' : 'passed', passed: between(rng, 30, 70), ...(failing ? { failed: between(rng, 1, 3) } : {}) });
+    day.events.push({
+      at: end,
+      type: 'test',
+      agent: plan.index,
+      runner: 'npm test',
+      outcome: failing ? 'failed' : 'passed',
+      passed: between(rng, 30, 70),
+      ...(failing ? { failed: between(rng, 1, 3) } : {}),
+    });
     if (failing) day.events.push(activity(plan.index, end + SEC, errorDraft('Bash')));
   }
   return end;
@@ -177,7 +247,14 @@ function runWait(day: Day, rng: Rng, plan: TurnPlan, at: number, until: number):
   const end = Math.min(until, at + length);
   const tool = chance(rng, 0.5) ? 'Edit' : 'Bash';
   const waitingForMsg = msg('waiting.approve', { tool });
-  day.events.push({ at, type: 'status', agent: plan.index, status: 'waiting', waitingFor: sourceText(waitingForMsg), waitingForMsg });
+  day.events.push({
+    at,
+    type: 'status',
+    agent: plan.index,
+    status: 'waiting',
+    waitingFor: sourceText(waitingForMsg),
+    waitingForMsg,
+  });
   day.events.push({ at, type: 'permission', agent: plan.index, tool, durationMs: end - at });
   day.events.push({ at: end, type: 'status', agent: plan.index, status: 'working' });
   return end;
@@ -189,7 +266,11 @@ function runTurn(day: Day, rng: Rng, plan: TurnPlan, startAt: number, until: num
   const steps = between(rng, 14, 34);
   const total = between(rng, 3, 5);
   let t = startAt;
-  day.events.push(promptActivity(index, t), { at: t, type: 'status', agent: index, status: 'working' }, { at: t + SEC, type: 'tasks', agent: index, tasks: tasksOf(rng, 0, total) });
+  day.events.push(
+    promptActivity(index, t),
+    { at: t, type: 'status', agent: index, status: 'working' },
+    { at: t + SEC, type: 'tasks', agent: index, tasks: tasksOf(rng, 0, total) },
+  );
   let doneTasks = 0;
   let subs = 0;
   for (let step = 0; step < steps && t < until; step++) {
@@ -198,7 +279,16 @@ function runTurn(day: Day, rng: Rng, plan: TurnPlan, startAt: number, until: num
     if (step === plan.waitAt) t = runWait(day, rng, plan, t, until);
     if (step === plan.subAt && subs < 2) {
       const call = DEMO_SUBAGENTS[between(rng, 0, DEMO_SUBAGENTS.length - 1)] as (typeof DEMO_SUBAGENTS)[number];
-      day.events.push(activity(index, t, localizeDraft(describeToolUse('Task', { description: call.description.text }), msg('activity.subagent', { description: call.description.msg }))));
+      day.events.push(
+        activity(
+          index,
+          t,
+          localizeDraft(
+            describeToolUse('Task', { description: call.description.text }),
+            msg('activity.subagent', { description: call.description.msg }),
+          ),
+        ),
+      );
       runSubagent(day, rng, person, index, person.spec, t + 3 * SEC, until);
       subs++;
     }
@@ -211,18 +301,46 @@ function runTurn(day: Day, rng: Rng, plan: TurnPlan, startAt: number, until: num
     }
   }
   const end = Math.min(until, t + between(rng, 4, 12) * SEC);
-  day.events.push(activity(index, end, doneDraft(end - startAt)), { at: end, type: 'status', agent: index, status: 'idle' }, { at: end, type: 'tasks', agent: index, tasks: tasksOf(rng, total, total).map((task) => ({ ...task, status: 'completed' as const })) });
+  day.events.push(
+    activity(index, end, doneDraft(end - startAt)),
+    { at: end, type: 'status', agent: index, status: 'idle' },
+    {
+      at: end,
+      type: 'tasks',
+      agent: index,
+      tasks: tasksOf(rng, total, total).map((task) => ({ ...task, status: 'completed' as const })),
+    },
+  );
   if (plan.commit && end - startAt > MIN) {
     const hash = fnv1a(`${person.id}|${end}`).toString(16).padStart(8, '0').slice(0, 7);
-    day.events.push({ at: end - 4 * SEC, type: 'commit', project: plan.projectIndex, agent: index, hash, subject: commitSubject(day.locale, rng), branch: DEMO_BRANCHES[0] as string });
+    day.events.push({
+      at: end - 4 * SEC,
+      type: 'commit',
+      project: plan.projectIndex,
+      agent: index,
+      hash,
+      subject: commitSubject(day.locale, rng),
+      branch: DEMO_BRANCHES[0] as string,
+    });
   }
   return end;
 }
 
 // ---- one person's day --------------------------------------------------------------------------------------------
 
-function runShift(day: Day, rng: Rng, person: Person, index: number, projectIndex: number, shift: Shift, open: boolean): void {
-  day.events.push({ at: shift.from, type: 'arrive', agent: index }, { at: shift.from, type: 'status', agent: index, status: 'idle' });
+function runShift(
+  day: Day,
+  rng: Rng,
+  person: Person,
+  index: number,
+  projectIndex: number,
+  shift: Shift,
+  open: boolean,
+): void {
+  day.events.push(
+    { at: shift.from, type: 'arrive', agent: index },
+    { at: shift.from, type: 'status', agent: index, status: 'idle' },
+  );
   let t = shift.from + between(rng, 20, 90) * SEC;
   let turns = 0;
   while (t < shift.to - MIN) {
@@ -242,11 +360,22 @@ function runShift(day: Day, rng: Rng, person: Person, index: number, projectInde
 }
 
 function rosterOf(input: DemoTimelapseInput): Person[] {
-  const mains = input.agents.filter((agent) => agent.kind === 'main' && (input.account === 'all' || agent.accountId === input.account));
+  const mains = input.agents.filter(
+    (agent) => agent.kind === 'main' && (input.account === 'all' || agent.accountId === input.account),
+  );
   const people: Person[] = [];
   for (const agent of mains) {
     const spec = DEMO_PROJECTS.find((candidate) => candidate.path === agent.projectId);
-    if (spec !== undefined) people.push({ id: agent.id, name: agent.name, look: agent.look, accountId: agent.accountId, spec, role: 'Principal', roleMsg: msg('agent.role.main') });
+    if (spec !== undefined)
+      people.push({
+        id: agent.id,
+        name: agent.name,
+        look: agent.look,
+        accountId: agent.accountId,
+        spec,
+        role: 'Principal',
+        roleMsg: msg('agent.role.main'),
+      });
   }
   const account = DEMO_ACCOUNTS[0];
   if (account === undefined || (input.account !== 'all' && input.account !== account.id)) return people;
@@ -260,32 +389,77 @@ function rosterOf(input: DemoTimelapseInput): Person[] {
     const id = `${account.id}:visitor-${input.range.date}-${spec.name}`;
     const named = pickName(id, taken);
     taken.add(named.name);
-    people.push({ id, name: named.name, look: findPerson(named.name)?.look ?? named.look, accountId: account.id, spec, role: 'Principal', roleMsg: msg('agent.role.main') });
+    people.push({
+      id,
+      name: named.name,
+      look: findPerson(named.name)?.look ?? named.look,
+      accountId: account.id,
+      spec,
+      role: 'Principal',
+      roleMsg: msg('agent.role.main'),
+    });
   }
   return people;
 }
 
 /** The time-lapse of a day for the demo office. */
 export function demoTimelapse(input: DemoTimelapseInput): Timelapse {
-  const base = { date: input.range.date, generatedAt: input.now, account: input.account, start: input.range.start, end: input.range.end, demo: true as const };
-  const day: Day = { range: input.range, now: input.now, locale: input.locale, agents: [], events: [], failedTests: new Set() };
+  const base = {
+    date: input.range.date,
+    generatedAt: input.now,
+    account: input.account,
+    start: input.range.start,
+    end: input.range.end,
+    demo: true as const,
+  };
+  const day: Day = {
+    range: input.range,
+    now: input.now,
+    locale: input.locale,
+    agents: [],
+    events: [],
+    failedTests: new Set(),
+  };
   const mainIndexes: { person: Person; index: number; plan: NonNullable<ReturnType<typeof demoShiftPlan>> }[] = [];
   for (const person of rosterOf(input)) {
     const plan = demoShiftPlan(person.id, input.range, input.now);
     if (plan === undefined) continue;
     const index = day.agents.length;
-    day.agents.push({ id: person.id, kind: 'main', name: person.name, role: person.role, ...(person.roleMsg !== undefined ? { roleMsg: person.roleMsg } : {}), accountId: person.accountId, projectId: person.spec.path, look: person.look, seed: fnv1a(person.id) });
+    day.agents.push({
+      id: person.id,
+      kind: 'main',
+      name: person.name,
+      role: person.role,
+      ...(person.roleMsg !== undefined ? { roleMsg: person.roleMsg } : {}),
+      accountId: person.accountId,
+      projectId: person.spec.path,
+      look: person.look,
+      seed: fnv1a(person.id),
+    });
     mainIndexes.push({ person, index, plan });
   }
   const firstArrival = new Map<string, number>();
-  for (const { person, plan } of mainIndexes) firstArrival.set(person.spec.path, Math.min(firstArrival.get(person.spec.path) ?? Infinity, (plan.plan[0] as Shift).from));
+  for (const { person, plan } of mainIndexes)
+    firstArrival.set(
+      person.spec.path,
+      Math.min(firstArrival.get(person.spec.path) ?? Infinity, (plan.plan[0] as Shift).from),
+    );
   const projects: TimelapseProject[] = [...firstArrival]
     .sort((a, b) => a[1] - b[1])
     .map(([path], order) => ({ id: path, name: basename(path), order, seed: fnv1a(path) }));
   const projectIndex = new Map(projects.map((project, order) => [project.id, order]));
   for (const { person, index, plan } of mainIndexes) {
     const rng = mulberry32(fnv1a(`${person.id}|${input.range.date}|timelapse`));
-    for (const shift of plan.plan) runShift(day, rng, person, index, projectIndex.get(person.spec.path) ?? 0, shift, input.now < input.range.end && input.now - shift.to < OPEN_SHIFT_MS);
+    for (const shift of plan.plan)
+      runShift(
+        day,
+        rng,
+        person,
+        index,
+        projectIndex.get(person.spec.path) ?? 0,
+        shift,
+        input.now < input.range.end && input.now - shift.to < OPEN_SHIFT_MS,
+      );
   }
   const events = sortEvents(day.events.filter((event) => event.at < input.range.end && event.at <= input.now));
   if (events.length === 0) return { ...base, projects: [], agents: [], events: [] };

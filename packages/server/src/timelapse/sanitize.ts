@@ -1,7 +1,19 @@
 // What the time-lapse keeps of an activity: what the agent was doing, never what anybody said. Prompts lose their text,
 // reply and error details are dropped, and every free-text parameter (a command, a file, a query) is masked for
 // credentials and cut short.
-import { type Activity, type Msg, type MsgParam, type ShellJob, type TimelapseActivity, type TimelapseTask, type TaskItem, ACTIVITY_TEXT_MAX, msg, sourceText, truncate } from '@ai-office/shared';
+import {
+  type Activity,
+  type Msg,
+  type MsgParam,
+  type ShellJob,
+  type TimelapseActivity,
+  type TimelapseTask,
+  type TaskItem,
+  ACTIVITY_TEXT_MAX,
+  msg,
+  sourceText,
+  truncate,
+} from '@ai-office/shared';
 import { maskSecrets } from '../report/commands';
 
 export const PARAM_MAX = 80;
@@ -24,7 +36,10 @@ export function cleanMsg(message: Msg): Msg {
 
 /** The activity as the time-lapse stores it (without the event's agent and time). */
 export function safeActivity(activity: Activity): Omit<TimelapseActivity, 'type' | 'at' | 'agent'> {
-  const message = activity.kind === 'prompt' ? msg('timelapse.activity.prompt') : cleanMsg(activity.msg ?? msg('activity.other', { name: activity.kind }));
+  const message =
+    activity.kind === 'prompt'
+      ? msg('timelapse.activity.prompt')
+      : cleanMsg(activity.msg ?? msg('activity.other', { name: activity.kind }));
   return {
     kind: activity.kind,
     icon: activity.icon,

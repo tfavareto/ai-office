@@ -40,7 +40,14 @@ interface Arm {
 const scratchEuler = new Euler();
 const scratchQ = new Quaternion();
 const scratchV = new Vector3();
-const [v0, v1, v2, v3, v4, v5] = [new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+const [v0, v1, v2, v3, v4, v5] = [
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+  new Vector3(),
+];
 const [qa, qb, qc] = [new Quaternion(), new Quaternion(), new Quaternion()];
 
 export class Rig {
@@ -60,7 +67,13 @@ export class Rig {
       const bone = root.getObjectByName(name) as Bone | undefined;
       if (!bone || !bone.parent) throw new Error(`rig: missing bone ${name}`);
       const parentRest = bone.parent.getWorldQuaternion(new Quaternion());
-      this.driven.push({ name, bone, restLocal: bone.quaternion.clone(), parentRest, parentRestInv: parentRest.clone().invert() });
+      this.driven.push({
+        name,
+        bone,
+        restLocal: bone.quaternion.clone(),
+        parentRest,
+        parentRestInv: parentRest.clone().invert(),
+      });
     }
     for (const side of ['l', 'r'] as const) {
       for (const finger of FINGERS) {
@@ -68,7 +81,12 @@ export class Rig {
           const bone = root.getObjectByName(`${finger}_${seg}_${side}`) as Bone | undefined;
           if (!bone) return;
           const base = finger === 'thumb' ? 0.35 : 1;
-          this.fingers.push({ bone, restLocal: bone.quaternion.clone(), side: side === 'l' ? 0 : 1, weight: base * (i === 0 ? 0.8 : 1) });
+          this.fingers.push({
+            bone,
+            restLocal: bone.quaternion.clone(),
+            side: side === 'l' ? 0 : 1,
+            weight: base * (i === 0 ? 0.8 : 1),
+          });
         });
       }
     }
@@ -92,9 +110,15 @@ export class Rig {
     const lowerRestW = lower.parentRest.clone().multiply(lower.restLocal);
     void root;
     return {
-      upper, lower, hand, upperRestW, lowerRestW,
-      upperDir: p1.clone().sub(p0).normalize(), lowerDir: p2.clone().sub(p1).normalize(),
-      l1: p0.distanceTo(p1), l2: p1.distanceTo(p2),
+      upper,
+      lower,
+      hand,
+      upperRestW,
+      lowerRestW,
+      upperDir: p1.clone().sub(p0).normalize(),
+      lowerDir: p2.clone().sub(p1).normalize(),
+      l1: p0.distanceTo(p1),
+      l2: p1.distanceTo(p2),
     };
   }
 
@@ -113,7 +137,11 @@ export class Rig {
     const sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
     const pole = v2.set(side === 0 ? 0.35 : -0.35, -1, -0.15);
     pole.addScaledVector(dir, -pole.dot(dir)).normalize();
-    const elbow = v3.copy(dir).multiplyScalar(arm.l1 * cosA).addScaledVector(pole, arm.l1 * sinA).add(shoulder);
+    const elbow = v3
+      .copy(dir)
+      .multiplyScalar(arm.l1 * cosA)
+      .addScaledVector(pole, arm.l1 * sinA)
+      .add(shoulder);
     const upperNow = v4.copy(elbow).sub(shoulder).normalize();
     const lowerNow = v5.set(r.x, r.y, r.z).sub(elbow);
     if (lowerNow.lengthSq() < 1e-6) return false;

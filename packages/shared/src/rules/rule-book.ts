@@ -54,7 +54,14 @@ function startOfDay(at: number): number {
 }
 
 function sameDefinition(a: Rule, b: Rule): boolean {
-  return a.effect === b.effect && a.tool === b.tool && a.matcher.kind === b.matcher.kind && a.matcher.value === b.matcher.value && a.scope.projectPath === b.scope.projectPath && a.scope.accountId === b.scope.accountId;
+  return (
+    a.effect === b.effect &&
+    a.tool === b.tool &&
+    a.matcher.kind === b.matcher.kind &&
+    a.matcher.value === b.matcher.value &&
+    a.scope.projectPath === b.scope.projectPath &&
+    a.scope.accountId === b.scope.accountId
+  );
 }
 
 export class RuleBook {
@@ -90,7 +97,8 @@ export class RuleBook {
     if (!checked.ok) return checked;
     if (this.rulesList.length >= MAX_RULES) return { ok: false, error: { code: 'too-many-rules' } };
     const rule: Rule = { ...checked.draft, id: this.options.newId(), createdAt: this.options.now(), hits: 0 };
-    if (this.rulesList.some((existing) => sameDefinition(existing, rule))) return { ok: false, error: { code: 'duplicate-rule' } };
+    if (this.rulesList.some((existing) => sameDefinition(existing, rule)))
+      return { ok: false, error: { code: 'duplicate-rule' } };
     this.rulesList = [...this.rulesList, rule];
     this.options.onChange?.('rules');
     return { ok: true, value: rule };
@@ -101,8 +109,15 @@ export class RuleBook {
     if (current === undefined) return { ok: false, error: { code: 'not-found' } };
     const checked = checkRulePatch(current, patch);
     if (!checked.ok) return checked;
-    const next: Rule = { ...checked.draft, id: current.id, createdAt: current.createdAt, hits: current.hits, ...(current.lastHitAt !== undefined ? { lastHitAt: current.lastHitAt } : {}) };
-    if (this.rulesList.some((existing) => existing.id !== id && sameDefinition(existing, next))) return { ok: false, error: { code: 'duplicate-rule' } };
+    const next: Rule = {
+      ...checked.draft,
+      id: current.id,
+      createdAt: current.createdAt,
+      hits: current.hits,
+      ...(current.lastHitAt !== undefined ? { lastHitAt: current.lastHitAt } : {}),
+    };
+    if (this.rulesList.some((existing) => existing.id !== id && sameDefinition(existing, next)))
+      return { ok: false, error: { code: 'duplicate-rule' } };
     this.rulesList = this.rulesList.map((rule) => (rule.id === id ? next : rule));
     this.options.onChange?.('rules');
     return { ok: true, value: next };
@@ -135,7 +150,8 @@ export class RuleBook {
     this.remember(now, request);
     const verdict = evaluateRules(this.rulesList, request);
     if (verdict.kind === 'none') return verdict;
-    if (verdict.kind === 'ask') return { kind: 'ask', rule: verdict.rule, entry: this.record(now, request, verdict.rule, 'ask', verdict.reason) };
+    if (verdict.kind === 'ask')
+      return { kind: 'ask', rule: verdict.rule, entry: this.record(now, request, verdict.rule, 'ask', verdict.reason) };
     const rule = this.countHit(verdict.rule, now);
     return { kind: verdict.effect, rule, entry: this.record(now, request, rule, verdict.effect) };
   }
@@ -146,7 +162,14 @@ export class RuleBook {
     if (!checked.ok) return checked;
     const since = startOfDay(this.options.now());
     const today = this.seen.filter((item) => item.at >= since);
-    return { ok: true, value: { matches: today.filter((item) => wouldAnswer(checked.draft, item.request)).length, total: today.length, since } };
+    return {
+      ok: true,
+      value: {
+        matches: today.filter((item) => wouldAnswer(checked.draft, item.request)).length,
+        total: today.length,
+        since,
+      },
+    };
   }
 
   private remember(at: number, request: RuleRequest): void {
@@ -160,7 +183,13 @@ export class RuleBook {
     return next;
   }
 
-  private record(at: number, request: RuleDecisionRequest, rule: Rule, outcome: AutoDecision['outcome'], blockedBy?: RuleBlockReason): AutoDecision {
+  private record(
+    at: number,
+    request: RuleDecisionRequest,
+    rule: Rule,
+    outcome: AutoDecision['outcome'],
+    blockedBy?: RuleBlockReason,
+  ): AutoDecision {
     const entry: AutoDecision = {
       id: this.options.newId(),
       at,

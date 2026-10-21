@@ -17,11 +17,17 @@ export function describeRule(rule: Rule): string {
 /** Evaluates the request (counting the hit and logging when a rule answers); undefined leaves it to the user. */
 export function autoAnswer(book: RuleBook, request: RuleDecisionRequest): AutoAnswer | undefined {
   const result = book.decide(request);
-  if (result.kind === 'allow') return { effect: 'allow', rule: result.rule, decision: { behavior: 'allow', auto: 'rule' } };
+  if (result.kind === 'allow')
+    return { effect: 'allow', rule: result.rule, decision: { behavior: 'allow', auto: 'rule' } };
   if (result.kind !== 'deny') return undefined;
   return {
     effect: 'deny',
     rule: result.rule,
-    decision: { behavior: 'deny', auto: 'rule', message: describeRule(result.rule), ...(result.rule.locale !== undefined ? { locale: result.rule.locale } : {}) },
+    decision: {
+      behavior: 'deny',
+      auto: 'rule',
+      message: describeRule(result.rule),
+      ...(result.rule.locale !== undefined ? { locale: result.rule.locale } : {}),
+    },
   };
 }

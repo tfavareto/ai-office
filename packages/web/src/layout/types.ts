@@ -20,21 +20,48 @@ export type RowSide = 'north' | 'south';
 
 export type FurnitureKind =
   // workstation
-  | 'desk' | 'chair' | 'shelf' | 'copier' | 'bin'
+  | 'desk'
+  | 'chair'
+  | 'shelf'
+  | 'copier'
+  | 'bin'
   // decor
-  | 'plant' | 'plantTall' | 'rug' | 'lamp' | 'bench' | 'waterCooler' | 'sideTable'
+  | 'plant'
+  | 'plantTall'
+  | 'rug'
+  | 'lamp'
+  | 'bench'
+  | 'waterCooler'
+  | 'sideTable'
   // reception
-  | 'receptionDesk' | 'sofa' | 'armchair' | 'coffeeTable'
+  | 'receptionDesk'
+  | 'sofa'
+  | 'armchair'
+  | 'coffeeTable'
   // copa
-  | 'counter' | 'coffeeMachine' | 'fridge' | 'vending' | 'highTable' | 'stool' | 'roundTable' | 'cafeChair'
+  | 'counter'
+  | 'coffeeMachine'
+  | 'fridge'
+  | 'vending'
+  | 'highTable'
+  | 'stool'
+  | 'roundTable'
+  | 'cafeChair'
   // meeting
-  | 'meetingTable' | 'meetChair'
+  | 'meetingTable'
+  | 'meetChair'
   // bathrooms
-  | 'stall' | 'sink'
+  | 'stall'
+  | 'sink'
   // lounge
-  | 'pingpong' | 'arcade' | 'beanbag' | 'bookshelf'
+  | 'pingpong'
+  | 'arcade'
+  | 'beanbag'
+  | 'bookshelf'
   // terrace
-  | 'deckChair' | 'deckTable' | 'railing';
+  | 'deckChair'
+  | 'deckTable'
+  | 'railing';
 
 export interface FurnitureItem {
   id: string;
@@ -55,8 +82,18 @@ export interface FurnitureItem {
 }
 
 export type WallKind =
-  | 'window' | 'sign' | 'logoSign' | 'board' | 'tv' | 'menu' | 'whiteboard' | 'elevator'
-  | 'mirror' | 'poster' | 'clock' | 'glassDoor';
+  | 'window'
+  | 'sign'
+  | 'logoSign'
+  | 'board'
+  | 'tv'
+  | 'menu'
+  | 'whiteboard'
+  | 'elevator'
+  | 'mirror'
+  | 'poster'
+  | 'clock'
+  | 'glassDoor';
 export type WallSide = 'north' | 'west' | 'east';
 
 /** Decoration mounted on a wall face. `x`/`w` are tile columns (or rows when side is west/east). */
@@ -70,9 +107,27 @@ export interface WallItem {
 }
 
 export type SpotKind =
-  | 'desk' | 'meeting' | 'stool' | 'cafe' | 'sofa' | 'beanbag' | 'bench'
-  | 'coffee' | 'fridge' | 'vending' | 'sink' | 'pingpong' | 'arcade' | 'tv' | 'bookshelf' | 'whiteboard'
-  | 'cooler' | 'talk' | 'wait' | 'elevator' | 'overflow';
+  | 'desk'
+  | 'meeting'
+  | 'stool'
+  | 'cafe'
+  | 'sofa'
+  | 'beanbag'
+  | 'bench'
+  | 'coffee'
+  | 'fridge'
+  | 'vending'
+  | 'sink'
+  | 'pingpong'
+  | 'arcade'
+  | 'tv'
+  | 'bookshelf'
+  | 'whiteboard'
+  | 'cooler'
+  | 'talk'
+  | 'wait'
+  | 'elevator'
+  | 'overflow';
 
 /** A place a character can stand or sit. x/y is the position of the feet in tile units. */
 export interface Spot {

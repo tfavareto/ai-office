@@ -15,7 +15,14 @@ afterEach(() => removeDir(join(dir, '..')));
 
 const open = (): RulesStore => new RulesStore(dir, silentLogger, () => NOW);
 const draft = { effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'npm test' } };
-const asker = { toolName: 'Bash', input: { command: 'npm test' }, summary: 'npm test', agentId: 'a1', agentName: 'Ana', projectPath: '/demo/loja' };
+const asker = {
+  toolName: 'Bash',
+  input: { command: 'npm test' },
+  summary: 'npm test',
+  agentId: 'a1',
+  agentName: 'Ana',
+  projectPath: '/demo/loja',
+};
 
 async function mode(name: string): Promise<number> {
   return (await stat(join(dir, name))).mode & 0o777;
@@ -28,9 +35,15 @@ describe('RulesStore: saving', () => {
     store.book.create(draft);
     store.book.decide(asker);
     expect(await store.flush()).toBe(true);
-    const saved = JSON.parse(await readFile(join(dir, RULES_FILE), 'utf8')) as { version: number; rules: { hits: number }[] };
+    const saved = JSON.parse(await readFile(join(dir, RULES_FILE), 'utf8')) as {
+      version: number;
+      rules: { hits: number }[];
+    };
     expect(saved).toMatchObject({ version: 1, rules: [{ hits: 1 }] });
-    expect(JSON.parse(await readFile(join(dir, RULES_LOG_FILE), 'utf8'))).toMatchObject({ version: 1, entries: [{ outcome: 'allow', subject: 'npm test' }] });
+    expect(JSON.parse(await readFile(join(dir, RULES_LOG_FILE), 'utf8'))).toMatchObject({
+      version: 1,
+      entries: [{ outcome: 'allow', subject: 'npm test' }],
+    });
     expect(await mode(RULES_FILE)).toBe(0o600);
     expect(await mode(RULES_LOG_FILE)).toBe(0o600);
     expect((await readdir(dir)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
@@ -102,17 +115,34 @@ describe('RulesStore: loading', () => {
 
   test('migrates a version-less file and saves it in the current format', async () => {
     await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, RULES_FILE), JSON.stringify([{ id: 'old1', effect: 'deny', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'git push' } }]));
+    await writeFile(
+      join(dir, RULES_FILE),
+      JSON.stringify([
+        { id: 'old1', effect: 'deny', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'git push' } },
+      ]),
+    );
     const store = open();
     await store.load();
     expect(store.book.rules()).toMatchObject([{ id: 'old1', hits: 0, enabled: true }]);
     await store.flush();
-    expect(JSON.parse(await readFile(join(dir, RULES_FILE), 'utf8'))).toMatchObject({ version: 1, rules: [{ id: 'old1' }] });
+    expect(JSON.parse(await readFile(join(dir, RULES_FILE), 'utf8'))).toMatchObject({
+      version: 1,
+      rules: [{ id: 'old1' }],
+    });
   });
 
   test('drops unreadable rules and switches off allow rules the policy refuses', async () => {
     await mkdir(dir, { recursive: true });
-    const wide = { id: 'wide', effect: 'allow', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: {}, enabled: true, createdAt: 1, hits: 0 };
+    const wide = {
+      id: 'wide',
+      effect: 'allow',
+      tool: 'Bash',
+      matcher: { kind: 'any', value: '' },
+      scope: {},
+      enabled: true,
+      createdAt: 1,
+      hits: 0,
+    };
     await writeFile(join(dir, RULES_FILE), JSON.stringify({ version: 1, rules: [wide, { id: 'bad' }, 'junk'] }));
     const store = open();
     await store.load();

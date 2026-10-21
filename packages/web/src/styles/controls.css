@@ -11,7 +11,11 @@
   border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
 }
 
 .ao-iconbtn:hover:not(:disabled) {
@@ -63,7 +67,11 @@
   border-radius: 9px;
   font-weight: 600;
   white-space: nowrap;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .ao-btn:active:not(:disabled) {
@@ -130,7 +138,9 @@
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.22);
   color: var(--text);
-  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  transition:
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
 }
 
 .ao-input {
@@ -193,7 +203,10 @@
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .ao-chip:hover {
@@ -225,7 +238,9 @@
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .ao-segmented-item:hover {
@@ -245,8 +260,12 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background-color: rgba(0, 0, 0, 0.22);
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 15px) 13px, calc(100% - 10px) 13px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 13px,
+    calc(100% - 10px) 13px;
   background-size: 5px 5px;
   background-repeat: no-repeat;
   color: var(--text);
@@ -279,7 +298,9 @@
   border: 1px solid var(--line-strong);
   border-radius: 99px;
   background: var(--bg-hover);
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
 }
 
 .ao-switch-knob {
@@ -290,7 +311,9 @@
   height: 14px;
   border-radius: 50%;
   background: var(--muted);
-  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  transition:
+    transform var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
 }
 
 .ao-switch.is-on,

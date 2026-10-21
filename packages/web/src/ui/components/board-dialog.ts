@@ -7,8 +7,19 @@ import { accountLabel } from '../display';
 import { h, setText, toggleClass } from '../dom';
 import { icon } from '../icons';
 import {
-  BOARD_COLUMNS, DONE_PER_ROOM, boardOptions, buildBoard, buildCards, sanitizeFilter,
-  type BoardCard, type BoardColumn, type BoardFilter, type BoardColumnId, type BoardLane, type BoardModel, type BoardView,
+  BOARD_COLUMNS,
+  DONE_PER_ROOM,
+  boardOptions,
+  buildBoard,
+  buildCards,
+  sanitizeFilter,
+  type BoardCard,
+  type BoardColumn,
+  type BoardFilter,
+  type BoardColumnId,
+  type BoardLane,
+  type BoardModel,
+  type BoardView,
 } from '../model/board';
 import { buildMoveIntent, markFromIntent, type MoveIntent, type MoveTarget } from '../model/board-moves';
 import { isLive } from '../model/status';
@@ -48,7 +59,9 @@ export class BoardDialog extends Dialog {
       (value) => ctx.board.setGrouping(value),
     );
     this.roomSelect.addEventListener('change', () => ctx.board.setFilter({ roomId: this.roomSelect.value || null }));
-    this.accountSelect.addEventListener('change', () => ctx.board.setFilter({ accountId: this.accountSelect.value || null }));
+    this.accountSelect.addEventListener('change', () =>
+      ctx.board.setFilter({ accountId: this.accountSelect.value || null }),
+    );
     this.agentSelect.addEventListener('change', () => ctx.board.setFilter({ agentId: this.agentSelect.value || null }));
 
     const filters = h(
@@ -57,7 +70,12 @@ export class BoardDialog extends Dialog {
       this.roomSelect,
       this.accountSelect,
       this.agentSelect,
-      h('span', { class: 'ao-switch-row ao-board-active' }, this.activeSwitch.el, h('span', null, t('board.filter.onlyActive'))),
+      h(
+        'span',
+        { class: 'ao-switch-row ao-board-active' },
+        this.activeSwitch.el,
+        h('span', null, t('board.filter.onlyActive')),
+      ),
     );
     this.panel.append(
       h(
@@ -75,7 +93,8 @@ export class BoardDialog extends Dialog {
     );
     this.el.addEventListener('keydown', (event) => this.onKeyDown(event));
     this.panel.addEventListener('pointerdown', (event) => {
-      if (this.menu.isOpen && event.target instanceof Node && !this.menu.el.contains(event.target)) this.menu.close(false);
+      if (this.menu.isOpen && event.target instanceof Node && !this.menu.el.contains(event.target))
+        this.menu.close(false);
     });
   }
 
@@ -111,10 +130,15 @@ export class BoardDialog extends Dialog {
   private renderFilters(filter: BoardFilter): void {
     const ctx = this.ctx;
     const options = boardOptions(ctx.snapshot, filter);
-    const signature = [options.rooms.map((room) => room.id), options.accounts, options.agents.map((agent) => agent.id)].map((list) => list.join(',')).join('|');
+    const signature = [options.rooms.map((room) => room.id), options.accounts, options.agents.map((agent) => agent.id)]
+      .map((list) => list.join(','))
+      .join('|');
     if (signature !== this.optionsSignature) {
       this.optionsSignature = signature;
-      this.roomSelect.replaceChildren(h('option', { value: '' }, t('board.filter.allRooms')), ...options.rooms.map((room) => h('option', { value: room.id }, room.name)));
+      this.roomSelect.replaceChildren(
+        h('option', { value: '' }, t('board.filter.allRooms')),
+        ...options.rooms.map((room) => h('option', { value: room.id }, room.name)),
+      );
       this.accountSelect.replaceChildren(
         h('option', { value: '' }, t('board.filter.allAccounts')),
         ...options.accounts.map((id) => {
@@ -122,7 +146,10 @@ export class BoardDialog extends Dialog {
           return h('option', { value: id }, account ? accountLabel(account) : id);
         }),
       );
-      this.agentSelect.replaceChildren(h('option', { value: '' }, t('board.filter.allAgents')), ...options.agents.map((agent) => h('option', { value: agent.id }, agent.name)));
+      this.agentSelect.replaceChildren(
+        h('option', { value: '' }, t('board.filter.allAgents')),
+        ...options.agents.map((agent) => h('option', { value: agent.id }, agent.name)),
+      );
     }
     this.roomSelect.value = filter.roomId ?? '';
     this.accountSelect.value = filter.accountId ?? '';
@@ -133,22 +160,40 @@ export class BoardDialog extends Dialog {
   // --- body ------------------------------------------------------------------------------------------------------
 
   private signatureOf(model: BoardModel, showAll: boolean): string {
-    const column = (c: BoardColumn): string => `${c.id}:${c.hidden}:${c.cards.map((card) => `${card.key}/${card.label}/${card.sent?.id ?? ''}`).join(',')}`;
-    const lanes = model.lanes.map((lane) => `${lane.project.id}[${lane.agents.map((a) => a.id).join(',')}]${lane.columns.map(column).join(';')}`).join('|');
-    return [model.grouping, showAll, model.total, this.ctx.isLocal, model.taskless.map((a) => a.id).join(','), lanes].join('#');
+    const column = (c: BoardColumn): string =>
+      `${c.id}:${c.hidden}:${c.cards.map((card) => `${card.key}/${card.label}/${card.sent?.id ?? ''}`).join(',')}`;
+    const lanes = model.lanes
+      .map(
+        (lane) => `${lane.project.id}[${lane.agents.map((a) => a.id).join(',')}]${lane.columns.map(column).join(';')}`,
+      )
+      .join('|');
+    return [
+      model.grouping,
+      showAll,
+      model.total,
+      this.ctx.isLocal,
+      model.taskless.map((a) => a.id).join(','),
+      lanes,
+    ].join('#');
   }
 
   private renderBody(model: BoardModel, view: BoardView): void {
     const focusedKey = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.card : undefined;
     this.cards = [];
     const filtered = this.ctx.board.get().filter;
-    const isFiltered = filtered.roomId !== null || filtered.accountId !== null || filtered.agentId !== null || filtered.onlyActive;
+    const isFiltered =
+      filtered.roomId !== null || filtered.accountId !== null || filtered.agentId !== null || filtered.onlyActive;
     const children: Node[] = [];
     if (model.total === 0) {
       children.push(
         isFiltered
           ? h('p', { class: 'ao-board-empty' }, t('board.empty.filtered'))
-          : h('div', { class: 'ao-board-empty' }, h('strong', null, t('board.empty.title')), h('p', null, t('board.empty.body'))),
+          : h(
+              'div',
+              { class: 'ao-board-empty' },
+              h('strong', null, t('board.empty.title')),
+              h('p', null, t('board.empty.body')),
+            ),
       );
     }
     if (view.grouping === 'column') children.push(this.columnsEl(model.columns, null, true));
@@ -157,7 +202,8 @@ export class BoardDialog extends Dialog {
     this.body.replaceChildren(...children);
     for (const card of this.cards) card.refreshAvatar();
     tickLive(this.body, this.ctx.now());
-    if (focusedKey) this.body.querySelector<HTMLElement>(`[data-card="${CSS.escape(focusedKey)}"]`)?.focus({ preventScroll: true });
+    if (focusedKey)
+      this.body.querySelector<HTMLElement>(`[data-card="${CSS.escape(focusedKey)}"]`)?.focus({ preventScroll: true });
   }
 
   private laneEl(lane: BoardLane): HTMLElement {
@@ -165,7 +211,12 @@ export class BoardDialog extends Dialog {
     return h(
       'section',
       { class: 'ao-blane', 'aria-label': lane.project.name },
-      h('header', { class: 'ao-blane-head' }, roomTag(lane.project.name, lane.project.seed), h('span', { class: 'ao-blane-agents' }, t('board.lane.agents', { n: lane.agents.length }))),
+      h(
+        'header',
+        { class: 'ao-blane-head' },
+        roomTag(lane.project.name, lane.project.seed),
+        h('span', { class: 'ao-blane-agents' }, t('board.lane.agents', { n: lane.agents.length })),
+      ),
       hasCards ? null : h('p', { class: 'ao-note' }, t('board.lane.noTasks')),
       this.columnsEl(lane.columns, lane, false),
     );
@@ -184,12 +235,27 @@ export class BoardDialog extends Dialog {
       list.append(view.el);
     }
     if (column.cards.length === 0) list.append(h('li', { class: 'ao-bcol-empty' }, t('board.column.empty')));
-    const add = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('board.add.column', { column: name }), title: t('board.add.column', { column: name }) }, icon('plus', 14));
+    const add = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small',
+        'aria-label': t('board.add.column', { column: name }),
+        title: t('board.add.column', { column: name }),
+      },
+      icon('plus', 14),
+    );
     add.addEventListener('click', () => this.openAdd(column.id, lane, add));
     const el = h(
       'section',
       { class: `ao-bcol is-${column.id}`, 'data-column': column.id },
-      h('header', { class: 'ao-bcol-head' }, h('h3', null, name), h('span', { class: 'ao-bcol-count' }, String(column.total)), add),
+      h(
+        'header',
+        { class: 'ao-bcol-head' },
+        h('h3', null, name),
+        h('span', { class: 'ao-bcol-count' }, String(column.total)),
+        add,
+      ),
       list,
       column.id === 'completed' ? this.doneToggle(column) : null,
     );
@@ -211,7 +277,15 @@ export class BoardDialog extends Dialog {
     const showAll = this.ctx.board.get().view.showAllDone;
     if (column.hidden === 0 && !(showAll && column.total > DONE_PER_ROOM)) return null;
     const label = column.hidden > 0 ? t('board.done.showAll', { n: column.total }) : t('board.done.showLess');
-    return h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small ao-bcol-more', onclick: () => this.ctx.board.toggleShowAllDone() }, label);
+    return h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-btn ao-btn--ghost ao-btn--small ao-bcol-more',
+        onclick: () => this.ctx.board.toggleShowAllDone(),
+      },
+      label,
+    );
   }
 
   private tasklessEl(agents: readonly Agent[]): HTMLElement {
@@ -222,7 +296,12 @@ export class BoardDialog extends Dialog {
       ...agents.map((agent) => {
         const avatar = createAvatar(18);
         avatar.update(agent, this.ctx.world.portrait(agent.id, 36));
-        return h('button', { type: 'button', class: 'ao-chip', onclick: () => this.openAgent(agent.id) }, avatar.el, agent.name);
+        return h(
+          'button',
+          { type: 'button', class: 'ao-chip', onclick: () => this.openAgent(agent.id) },
+          avatar.el,
+          agent.name,
+        );
       }),
     );
   }
@@ -246,7 +325,9 @@ export class BoardDialog extends Dialog {
 
   private assignees(except: string): Agent[] {
     const agents = this.ctx.snapshot?.agents ?? [];
-    return agents.filter((agent) => agent.kind === 'main' && isLive(agent) && agent.id !== except).sort(compareBoardAgents(this.ctx.snapshot?.projects ?? []));
+    return agents
+      .filter((agent) => agent.kind === 'main' && isLive(agent) && agent.id !== except)
+      .sort(compareBoardAgents(this.ctx.snapshot?.projects ?? []));
   }
 
   private nameOf = (agentId: string): string => this.ctx.agent(agentId)?.name ?? t('agent.fallback');
@@ -259,11 +340,21 @@ export class BoardDialog extends Dialog {
     const options: MenuOption[] = [];
     for (const column of BOARD_COLUMNS) {
       const intent = buildMoveIntent(card, { column }, this.nameOf);
-      if (intent) options.push({ group: 'column', label: t('board.menu.toColumn', { column: t(COLUMN_KEYS[column]) }), run: () => this.confirm(intent, anchor) });
+      if (intent)
+        options.push({
+          group: 'column',
+          label: t('board.menu.toColumn', { column: t(COLUMN_KEYS[column]) }),
+          run: () => this.confirm(intent, anchor),
+        });
     }
     for (const agent of this.assignees(card.agentId)) {
       const intent = buildMoveIntent(card, { agentId: agent.id }, this.nameOf);
-      if (intent) options.push({ group: 'agent', label: t('board.menu.toAgent', { name: this.agentLabel(agent) }), run: () => this.confirm(intent, anchor) });
+      if (intent)
+        options.push({
+          group: 'agent',
+          label: t('board.menu.toAgent', { name: this.agentLabel(agent) }),
+          run: () => this.confirm(intent, anchor),
+        });
     }
     this.menu.open(anchor, this.panel, t('board.menu.title', { task: card.title }), options);
   }
@@ -299,7 +390,12 @@ export class BoardDialog extends Dialog {
     this.rail.replaceChildren(
       h('span', { class: 'ao-board-rail-label' }, t('board.rail')),
       ...targets.map((agent) => {
-        const chip = h('span', { class: 'ao-chip ao-board-rail-chip', 'data-agent': agent.id }, this.railAvatar(agent), this.agentLabel(agent));
+        const chip = h(
+          'span',
+          { class: 'ao-chip ao-board-rail-chip', 'data-agent': agent.id },
+          this.railAvatar(agent),
+          this.agentLabel(agent),
+        );
         chip.addEventListener('dragover', (event) => {
           event.preventDefault();
           chip.classList.add('is-over');

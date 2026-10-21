@@ -1,6 +1,17 @@
 // Collects static parts (geometry + material + transform) and merges them per material into a few meshes.
 import {
-  BoxGeometry, BufferGeometry, CylinderGeometry, Euler, Float32BufferAttribute, Group, Matrix4, Mesh, Object3D, Quaternion, SphereGeometry, Vector3,
+  BoxGeometry,
+  BufferGeometry,
+  CylinderGeometry,
+  Euler,
+  Float32BufferAttribute,
+  Group,
+  Matrix4,
+  Mesh,
+  Object3D,
+  Quaternion,
+  SphereGeometry,
+  Vector3,
   type Material,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -32,11 +43,18 @@ export function boxGeometry(sx: number, sy: number, sz: number, texM = 1): BoxGe
   if (geo) return geo;
   geo = new BoxGeometry(sx, sy, sz);
   const uv = geo.getAttribute('uv');
-  const dims: [number, number][] = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
+  const dims: [number, number][] = [
+    [sz, sy],
+    [sz, sy],
+    [sx, sz],
+    [sx, sz],
+    [sx, sy],
+    [sx, sy],
+  ];
   for (let face = 0; face < 6; face++) {
     for (let i = 0; i < 4; i++) {
       const idx = face * 4 + i;
-      uv.setXY(idx, uv.getX(idx) * dims[face][0] / texM, uv.getY(idx) * dims[face][1] / texM);
+      uv.setXY(idx, (uv.getX(idx) * dims[face][0]) / texM, (uv.getY(idx) * dims[face][1]) / texM);
     }
   }
   boxCache.set(key, geo);
@@ -68,7 +86,13 @@ export function groundQuad(x0: number, z0: number, x1: number, z1: number, y: nu
   const geo = new BufferGeometry();
   geo.setAttribute('position', new Float32BufferAttribute([x0, y, z0, x0, y, z1, x1, y, z1, x1, y, z0], 3));
   geo.setAttribute('normal', new Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
-  geo.setAttribute('uv', new Float32BufferAttribute([x0 / texM, z0 / texM, x0 / texM, z1 / texM, x1 / texM, z1 / texM, x1 / texM, z0 / texM], 2));
+  geo.setAttribute(
+    'uv',
+    new Float32BufferAttribute(
+      [x0 / texM, z0 / texM, x0 / texM, z1 / texM, x1 / texM, z1 / texM, x1 / texM, z0 / texM],
+      2,
+    ),
+  );
   geo.setIndex([0, 1, 2, 0, 2, 3]);
   return geo;
 }
@@ -95,7 +119,10 @@ function normalized(geometry: BufferGeometry, matrix: Matrix4, nonIndexed: boole
   out.setAttribute('position', source.getAttribute('position').clone());
   out.setAttribute('normal', source.getAttribute('normal').clone());
   const uv = source.getAttribute('uv');
-  out.setAttribute('uv', uv ? uv.clone() : new Float32BufferAttribute(new Float32Array(source.getAttribute('position').count * 2), 2));
+  out.setAttribute(
+    'uv',
+    uv ? uv.clone() : new Float32BufferAttribute(new Float32Array(source.getAttribute('position').count * 2), 2),
+  );
   if (!nonIndexed && source.index) out.setIndex(source.index.clone());
   out.applyMatrix4(matrix);
   return out;
@@ -109,12 +136,32 @@ export class PartCollector {
     return this;
   }
 
-  box(material: Material, cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, ry = 0, texM = 1): this {
+  box(
+    material: Material,
+    cx: number,
+    cy: number,
+    cz: number,
+    sx: number,
+    sy: number,
+    sz: number,
+    ry = 0,
+    texM = 1,
+  ): this {
     return this.add(boxGeometry(sx, sy, sz, texM), material, transform(cx, cy, cz, ry));
   }
 
   /** Box whose bottom face sits at y. */
-  boxOn(material: Material, cx: number, y: number, cz: number, sx: number, sy: number, sz: number, ry = 0, texM = 1): this {
+  boxOn(
+    material: Material,
+    cx: number,
+    y: number,
+    cz: number,
+    sx: number,
+    sy: number,
+    sz: number,
+    ry = 0,
+    texM = 1,
+  ): this {
     return this.box(material, cx, y + sy / 2, cz, sx, sy, sz, ry, texM);
   }
 
@@ -128,7 +175,12 @@ export class PartCollector {
 
   /** Adds all parts of another collector under a transform. */
   addAll(other: PartCollector, matrix: Matrix4): this {
-    for (const p of other.parts) this.parts.push({ geometry: p.geometry, material: p.material, matrix: new Matrix4().multiplyMatrices(matrix, p.matrix) });
+    for (const p of other.parts)
+      this.parts.push({
+        geometry: p.geometry,
+        material: p.material,
+        matrix: new Matrix4().multiplyMatrices(matrix, p.matrix),
+      });
     return this;
   }
 
@@ -139,7 +191,9 @@ export class PartCollector {
   /** Merges the parts per material (one mesh per batch). The result is static: matrixAutoUpdate is off. */
   build(shadowOf: (material: Material) => ShadowFlags): Object3D {
     const group = new Group();
-    const batches = planMerge(this.parts.map((p) => ({ key: p.material.uuid, vertices: p.geometry.getAttribute('position').count })));
+    const batches = planMerge(
+      this.parts.map((p) => ({ key: p.material.uuid, vertices: p.geometry.getAttribute('position').count })),
+    );
     for (const batch of batches) {
       const members = batch.items.map((i) => this.parts[i]);
       const nonIndexed = members.some((m) => !m.geometry.index) && members.some((m) => m.geometry.index);

@@ -55,7 +55,9 @@ describe('localized', () => {
     expect(activityText({ text: 'Corrigir o bug' })).toBe('Corrigir o bug');
     expect(agentTitle({ title: 'Corrigir o bug' })).toBe('Corrigir o bug');
     expect(agentTitle({})).toBeUndefined();
-    expect(agentWaitingFor({ waitingFor: 'Responder uma pergunta', waitingForMsg: { key: 'waiting.answerQuestion' } })).toBe('Answer a question');
+    expect(
+      agentWaitingFor({ waitingFor: 'Responder uma pergunta', waitingForMsg: { key: 'waiting.answerQuestion' } }),
+    ).toBe('Answer a question');
   });
 });
 
@@ -82,7 +84,12 @@ describe('model labels', () => {
   });
 
   it('shows the "doing" form of a task while it is in progress', () => {
-    const task = { title: 'Escrever testes', titleMsg: { key: 'demo.task.3.title' }, activeForm: 'Escrevendo testes', activeFormMsg: { key: 'demo.task.3.active' } };
+    const task = {
+      title: 'Escrever testes',
+      titleMsg: { key: 'demo.task.3.title' },
+      activeForm: 'Escrevendo testes',
+      activeFormMsg: { key: 'demo.task.3.active' },
+    };
     setLocale('en');
     expect(taskLabel({ ...task, status: 'in_progress' })).toBe('Writing the tests');
     expect(taskLabel({ ...task, status: 'pending' })).toBe('Write the tests');
@@ -90,7 +97,10 @@ describe('model labels', () => {
   });
 
   it('prefers the localized suggestion of a permission', () => {
-    const permission = { suggestions: ['Sempre permitir Edit'], suggestionMsgs: [{ key: 'perm.suggestion.remember', params: { scope: 'session' } }] };
+    const permission = {
+      suggestions: ['Sempre permitir Edit'],
+      suggestionMsgs: [{ key: 'perm.suggestion.remember', params: { scope: 'session' } }],
+    };
     setLocale('en');
     expect(permissionSuggestion(permission, 0)).toBe('Remember this decision for this session');
     expect(permissionSuggestion({ suggestions: ['Sempre permitir Edit'] }, 0)).toBe('Sempre permitir Edit');
@@ -102,7 +112,9 @@ describe('toolSummary', () => {
 
   it('renders the icon and the localized text when the entry carries a message', () => {
     setLocale('en');
-    expect(toolSummary({ ...tool, icon: '📖', summaryMsg: { key: 'activity.read', params: { file: 'App.tsx' } } })).toBe('📖 Reading App.tsx');
+    expect(
+      toolSummary({ ...tool, icon: '📖', summaryMsg: { key: 'activity.read', params: { file: 'App.tsx' } } }),
+    ).toBe('📖 Reading App.tsx');
   });
 
   it('keeps the server summary otherwise', () => {

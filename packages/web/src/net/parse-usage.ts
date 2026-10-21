@@ -1,5 +1,17 @@
 // Defensive parsing of GET /api/usage/detail: every number is checked, unknown shapes are rejected.
-import { type UsageDetail, type UsageModelRow, type UsageProgress, type UsageProjectRow, type UsageRange, type UsageSeriesPoint, type UsageSessionRow, type UsageTotals, type UsageWindowInfo, isUsagePeriod, modelFamily } from '@ai-office/shared';
+import {
+  type UsageDetail,
+  type UsageModelRow,
+  type UsageProgress,
+  type UsageProjectRow,
+  type UsageRange,
+  type UsageSeriesPoint,
+  type UsageSessionRow,
+  type UsageTotals,
+  type UsageWindowInfo,
+  isUsagePeriod,
+  modelFamily,
+} from '@ai-office/shared';
 import { t } from '../i18n';
 import { isMsg } from '../ui/display';
 import { isRecord } from './parse';
@@ -9,7 +21,14 @@ const str = (value: unknown): string => (typeof value === 'string' ? value : '')
 
 function totals(value: unknown): UsageTotals {
   const raw = isRecord(value) ? value : {};
-  return { input: num(raw.input), output: num(raw.output), cacheWrite: num(raw.cacheWrite), cacheRead: num(raw.cacheRead), tokens: num(raw.tokens), costUSD: num(raw.costUSD) };
+  return {
+    input: num(raw.input),
+    output: num(raw.output),
+    cacheWrite: num(raw.cacheWrite),
+    cacheRead: num(raw.cacheRead),
+    tokens: num(raw.tokens),
+    costUSD: num(raw.costUSD),
+  };
 }
 
 function list(value: unknown): Record<string, unknown>[] {
@@ -18,12 +37,22 @@ function list(value: unknown): Record<string, unknown>[] {
 
 function range(value: unknown): UsageRange {
   const raw = isRecord(value) ? value : {};
-  return { start: num(raw.start), end: num(raw.end), previousStart: num(raw.previousStart), previousEnd: num(raw.previousEnd) };
+  return {
+    start: num(raw.start),
+    end: num(raw.end),
+    previousStart: num(raw.previousStart),
+    previousEnd: num(raw.previousEnd),
+  };
 }
 
 function progress(value: unknown): UsageProgress {
   const raw = isRecord(value) ? value : {};
-  return { state: raw.state === 'indexing' ? 'indexing' : 'ready', percent: Math.min(100, Math.max(0, num(raw.percent))), filesDone: num(raw.filesDone), filesTotal: num(raw.filesTotal) };
+  return {
+    state: raw.state === 'indexing' ? 'indexing' : 'ready',
+    percent: Math.min(100, Math.max(0, num(raw.percent))),
+    filesDone: num(raw.filesDone),
+    filesTotal: num(raw.filesTotal),
+  };
 }
 
 function session(raw: Record<string, unknown>): UsageSessionRow {
@@ -44,11 +73,19 @@ function session(raw: Record<string, unknown>): UsageSessionRow {
 }
 
 function window(raw: Record<string, unknown>): UsageWindowInfo {
-  return { account: str(raw.account), start: num(raw.start), resetsAt: num(raw.resetsAt), tokens: num(raw.tokens), costUSD: num(raw.costUSD), active: raw.active === true };
+  return {
+    account: str(raw.account),
+    start: num(raw.start),
+    resetsAt: num(raw.resetsAt),
+    tokens: num(raw.tokens),
+    costUSD: num(raw.costUSD),
+    active: raw.active === true,
+  };
 }
 
 export function parseUsageDetail(data: unknown): UsageDetail {
-  if (!isRecord(data) || !isUsagePeriod(data.period) || typeof data.account !== 'string') throw new Error(t('error.invalidResponse'));
+  if (!isRecord(data) || !isUsagePeriod(data.period) || typeof data.account !== 'string')
+    throw new Error(t('error.invalidResponse'));
   return {
     account: data.account,
     period: data.period,
@@ -57,9 +94,21 @@ export function parseUsageDetail(data: unknown): UsageDetail {
     granularity: data.granularity === 'hour' ? 'hour' : 'day',
     totals: totals(data.totals),
     previous: totals(data.previous),
-    series: list(data.series).map((raw): UsageSeriesPoint => ({ start: num(raw.start), end: num(raw.end), ...totals(raw) })),
-    byModel: list(data.byModel).map((raw): UsageModelRow => ({ model: str(raw.model), family: modelFamily(str(raw.model)), ...totals(raw) })),
-    byProject: list(data.byProject).map((raw): UsageProjectRow => ({ project: str(raw.project), name: str(raw.name), ...totals(raw) })),
+    series: list(data.series).map((raw): UsageSeriesPoint => ({
+      start: num(raw.start),
+      end: num(raw.end),
+      ...totals(raw),
+    })),
+    byModel: list(data.byModel).map((raw): UsageModelRow => ({
+      model: str(raw.model),
+      family: modelFamily(str(raw.model)),
+      ...totals(raw),
+    })),
+    byProject: list(data.byProject).map((raw): UsageProjectRow => ({
+      project: str(raw.project),
+      name: str(raw.name),
+      ...totals(raw),
+    })),
     bySession: list(data.bySession).map(session),
     sessionCount: num(data.sessionCount),
     windows: list(data.windows).map(window),

@@ -40,16 +40,27 @@ async function tryCreate(kind: WorldKind, container: HTMLElement, opts: WorldFac
 const LABEL: Record<WorldKind, string> = { '2d': '2D', '3d': '3D' };
 
 /** Creates the requested world; falls back to 2D when 3D is unavailable. */
-export async function createWorld(kind: WorldKind, container: HTMLElement, opts: WorldFactoryOptions): Promise<WorldLoadResult> {
+export async function createWorld(
+  kind: WorldKind,
+  container: HTMLElement,
+  opts: WorldFactoryOptions,
+): Promise<WorldLoadResult> {
   try {
     return { world: await tryCreate(kind, container, opts), kind };
   } catch (error) {
     container.replaceChildren();
     if (kind === '3d') {
       const fallback = await createWorld('2d', container, opts);
-      const reason = error instanceof Error && error.message === 'missing' ? 'não está disponível nesta compilação' : 'não pôde ser iniciado neste navegador';
+      const reason =
+        error instanceof Error && error.message === 'missing'
+          ? 'não está disponível nesta compilação'
+          : 'não pôde ser iniciado neste navegador';
       return { ...fallback, notice: `O visual ${LABEL[kind]} ${reason}. Usando o 2D.` };
     }
-    return { world: null, kind, notice: 'O escritório 2D não está disponível nesta compilação. O painel segue funcionando.' };
+    return {
+      world: null,
+      kind,
+      notice: 'O escritório 2D não está disponível nesta compilação. O painel segue funcionando.',
+    };
   }
 }

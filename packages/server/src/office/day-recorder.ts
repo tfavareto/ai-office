@@ -57,8 +57,18 @@ export class DayRecorder {
     if (elapsed <= 0) return;
     const byId = new Map(this.current.agents.map((entry) => [entry.agentId, entry]));
     for (const agent of agents) {
-      const entry = byId.get(agent.id) ?? { agentId: agent.id, name: agent.name, projectId: agent.projectId, ms: emptyMs() };
-      byId.set(agent.id, { ...entry, name: agent.name, projectId: agent.projectId, ms: { ...entry.ms, [agent.status]: entry.ms[agent.status] + elapsed } });
+      const entry = byId.get(agent.id) ?? {
+        agentId: agent.id,
+        name: agent.name,
+        projectId: agent.projectId,
+        ms: emptyMs(),
+      };
+      byId.set(agent.id, {
+        ...entry,
+        name: agent.name,
+        projectId: agent.projectId,
+        ms: { ...entry.ms, [agent.status]: entry.ms[agent.status] + elapsed },
+      });
     }
     this.current = { date, agents: [...byId.values()] };
     this.dirty = true;

@@ -29,13 +29,23 @@ export interface CardView {
 }
 
 /** Builds the card. Cards are rebuilt when the board changes, so nothing here needs to be updated in place. */
-export function createCard(ctx: AppContext, card: BoardCard, handlers: CardHandlers, opts: { showRoom: boolean }): CardView {
+export function createCard(
+  ctx: AppContext,
+  card: BoardCard,
+  handlers: CardHandlers,
+  opts: { showRoom: boolean },
+): CardView {
   const agent = ctx.agent(card.agentId);
   const project = ctx.project(card.projectId);
   const column = t(COLUMN_KEYS[card.status]);
   const avatar = createAvatar(20);
 
-  const meta = h('div', { class: 'ao-bcard-meta' }, agent ? agentTag(avatar, agent) : null, accountChip(ctx.account(card.accountId)));
+  const meta = h(
+    'div',
+    { class: 'ao-bcard-meta' },
+    agent ? agentTag(avatar, agent) : null,
+    accountChip(ctx.account(card.accountId)),
+  );
   if (opts.showRoom && project) meta.append(roomTag(project.name, project.seed));
   if (card.changedAt !== undefined && !card.ghost) meta.append(liveText('ago', card.changedAt, 'ao-bcard-age'));
 
@@ -44,7 +54,12 @@ export function createCard(ctx: AppContext, card: BoardCard, handlers: CardHandl
     {
       type: 'button',
       class: 'ao-bcard-face',
-      'aria-label': t('board.card.aria', { task: card.label, agent: agent?.name ?? '', room: project?.name ?? '', column }),
+      'aria-label': t('board.card.aria', {
+        task: card.label,
+        agent: agent?.name ?? '',
+        room: project?.name ?? '',
+        column,
+      }),
       title: card.ghost ? undefined : t('board.card.hint'),
       'data-card': card.key,
     },
@@ -53,7 +68,14 @@ export function createCard(ctx: AppContext, card: BoardCard, handlers: CardHandl
     card.sent ? h('span', { class: 'ao-bcard-sent' }, icon('send', 12), t('board.card.sent')) : null,
   );
 
-  const item = h('li', { class: `ao-bcard is-${card.status}${card.ghost ? ' is-ghost' : ''}${card.sent ? ' is-sent' : ''}`, 'data-key': card.key }, face);
+  const item = h(
+    'li',
+    {
+      class: `ao-bcard is-${card.status}${card.ghost ? ' is-ghost' : ''}${card.sent ? ' is-sent' : ''}`,
+      'data-key': card.key,
+    },
+    face,
+  );
   if (!card.ghost) {
     face.addEventListener('click', () => handlers.open(card));
     face.addEventListener('keydown', (event) => {
@@ -62,7 +84,16 @@ export function createCard(ctx: AppContext, card: BoardCard, handlers: CardHandl
         handlers.move(card, face);
       }
     });
-    const moveBtn = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small ao-bcard-move', 'aria-label': t('board.card.moveAria', { task: card.label }), title: t('board.card.moveAria', { task: card.label }) }, icon('chevronDown', 14));
+    const moveBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small ao-bcard-move',
+        'aria-label': t('board.card.moveAria', { task: card.label }),
+        title: t('board.card.moveAria', { task: card.label }),
+      },
+      icon('chevronDown', 14),
+    );
     moveBtn.addEventListener('click', () => handlers.move(card, moveBtn));
     item.append(moveBtn);
     item.draggable = true;

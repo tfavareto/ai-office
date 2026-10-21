@@ -14,7 +14,11 @@ export class Toasts implements Component {
   private signature = '';
 
   constructor(private readonly ctx: AppContext) {
-    this.list = new KeyedList(this.el, (toast) => toast.id, (toast) => this.create(toast));
+    this.list = new KeyedList(
+      this.el,
+      (toast) => toast.id,
+      (toast) => this.create(toast),
+    );
   }
 
   render(): void {
@@ -30,8 +34,23 @@ export class Toasts implements Component {
     const text = h('span', { class: 'ao-toast-text' });
     const count = h('span', { class: 'ao-toast-count', hidden: true });
     const actions = h('div', { class: 'ao-toast-actions' });
-    const close = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('toasts.dismiss.label'), title: t('toasts.dismiss') }, icon('x', 14));
-    const el = h('div', { class: 'ao-toast', role: initial.level === 'alert' ? 'alert' : 'status' }, iconSlot, h('div', { class: 'ao-toast-body' }, h('div', { class: 'ao-toast-line' }, text, count), actions), close);
+    const close = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small',
+        'aria-label': t('toasts.dismiss.label'),
+        title: t('toasts.dismiss'),
+      },
+      icon('x', 14),
+    );
+    const el = h(
+      'div',
+      { class: 'ao-toast', role: initial.level === 'alert' ? 'alert' : 'status' },
+      iconSlot,
+      h('div', { class: 'ao-toast-body' }, h('div', { class: 'ao-toast-line' }, text, count), actions),
+      close,
+    );
     let current = initial;
     close.addEventListener('click', () => this.ctx.toasts.dismiss(current.id));
     return {
@@ -48,7 +67,11 @@ export class Toasts implements Component {
         if (agentId && this.ctx.agent(agentId)) {
           const label = toast.level === 'alert' ? t('toasts.answer') : t('toasts.view');
           actions.appendChild(
-            h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => this.answer(toast) }, label),
+            h(
+              'button',
+              { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => this.answer(toast) },
+              label,
+            ),
           );
         }
       },

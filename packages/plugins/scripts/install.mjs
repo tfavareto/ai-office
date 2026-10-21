@@ -20,7 +20,15 @@
 // The planning functions are pure and exported for tests; the `claude` runner is injectable.
 
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants as fsConstants, existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import {
+  accessSync,
+  constants as fsConstants,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';

@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { commandSegments, foldCommand, isSimpleCommand, matchesPrefixAnywhere, matchesPrefixStrict } from './command';
 
 describe('isSimpleCommand', () => {
-  it.each(['npm test', 'npm test -- --watch', 'git status', 'ls -la src', 'npm run build --workspace=web'])('accepts %s', (command) => {
-    expect(isSimpleCommand(command)).toBe(true);
-  });
+  it.each(['npm test', 'npm test -- --watch', 'git status', 'ls -la src', 'npm run build --workspace=web'])(
+    'accepts %s',
+    (command) => {
+      expect(isSimpleCommand(command)).toBe(true);
+    },
+  );
 
   it.each([
     ['npm test; rm -rf /'],

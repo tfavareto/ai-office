@@ -15,7 +15,12 @@ const FILTERS: readonly { id: NotificationFilter; label: UiKey }[] = [
   { id: 'messages', label: 'notifications.filter.messages' },
 ];
 
-const LEVEL_ICON: Record<NotificationItem['level'], IconName> = { info: 'info', success: 'check', warn: 'alert', alert: 'bell' };
+const LEVEL_ICON: Record<NotificationItem['level'], IconName> = {
+  info: 'info',
+  success: 'check',
+  warn: 'alert',
+  alert: 'bell',
+};
 
 export class NotificationCenter extends Popover {
   private filter: NotificationFilter = 'all';
@@ -27,16 +32,41 @@ export class NotificationCenter extends Popover {
 
   constructor(ctx: AppContext) {
     super(ctx, 'notifications', t('topbar.notifications'), 'ao-popover--notifications');
-    this.dndBtn = h('button', { type: 'button', class: 'ao-switch-row', role: 'switch', 'aria-checked': 'false', onclick: () => this.toggleDnd() }, h('span', { class: 'ao-switch' }, h('span', { class: 'ao-switch-knob' })), h('span', null, t('notifications.dnd')));
+    this.dndBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-switch-row',
+        role: 'switch',
+        'aria-checked': 'false',
+        onclick: () => this.toggleDnd(),
+      },
+      h('span', { class: 'ao-switch' }, h('span', { class: 'ao-switch-knob' })),
+      h('span', null, t('notifications.dnd')),
+    );
     this.dndBtn.title = t('notifications.dnd.hint');
-    this.clearBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => ctx.notifications.clear() }, icon('trash', 14), h('span', null, t('notifications.clear')));
+    this.clearBtn = h(
+      'button',
+      { type: 'button', class: 'ao-btn ao-btn--ghost ao-btn--small', onclick: () => ctx.notifications.clear() },
+      icon('trash', 14),
+      h('span', null, t('notifications.clear')),
+    );
     const tablist = h('div', { class: 'ao-segmented', role: 'tablist', 'aria-label': t('notifications.filter') });
     for (const f of FILTERS) {
-      const btn = h('button', { type: 'button', role: 'tab', class: 'ao-segmented-item', onclick: () => this.setFilter(f.id) }, t(f.label));
+      const btn = h(
+        'button',
+        { type: 'button', role: 'tab', class: 'ao-segmented-item', onclick: () => this.setFilter(f.id) },
+        t(f.label),
+      );
       this.tabs.set(f.id, btn);
       tablist.appendChild(btn);
     }
-    this.el.append(h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.notifications')), this.clearBtn), h('div', { class: 'ao-popover-sub' }, tablist), this.list, h('footer', { class: 'ao-popover-foot' }, this.dndBtn));
+    this.el.append(
+      h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.notifications')), this.clearBtn),
+      h('div', { class: 'ao-popover-sub' }, tablist),
+      this.list,
+      h('footer', { class: 'ao-popover-foot' }, this.dndBtn),
+    );
   }
 
   private setFilter(filter: NotificationFilter): void {
@@ -71,7 +101,11 @@ export class NotificationCenter extends Popover {
     const signature = `${this.filter}|${Math.floor(now / 30_000)}|${items.map((i) => `${i.id}:${i.count}:${i.text}:${i.at}`).join('|')}`;
     if (signature === this.signature) return;
     this.signature = signature;
-    this.list.replaceChildren(...(items.length === 0 ? [h('li', null, emptyNote(this.emptyText()))] : items.map((item) => this.item(item, now))));
+    this.list.replaceChildren(
+      ...(items.length === 0
+        ? [h('li', null, emptyNote(this.emptyText()))]
+        : items.map((item) => this.item(item, now))),
+    );
   }
 
   private emptyText(): string {
@@ -87,7 +121,10 @@ export class NotificationCenter extends Popover {
     const clickable = agentId !== undefined && this.ctx.agent(agentId) !== undefined;
     const row = h(
       clickable ? 'button' : 'div',
-      { class: `ao-notif ao-notif--${item.level} ${clickable ? 'is-link' : ''}`.trim(), type: clickable ? 'button' : null },
+      {
+        class: `ao-notif ao-notif--${item.level} ${clickable ? 'is-link' : ''}`.trim(),
+        type: clickable ? 'button' : null,
+      },
       h('span', { class: 'ao-notif-icon' }, icon(LEVEL_ICON[item.level], 16)),
       body,
       item.count > 1 ? h('span', { class: 'ao-toast-count' }, `×${item.count}`) : null,

@@ -87,7 +87,13 @@ function estimateLines(name: string, input: Record<string, unknown>): { added: n
   if (name === 'Write') return { added: lineCount(asString(input.content)), removed: 0 };
   if (name === 'NotebookEdit') return { added: lineCount(asString(input.new_source)), removed: 0 };
   const edits: Record<string, unknown>[] = name === 'MultiEdit' ? asArray(input.edits).map(asRecord) : [input];
-  return edits.reduce<{ added: number; removed: number }>((sum, edit) => ({ added: sum.added + lineCount(asString(edit.new_string)), removed: sum.removed + lineCount(asString(edit.old_string)) }), { added: 0, removed: 0 });
+  return edits.reduce<{ added: number; removed: number }>(
+    (sum, edit) => ({
+      added: sum.added + lineCount(asString(edit.new_string)),
+      removed: sum.removed + lineCount(asString(edit.old_string)),
+    }),
+    { added: 0, removed: 0 },
+  );
 }
 
 export class FileDayAccumulator {
@@ -132,10 +138,12 @@ export class FileDayAccumulator {
         this.countPrompt(line.text);
         return;
       case 'assistant':
-        for (const block of line.blocks) if (block.type === 'tool_use') this.onToolUse(block.id, block.name, block.input, line.at);
+        for (const block of line.blocks)
+          if (block.type === 'tool_use') this.onToolUse(block.id, block.name, block.input, line.at);
         return;
       case 'tool-results':
-        for (const result of line.results) this.onResult(result, line.results.length === 1 ? line.structured : undefined, line.at);
+        for (const result of line.results)
+          this.onResult(result, line.results.length === 1 ? line.structured : undefined, line.at);
         return;
       default:
         return;
@@ -146,7 +154,8 @@ export class FileDayAccumulator {
     this.cwd ??= cwd;
     this.firstAt = Math.min(this.firstAt ?? at, at);
     this.lastAt = Math.max(this.lastAt ?? at, at);
-    if (this.previousAt !== undefined && at > this.previousAt && at - this.previousAt <= ACTIVE_GAP_MS) this.addSpan(this.previousAt, at);
+    if (this.previousAt !== undefined && at > this.previousAt && at - this.previousAt <= ACTIVE_GAP_MS)
+      this.addSpan(this.previousAt, at);
     if (this.previousAt === undefined || at > this.previousAt) this.previousAt = at;
   }
 
@@ -177,7 +186,8 @@ export class FileDayAccumulator {
     this.pending.set(id, { name, input, at });
     if (name === 'Bash') this.countCommand(asString(input.command));
     else if (name === 'Task' || name === 'Agent') this.countSubagent(input);
-    else if (name === 'TodoWrite' || name === 'TaskCreate' || name === 'TaskUpdate') this.onTaskTool(id, name, input, at);
+    else if (name === 'TodoWrite' || name === 'TaskCreate' || name === 'TaskUpdate')
+      this.onTaskTool(id, name, input, at);
   }
 
   private countCommand(command: string | undefined): void {
@@ -193,7 +203,11 @@ export class FileDayAccumulator {
     this.subagentTypes.add(asString(input.subagent_type) ?? 'general-purpose');
   }
 
-  private onResult(result: ToolResultInfo, structured: { linesAdded: number; linesRemoved: number; createdTaskId?: string } | undefined, at: number): void {
+  private onResult(
+    result: ToolResultInfo,
+    structured: { linesAdded: number; linesRemoved: number; createdTaskId?: string } | undefined,
+    at: number,
+  ): void {
     const call = this.pending.get(result.toolUseId);
     if (call === undefined) return;
     this.pending.delete(result.toolUseId);
@@ -210,18 +224,28 @@ export class FileDayAccumulator {
     const path = asString(call.input.file_path) ?? asString(call.input.notebook_path) ?? asString(call.input.path);
     if (path === undefined) return;
     if (!this.files.has(path) && this.files.size >= MAX_FILES) return;
-    const lines = structured !== undefined && (structured.linesAdded > 0 || structured.linesRemoved > 0) ? { added: structured.linesAdded, removed: structured.linesRemoved } : estimateLines(call.name, call.input);
+    const lines =
+      structured !== undefined && (structured.linesAdded > 0 || structured.linesRemoved > 0)
+        ? { added: structured.linesAdded, removed: structured.linesRemoved }
+        : estimateLines(call.name, call.input);
     const before = this.files.get(path);
-    this.files.set(path, { path, edits: (before?.edits ?? 0) + 1, added: (before?.added ?? 0) + lines.added, removed: (before?.removed ?? 0) + lines.removed });
+    this.files.set(path, {
+      path,
+      edits: (before?.edits ?? 0) + 1,
+      added: (before?.added ?? 0) + lines.added,
+      removed: (before?.removed ?? 0) + lines.removed,
+    });
   }
 
   private onBashResult(call: Pending, result: ToolResultInfo, at: number): void {
     const command = asString(call.input.command) ?? '';
     const runner = detectTestRunner(command);
-    if (runner !== undefined && this.tests.length < MAX_ITEMS) this.tests.push({ runner, at: call.at, ...parseTestOutcome(result.text, result.isError) });
+    if (runner !== undefined && this.tests.length < MAX_ITEMS)
+      this.tests.push({ runner, at: call.at, ...parseTestOutcome(result.text, result.isError) });
     if (result.isError || !isGitCommit(command)) return;
     for (const commit of parseCommits(result.text)) {
-      if (this.commits.length < MAX_ITEMS && !this.commits.some((known) => known.hash === commit.hash)) this.commits.push({ ...commit, at, source: 'transcript' });
+      if (this.commits.length < MAX_ITEMS && !this.commits.some((known) => known.hash === commit.hash))
+        this.commits.push({ ...commit, at, source: 'transcript' });
     }
   }
 

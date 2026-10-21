@@ -1,6 +1,14 @@
 // The "needs you" inbox: one prioritized list of everything that waits on the user, derived from the snapshot and the
 // notifications. Pure: no DOM, no storage.
-import { detectRisk, type Activity, type Agent, type Msg, type OfficeSnapshot, type PermissionRequest, type RiskReason } from '@ai-office/shared';
+import {
+  detectRisk,
+  type Activity,
+  type Agent,
+  type Msg,
+  type OfficeSnapshot,
+  type PermissionRequest,
+  type RiskReason,
+} from '@ai-office/shared';
 import { type InboxState, isSeen } from './inbox-state';
 import type { NotificationItem } from './notifications';
 import { similarityKey } from './permission-pattern';
@@ -9,7 +17,12 @@ import { displayStatus, isLive } from './status';
 export type InboxKind = 'permission' | 'attention' | 'error' | 'finished';
 
 /** Lower comes first. */
-export const KIND_PRIORITY: Readonly<Record<InboxKind, number>> = { permission: 0, attention: 1, error: 2, finished: 3 };
+export const KIND_PRIORITY: Readonly<Record<InboxKind, number>> = {
+  permission: 0,
+  attention: 1,
+  error: 2,
+  finished: 3,
+};
 
 /** "Finished" items older than this are noise. */
 export const FINISHED_MAX_AGE_MS = 24 * 3_600_000;
@@ -54,7 +67,10 @@ export interface InboxView {
   counts: InboxCounts;
 }
 
-export const EMPTY_INBOX_VIEW: InboxView = { items: [], counts: { permission: 0, attention: 0, error: 0, finished: 0, urgent: 0 } };
+export const EMPTY_INBOX_VIEW: InboxView = {
+  items: [],
+  counts: { permission: 0, attention: 0, error: 0, finished: 0, urgent: 0 },
+};
 
 export interface InboxInput {
   snapshot: OfficeSnapshot | null;
@@ -72,7 +88,9 @@ export function isExpiringSoon(permission: Pick<PermissionRequest, 'expiresAt'>,
 }
 
 function alertNoticeFor(agent: Agent, notifications: readonly NotificationItem[]): NotificationItem | undefined {
-  return notifications.find((item) => item.kind === 'alert' && item.agentId === agent.id && item.at >= agent.statusSince - NOTICE_SLACK_MS);
+  return notifications.find(
+    (item) => item.kind === 'alert' && item.agentId === agent.id && item.at >= agent.statusSince - NOTICE_SLACK_MS,
+  );
 }
 
 function base(agent: Agent, id: string, kind: InboxKind, at: number, state: InboxState): InboxItem {
@@ -93,8 +111,15 @@ function permissionItem(agent: Agent, permission: PermissionRequest, state: Inbo
 function attentionItem(agent: Agent, input: InboxInput): InboxItem {
   const notice = agent.waitingFor === undefined ? alertNoticeFor(agent, input.notifications) : undefined;
   const item = base(agent, `attention:${agent.id}:${agent.statusSince}`, 'attention', agent.statusSince, input.state);
-  if (agent.waitingFor !== undefined) return { ...item, waitingText: agent.waitingFor, ...(agent.waitingForMsg !== undefined ? { waitingMsg: agent.waitingForMsg } : {}) };
-  return notice ? { ...item, waitingText: notice.text, ...(notice.msg !== undefined ? { waitingMsg: notice.msg } : {}) } : item;
+  if (agent.waitingFor !== undefined)
+    return {
+      ...item,
+      waitingText: agent.waitingFor,
+      ...(agent.waitingForMsg !== undefined ? { waitingMsg: agent.waitingForMsg } : {}),
+    };
+  return notice
+    ? { ...item, waitingText: notice.text, ...(notice.msg !== undefined ? { waitingMsg: notice.msg } : {}) }
+    : item;
 }
 
 function errorItem(agent: Agent, failure: Activity, state: InboxState): InboxItem {
@@ -119,11 +144,14 @@ function isFinished(agent: Agent, state: InboxState, now: number): boolean {
 function candidatesOf(agent: Agent, input: InboxInput): InboxItem[] {
   if (!isLive(agent)) return [];
   if (agent.status === 'waiting') {
-    return [agent.permission ? permissionItem(agent, agent.permission, input.state, input.now) : attentionItem(agent, input)];
+    return [
+      agent.permission ? permissionItem(agent, agent.permission, input.state, input.now) : attentionItem(agent, input),
+    ];
   }
   if (agent.kind !== 'main') return [];
   if (displayStatus(agent) === 'error' && agent.activity) return [errorItem(agent, agent.activity, input.state)];
-  if (isFinished(agent, input.state, input.now)) return [base(agent, `finished:${agent.id}:${agent.statusSince}`, 'finished', agent.statusSince, input.state)];
+  if (isFinished(agent, input.state, input.now))
+    return [base(agent, `finished:${agent.id}:${agent.statusSince}`, 'finished', agent.statusSince, input.state)];
   return [];
 }
 
@@ -136,7 +164,8 @@ export function compareItems(a: InboxItem, b: InboxItem): number {
   const byKind = KIND_PRIORITY[a.kind] - KIND_PRIORITY[b.kind];
   if (byKind !== 0) return byKind;
   if (a.kind === 'permission' && b.kind === 'permission') {
-    const byExpiry = permissionRank(a) - permissionRank(b) || (a.permission?.expiresAt ?? 0) - (b.permission?.expiresAt ?? 0);
+    const byExpiry =
+      permissionRank(a) - permissionRank(b) || (a.permission?.expiresAt ?? 0) - (b.permission?.expiresAt ?? 0);
     if (byExpiry !== 0) return byExpiry;
   }
   const byAge = a.kind === 'finished' ? b.at - a.at : a.at - b.at;
@@ -156,7 +185,16 @@ export function buildInbox(input: InboxInput): InboxView {
   const permission = items.filter((item) => item.kind === 'permission' && item.expired !== true).length;
   const attention = countOf(items, 'attention');
   const error = countOf(items, 'error');
-  return { items, counts: { permission, attention, error, finished: countOf(items, 'finished'), urgent: permission + attention + error } };
+  return {
+    items,
+    counts: {
+      permission,
+      attention,
+      error,
+      finished: countOf(items, 'finished'),
+      urgent: permission + attention + error,
+    },
+  };
 }
 
 /** Ids of the items that can be marked as seen (everything but permission requests). */

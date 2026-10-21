@@ -3,7 +3,14 @@ import type { Account } from '@ai-office/shared';
 import { parseLine } from '../claude/line-parser';
 import type { ParsedLine } from '../claude/types';
 import { T0, assistantLine, text, toolResultLine, toolUse, userLine } from '../test-helpers';
-import { LEAVE_LINGER_MS, SUB_IDLE_DONE_MS, createSessionRecord, createSubRecord, isSubDone, subVisible } from './records';
+import {
+  LEAVE_LINGER_MS,
+  SUB_IDLE_DONE_MS,
+  createSessionRecord,
+  createSubRecord,
+  isSubDone,
+  subVisible,
+} from './records';
 
 const account: Account = { id: 'claude', label: 'Pessoal', initial: 'P', color: '#fff', dir: '/x' };
 
@@ -30,16 +37,37 @@ describe('subagent lifecycle', () => {
 
   test('an async subagent survives its launch result and ends with the task notification', () => {
     const { record, sub, apply } = setup();
-    apply('main', assistantLine([toolUse('tu1', 'Agent', { description: 'Mapear', run_in_background: true })], 10), toolResultLine('tu1', 'launched', 20, { toolUseResult: { isAsync: true } }));
+    apply(
+      'main',
+      assistantLine([toolUse('tu1', 'Agent', { description: 'Mapear', run_in_background: true })], 10),
+      toolResultLine('tu1', 'launched', 20, { toolUseResult: { isAsync: true } }),
+    );
     apply('sub', assistantLine([toolUse('r', 'Read', { file_path: '/a' })], 30));
     expect(isSubDone(record, sub, T0 + 1000)).toBe(false);
-    apply('main', JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: new Date(T0 + 2000).toISOString(), content: '<task-notification><tool-use-id>tu1</tool-use-id><status>completed</status></task-notification>' }));
+    apply(
+      'main',
+      JSON.stringify({
+        type: 'queue-operation',
+        operation: 'enqueue',
+        timestamp: new Date(T0 + 2000).toISOString(),
+        content: '<task-notification><tool-use-id>tu1</tool-use-id><status>completed</status></task-notification>',
+      }),
+    );
     expect(isSubDone(record, sub, T0 + 2100)).toBe(true);
   });
 
   test('a subagent resumed after its completion notice is working again', () => {
     const { record, sub, apply } = setup();
-    apply('main', assistantLine([toolUse('tu1', 'Agent', { description: 'x', run_in_background: true })], 0), JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: new Date(T0 + 1000).toISOString(), content: '<task-notification><tool-use-id>tu1</tool-use-id><status>completed</status></task-notification>' }));
+    apply(
+      'main',
+      assistantLine([toolUse('tu1', 'Agent', { description: 'x', run_in_background: true })], 0),
+      JSON.stringify({
+        type: 'queue-operation',
+        operation: 'enqueue',
+        timestamp: new Date(T0 + 1000).toISOString(),
+        content: '<task-notification><tool-use-id>tu1</tool-use-id><status>completed</status></task-notification>',
+      }),
+    );
     apply('sub', assistantLine([toolUse('r', 'Read', { file_path: '/a' })], 9000));
     expect(isSubDone(record, sub, T0 + 9500)).toBe(false);
   });

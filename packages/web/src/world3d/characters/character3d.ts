@@ -1,6 +1,14 @@
 // One person in the office: a skinned human with procedural pose blending, an account-colour ring and a subagent marker.
 import {
-  CylinderGeometry, Group, Mesh, MeshBasicMaterial, OctahedronGeometry, RingGeometry, SphereGeometry, Vector3, type Material,
+  CylinderGeometry,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  OctahedronGeometry,
+  RingGeometry,
+  SphereGeometry,
+  Vector3,
+  type Material,
 } from 'three';
 import type { Dir } from '../../layout/types';
 import type { Character, SeatKind } from '../../sim/types';
@@ -12,7 +20,15 @@ import { chooseLook, type LookChoice } from './outfits';
 import type { HumanInstance, HumanLibrary } from './humanLibrary';
 
 const YAW: Record<Dir, number> = { s: 0, e: Math.PI / 2, n: Math.PI, w: -Math.PI / 2 };
-const SEAT_HEIGHT: Record<string, number> = { desk: 0.47, meeting: 0.47, stool: 0.65, cafe: 0.46, sofa: 0.42, beanbag: 0.28, bench: 0.45 };
+const SEAT_HEIGHT: Record<string, number> = {
+  desk: 0.47,
+  meeting: 0.47,
+  stool: 0.65,
+  cafe: 0.46,
+  sofa: 0.42,
+  beanbag: 0.28,
+  bench: 0.45,
+};
 export const ringGeo = new RingGeometry(0.36, 0.43, 40).rotateX(-Math.PI / 2);
 const selectGeo = new RingGeometry(0.5, 0.56, 48).rotateX(-Math.PI / 2);
 const markerGeo = new OctahedronGeometry(0.07);
@@ -23,8 +39,20 @@ const bucketMat = new MeshBasicMaterial({ color: '#d33a3a' });
 const bookGeo = new SphereGeometry(0.1, 8, 4).scale(1, 0.12, 0.8);
 const bookMat = new MeshBasicMaterial({ color: '#2d4a7a' });
 
-const selectMaterial = new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false });
-const hoverMaterial = new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.45, depthWrite: false, toneMapped: false });
+const selectMaterial = new MeshBasicMaterial({
+  color: '#ffffff',
+  transparent: true,
+  opacity: 0.9,
+  depthWrite: false,
+  toneMapped: false,
+});
+const hoverMaterial = new MeshBasicMaterial({
+  color: '#ffffff',
+  transparent: true,
+  opacity: 0.45,
+  depthWrite: false,
+  toneMapped: false,
+});
 const markerMaterial = new MeshBasicMaterial({ color: '#b78cff', toneMapped: false });
 
 export interface PersonFrame {
@@ -61,7 +89,10 @@ export class Character3D {
   private initialised = false;
   private shownDetail = false;
 
-  constructor(library: HumanLibrary, readonly character: Character) {
+  constructor(
+    library: HumanLibrary,
+    readonly character: Character,
+  ) {
     this.choice = chooseLook(character.look, character.seed);
     this.instance = library.create(this.choice.model, this.choice.outfit);
     this.root.add(this.instance.root);
@@ -125,8 +156,13 @@ export class Character3D {
   private updatePose(c: Character, f: PersonFrame): void {
     const seated = c.seat !== null;
     solvePose(this.target, c.pose, {
-      t: c.poseT, walk: c.walkPhase, phase: this.choice.phase * 6.28, pelvisRest: this.rig.pelvisRestY,
-      seated, seatHeight: seatHeightOf(c.seat), shellStage: c.shellStage,
+      t: c.poseT,
+      walk: c.walkPhase,
+      phase: this.choice.phase * 6.28,
+      pelvisRest: this.rig.pelvisRestY,
+      seated,
+      seatHeight: seatHeightOf(c.seat),
+      shellStage: c.shellStage,
     });
     const rate = c.pose === 'walk' ? 16 : 9;
     lerpPose(this.current, this.current, this.target, this.firstFrame() ? 1 : blendFactor(rate, f.dt));
@@ -147,7 +183,11 @@ export class Character3D {
       this.selectRing.scale.setScalar(f.selected && !f.still ? 1 + Math.sin(f.time * 4) * 0.04 : 1);
     }
     if (this.marker) {
-      this.marker.position.set(0, 2.05 * this.choice.scale + (f.still ? 0 : Math.sin(f.time * 2 + this.choice.phase * 6) * 0.03), 0);
+      this.marker.position.set(
+        0,
+        2.05 * this.choice.scale + (f.still ? 0 : Math.sin(f.time * 2 + this.choice.phase * 6) * 0.03),
+        0,
+      );
       this.marker.rotation.y = f.still ? 0 : f.time * 1.5;
     }
     this.cup.visible = c.carrying === 'cup';

@@ -161,7 +161,11 @@ function mirror(ctx: Ctx, x: number, w: number): void {
 function poster(ctx: Ctx, x: number, w: number, variant: number): void {
   const px = x * T + Math.floor((w * T - 20) / 2);
   frame(ctx, px, 12, 20, 11, WALNUT.base);
-  const palettes = [['#e0795a', '#f2c46d', '#2f6fed'], ['#3b8a52', '#cde7c2', '#1d3a63'], ['#8a5ad6', '#f2a3c4', '#2a2f3a']];
+  const palettes = [
+    ['#e0795a', '#f2c46d', '#2f6fed'],
+    ['#3b8a52', '#cde7c2', '#1d3a63'],
+    ['#8a5ad6', '#f2a3c4', '#2a2f3a'],
+  ];
   const [a, b, c] = palettes[variant % 3];
   rect(ctx, px + 2, 14, 16, 7, b);
   rect(ctx, px + 2, 14, 8, 7, a);
@@ -179,7 +183,14 @@ function clock(ctx: Ctx, x: number, w: number): void {
 }
 
 /** Paint a static wall decoration. Returns the dynamic screen rect, if any. */
-export function paintWallItem(ctx: Ctx, item: WallItem, localX: number, label: string, accent: string, text: WorldText = worldText('pt-BR')): WallItemFrame {
+export function paintWallItem(
+  ctx: Ctx,
+  item: WallItem,
+  localX: number,
+  label: string,
+  accent: string,
+  text: WorldText = worldText('pt-BR'),
+): WallItemFrame {
   switch (item.kind) {
     case 'sign':
       sign(ctx, localX, item.w, label, accent);

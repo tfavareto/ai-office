@@ -14,7 +14,12 @@ function figure(tokens: number, cost: number): string {
 }
 
 function line(label: string, tokens: number, cost: number): HTMLElement {
-  return h('div', { class: 'ao-usage-line' }, h('span', { class: 'ao-usage-label' }, label), h('span', { class: 'ao-usage-value' }, figure(tokens, cost)));
+  return h(
+    'div',
+    { class: 'ao-usage-line' },
+    h('span', { class: 'ao-usage-label' }, label),
+    h('span', { class: 'ao-usage-value' }, figure(tokens, cost)),
+  );
 }
 
 function tooltip(ctx: AppContext, label: string, usage: AccountUsage): string {
@@ -22,8 +27,16 @@ function tooltip(ctx: AppContext, label: string, usage: AccountUsage): string {
   const hit = imminentForAccount(usage, ctx.prefs.get().usageLimits[usage.accountId], now)?.hitsAt;
   return [
     t('usage.tip.account', { label }),
-    t('usage.tip.window', { tokens: formatTokens(usage.window5h.tokens), cost: formatCost(usage.window5h.costUSD), reset: formatResetIn(usage.window5h.resetsAt, now) }),
-    t('usage.tip.week', { tokens: formatTokens(usage.week.tokens), cost: formatCost(usage.week.costUSD), reset: formatResetIn(usage.week.resetsAt, now) }),
+    t('usage.tip.window', {
+      tokens: formatTokens(usage.window5h.tokens),
+      cost: formatCost(usage.window5h.costUSD),
+      reset: formatResetIn(usage.window5h.resetsAt, now),
+    }),
+    t('usage.tip.week', {
+      tokens: formatTokens(usage.week.tokens),
+      cost: formatCost(usage.week.costUSD),
+      reset: formatResetIn(usage.week.resetsAt, now),
+    }),
     t('usage.tip.today', { tokens: formatTokens(usage.today.tokens), cost: formatCost(usage.today.costUSD) }),
     ...(hit === undefined ? [] : [t('usage.tip.hit', { time: formatClock(hit) })]),
     t('usage.tip.open'),
@@ -43,21 +56,28 @@ function openUsage(ctx: AppContext, accountId: string): void {
 export function usageCard(ctx: AppContext, accountId: string, usage: AccountUsage, detailed = false): HTMLElement {
   const account = ctx.account(accountId);
   const label = account ? accountLabel(account) : t('usage.account');
-  const lines = [line(t('usage.window5h'), usage.window5h.tokens, usage.window5h.costUSD), line(t('usage.week'), usage.week.tokens, usage.week.costUSD)];
+  const lines = [
+    line(t('usage.window5h'), usage.window5h.tokens, usage.window5h.costUSD),
+    line(t('usage.week'), usage.week.tokens, usage.week.costUSD),
+  ];
   if (detailed) lines.push(line(t('usage.today'), usage.today.tokens, usage.today.costUSD));
   const warning = imminentForAccount(usage, ctx.prefs.get().usageLimits[accountId], ctx.now()) !== undefined;
   const card = h(
     'button',
     {
       type: 'button',
-      class: ['ao-usage-card', detailed ? 'ao-usage-card--detail' : '', warning ? 'is-warning' : ''].filter(Boolean).join(' '),
+      class: ['ao-usage-card', detailed ? 'ao-usage-card--detail' : '', warning ? 'is-warning' : '']
+        .filter(Boolean)
+        .join(' '),
       'aria-label': t('usage.open', { label }),
       title: tooltip(ctx, label, usage),
       onclick: () => openUsage(ctx, accountId),
     },
     accountChip(account, detailed),
     h('div', { class: 'ao-usage-lines' }, ...lines),
-    detailed ? null : h('div', { class: 'ao-usage-short' }, line(t('usage.window5h'), usage.window5h.tokens, usage.window5h.costUSD)),
+    detailed
+      ? null
+      : h('div', { class: 'ao-usage-short' }, line(t('usage.window5h'), usage.window5h.tokens, usage.window5h.costUSD)),
     warning ? h('span', { class: 'ao-usage-warn', 'aria-hidden': 'true' }, icon('alert', 11)) : null,
   );
   card.addEventListener('pointerenter', () => {

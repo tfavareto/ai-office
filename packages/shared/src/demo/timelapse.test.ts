@@ -21,19 +21,35 @@ describe('demoTimelapse', () => {
     expect(day('2026-10-20')).toEqual(day('2026-10-20'));
   });
 
-  test.each(WORKDAYS)('%s tells a full story: several rooms, arrivals, meetings, waits, commits, a shell and tests', (date) => {
-    const tl = day(date);
-    const types = new Set(tl.events.map((event) => event.type));
+  test.each(WORKDAYS)(
+    '%s tells a full story: several rooms, arrivals, meetings, waits, commits, a shell and tests',
+    (date) => {
+      const tl = day(date);
+      const types = new Set(tl.events.map((event) => event.type));
 
-    expect(tl.demo).toBe(true);
-    expect(tl.projects.length).toBeGreaterThanOrEqual(3);
-    expect(tl.agents.some((agent) => agent.kind === 'sub')).toBe(true);
-    for (const type of ['arrive', 'leave', 'status', 'activity', 'tasks', 'shell', 'permission', 'commit', 'test'] as const) expect(types.has(type), type).toBe(true);
-    expect(tl.events.some((event) => event.type === 'status' && event.status === 'waiting')).toBe(true);
-  });
+      expect(tl.demo).toBe(true);
+      expect(tl.projects.length).toBeGreaterThanOrEqual(3);
+      expect(tl.agents.some((agent) => agent.kind === 'sub')).toBe(true);
+      for (const type of [
+        'arrive',
+        'leave',
+        'status',
+        'activity',
+        'tasks',
+        'shell',
+        'permission',
+        'commit',
+        'test',
+      ] as const)
+        expect(types.has(type), type).toBe(true);
+      expect(tl.events.some((event) => event.type === 'status' && event.status === 'waiting')).toBe(true);
+    },
+  );
 
   test('over the week there is a failed test run', () => {
-    const failed = reportDates(NOW).some((date) => day(date).events.some((event) => event.type === 'test' && event.outcome === 'failed'));
+    const failed = reportDates(NOW).some((date) =>
+      day(date).events.some((event) => event.type === 'test' && event.outcome === 'failed'),
+    );
 
     expect(failed).toBe(true);
   });
@@ -54,9 +70,15 @@ describe('demoTimelapse', () => {
         }
         expect(tl.agents[event.agent], `${date} ${event.type}`).toBeDefined();
         if (event.type === 'arrive') arrived.add(event.agent);
-        else if (event.type !== 'test') expect(arrived.has(event.agent), `${date} ${event.type} before arriving`).toBe(true);
+        else if (event.type !== 'test')
+          expect(arrived.has(event.agent), `${date} ${event.type} before arriving`).toBe(true);
       }
-      for (const agent of tl.agents) if (agent.kind === 'sub') expect(tl.agents.some((candidate) => candidate.id === agent.parentId), agent.id).toBe(true);
+      for (const agent of tl.agents)
+        if (agent.kind === 'sub')
+          expect(
+            tl.agents.some((candidate) => candidate.id === agent.parentId),
+            agent.id,
+          ).toBe(true);
       if (tl.events.length > 0) expect([tl.from, tl.to]).toEqual([tl.events[0]?.at, expect.any(Number)]);
     }
   });
@@ -66,26 +88,37 @@ describe('demoTimelapse', () => {
     const mains = agents.filter((agent) => agent.kind === 'main');
 
     expect(tl.to).toBeLessThanOrEqual(NOW);
-    expect(tl.agents.filter((agent) => agent.kind === 'main').some((agent) => mains.some((main) => main.id === agent.id && main.name === agent.name))).toBe(true);
+    expect(
+      tl.agents
+        .filter((agent) => agent.kind === 'main')
+        .some((agent) => mains.some((main) => main.id === agent.id && main.name === agent.name)),
+    ).toBe(true);
   });
 
   test('says everything in message keys, so every language can read it; only the commit subjects follow the requested language', () => {
     const [pt, en, es] = LOCALES.map((locale) => day('2026-10-20', { locale }));
-    const strip = (tl: typeof pt): unknown => ({ ...tl, events: tl?.events.map((event) => (event.type === 'commit' ? { ...event, subject: '' } : event)) });
+    const strip = (tl: typeof pt): unknown => ({
+      ...tl,
+      events: tl?.events.map((event) => (event.type === 'commit' ? { ...event, subject: '' } : event)),
+    });
 
     expect(strip(pt)).toEqual(strip(en));
     expect(strip(en)).toEqual(strip(es));
-    const subjects = (tl: typeof pt): string[] => (tl?.events ?? []).flatMap((event: TimelapseEvent) => (event.type === 'commit' ? [event.subject] : []));
+    const subjects = (tl: typeof pt): string[] =>
+      (tl?.events ?? []).flatMap((event: TimelapseEvent) => (event.type === 'commit' ? [event.subject] : []));
     expect(subjects(pt)).not.toEqual(subjects(en));
     expect(subjects(en)).not.toEqual(subjects(es));
-    for (const event of pt?.events ?? []) if (event.type === 'activity') expect(event.msg.key).toMatch(/^(activity|timelapse\.activity)\./);
+    for (const event of pt?.events ?? [])
+      if (event.type === 'activity') expect(event.msg.key).toMatch(/^(activity|timelapse\.activity)\./);
   });
 
   test('never carries a prompt: new tasks are only announced', () => {
     const prompts = day('2026-10-20').events.filter((event) => event.type === 'activity' && event.kind === 'prompt');
 
     expect(prompts.length).toBeGreaterThan(0);
-    expect(prompts.every((event) => event.type === 'activity' && event.msg.key === 'timelapse.activity.prompt')).toBe(true);
+    expect(prompts.every((event) => event.type === 'activity' && event.msg.key === 'timelapse.activity.prompt')).toBe(
+      true,
+    );
   });
 
   test('an account filter keeps only that account, and an unknown one leaves an empty day', () => {

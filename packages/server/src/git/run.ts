@@ -51,7 +51,14 @@ export function gitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 
 /** Environment of `gh`: the person's own (it may hold GH_TOKEN), without prompts, colors or update checks. */
 export function ghEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...source, GH_PROMPT_DISABLED: '1', GH_NO_UPDATE_NOTIFIER: '1', GH_PAGER: 'cat', NO_COLOR: '1', GIT_TERMINAL_PROMPT: '0' };
+  return {
+    ...source,
+    GH_PROMPT_DISABLED: '1',
+    GH_NO_UPDATE_NOTIFIER: '1',
+    GH_PAGER: 'cat',
+    NO_COLOR: '1',
+    GIT_TERMINAL_PROMPT: '0',
+  };
 }
 
 function runner(environment: NodeJS.ProcessEnv): Runner {
@@ -60,7 +67,15 @@ function runner(environment: NodeJS.ProcessEnv): Runner {
       execFile(
         file,
         [...args],
-        { cwd: options.cwd, env: environment, timeout: options.timeoutMs, maxBuffer: MAX_OUTPUT_BYTES, windowsHide: true, killSignal: 'SIGKILL', encoding: 'utf8' },
+        {
+          cwd: options.cwd,
+          env: environment,
+          timeout: options.timeoutMs,
+          maxBuffer: MAX_OUTPUT_BYTES,
+          windowsHide: true,
+          killSignal: 'SIGKILL',
+          encoding: 'utf8',
+        },
         (error, stdout, stderr) => {
           if (error === null) return resolve(stdout);
           const failure = error as NodeJS.ErrnoException & { killed?: boolean };

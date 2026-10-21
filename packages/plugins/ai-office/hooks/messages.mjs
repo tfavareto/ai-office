@@ -143,9 +143,13 @@ export function readInbox(response) {
   if (json === null || typeof json !== 'object') return { texts: [], skip: false, failed: true };
   if (typeof json.skip === 'string') return { texts: [], skip: true, failed: false };
   if (!Array.isArray(json.messages)) return { texts: [], skip: false, failed: true };
-  const usable = json.messages.filter((/** @type {any} */ message) => typeof message?.text === 'string' && message.text.trim() !== '');
+  const usable = json.messages.filter(
+    (/** @type {any} */ message) => typeof message?.text === 'string' && message.text.trim() !== '',
+  );
   const texts = usable.map((/** @type {any} */ message) => message.text);
-  const declared = usable.map((/** @type {any} */ message) => message.locale).filter((/** @type {unknown} */ value) => normalizeLocale(value) === value);
+  const declared = usable
+    .map((/** @type {any} */ message) => message.locale)
+    .filter((/** @type {unknown} */ value) => normalizeLocale(value) === value);
   const locale = declared.length > 0 ? declared[declared.length - 1] : undefined;
   return { texts, ...(locale !== undefined ? { locale } : {}), skip: false, failed: false };
 }
@@ -155,7 +159,9 @@ export function readInbox(response) {
  * @param {{ session: string, agent?: string, via: 'tool' | 'stop' }} target
  */
 function fetchInbox(ctx, { session, agent, via }) {
-  return requestJson(ctx, 'POST', '/api/messages/inbox', { body: { session, ...(agent !== undefined ? { agent } : {}), via } }).then(readInbox);
+  return requestJson(ctx, 'POST', '/api/messages/inbox', {
+    body: { session, ...(agent !== undefined ? { agent } : {}), via },
+  }).then(readInbox);
 }
 
 /**
@@ -179,7 +185,8 @@ export async function standby(ctx, { session, agent }, totalMs, now = Date.now) 
       { timeoutMs: seconds * 1000 + LONG_POLL_GRACE_MS },
     );
     const result = readInbox(response);
-    if (result.texts.length > 0) return { texts: result.texts, ...(result.locale !== undefined ? { locale: result.locale } : {}) };
+    if (result.texts.length > 0)
+      return { texts: result.texts, ...(result.locale !== undefined ? { locale: result.locale } : {}) };
     if (result.skip) {
       ctx.debug('standby ended: server said skip');
       return { texts: [] };

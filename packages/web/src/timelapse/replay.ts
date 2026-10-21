@@ -1,11 +1,38 @@
 // The replay engine: turns a day's time-lapse and an instant into the same OfficeSnapshot the live stream delivers, so
 // the world renderers need no special case. Pure: the state at any instant is computed from the events alone (binary
 // searches over per-agent tracks), so seeking is as cheap and as deterministic as playing.
-import type { Account, Activity, Agent, AgentStatus, FeedItem, OfficeMeta, OfficeSnapshot, Project, ShellJob, TaskItem, Timelapse, TimelapseAgent, TimelapseEvent, TimelapseStatus } from '@ai-office/shared';
+import type {
+  Account,
+  Activity,
+  Agent,
+  AgentStatus,
+  FeedItem,
+  OfficeMeta,
+  OfficeSnapshot,
+  Project,
+  ShellJob,
+  TaskItem,
+  Timelapse,
+  TimelapseAgent,
+  TimelapseEvent,
+  TimelapseStatus,
+} from '@ai-office/shared';
 
 const RECENT_LIMIT = 30;
 /** Activity kinds that are a tool call (for the count shown in the agent's data). */
-const TOOL_KINDS: ReadonlySet<string> = new Set(['read', 'search', 'edit', 'write', 'bash', 'web', 'task', 'subagent', 'mcp', 'question', 'other']);
+const TOOL_KINDS: ReadonlySet<string> = new Set([
+  'read',
+  'search',
+  'edit',
+  'write',
+  'bash',
+  'web',
+  'task',
+  'subagent',
+  'mcp',
+  'question',
+  'other',
+]);
 
 interface Span {
   from: number;
@@ -90,7 +117,11 @@ function presenceOf(events: readonly TimelapseEvent[], agent: number): Span[] {
 }
 
 /** The task list with the moment each task entered its status (the board shows it as the card's age). */
-function stampTasks(previous: readonly TaskItem[], event: Extract<TimelapseEvent, { type: 'tasks' }>, agentIndex: number): TaskItem[] {
+function stampTasks(
+  previous: readonly TaskItem[],
+  event: Extract<TimelapseEvent, { type: 'tasks' }>,
+  agentIndex: number,
+): TaskItem[] {
   return event.tasks.map((task, position): TaskItem => {
     const before = previous.find((candidate) => candidate.title === task.title);
     const unchanged = before !== undefined && before.status === task.status;
@@ -119,10 +150,23 @@ function buildTrack(timelapse: Timelapse, index: number): ReplayTrack {
   for (const event of mine) {
     switch (event.type) {
       case 'status':
-        statuses.push({ at: event.at, status: event.status, ...(event.waitingFor !== undefined ? { waitingFor: event.waitingFor } : {}), ...(event.waitingForMsg !== undefined ? { waitingForMsg: event.waitingForMsg } : {}) });
+        statuses.push({
+          at: event.at,
+          status: event.status,
+          ...(event.waitingFor !== undefined ? { waitingFor: event.waitingFor } : {}),
+          ...(event.waitingForMsg !== undefined ? { waitingForMsg: event.waitingForMsg } : {}),
+        });
         break;
       case 'activity':
-        activities.push({ id: `${agent.id}#${activities.length + 1}`, at: event.at, kind: event.kind, icon: event.icon, text: event.text, msg: event.msg, ...(event.error === true ? { error: true } : {}) });
+        activities.push({
+          id: `${agent.id}#${activities.length + 1}`,
+          at: event.at,
+          kind: event.kind,
+          icon: event.icon,
+          text: event.text,
+          msg: event.msg,
+          ...(event.error === true ? { error: true } : {}),
+        });
         if (TOOL_KINDS.has(event.kind)) calls++;
         toolCalls.push(calls);
         break;
@@ -131,7 +175,14 @@ function buildTrack(timelapse: Timelapse, index: number): ReplayTrack {
         break;
       case 'shell':
         if (event.on) {
-          const job: ShellJob = { id: event.id, label: event.label ?? '', ...(event.labelMsg !== undefined ? { labelMsg: event.labelMsg } : {}), background: event.background, kind: 'shell', startedAt: event.at };
+          const job: ShellJob = {
+            id: event.id,
+            label: event.label ?? '',
+            ...(event.labelMsg !== undefined ? { labelMsg: event.labelMsg } : {}),
+            background: event.background,
+            kind: 'shell',
+            startedAt: event.at,
+          };
           const span: ShellSpan = { job, from: event.at, to: Number.POSITIVE_INFINITY };
           openShells.set(event.id, span);
           shells.push(span);
@@ -147,13 +198,28 @@ function buildTrack(timelapse: Timelapse, index: number): ReplayTrack {
         break;
     }
   }
-  const spawns = timelapse.events.filter((event) => event.type === 'arrive' && timelapse.agents[event.agent]?.parentId === agent.id).map((event) => ({ at: event.at }));
-  return { agent, presence: presenceOf(timelapse.events, index), statuses, activities, toolCalls, tasks, shells, spawns };
+  const spawns = timelapse.events
+    .filter((event) => event.type === 'arrive' && timelapse.agents[event.agent]?.parentId === agent.id)
+    .map((event) => ({ at: event.at }));
+  return {
+    agent,
+    presence: presenceOf(timelapse.events, index),
+    statuses,
+    activities,
+    toolCalls,
+    tasks,
+    shells,
+    spawns,
+  };
 }
 
 export function buildReplay(timelapse: Timelapse): ReplayIndex {
   const tracks = timelapse.agents.map((_, index) => buildTrack(timelapse, index));
-  const feed = tracks.flatMap((track, position) => track.activities.map((activity): ReplayEntry => ({ at: activity.at, track: position, activity }))).sort((a, b) => a.at - b.at || a.track - b.track);
+  const feed = tracks
+    .flatMap((track, position) =>
+      track.activities.map((activity): ReplayEntry => ({ at: activity.at, track: position, activity })),
+    )
+    .sort((a, b) => a.at - b.at || a.track - b.track);
   return { timelapse, tracks, feed };
 }
 
@@ -168,13 +234,14 @@ function agentAt(track: ReplayTrack, span: Span, t: number): Agent {
   const info = track.agent;
   const statusAt = countUpTo(track.statuses, t);
   const point = statusAt > 0 ? track.statuses[statusAt - 1] : undefined;
-  const status: AgentStatus = point !== undefined && point.at >= span.from ? point.status : info.kind === 'sub' ? 'working' : 'idle';
+  const status: AgentStatus =
+    point !== undefined && point.at >= span.from ? point.status : info.kind === 'sub' ? 'working' : 'idle';
   const seen = countUpTo(track.activities, t);
   const firstRecent = Math.max(0, seen - RECENT_LIMIT);
   const recent = track.activities.slice(firstRecent, seen).filter((activity) => activity.at >= span.from);
   const activity = recent[recent.length - 1];
   const taskAt = countUpTo(track.tasks, t);
-  const tasks = taskAt > 0 ? ((track.tasks[taskAt - 1] as TaskPoint).tasks) : [];
+  const tasks = taskAt > 0 ? (track.tasks[taskAt - 1] as TaskPoint).tasks : [];
   const shells = track.shells.filter((shell) => t >= shell.from && t < shell.to).map((shell) => shell.job);
   const lastEventAt = Math.max(span.from, point?.at ?? 0, activity?.at ?? 0);
   return {
@@ -229,7 +296,15 @@ export function snapshotAt(index: ReplayIndex, t: number, context: SnapshotConte
     agents.push(agentAt(track, span, t));
     rooms.add(track.agent.projectId);
   });
-  const projects: Project[] = index.timelapse.projects.filter((project) => rooms.has(project.id)).map((project) => ({ id: project.id, name: project.name, path: project.id, seed: project.seed, order: project.order }));
+  const projects: Project[] = index.timelapse.projects
+    .filter((project) => rooms.has(project.id))
+    .map((project) => ({
+      id: project.id,
+      name: project.name,
+      path: project.id,
+      seed: project.seed,
+      order: project.order,
+    }));
   return {
     rev: context.rev,
     serverTime: t,
@@ -246,7 +321,13 @@ export function feedAt(index: ReplayIndex, t: number, limit: number): FeedItem[]
   const end = countUpTo(index.feed, t);
   return index.feed.slice(Math.max(0, end - limit), end).map((entry) => {
     const agent = (index.tracks[entry.track] as ReplayTrack).agent;
-    return { id: entry.activity.id, agentId: agent.id, agentName: agent.name, projectId: agent.projectId, activity: entry.activity };
+    return {
+      id: entry.activity.id,
+      agentId: agent.id,
+      agentName: agent.name,
+      projectId: agent.projectId,
+      activity: entry.activity,
+    };
   });
 }
 

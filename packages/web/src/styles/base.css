@@ -219,13 +219,27 @@ body {
 }
 
 /* Text colors by status. */
-.ao-text--working { color: var(--working); }
-.ao-text--waiting { color: var(--waiting); }
-.ao-text--shell { color: var(--shell); }
-.ao-text--idle { color: var(--idle); }
-.ao-text--done { color: var(--done); }
-.ao-text--error { color: var(--error); }
-.ao-text--offline { color: var(--faint); }
+.ao-text--working {
+  color: var(--working);
+}
+.ao-text--waiting {
+  color: var(--waiting);
+}
+.ao-text--shell {
+  color: var(--shell);
+}
+.ao-text--idle {
+  color: var(--idle);
+}
+.ao-text--done {
+  color: var(--done);
+}
+.ao-text--error {
+  color: var(--error);
+}
+.ao-text--offline {
+  color: var(--faint);
+}
 
 /* Status dot. */
 .ao-dot {
@@ -238,17 +252,42 @@ body {
   box-shadow: 0 0 0 2px var(--bg-solid);
 }
 
-.ao-dot--working { background: var(--working); }
-.ao-dot--waiting { background: var(--waiting); animation: ao-pulse 1.6s ease-in-out infinite; }
-.ao-dot--shell { background: var(--shell); }
-.ao-dot--idle { background: var(--idle); }
-.ao-dot--done { background: var(--done); }
-.ao-dot--error { background: var(--error); }
-.ao-dot--offline { background: var(--faint); opacity: 0.6; }
+.ao-dot--working {
+  background: var(--working);
+}
+.ao-dot--waiting {
+  background: var(--waiting);
+  animation: ao-pulse 1.6s ease-in-out infinite;
+}
+.ao-dot--shell {
+  background: var(--shell);
+}
+.ao-dot--idle {
+  background: var(--idle);
+}
+.ao-dot--done {
+  background: var(--done);
+}
+.ao-dot--error {
+  background: var(--error);
+}
+.ao-dot--offline {
+  background: var(--faint);
+  opacity: 0.6;
+}
 
 @keyframes ao-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px var(--bg-solid), 0 0 0 2px rgba(245, 181, 68, 0.5); }
-  50% { box-shadow: 0 0 0 2px var(--bg-solid), 0 0 0 7px rgba(245, 181, 68, 0); }
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--bg-solid),
+      0 0 0 2px rgba(245, 181, 68, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--bg-solid),
+      0 0 0 7px rgba(245, 181, 68, 0);
+  }
 }
 
 /* Account chip and avatars. */

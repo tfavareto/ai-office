@@ -62,7 +62,11 @@ function folderFailure(check: Extract<FolderCheck, { ok: false }>): never {
   }
 }
 
-const LAUNCH_STATUS: Record<LaunchError['code'], number> = { 'no-terminal': 503, 'terminal-failed': 502, 'unsupported-platform': 501 };
+const LAUNCH_STATUS: Record<LaunchError['code'], number> = {
+  'no-terminal': 503,
+  'terminal-failed': 502,
+  'unsupported-platform': 501,
+};
 
 export class HireService {
   constructor(private readonly deps: HireServiceDeps) {}
@@ -92,7 +96,12 @@ export class HireService {
     const claudePath = this.deps.resolveClaude();
     if (claudePath === undefined) return fail(503, 'claude-not-found');
     if (!this.deps.launchLimiter.tryAcquire()) return fail(429, 'rate-limited');
-    await this.launch({ request, claudePath, projectPath: folder.path, configDir: account.isDefault === true ? undefined : account.dir });
+    await this.launch({
+      request,
+      claudePath,
+      projectPath: folder.path,
+      configDir: account.isDefault === true ? undefined : account.dir,
+    });
     const rooms = this.deps.realProjectIds();
     const projectId = rooms.find((id) => id === folder.path || id === folder.realPath) ?? folder.realPath;
     return this.deps.registry.create({
@@ -119,12 +128,18 @@ export class HireService {
   /** The requested account; without a request, the default one (a computer that never ran Claude Code has none yet). */
   private accountFor(requested: string | undefined): Account {
     const accounts = this.deps.accounts();
-    if (requested !== undefined) return accounts.find((account) => account.id === requested) ?? fail(400, 'unknown-account');
+    if (requested !== undefined)
+      return accounts.find((account) => account.id === requested) ?? fail(400, 'unknown-account');
     const fallback = accountsFromDirs([join(this.deps.homeDir, '.claude')], this.deps.homeDir)[0] as Account;
     return accounts.find((account) => account.isDefault === true) ?? accounts[0] ?? fallback;
   }
 
-  private async launch(input: { request: HireRequest; claudePath: string; projectPath: string; configDir: string | undefined }): Promise<void> {
+  private async launch(input: {
+    request: HireRequest;
+    claudePath: string;
+    projectPath: string;
+    configDir: string | undefined;
+  }): Promise<void> {
     const workDir = await mkdtemp(join(this.deps.tmpDir, 'ai-office-hire-'));
     const { request } = input;
     try {

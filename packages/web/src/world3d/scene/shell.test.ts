@@ -11,7 +11,11 @@ describe('solidRanges', () => {
   });
 
   it('cuts the span around gaps in any order', () => {
-    expect(solidRanges(0, 10, [gap(6, 7), gap(2, 3)])).toEqual([[0, 2], [3, 6], [7, 10]]);
+    expect(solidRanges(0, 10, [gap(6, 7), gap(2, 3)])).toEqual([
+      [0, 2],
+      [3, 6],
+      [7, 10],
+    ]);
   });
 
   it('drops empty pieces at the edges and merges overlapping gaps', () => {
@@ -20,7 +24,10 @@ describe('solidRanges', () => {
 });
 
 describe('wall openings from the layout', () => {
-  const building = computeBuilding([{ id: 'p1', seed: 7, name: 'p1', slot: 0 }, { id: 'p2', seed: 9, name: 'p2', slot: 1 }]);
+  const building = computeBuilding([
+    { id: 'p1', seed: 7, name: 'p1', slot: 0 },
+    { id: 'p2', seed: 9, name: 'p2', slot: 1 },
+  ]);
   const reception = building.areas.find((a) => a.id === 'reception')!;
 
   it('opens the reception wall for both elevators', () => {

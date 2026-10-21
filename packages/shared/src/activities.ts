@@ -113,7 +113,12 @@ export function describeToolUse(name: string, input: unknown): ActivityDraft {
       const description = str(args.description);
       const head = oneLine(command.split('\n')[0] ?? '');
       const shown = description ?? (head || undefined);
-      return draft('bash', '💻', shown === undefined ? msg('activity.bash.generic') : msg('activity.bash.run', { text: param(shown) }), command);
+      return draft(
+        'bash',
+        '💻',
+        shown === undefined ? msg('activity.bash.generic') : msg('activity.bash.run', { text: param(shown) }),
+        command,
+      );
     }
     case 'BashOutput':
     case 'TaskOutput':
@@ -123,14 +128,28 @@ export function describeToolUse(name: string, input: unknown): ActivityDraft {
       return draft('bash', '⏹️', msg('activity.bash.kill'));
     case 'Monitor': {
       const label = str(args.description) ?? str(args.command);
-      return draft('bash', '👀', msg('activity.monitor', { label: label === undefined ? msg('activity.process.generic') : param(label) }), str(args.command));
+      return draft(
+        'bash',
+        '👀',
+        msg('activity.monitor', { label: label === undefined ? msg('activity.process.generic') : param(label) }),
+        str(args.command),
+      );
     }
     case 'Grep':
     case 'Glob': {
       const pattern = str(args.pattern) ?? '';
       const path = str(args.path);
-      const detailMsg = pattern.length > 0 && path !== undefined ? msg('activity.search.detail', { pattern: param(pattern), path: param(path) }) : undefined;
-      return draft('search', '🔎', msg('activity.search', { pattern: param(pattern) }), [pattern, path].filter(Boolean).join(' em '), detailMsg);
+      const detailMsg =
+        pattern.length > 0 && path !== undefined
+          ? msg('activity.search.detail', { pattern: param(pattern), path: param(path) })
+          : undefined;
+      return draft(
+        'search',
+        '🔎',
+        msg('activity.search', { pattern: param(pattern) }),
+        [pattern, path].filter(Boolean).join(' em '),
+        detailMsg,
+      );
     }
     case 'WebFetch': {
       const url = str(args.url) ?? '';
@@ -160,13 +179,18 @@ export function describeToolUse(name: string, input: unknown): ActivityDraft {
       return draft('other', '🗺️', msg('activity.plan.enter'));
     case 'Skill': {
       const skill = str(args.skill);
-      return draft('other', '🧩', skill === undefined ? msg('activity.skill.generic') : msg('activity.skill', { skill: param(skill) }));
+      return draft(
+        'other',
+        '🧩',
+        skill === undefined ? msg('activity.skill.generic') : msg('activity.skill', { skill: param(skill) }),
+      );
     }
     case 'ToolSearch':
       return draft('other', '🧰', msg('activity.tools.search'), str(args.query));
     default: {
       const mcp = parseMcpName(name);
-      if (mcp !== undefined) return draft('mcp', '🔌', msg('activity.mcp', { server: param(mcp.server), tool: param(mcp.tool) }));
+      if (mcp !== undefined)
+        return draft('mcp', '🔌', msg('activity.mcp', { server: param(mcp.server), tool: param(mcp.tool) }));
       return draft('other', '⚙️', msg('activity.other', { name: param(name) }));
     }
   }
@@ -186,8 +210,15 @@ export function replyDraft(detail?: string): ActivityDraft {
  */
 export function promptDraft(prompt: string | { text: string; msg: Msg }): ActivityDraft {
   // Reserve room for the label and the quotes so the whole text stays within the limit.
-  if (typeof prompt === 'string') return draft('prompt', '📨', msg('activity.prompt', { prompt: truncate(prompt, PROMPT_PARAM_MAX) }), prompt);
-  const cut = draft('prompt', '📨', msg('activity.prompt', { prompt: truncate(prompt.text, PROMPT_PARAM_MAX) }), prompt.text, prompt.msg);
+  if (typeof prompt === 'string')
+    return draft('prompt', '📨', msg('activity.prompt', { prompt: truncate(prompt, PROMPT_PARAM_MAX) }), prompt);
+  const cut = draft(
+    'prompt',
+    '📨',
+    msg('activity.prompt', { prompt: truncate(prompt.text, PROMPT_PARAM_MAX) }),
+    prompt.text,
+    prompt.msg,
+  );
   return { ...cut, msg: msg('activity.prompt', { prompt: prompt.msg }) };
 }
 
@@ -206,13 +237,25 @@ export function messageDraft(text: string): ActivityDraft {
 
 /** `summary` is the text of the request; pass `summaryMsg` when it is generated prose ("Editar src/a.ts"). */
 export function permissionDraft(summary: string, summaryMsg?: Msg): ActivityDraft {
-  return draft('permission', '🔐', msg('activity.permission', { summary: summaryMsg ?? param(summary) }), summary, summaryMsg);
+  return draft(
+    'permission',
+    '🔐',
+    msg('activity.permission', { summary: summaryMsg ?? param(summary) }),
+    summary,
+    summaryMsg,
+  );
 }
 
 /** An approval rule answered a request ("Regra aprovou: npm test"); `summary` is the request, as in permissionDraft. */
 export function ruleDraft(effect: 'allow' | 'deny', summary: string, summaryMsg?: Msg): ActivityDraft {
   const key = effect === 'allow' ? 'activity.rule.allow' : 'activity.rule.deny';
-  return draft('permission', effect === 'allow' ? '✅' : '🚫', msg(key, { summary: summaryMsg ?? param(summary) }), summary, summaryMsg);
+  return draft(
+    'permission',
+    effect === 'allow' ? '✅' : '🚫',
+    msg(key, { summary: summaryMsg ?? param(summary) }),
+    summary,
+    summaryMsg,
+  );
 }
 
 /** Gives a draft its id and timestamp. */

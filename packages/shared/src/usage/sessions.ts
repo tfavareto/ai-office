@@ -19,7 +19,9 @@ function describeSession(row: UsageSessionRow, agents: readonly Agent[]): UsageS
     officeId: agent.id,
     ...(agent.title !== undefined ? { title: agent.title } : {}),
     ...(agent.titleMsg !== undefined ? { titleMsg: agent.titleMsg } : {}),
-    ...(agent.kind === 'sub' ? { role: agent.role, ...(agent.roleMsg !== undefined ? { roleMsg: agent.roleMsg } : {}) } : {}),
+    ...(agent.kind === 'sub'
+      ? { role: agent.role, ...(agent.roleMsg !== undefined ? { roleMsg: agent.roleMsg } : {}) }
+      : {}),
   };
 }
 

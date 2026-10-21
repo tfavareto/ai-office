@@ -7,7 +7,11 @@ let clock = 5_000_000;
 let delivered: BossMessage[] = [];
 
 function registry(): MessageRegistry {
-  return new MessageRegistry({ now: () => clock, onChange: () => undefined, onDelivered: (message) => void delivered.push(message) });
+  return new MessageRegistry({
+    now: () => clock,
+    onChange: () => undefined,
+    onDelivered: (message) => void delivered.push(message),
+  });
 }
 
 beforeEach(() => {
@@ -90,7 +94,10 @@ describe('AttentionRegistry', () => {
   test('marks needs-you, ignores idle prompts, clears on the next transcript event', () => {
     let now = 1000;
     let changes = 0;
-    const attention = new AttentionRegistry(() => now, () => void changes++);
+    const attention = new AttentionRegistry(
+      () => now,
+      () => void changes++,
+    );
     expect(attention.mark('a1', { message: 'Claude is waiting for your input' })).toBe(false);
     expect(attention.mark('a1', { notificationType: 'idle_prompt' })).toBe(false);
     expect(attention.messageFor('a1')).toBeUndefined();

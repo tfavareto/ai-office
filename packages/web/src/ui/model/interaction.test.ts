@@ -17,15 +17,36 @@ import {
   unreadCount,
   upsertGrouped,
 } from './notifications';
-import { entrySearchText, findMatches, mergeTranscript, splitFences, splitHighlight, stepMatch, toolPreview } from './terminal';
+import {
+  entrySearchText,
+  findMatches,
+  mergeTranscript,
+  splitFences,
+  splitHighlight,
+  stepMatch,
+  toolPreview,
+} from './terminal';
 import { expireToasts, pushToast, resolveAlertToasts } from './toasts';
 
 // Texts are asserted in pt-BR (the source language); the blocks at the end of the file check English and Spanish.
 beforeEach(() => setLocale('pt-BR'));
 afterEach(() => setLocale('pt-BR'));
 
-const notice = (over: Partial<Notice> = {}): Notice => ({ id: 'n1', at: 1_000, level: 'info', text: 'Pronto', ...over });
-const message = (over: Partial<BossMessage> = {}): BossMessage => ({ id: 'm1', agentId: 'ag1', text: 'oi', createdAt: 1, status: 'queued', ...over });
+const notice = (over: Partial<Notice> = {}): Notice => ({
+  id: 'n1',
+  at: 1_000,
+  level: 'info',
+  text: 'Pronto',
+  ...over,
+});
+const message = (over: Partial<BossMessage> = {}): BossMessage => ({
+  id: 'm1',
+  agentId: 'ag1',
+  text: 'oi',
+  createdAt: 1,
+  status: 'queued',
+  ...over,
+});
 
 describe('messages', () => {
   it('labels delivery statuses', () => {
@@ -48,7 +69,10 @@ describe('messages', () => {
   });
 
   it('merges fresh statuses by id', () => {
-    const merged = mergeMessages([message({ id: 'a', createdAt: 1 })], [message({ id: 'a', createdAt: 1, status: 'delivered' }), message({ id: 'b', createdAt: 2 })]);
+    const merged = mergeMessages(
+      [message({ id: 'a', createdAt: 1 })],
+      [message({ id: 'a', createdAt: 1, status: 'delivered' }), message({ id: 'b', createdAt: 2 })],
+    );
     expect(merged.map((m) => `${m.id}:${m.status}`)).toEqual(['a:delivered', 'b:queued']);
   });
 
@@ -60,8 +84,13 @@ describe('messages', () => {
 
   it('summarizes single and team deliveries for notifications', () => {
     const ctx = { nameOf: (id: string) => (id === '1' ? 'Ana' : 'Bruno'), teamLabel: 'loja' };
-    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe('Ana recebeu sua mensagem durante o trabalho.');
-    const team = [message({ id: 'a', agentId: '1', group: 'g', status: 'delivered' }), message({ id: 'b', agentId: '2', group: 'g' })];
+    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe(
+      'Ana recebeu sua mensagem durante o trabalho.',
+    );
+    const team = [
+      message({ id: 'a', agentId: '1', group: 'g', status: 'delivered' }),
+      message({ id: 'b', agentId: '2', group: 'g' }),
+    ];
     const summary = summarizeDelivery(team, ctx);
     expect(summary?.text).toBe('Equipe loja: 1 de 2 entregue');
     expect(summary?.complete).toBe(false);
@@ -101,7 +130,13 @@ describe('notifications', () => {
   });
 
   it('keeps a grouped delivery as a single updating entry', () => {
-    const entry = { key: 'g', at: 1, level: 'info' as const, kind: 'message' as const, text: 'Equipe: 1 de 3 entregue' };
+    const entry = {
+      key: 'g',
+      at: 1,
+      level: 'info' as const,
+      kind: 'message' as const,
+      text: 'Equipe: 1 de 3 entregue',
+    };
     let state = upsertGrouped(EMPTY_NOTIFICATIONS, entry).state;
     state = markAllRead(state);
     state = upsertGrouped(state, { ...entry, at: 2, text: 'Equipe: 2 de 3 entregues' }).state;
@@ -187,7 +222,11 @@ describe('terminal model', () => {
   });
 
   it('merges incremental transcript pages only when they continue the state', () => {
-    const full = mergeTranscript({ entries: [], next: 0, open: true }, { entries: entries.slice(0, 2), next: 2, open: true }, 0);
+    const full = mergeTranscript(
+      { entries: [], next: 0, open: true },
+      { entries: entries.slice(0, 2), next: 2, open: true },
+      0,
+    );
     expect(full.entries).toHaveLength(2);
     const more = mergeTranscript(full, { entries: entries.slice(2), next: 4, open: true }, 2);
     expect(more.entries).toHaveLength(4);
@@ -218,20 +257,35 @@ describe('aggregateDay', () => {
   });
 
   it('ignores invalid numbers', () => {
-    const view = aggregateDay({ date: 'd', agents: [{ agentId: 'a', name: 'A', projectId: 'p', ms: { working: Number.NaN, waiting: -5, idle: 10, done: 0, offline: 0 } }] });
+    const view = aggregateDay({
+      date: 'd',
+      agents: [
+        {
+          agentId: 'a',
+          name: 'A',
+          projectId: 'p',
+          ms: { working: Number.NaN, waiting: -5, idle: 10, done: 0, offline: 0 },
+        },
+      ],
+    });
     expect(view.totals).toEqual({ working: 0, waiting: 0, idle: 10 });
   });
 });
 
 describe('messages in other languages', () => {
   const ctx = { nameOf: (id: string) => (id === '1' ? 'Ana' : 'Bruno'), teamLabel: 'loja' };
-  const team = [message({ id: 'a', agentId: '1', group: 'g', status: 'delivered' }), message({ id: 'b', agentId: '2', group: 'g' })];
+  const team = [
+    message({ id: 'a', agentId: '1', group: 'g', status: 'delivered' }),
+    message({ id: 'b', agentId: '2', group: 'g' }),
+  ];
 
   it('labels statuses and deliveries in English', () => {
     setLocale('en');
     expect(messageStatusLabel(message())).toBe('Queued');
     expect(messageStatusLabel(message({ status: 'delivered', via: 'stop' }))).toBe('Delivered as a new instruction');
-    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe('Ana received your message while working.');
+    expect(summarizeDelivery([message({ agentId: '1', status: 'delivered', via: 'tool' })], ctx)?.text).toBe(
+      'Ana received your message while working.',
+    );
     expect(summarizeDelivery(team, ctx)?.text).toBe('Team loja: 1 of 2 delivered');
     expect(validateMessageText('   ')).toEqual({ ok: false, error: 'Write a message before sending.' });
   });
@@ -245,7 +299,10 @@ describe('messages in other languages', () => {
   });
 
   it('keeps the source text of a notice and its localizable message together', () => {
-    const state = addNotice(EMPTY_NOTIFICATIONS, notice({ text: 'Ana chegou', msg: { key: 'notice.arrived', params: { name: 'Ana', project: 'loja' } } })).state;
+    const state = addNotice(
+      EMPTY_NOTIFICATIONS,
+      notice({ text: 'Ana chegou', msg: { key: 'notice.arrived', params: { name: 'Ana', project: 'loja' } } }),
+    ).state;
     expect(state.items[0].msg).toEqual({ key: 'notice.arrived', params: { name: 'Ana', project: 'loja' } });
     expect(state.items[0].text).toBe('Ana chegou');
   });

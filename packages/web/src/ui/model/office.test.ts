@@ -10,7 +10,13 @@ import { mergeTimeline, roomActivities } from './timeline';
 beforeEach(() => setLocale('pt-BR'));
 afterEach(() => setLocale('pt-BR'));
 
-const shell = (id: string, startedAt: number, background = false) => ({ id, label: 'npm test', background, kind: 'shell' as const, startedAt });
+const shell = (id: string, startedAt: number, background = false) => ({
+  id,
+  label: 'npm test',
+  background,
+  kind: 'shell' as const,
+  startedAt,
+});
 
 describe('displayStatus', () => {
   it('refines the model status', () => {
@@ -59,7 +65,20 @@ describe('counters', () => {
   it('orders agents needing the user with permissions first, then oldest', () => {
     const list = agentsNeedingYou([
       agent({ id: 'x', status: 'waiting', statusSince: 10 }),
-      agent({ id: 'y', status: 'waiting', statusSince: 99, permission: { id: 'p', agentId: 'y', toolName: 'Bash', summary: 'ls', suggestions: [], createdAt: 0, expiresAt: 1 } }),
+      agent({
+        id: 'y',
+        status: 'waiting',
+        statusSince: 99,
+        permission: {
+          id: 'p',
+          agentId: 'y',
+          toolName: 'Bash',
+          summary: 'ls',
+          suggestions: [],
+          createdAt: 0,
+          expiresAt: 1,
+        },
+      }),
       agent({ id: 'z', status: 'waiting', statusSince: 5 }),
     ]);
     expect(list.map((a) => a.id)).toEqual(['y', 'z', 'x']);
@@ -67,7 +86,11 @@ describe('counters', () => {
   });
 
   it('lists agents with shells, longest running first', () => {
-    const list = agentsWithShells([agent({ id: 'late', shells: [shell('a', 90)] }), agent({ id: 'early', shells: [shell('b', 10)] }), agent({ id: 'none' })]);
+    const list = agentsWithShells([
+      agent({ id: 'late', shells: [shell('a', 90)] }),
+      agent({ id: 'early', shells: [shell('b', 10)] }),
+      agent({ id: 'none' }),
+    ]);
     expect(list.map((a) => a.id)).toEqual(['early', 'late']);
   });
 
@@ -84,10 +107,22 @@ describe('counters', () => {
 describe('buildRooms', () => {
   const snap = snapshot({
     accounts: [account(), account({ id: 'acc2', label: 'Trabalho', initial: 'T' })],
-    projects: [project({ id: 'p1', name: 'loja', order: 1 }), project({ id: 'p2', name: 'api', path: '/demo/api', order: 0 })],
+    projects: [
+      project({ id: 'p1', name: 'loja', order: 1 }),
+      project({ id: 'p2', name: 'api', path: '/demo/api', order: 0 }),
+    ],
     agents: [
       agent({ id: 'idle', name: 'Bruno', status: 'idle', projectId: 'p1' }),
-      agent({ id: 'busy', name: 'Ana', status: 'working', projectId: 'p1', tasks: [{ id: 't1', title: 'x', status: 'completed' }, { id: 't2', title: 'y', status: 'pending' }] }),
+      agent({
+        id: 'busy',
+        name: 'Ana',
+        status: 'working',
+        projectId: 'p1',
+        tasks: [
+          { id: 't1', title: 'x', status: 'completed' },
+          { id: 't2', title: 'y', status: 'pending' },
+        ],
+      }),
       agent({ id: 'sub', kind: 'sub', parentId: 'busy', name: 'Caio', role: 'Explore', projectId: 'p1' }),
       agent({ id: 'other', name: 'Dora', accountId: 'acc2', projectId: 'p2' }),
       agent({ id: 'gone', name: 'Eli', status: 'offline', projectId: 'p2' }),
@@ -121,7 +156,10 @@ describe('buildRooms', () => {
 
 describe('timeline', () => {
   it('merges recent and history by id, newest first', () => {
-    const merged = mergeTimeline([activity({ id: 'b', at: 20 }), activity({ id: 'c', at: 30 })], [activity({ id: 'a', at: 10 }), activity({ id: 'b', at: 20 })]);
+    const merged = mergeTimeline(
+      [activity({ id: 'b', at: 20 }), activity({ id: 'c', at: 30 })],
+      [activity({ id: 'a', at: 10 }), activity({ id: 'b', at: 20 })],
+    );
     expect(merged.map((a) => a.id)).toEqual(['c', 'b', 'a']);
   });
 
@@ -139,7 +177,14 @@ describe('sessions', () => {
   const sessions = [
     { ...base, sessionId: '1', projectName: 'loja', title: 'Checkout', firstAt: now - 1000, lastAt: now - 500 },
     { ...base, sessionId: '2', projectName: 'api', title: undefined, firstAt: now - day, lastAt: now - day },
-    { ...base, sessionId: '3', projectName: 'loja', title: 'Carrinho', firstAt: now - 3_600_000, lastAt: now - 1_800_000 },
+    {
+      ...base,
+      sessionId: '3',
+      projectName: 'loja',
+      title: 'Carrinho',
+      firstAt: now - 3_600_000,
+      lastAt: now - 1_800_000,
+    },
   ];
 
   it('groups by day, newest first', () => {

@@ -68,7 +68,13 @@ function drawShadow(ctx: Ctx, item: FurnitureItem, ox: number, oy: number): void
   const w = item.w * TILE;
   const h = item.h * TILE;
   ctx.fillStyle = 'rgba(8,10,18,0.20)';
-  if (item.kind === 'chair' || item.kind === 'meetChair' || item.kind === 'stool' || item.kind === 'cafeChair' || item.kind === 'bin') {
+  if (
+    item.kind === 'chair' ||
+    item.kind === 'meetChair' ||
+    item.kind === 'stool' ||
+    item.kind === 'cafeChair' ||
+    item.kind === 'bin'
+  ) {
     ellipse(ctx, x + w / 2, y + h - 2, Math.max(4, w / 2 - 2), 3, 'rgba(8,10,18,0.22)');
     return;
   }
@@ -91,7 +97,11 @@ function wallShade(ctx: Ctx, area: AreaLayout): void {
   ctx.fillRect(0, y, w, 8);
 }
 
-function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme'], text: WorldText): { canvas: HTMLCanvasElement; panes: Rect[]; screens: ScreenRect[] } {
+function buildGround(
+  area: AreaLayout,
+  corridorTheme: AreaLayout['theme'],
+  text: WorldText,
+): { canvas: HTMLCanvasElement; panes: Rect[]; screens: ScreenRect[] } {
   const w = area.rect.w * TILE;
   const h = area.rect.h * TILE;
   const canvas = makeCanvas(w, h);
@@ -121,12 +131,22 @@ function buildGround(area: AreaLayout, corridorTheme: AreaLayout['theme'], text:
   for (const wi of area.wallItems) {
     if (wi.side !== 'north') continue;
     const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent, text);
-    if (frame.screen) screens.push({ ...frame.screen, kind: wi.kind === 'board' ? 'board' : wi.kind === 'whiteboard' ? 'taskboard' : 'tv', itemId: wi.id, big: wi.w >= 6 });
+    if (frame.screen)
+      screens.push({
+        ...frame.screen,
+        kind: wi.kind === 'board' ? 'board' : wi.kind === 'whiteboard' ? 'taskboard' : 'tv',
+        itemId: wi.id,
+        big: wi.w >= 6,
+      });
   }
   if (!isTerrace) paintSideWall(ctx, area);
   paintLedge(ctx, area);
   paintDoors(ctx, area, corridorTheme);
-  return { canvas, panes: panes.map((p) => ({ ...p })), screens: screens.map((s) => ({ ...s, x: s.x + ox * TILE, y: s.y + oy * TILE })) };
+  return {
+    canvas,
+    panes: panes.map((p) => ({ ...p })),
+    screens: screens.map((s) => ({ ...s, x: s.x + ox * TILE, y: s.y + oy * TILE })),
+  };
 }
 
 function sortItems(items: PlacedItem[]): PlacedItem[] {
@@ -151,7 +171,13 @@ function placeItems(area: AreaLayout): PlacedItem[] {
 }
 
 /** Pre-render an area into a ground canvas (floor, walls, decoration) and a furniture canvas. */
-export function buildAreaCanvas(area: AreaLayout, key: string, corridorTheme: AreaLayout['theme'], furnMargin = 0, text: WorldText = worldText('pt-BR')): AreaCanvas {
+export function buildAreaCanvas(
+  area: AreaLayout,
+  key: string,
+  corridorTheme: AreaLayout['theme'],
+  furnMargin = 0,
+  text: WorldText = worldText('pt-BR'),
+): AreaCanvas {
   const { canvas: ground, panes, screens } = buildGround(area, corridorTheme, text);
   const items = placeItems(area);
   const x = area.rect.x * TILE;
@@ -164,8 +190,19 @@ export function buildAreaCanvas(area: AreaLayout, key: string, corridorTheme: Ar
   fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + furnMargin);
   return {
-    area, key, x, y, w: ground.width, h: ground.height, ground, furn, furnMargin, items,
-    tall: items.filter((p) => p.item.tall), panes, screens,
+    area,
+    key,
+    x,
+    y,
+    w: ground.width,
+    h: ground.height,
+    ground,
+    furn,
+    furnMargin,
+    items,
+    tall: items.filter((p) => p.item.tall),
+    panes,
+    screens,
   };
 }
 
@@ -202,7 +239,8 @@ export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number,
   const ox = 0;
   const oy = corridor.rect.y;
   for (let ty = corridor.rect.y; ty < corridor.rect.y + corridor.rect.h; ty++) {
-    for (let tx = 0; tx < buildingWidth; tx++) paintFloorTile(ctx, corridor.theme, tx, ty, tx * TILE, (ty - oy) * TILE, 'corridor');
+    for (let tx = 0; tx < buildingWidth; tx++)
+      paintFloorTile(ctx, corridor.theme, tx, ty, tx * TILE, (ty - oy) * TILE, 'corridor');
   }
   for (const item of corridor.furniture) {
     if (item.kind !== 'rug') continue;
@@ -237,8 +275,19 @@ export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number,
   fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + CORRIDOR_OVERHANG);
   return {
-    area: corridor, key, x, y, w, h, ground, furn, furnMargin: CORRIDOR_OVERHANG, items,
-    tall: items.filter((p) => p.item.tall), panes: [], screens: [],
+    area: corridor,
+    key,
+    x,
+    y,
+    w,
+    h,
+    ground,
+    furn,
+    furnMargin: CORRIDOR_OVERHANG,
+    items,
+    tall: items.filter((p) => p.item.tall),
+    panes: [],
+    screens: [],
   };
 }
 

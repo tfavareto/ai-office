@@ -1,7 +1,14 @@
 // Texture loading (decoded off the main thread with ImageBitmapLoader, same-origin files only) and the procedural
 // canvas textures: walnut, slats, rugs, light pools and the tower facade.
 import {
-  CanvasTexture, ClampToEdgeWrapping, ImageBitmapLoader, LinearMipmapLinearFilter, RepeatWrapping, SRGBColorSpace, Texture, type ColorSpace,
+  CanvasTexture,
+  ClampToEdgeWrapping,
+  ImageBitmapLoader,
+  LinearMipmapLinearFilter,
+  RepeatWrapping,
+  SRGBColorSpace,
+  Texture,
+  type ColorSpace,
 } from 'three';
 import { Rng } from '../../layout/rng';
 
@@ -133,7 +140,8 @@ export function rugTexture(pattern: number, a: string, b: string, accent: string
   ctx.fillRect(0, 0, 256, 256);
   ctx.fillStyle = b;
   if (pattern === 1) for (let x = 0; x < 256; x += 32) ctx.fillRect(x, 0, 16, 256);
-  else if (pattern === 2) for (let y = 0; y < 256; y += 32) for (let x = (y / 32) % 2 ? 0 : 32; x < 256; x += 64) ctx.fillRect(x, y, 32, 32);
+  else if (pattern === 2)
+    for (let y = 0; y < 256; y += 32) for (let x = (y / 32) % 2 ? 0 : 32; x < 256; x += 64) ctx.fillRect(x, y, 32, 32);
   else if (pattern === 3) {
     for (let y = 0; y < 256; y += 64) {
       for (let x = 0; x < 256; x += 64) {
@@ -200,7 +208,9 @@ export function towerTextures(): TowerTextures {
       day.ctx.fillRect(x + 2, y + 10, cw - 4, rh - 20);
       if (rng.chance(0.38)) {
         const warm = rng.chance(0.7);
-        night.ctx.fillStyle = warm ? `rgba(255,${rng.int(40) + 180},${rng.int(60) + 100},${rng.range(0.45, 0.9)})` : `rgba(${rng.int(40) + 170},${rng.int(30) + 205},255,${rng.range(0.4, 0.8)})`;
+        night.ctx.fillStyle = warm
+          ? `rgba(255,${rng.int(40) + 180},${rng.int(60) + 100},${rng.range(0.45, 0.9)})`
+          : `rgba(${rng.int(40) + 170},${rng.int(30) + 205},255,${rng.range(0.4, 0.8)})`;
         night.ctx.fillRect(x + 2, y + 10, cw - 4, rh - 20);
       }
     }

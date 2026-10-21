@@ -84,7 +84,14 @@ describe('boards and ticker', () => {
     const waiting = makeAgent('b', 0, 'waiting');
     const gone = makeAgent('c', 0, 'offline');
     const info = summarizeRoom([main, waiting, gone]);
-    expect(info).toMatchObject({ agents: 2, working: 1, waiting: 1, tasksTotal: 2, tasksDone: 1, current: 'Fazendo dois' });
+    expect(info).toMatchObject({
+      agents: 2,
+      working: 1,
+      waiting: 1,
+      tasksTotal: 2,
+      tasksDone: 1,
+      current: 'Fazendo dois',
+    });
     expect(roomInfoKey(info)).toContain('1/2');
   });
 

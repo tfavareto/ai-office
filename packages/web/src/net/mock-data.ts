@@ -1,7 +1,16 @@
 // Synthetic server data for `?mock=1`: transcripts, sessions and day stats derived from the simulated agents.
 import { t } from '../i18n';
 import { activityDetail, activityText, agentTitle, uiMsg } from '../ui/display';
-import type { Activity, ActivityKind, Agent, DayStats, OfficeSnapshot, RecentSession, TranscriptEntry, TranscriptPage } from '@ai-office/shared';
+import type {
+  Activity,
+  ActivityKind,
+  Agent,
+  DayStats,
+  OfficeSnapshot,
+  RecentSession,
+  TranscriptEntry,
+  TranscriptPage,
+} from '@ai-office/shared';
 
 const TOOL_NAMES: Partial<Record<ActivityKind, string>> = {
   read: 'Read',
@@ -70,7 +79,12 @@ export class MockLog {
       ? [{ kind: 'user', at: agent.startedAt, text: agentTitle(agent) ?? t('mock.resumeWork') }]
       : [];
     const entries = [...head, ...(agent ? this.activities(agent.id).map(toEntry) : [])];
-    return { entries: entries.slice(Math.max(0, after)), next: entries.length, title: agent?.title, open: agent !== undefined };
+    return {
+      entries: entries.slice(Math.max(0, after)),
+      next: entries.length,
+      title: agent?.title,
+      open: agent !== undefined,
+    };
   }
 }
 

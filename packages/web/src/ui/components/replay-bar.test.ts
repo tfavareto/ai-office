@@ -28,8 +28,12 @@ describe('describeMarker', () => {
   it('describes failed tests, waits (with how long) and arrivals', () => {
     setLocale('en');
 
-    expect(describeMarker(marker({ kind: 'test-failed', agent: 'Bia', detail: 'vitest' }))).toBe('Tests failed (vitest): Bia in loja');
-    expect(describeMarker(marker({ kind: 'wait', agent: 'Bia', detail: 'Edit', durationMs: 150_000 }))).toBe('Bia waited 2 min for you (Edit) in loja');
+    expect(describeMarker(marker({ kind: 'test-failed', agent: 'Bia', detail: 'vitest' }))).toBe(
+      'Tests failed (vitest): Bia in loja',
+    );
+    expect(describeMarker(marker({ kind: 'wait', agent: 'Bia', detail: 'Edit', durationMs: 150_000 }))).toBe(
+      'Bia waited 2 min for you (Edit) in loja',
+    );
     expect(describeMarker(marker({ kind: 'arrival', agent: 'Caio' }))).toBe('Caio arrived in loja');
   });
 });

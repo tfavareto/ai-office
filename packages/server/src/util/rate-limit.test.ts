@@ -6,7 +6,12 @@ describe('RateLimiter', () => {
     const clock = 0;
     const limiter = new RateLimiter(3, 60_000, () => clock);
 
-    expect([limiter.tryAcquire(), limiter.tryAcquire(), limiter.tryAcquire(), limiter.tryAcquire()]).toEqual([true, true, true, false]);
+    expect([limiter.tryAcquire(), limiter.tryAcquire(), limiter.tryAcquire(), limiter.tryAcquire()]).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ]);
   });
 
   test('frees a slot when the oldest event leaves the window', () => {

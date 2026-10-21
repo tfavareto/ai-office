@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { pickCapsule, targetInSight, type ScreenCapsule } from './picking';
 import { clampPitch, stepWalker, type WalkerState } from './walker';
 
-const cap = (id: string, x: number, depth: number): ScreenCapsule => ({ id, ax: x, ay: 100, bx: x, by: 60, radius: 14, depth });
+const cap = (id: string, x: number, depth: number): ScreenCapsule => ({
+  id,
+  ax: x,
+  ay: 100,
+  bx: x,
+  by: 60,
+  radius: 14,
+  depth,
+});
 
 describe('pickCapsule', () => {
   it('hits within the radius of the feet-to-head segment', () => {
@@ -20,10 +28,21 @@ describe('targetInSight', () => {
   const eye = { x: 0, y: 1.6, z: 0 };
   const dir = { x: 0, y: 0, z: 1 };
   it('finds the person in front within range', () => {
-    expect(targetInSight(eye, dir, [{ id: 'a', x: 0.2, y: 1.4, z: 4 }, { id: 'b', x: 3, y: 1.4, z: 3 }])).toBe('a');
+    expect(
+      targetInSight(eye, dir, [
+        { id: 'a', x: 0.2, y: 1.4, z: 4 },
+        { id: 'b', x: 3, y: 1.4, z: 3 },
+      ]),
+    ).toBe('a');
   });
   it('ignores people behind, too far or outside the cone', () => {
-    expect(targetInSight(eye, dir, [{ id: 'back', x: 0, y: 1.4, z: -3 }, { id: 'far', x: 0, y: 1.4, z: 30 }, { id: 'side', x: 5, y: 1.4, z: 2 }])).toBeNull();
+    expect(
+      targetInSight(eye, dir, [
+        { id: 'back', x: 0, y: 1.4, z: -3 },
+        { id: 'far', x: 0, y: 1.4, z: 30 },
+        { id: 'side', x: 5, y: 1.4, z: 2 },
+      ]),
+    ).toBeNull();
   });
 });
 
@@ -45,7 +64,14 @@ describe('stepWalker', () => {
   });
   it('slides along blocked tiles', () => {
     const wallAtZ = (_tx: number, tz: number): boolean => tz >= 7;
-    const next = stepWalker({ x: 1, z: 4.7, yaw: Math.PI / 4, pitch: 0 }, { forward: 1, strafe: 0 }, 1, wallAtZ, 2, 0.2);
+    const next = stepWalker(
+      { x: 1, z: 4.7, yaw: Math.PI / 4, pitch: 0 },
+      { forward: 1, strafe: 0 },
+      1,
+      wallAtZ,
+      2,
+      0.2,
+    );
     expect(next.z).toBeLessThan(5.05);
     expect(next.x).toBeGreaterThan(1.5);
   });

@@ -22,7 +22,11 @@ export function ruleLabel(rule: Pick<Rule, 'tool' | 'matcher'> | Pick<AutoDecisi
 
 /** Where a rule applies: its project and account, or "All projects". */
 export function scopeText(scope: RuleScope, accounts: readonly Account[]): string {
-  const parts: string[] = [scope.projectPath !== undefined ? t('rules.scope.project', { name: folderName(scope.projectPath) }) : t('rules.scope.all')];
+  const parts: string[] = [
+    scope.projectPath !== undefined
+      ? t('rules.scope.project', { name: folderName(scope.projectPath) })
+      : t('rules.scope.all'),
+  ];
   if (scope.accountId !== undefined) {
     const account = accounts.find((candidate) => candidate.id === scope.accountId);
     parts.push(t('rules.scope.account', { name: account !== undefined ? accountLabel(account) : scope.accountId }));

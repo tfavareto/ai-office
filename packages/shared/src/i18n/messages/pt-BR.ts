@@ -71,11 +71,16 @@ export const ptBR = {
   'perm.web.fetch': 'Acessar {host}',
   'perm.web.search': 'Pesquisar “{query}”',
   'perm.mode.new': 'novo',
-  'perm.suggestion.allow': 'Sempre permitir {rules}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
-  'perm.suggestion.deny': 'Sempre recusar {rules}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
-  'perm.suggestion.mode': 'Mudar para o modo {mode}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
-  'perm.suggestion.dirs': 'Permitir acesso a {dirs}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
-  'perm.suggestion.remember': 'Lembrar esta decisão{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
+  'perm.suggestion.allow':
+    'Sempre permitir {rules}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
+  'perm.suggestion.deny':
+    'Sempre recusar {rules}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
+  'perm.suggestion.mode':
+    'Mudar para o modo {mode}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
+  'perm.suggestion.dirs':
+    'Permitir acesso a {dirs}{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
+  'perm.suggestion.remember':
+    'Lembrar esta decisão{scope, select, session { nesta sessão} project { neste projeto} user { sempre} other {}}',
   'demo.prompt.store.1': 'Adicionar cupom de desconto no carrinho',
   'demo.prompt.store.2': 'Corrigir o cálculo do frete para pedidos internacionais',
   'demo.prompt.store.3': 'Migrar a tela de checkout para o novo design',

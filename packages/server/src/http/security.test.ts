@@ -8,7 +8,18 @@ import { AUTH_COOKIE, HEALTH_PROOF_PREFIX } from '@ai-office/shared';
 import { type App, type AppOptions, createApp } from '../app';
 import { loadConfig } from '../config';
 import { silentLogger } from '../log';
-import { T0, assistantLine, freePort, jsonl, makeFakeClaude, makeTempDir, removeDir, text, userLine, type FakeClaudeDir } from '../test-helpers';
+import {
+  T0,
+  assistantLine,
+  freePort,
+  jsonl,
+  makeFakeClaude,
+  makeTempDir,
+  removeDir,
+  text,
+  userLine,
+  type FakeClaudeDir,
+} from '../test-helpers';
 import { MAX_CLIENTS } from './sse';
 import { HEADERS_TIMEOUT_MS, REQUEST_TIMEOUT_MS, SECURITY_HEADERS } from './server';
 
@@ -21,7 +32,11 @@ const opened: IncomingMessage[] = [];
 
 async function boot(options: AppOptions = {}, extraEnv: NodeJS.ProcessEnv = {}): Promise<void> {
   port = await freePort();
-  const config = loadConfig({ HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web, ...extraEnv }, [], web);
+  const config = loadConfig(
+    { HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web, ...extraEnv },
+    [],
+    web,
+  );
   app = createApp(config, silentLogger, { now: () => T0 + 60_000, pidAlive: () => true, version: '9.9.9', ...options });
   await app.start();
 }
@@ -47,10 +62,18 @@ const base = (): string => `http://127.0.0.1:${port}`;
 const token = (): string => (app as App).context.auth.value;
 const bearer = (value = token()): Record<string, string> => ({ authorization: `Bearer ${value}` });
 const post = (path: string, body: unknown, headers: Record<string, string> = {}): Promise<Response> =>
-  fetch(`${base()}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  fetch(`${base()}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
 
 /** Raw request, so tests can send headers fetch refuses to send (Sec-Fetch-Site, Host) and read raw status/headers. */
-function raw(path: string, headers: Record<string, string> = {}, method = 'GET'): Promise<{ status: number; headers: IncomingHttpHeaders; body: string }> {
+function raw(
+  path: string,
+  headers: Record<string, string> = {},
+  method = 'GET',
+): Promise<{ status: number; headers: IncomingHttpHeaders; body: string }> {
   return new Promise((resolve, reject) => {
     const req = request({ host: '127.0.0.1', port, path, method, headers }, (res) => {
       let body = '';
@@ -108,12 +131,30 @@ describe('access token', () => {
 
   test('every /api route except health refuses requests without a valid token', async () => {
     await boot();
-    for (const path of ['/api/day', '/api/history?agent=x', '/api/sessions', '/api/usage/detail?account=all&period=today', '/api/demo', '/api/messages?agent=x', '/api/permissions/abc', '/api/transcript?session=s&account=claude', '/api/agents/hire/check?path=/', '/api/unknown']) {
+    for (const path of [
+      '/api/day',
+      '/api/history?agent=x',
+      '/api/sessions',
+      '/api/usage/detail?account=all&period=today',
+      '/api/demo',
+      '/api/messages?agent=x',
+      '/api/permissions/abc',
+      '/api/transcript?session=s&account=claude',
+      '/api/agents/hire/check?path=/',
+      '/api/unknown',
+    ]) {
       const response = await fetch(`${base()}${path}`);
       expect(response.status, path).toBe(401);
       expect(await response.json()).toEqual({ error: 'unauthorized' });
     }
-    for (const path of ['/api/demo', '/api/messages', '/api/messages/inbox', '/api/attention', '/api/permissions', '/api/agents/hire']) {
+    for (const path of [
+      '/api/demo',
+      '/api/messages',
+      '/api/messages/inbox',
+      '/api/attention',
+      '/api/permissions',
+      '/api/agents/hire',
+    ]) {
       expect((await post(path, {})).status, path).toBe(401);
     }
     expect((await fetch(`${base()}/api/stream`)).status).toBe(401);
@@ -126,7 +167,9 @@ describe('access token', () => {
     expect((await fetch(`${base()}/api/day`, { headers: bearer(wrong) })).status).toBe(401);
     expect((await fetch(`${base()}/api/day`, { headers: { cookie: `${AUTH_COOKIE}=${wrong}` } })).status).toBe(401);
     expect((await fetch(`${base()}/api/day`, { headers: { authorization: token() } })).status).toBe(401);
-    expect((await fetch(`${base()}/api/day`, { headers: { cookie: `${AUTH_COOKIE}=${token().slice(0, 10)}` } })).status).toBe(401);
+    expect(
+      (await fetch(`${base()}/api/day`, { headers: { cookie: `${AUTH_COOKIE}=${token().slice(0, 10)}` } })).status,
+    ).toBe(401);
     expect((await fetch(`${base()}/api/day?token=${token()}`)).status).toBe(401);
   });
 
@@ -134,7 +177,9 @@ describe('access token', () => {
     await boot();
     expect((await fetch(`${base()}/api/day`, { headers: bearer() })).status).toBe(200);
     expect((await fetch(`${base()}/api/day`, { headers: { authorization: `bearer ${token()}` } })).status).toBe(200);
-    expect((await fetch(`${base()}/api/day`, { headers: { cookie: `a=b; ${AUTH_COOKIE}=${token()}; c=d` } })).status).toBe(200);
+    expect(
+      (await fetch(`${base()}/api/day`, { headers: { cookie: `a=b; ${AUTH_COOKIE}=${token()}; c=d` } })).status,
+    ).toBe(200);
     expect((await post('/api/demo', { on: false }, { cookie: `${AUTH_COOKIE}=${token()}` })).status).toBe(200);
   });
 
@@ -157,17 +202,28 @@ describe('access token', () => {
     expect(await anonymous.json()).toEqual({ ok: true });
     const authed = await (await fetch(`${base()}/api/health`, { headers: bearer() })).json();
     expect(authed).toMatchObject({ ok: true, version: '9.9.9', local: true, demo: false });
-    expect(await (await fetch(`${base()}/api/health`, { headers: bearer('0'.repeat(64)) })).json()).toEqual({ ok: true });
+    expect(await (await fetch(`${base()}/api/health`, { headers: bearer('0'.repeat(64)) })).json()).toEqual({
+      ok: true,
+    });
   });
 
   test('health proves knowledge of the token for a valid challenge, and only then', async () => {
     await boot();
     const nonce = 'abc123_-XYZ';
-    const body = (await (await fetch(`${base()}/api/health?challenge=${nonce}`)).json()) as { ok: boolean; proof?: string };
-    expect(body.proof).toBe(createHmac('sha256', token()).update(HEALTH_PROOF_PREFIX + nonce).digest('hex'));
+    const body = (await (await fetch(`${base()}/api/health?challenge=${nonce}`)).json()) as {
+      ok: boolean;
+      proof?: string;
+    };
+    expect(body.proof).toBe(
+      createHmac('sha256', token())
+        .update(HEALTH_PROOF_PREFIX + nonce)
+        .digest('hex'),
+    );
     expect(JSON.stringify(body)).not.toContain(token());
     for (const bad of ['', 'a b', 'x'.repeat(129), '<script>', 'a%00b']) {
-      expect(await (await fetch(`${base()}/api/health?challenge=${encodeURIComponent(bad)}`)).json()).toEqual({ ok: true });
+      expect(await (await fetch(`${base()}/api/health?challenge=${encodeURIComponent(bad)}`)).json()).toEqual({
+        ok: true,
+      });
     }
   });
 });
@@ -198,10 +254,16 @@ describe('message inbox is consumed with POST', () => {
     expect(sent.status).toBe(201);
     expect((await fetch(`${base()}/api/messages/inbox?session=s1&via=tool`, { headers: bearer() })).status).toBe(404);
     expect((app as App).context.messages.list('claude:s1')[0]?.status).toBe('queued');
-    const taken = (await (await post('/api/messages/inbox', { session: 's1', via: 'tool' }, bearer())).json()) as { messages: { text: string }[] };
+    const taken = (await (await post('/api/messages/inbox', { session: 's1', via: 'tool' }, bearer())).json()) as {
+      messages: { text: string }[];
+    };
     expect(taken.messages.map((m) => m.text)).toEqual(['Faça isso']);
-    expect(await (await post('/api/messages/inbox', { session: 's1', via: 'stop' }, bearer())).json()).toEqual({ messages: [] });
-    expect(await (await post('/api/messages/inbox', { session: 'ghost' }, bearer())).json()).toEqual({ skip: 'unknown-session' });
+    expect(await (await post('/api/messages/inbox', { session: 's1', via: 'stop' }, bearer())).json()).toEqual({
+      messages: [],
+    });
+    expect(await (await post('/api/messages/inbox', { session: 'ghost' }, bearer())).json()).toEqual({
+      skip: 'unknown-session',
+    });
     expect((await post('/api/messages/inbox', {}, bearer())).status).toBe(400);
   });
 });
@@ -221,9 +283,12 @@ describe('response headers', () => {
     ];
     const stream = await openStream();
     for (const headers of [...responses.map((r) => r.headers), stream.res.headers]) {
-      for (const [name, value] of Object.entries(SECURITY_HEADERS)) expect(headers[name.toLowerCase()], name).toBe(value);
+      for (const [name, value] of Object.entries(SECURITY_HEADERS))
+        expect(headers[name.toLowerCase()], name).toBe(value);
     }
-    expect(SECURITY_HEADERS['Content-Security-Policy']).toBe("default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'");
+    expect(SECURITY_HEADERS['Content-Security-Policy']).toBe(
+      "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+    );
     expect(responses.map((r) => r.status)).toEqual([200, 200, 404, 200, 200, 401, 404, 403]);
   });
 });
@@ -263,7 +328,9 @@ describe('timeouts', () => {
     const stream = await openStream();
     let streamClosed = false;
     stream.res.on('close', () => (streamClosed = true));
-    const longPoll = fetch(`${base()}/api/messages/wait?session=s1&timeout=1`, { headers: bearer() }).then((r) => r.json());
+    const longPoll = fetch(`${base()}/api/messages/wait?session=s1&timeout=1`, { headers: bearer() }).then((r) =>
+      r.json(),
+    );
 
     const slow = connect(port, '127.0.0.1');
     slow.write(`GET /api/health HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n`);

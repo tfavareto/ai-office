@@ -51,10 +51,7 @@ function components(pixels: Set<string>): number {
   return count;
 }
 
-const CASES = [
-  ...[0, 1, 2, 3].map((v) => ['plant', v] as const),
-  ...[0, 1].map((v) => ['plantTall', v] as const),
-];
+const CASES = [...[0, 1, 2, 3].map((v) => ['plant', v] as const), ...[0, 1].map((v) => ['plantTall', v] as const)];
 
 describe('indoor plants', () => {
   it.each(CASES)('%s variant %i stays inside its tile and the sprite rise', (kind, variant) => {

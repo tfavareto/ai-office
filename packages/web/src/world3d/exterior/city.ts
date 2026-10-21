@@ -1,7 +1,18 @@
 // The compact city frame around the tower: streets and sidewalks at ground level far below the office floor, Kenney
 // buildings, instanced trees and lamp posts, a few moving cars, and the glass tower shaft under the office slab.
 import {
-  BufferGeometry, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Object3D, Quaternion, Vector3, type Material,
+  BufferGeometry,
+  DoubleSide,
+  Float32BufferAttribute,
+  Group,
+  InstancedMesh,
+  Matrix4,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  Quaternion,
+  Vector3,
+  type Material,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { layoutExterior } from '../../layout/exterior';
@@ -55,9 +66,19 @@ export class CityScene {
   private builtFor = -1;
   private lampMaterial: Material | null = null;
 
-  constructor(private readonly m: Materials, private readonly models: CityModels) {
+  constructor(
+    private readonly m: Materials,
+    private readonly models: CityModels,
+  ) {
     this.towerMat = new MeshStandardMaterial({
-      map: this.towerTex.map, emissiveMap: this.towerTex.emissive, emissive: '#ffcf8a', emissiveIntensity: 0, metalness: 0.55, roughness: 0.22, side: DoubleSide, envMapIntensity: 1.2,
+      map: this.towerTex.map,
+      emissiveMap: this.towerTex.emissive,
+      emissive: '#ffcf8a',
+      emissiveIntensity: 0,
+      metalness: 0.55,
+      roughness: 0.22,
+      side: DoubleSide,
+      envMapIntensity: 1.2,
     });
     this.group.add(this.tower);
   }
@@ -66,10 +87,11 @@ export class CityScene {
   setBuildingWidth(widthTiles: number): void {
     if (widthTiles === this.builtFor) return;
     this.builtFor = widthTiles;
-    for (const child of [...this.group.children]) if (child !== this.tower) {
-      this.group.remove(child);
-      child.traverse((o) => (o as Mesh).geometry?.dispose());
-    }
+    for (const child of [...this.group.children])
+      if (child !== this.tower) {
+        this.group.remove(child);
+        child.traverse((o) => (o as Mesh).geometry?.dispose());
+      }
     this.cars.length = 0;
     this.buildTower(widthTiles);
     this.buildGround(widthTiles);
@@ -124,9 +146,11 @@ export class CityScene {
     const y = GROUND_Y;
     const b = ex.bounds;
     c.add(groundQuad(b.x * T, b.y * T, (b.x + b.w) * T, (b.y + b.h) * T, y - 0.02, 1.6), this.m.floor('stone'));
-    for (const r of ex.sidewalks) c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y, 1.6), this.m.floor('stone'));
+    for (const r of ex.sidewalks)
+      c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y, 1.6), this.m.floor('stone'));
     const asphalt = this.m.textured('asphalt_02', '#9aa0a8', 0.5, 1);
-    for (const r of ex.streets) c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y + 0.01, 4), asphalt);
+    for (const r of ex.streets)
+      c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y + 0.01, 4), asphalt);
     const paint = this.m.solid('#e9e6dc', 0.7);
     for (const r of ex.crosswalks) {
       const horizontal = r.w > r.h;
@@ -145,7 +169,8 @@ export class CityScene {
       }
     }
     const grass = this.m.textured('grass_ground', '#7aa05a', 0.5, 1);
-    for (const r of ex.grass) c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y + 0.005, 4), grass);
+    for (const r of ex.grass)
+      c.add(groundQuad(r.x * T, r.y * T, (r.x + r.w) * T, (r.y + r.h) * T, y + 0.005, 4), grass);
     this.group.add(c.build(shadowOf));
     this.addBuildings(ex.rooftops);
     this.addTrees(ex.trees, ex.lamps);
@@ -160,7 +185,7 @@ export class CityScene {
       const north = r.rect.y * T < 0;
       const modelIdx = hh % this.models.buildings.length;
       const model = this.models.buildings[modelIdx];
-      const scale = Math.min(BUILDING_SCALE, ((r.rect.w * T * 0.8) / model.size.x));
+      const scale = Math.min(BUILDING_SCALE, (r.rect.w * T * 0.8) / model.size.x);
       let height = model.size.y * scale;
       const cap = north && r.rect.x * T > -4 ? 64 : TOWER_H - 6;
       if (height > cap) height = cap;
@@ -168,7 +193,14 @@ export class CityScene {
       const cx = (r.rect.x + r.rect.w / 2) * T;
       const cz = (r.rect.y + r.rect.h / 2) * T;
       for (const p of model.parts) {
-        c.add(p.geometry, p.material, new Matrix4().multiplyMatrices(transform(cx, GROUND_Y, cz, ((hh >> 3) % 2) * Math.PI, 0, 0, scale, sy, scale), p.matrix));
+        c.add(
+          p.geometry,
+          p.material,
+          new Matrix4().multiplyMatrices(
+            transform(cx, GROUND_Y, cz, ((hh >> 3) % 2) * Math.PI, 0, 0, scale, sy, scale),
+            p.matrix,
+          ),
+        );
         mats.add(p.material);
       }
     });
@@ -176,12 +208,23 @@ export class CityScene {
     this.group.add(built);
   }
 
-  private addTrees(trees: ReturnType<typeof layoutExterior>['trees'], lamps: ReturnType<typeof layoutExterior>['lamps']): void {
+  private addTrees(
+    trees: ReturnType<typeof layoutExterior>['trees'],
+    lamps: ReturnType<typeof layoutExterior>['lamps'],
+  ): void {
     const dummy = new Object3D();
     const q = new Quaternion();
     const models = this.models.trees;
-    const groups: { model: Model; items: { x: number; z: number; s: number }[] }[] = models.map((model) => ({ model, items: [] }));
-    for (const t of trees) groups[t.variant % groups.length].items.push({ x: t.x * T, z: t.y * T, s: TREE_SCALE * (0.8 + (hash32(t.x, t.y) % 40) / 100) });
+    const groups: { model: Model; items: { x: number; z: number; s: number }[] }[] = models.map((model) => ({
+      model,
+      items: [],
+    }));
+    for (const t of trees)
+      groups[t.variant % groups.length].items.push({
+        x: t.x * T,
+        z: t.y * T,
+        s: TREE_SCALE * (0.8 + (hash32(t.x, t.y) % 40) / 100),
+      });
     for (const g of groups) {
       if (!g.items.length) continue;
       const geo = geometryOf(g.model, 1);
@@ -216,8 +259,14 @@ export class CityScene {
         mesh.frustumCulled = false;
         this.group.add(mesh);
         this.cars.push({
-          mesh, axis: lane.axis, dir: lane.dir, pos: lane.pos, from: lane.from, to: lane.to,
-          speed: 3.2 + ((hash32(n, i) % 30) / 10), offset: (hash32(n + 1, i) % 1000) / 1000,
+          mesh,
+          axis: lane.axis,
+          dir: lane.dir,
+          pos: lane.pos,
+          from: lane.from,
+          to: lane.to,
+          speed: 3.2 + (hash32(n, i) % 30) / 10,
+          offset: (hash32(n + 1, i) % 1000) / 1000,
         });
       }
       n += 1;
@@ -229,7 +278,7 @@ export class CityScene {
     this.towerMat.emissiveIntensity = night * 1.1;
     for (const car of this.cars) {
       const len = (car.to - car.from) * T;
-      const t = ((time * car.speed + car.offset * len) % len + len) % len;
+      const t = (((time * car.speed + car.offset * len) % len) + len) % len;
       const along = car.dir === 1 ? t : len - t;
       const s = car.from * T + along;
       if (car.axis === 'h') {

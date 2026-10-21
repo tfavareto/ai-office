@@ -14,13 +14,26 @@ function publisher(hires: PendingHire[] = []): SnapshotPublisher {
     names: new NameStore(undefined, silentLogger),
     log: silentLogger,
     overlays: { permissionFor: () => undefined, attentionFor: () => undefined },
-    events: { onChange: () => undefined, onFeed: () => undefined, onNotice: () => undefined, onAgentEvent: () => undefined },
+    events: {
+      onChange: () => undefined,
+      onFeed: () => undefined,
+      onNotice: () => undefined,
+      onAgentEvent: () => undefined,
+    },
   });
   office.setAccounts([{ id: 'claude', label: 'Pessoal', initial: 'P', color: '#fff', dir: '/x' }]);
   office.refresh(clock);
   return new SnapshotPublisher({
     office,
-    usage: { compute: (ids) => ids.map((accountId) => ({ accountId, window5h: { tokens: 0, costUSD: 0, resetsAt: 0 }, week: { tokens: 0, costUSD: 0, resetsAt: 0 }, today: { tokens: 0, costUSD: 0 } })) },
+    usage: {
+      compute: (ids) =>
+        ids.map((accountId) => ({
+          accountId,
+          window5h: { tokens: 0, costUSD: 0, resetsAt: 0 },
+          week: { tokens: 0, costUSD: 0, resetsAt: 0 },
+          today: { tokens: 0, costUSD: 0 },
+        })),
+    },
     now: () => clock,
     meta: () => ({ version: '1.2.3', startedAt: 1, demo: false }),
     hires: () => hires,
@@ -42,7 +55,11 @@ describe('SnapshotPublisher', () => {
     const snapshots = publisher();
     snapshots.markDirty();
     expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({ rev: 1, serverTime: 10_000, meta: { version: '1.2.3', local: true, demo: false } });
+    expect(emitted[0]).toMatchObject({
+      rev: 1,
+      serverTime: 10_000,
+      meta: { version: '1.2.3', local: true, demo: false },
+    });
     expect(emitted[0]?.accounts).toHaveLength(1);
     expect(emitted[0]?.usage).toHaveLength(1);
   });
@@ -73,7 +90,13 @@ describe('SnapshotPublisher', () => {
   });
 
   test('pending hires travel in the snapshot, and the field is absent when there are none', () => {
-    const hire: PendingHire = { id: 'h1', projectId: '/work/app', accountId: 'claude', createdAt: 9000, expiresAt: 99_000 };
+    const hire: PendingHire = {
+      id: 'h1',
+      projectId: '/work/app',
+      accountId: 'claude',
+      createdAt: 9000,
+      expiresAt: 99_000,
+    };
 
     expect(publisher([hire]).build().hires).toEqual([hire]);
     expect(publisher().build().hires).toBeUndefined();

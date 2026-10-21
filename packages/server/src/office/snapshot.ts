@@ -33,7 +33,9 @@ export class SnapshotPublisher {
     const now = this.deps.now();
     const state = this.deps.office.state();
     const realUsage = this.deps.usage.compute(
-      state.accounts.filter((account) => !state.demoUsage.some((usage) => usage.accountId === account.id)).map((account) => account.id),
+      state.accounts
+        .filter((account) => !state.demoUsage.some((usage) => usage.accountId === account.id))
+        .map((account) => account.id),
       now,
     );
     const hires = [...this.deps.hires(now), ...state.demoHires];

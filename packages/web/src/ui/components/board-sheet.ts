@@ -23,10 +23,25 @@ export class MessageSheet {
   private readonly title = h('h3', { id: 'ao-board-sheet-title' });
   private readonly fields = h('div', { class: 'ao-board-sheet-fields' });
   private readonly agentSelect = h('select', { class: 'ao-select ao-board-agent-select', id: 'ao-board-sheet-agent' });
-  private readonly titleInput = h('input', { class: 'ao-input', id: 'ao-board-sheet-task', type: 'text', maxlength: 200, placeholder: t('board.add.placeholder') });
-  private readonly textarea = h('textarea', { class: 'ao-textarea', id: 'ao-board-sheet-text', rows: 3, maxlength: MAX_MESSAGE_LENGTH + 200 });
+  private readonly titleInput = h('input', {
+    class: 'ao-input',
+    id: 'ao-board-sheet-task',
+    type: 'text',
+    maxlength: 200,
+    placeholder: t('board.add.placeholder'),
+  });
+  private readonly textarea = h('textarea', {
+    class: 'ao-textarea',
+    id: 'ao-board-sheet-text',
+    rows: 3,
+    maxlength: MAX_MESSAGE_LENGTH + 200,
+  });
   private readonly error = h('p', { class: 'ao-error', role: 'alert', hidden: true });
-  private readonly sendBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--primary' }, h('span', null, t('board.confirm.send')));
+  private readonly sendBtn = h(
+    'button',
+    { type: 'button', class: 'ao-btn ao-btn--primary' },
+    h('span', null, t('board.confirm.send')),
+  );
   private intent: MoveIntent | null = null;
   private addColumn: BoardColumnId | null = null;
   private edited = false;
@@ -51,8 +66,18 @@ export class MessageSheet {
     this.agentSelect.addEventListener('change', () => this.rebuildAddIntent());
     this.titleInput.addEventListener('input', () => this.rebuildAddIntent());
     this.fields.append(
-      h('label', { class: 'ao-board-field', for: 'ao-board-sheet-agent' }, h('span', null, t('board.add.agent')), this.agentSelect),
-      h('label', { class: 'ao-board-field', for: 'ao-board-sheet-task' }, h('span', null, t('board.add.task')), this.titleInput),
+      h(
+        'label',
+        { class: 'ao-board-field', for: 'ao-board-sheet-agent' },
+        h('span', null, t('board.add.agent')),
+        this.agentSelect,
+      ),
+      h(
+        'label',
+        { class: 'ao-board-field', for: 'ao-board-sheet-task' },
+        h('span', null, t('board.add.task')),
+        this.titleInput,
+      ),
     );
     const sheet = h(
       'div',
@@ -60,7 +85,12 @@ export class MessageSheet {
       this.title,
       h('p', { class: 'ao-note' }, t('board.confirm.hint')),
       this.fields,
-      h('label', { class: 'ao-board-field', for: 'ao-board-sheet-text' }, h('span', null, t('board.confirm.label')), this.textarea),
+      h(
+        'label',
+        { class: 'ao-board-field', for: 'ao-board-sheet-text' },
+        h('span', null, t('board.confirm.label')),
+        this.textarea,
+      ),
       this.error,
       h('div', { class: 'ao-board-sheet-bar' }, cancel, this.sendBtn),
     );
@@ -86,12 +116,19 @@ export class MessageSheet {
   }
 
   /** Asks for a new task: pick the agent, name the task, check the message. */
-  openAdd(column: BoardColumnId, agents: readonly AgentChoice[], defaultAgentId: string | null, opener: HTMLElement | null, onSend: SendHandler): void {
+  openAdd(
+    column: BoardColumnId,
+    agents: readonly AgentChoice[],
+    defaultAgentId: string | null,
+    opener: HTMLElement | null,
+    onSend: SendHandler,
+  ): void {
     this.begin(opener, onSend);
     this.fields.hidden = false;
     this.addColumn = column;
     this.agentSelect.replaceChildren(...agents.map((agent) => h('option', { value: agent.id }, agent.label)));
-    if (defaultAgentId !== null && agents.some((agent) => agent.id === defaultAgentId)) this.agentSelect.value = defaultAgentId;
+    if (defaultAgentId !== null && agents.some((agent) => agent.id === defaultAgentId))
+      this.agentSelect.value = defaultAgentId;
     this.titleInput.value = '';
     setText(this.title, `${t('board.add.title')} · ${t(COLUMN_KEYS[column])}`);
     this.textarea.value = '';

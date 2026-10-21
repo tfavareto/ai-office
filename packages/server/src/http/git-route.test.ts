@@ -7,10 +7,29 @@ import { type App, createApp } from '../app';
 import { loadConfig } from '../config';
 import { RunError, type Runner } from '../git/run';
 import { silentLogger } from '../log';
-import { type FakeClaudeDir, T0, assistantLine, freePort, jsonl, makeFakeClaude, makeTempDir, removeDir, text, toolResultLine, toolUse, userLine } from '../test-helpers';
+import {
+  type FakeClaudeDir,
+  T0,
+  assistantLine,
+  freePort,
+  jsonl,
+  makeFakeClaude,
+  makeTempDir,
+  removeDir,
+  text,
+  toolResultLine,
+  toolUse,
+  userLine,
+} from '../test-helpers';
 
 const OID = '0123456789abcdef0123456789abcdef01234567';
-const PR_JSON = JSON.stringify({ number: 9, title: 'T', state: 'OPEN', url: 'https://github.com/o/r/pull/9', statusCheckRollup: [] });
+const PR_JSON = JSON.stringify({
+  number: 9,
+  title: 'T',
+  state: 'OPEN',
+  url: 'https://github.com/o/r/pull/9',
+  statusCheckRollup: [],
+});
 
 let fake: FakeClaudeDir;
 let state: string;
@@ -27,8 +46,11 @@ const runGit: Runner = (_file, args, options) => {
   const sub = args.find((arg) => ['status', 'diff', 'log', 'stash'].includes(arg)) ?? '';
   gitCalls.push(sub);
   if (args.includes('config')) return Promise.resolve('me@example.com\n');
-  if (args.includes('--all')) return Promise.resolve(`a1b2c3d\t${Math.floor((T0 + 30_000) / 1000)}\tfeat: from the day log\n`);
-  return Promise.resolve(sub === 'status' ? `# branch.oid ${OID}\n# branch.head feat/x\n1 .M N... 1 1 1 a b f.ts\n` : '');
+  if (args.includes('--all'))
+    return Promise.resolve(`a1b2c3d\t${Math.floor((T0 + 30_000) / 1000)}\tfeat: from the day log\n`);
+  return Promise.resolve(
+    sub === 'status' ? `# branch.oid ${OID}\n# branch.head feat/x\n1 .M N... 1 1 1 a b f.ts\n` : '',
+  );
 };
 const runGh: Runner = (_file, _args, options) => {
   ghCalls.push(options.cwd);
@@ -37,8 +59,17 @@ const runGh: Runner = (_file, _args, options) => {
 
 async function boot(gh: Runner = runGh): Promise<void> {
   const port = await freePort();
-  const config = loadConfig({ HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web }, [], web);
-  app = createApp(config, silentLogger, { now: () => clock, pidAlive: () => true, version: '9.9.9', gitRunners: { git: runGit, gh } });
+  const config = loadConfig(
+    { HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web },
+    [],
+    web,
+  );
+  app = createApp(config, silentLogger, {
+    now: () => clock,
+    pidAlive: () => true,
+    version: '9.9.9',
+    gitRunners: { git: runGit, gh },
+  });
   await app.start();
 }
 
@@ -53,7 +84,11 @@ beforeEach(async () => {
   project = join(await makeTempDir('ai-office-project-'), 'proj');
   await mkdir(join(project, '.git'), { recursive: true });
   await fake.writeRegistry(100, { sessionId: 's1', cwd: project, status: 'busy', statusUpdatedAt: T0 + 59_000 });
-  await fake.writeTranscript('s1', jsonl(userLine('Hi', 100, { cwd: project }), assistantLine([text('ok')], 200, { extra: { cwd: project } })), project);
+  await fake.writeTranscript(
+    's1',
+    jsonl(userLine('Hi', 100, { cwd: project }), assistantLine([text('ok')], 200, { extra: { cwd: project } })),
+    project,
+  );
 });
 afterEach(async () => {
   await app.stop();
@@ -66,7 +101,11 @@ afterEach(async () => {
 const base = (): string => `http://127.0.0.1:${app.port()}`;
 const authed = (): Record<string, string> => ({ authorization: `Bearer ${app.context.auth.value}` });
 const post = (body: unknown, headers: Record<string, string> = authed()): Promise<Response> =>
-  fetch(`${base()}/api/git/settings`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  fetch(`${base()}/api/git/settings`, {
+    method: 'POST',
+    headers: { ...headers, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 
 /** One pass of the app's own clock: tick the watcher and wait for its reads. */
 async function settle(): Promise<void> {
@@ -98,7 +137,10 @@ describe('git state in the snapshot', () => {
     // Act: the agent runs a tool and the result arrives
     await fake.appendTranscript(
       's1',
-      jsonl(assistantLine([toolUse('t1', 'Bash', { command: 'touch f' })], 300, { extra: { cwd: project } }), toolResultLine('t1', 'ok', 400, { cwd: project })),
+      jsonl(
+        assistantLine([toolUse('t1', 'Bash', { command: 'touch f' })], 300, { extra: { cwd: project } }),
+        toolResultLine('t1', 'ok', 400, { cwd: project }),
+      ),
       project,
     );
     await app.context.engine.scan();
@@ -135,7 +177,14 @@ describe('the day report', () => {
     // Assert
     expect(response.status).toBe(200);
     const room = report.projects.find((candidate) => candidate.id === project);
-    expect(room?.gitCommits).toEqual([{ hash: 'a1b2c3d', subject: 'feat: from the day log', at: Math.floor((T0 + 30_000) / 1000) * 1000, source: 'git' }]);
+    expect(room?.gitCommits).toEqual([
+      {
+        hash: 'a1b2c3d',
+        subject: 'feat: from the day log',
+        at: Math.floor((T0 + 30_000) / 1000) * 1000,
+        source: 'git',
+      },
+    ]);
   });
 });
 
@@ -205,10 +254,18 @@ describe('/api/git/settings', () => {
   test('refuses a Host that is not local', async () => {
     await boot();
     const status = await new Promise<number>((resolve, reject) => {
-      const request = httpRequest({ host: '127.0.0.1', port: app.port(), path: '/api/git/settings', headers: { ...authed(), host: 'evil.example:4848' } }, (response) => {
-        response.resume();
-        resolve(response.statusCode ?? 0);
-      });
+      const request = httpRequest(
+        {
+          host: '127.0.0.1',
+          port: app.port(),
+          path: '/api/git/settings',
+          headers: { ...authed(), host: 'evil.example:4848' },
+        },
+        (response) => {
+          response.resume();
+          resolve(response.statusCode ?? 0);
+        },
+      );
       request.once('error', reject);
       request.end();
     });

@@ -33,7 +33,8 @@ export function fitUsageCards({ available, gap, full, compact, more }: UsageFitI
   if (rowWidth(full, gap) <= available) return { compact: false, visible: count, showMore: false };
   if (rowWidth(compact, gap) <= available) return { compact: true, visible: count, showMore: false };
   for (let visible = count - 1; visible >= 0; visible -= 1) {
-    if (rowWidth(compact.slice(0, visible), gap) + (visible > 0 ? gap : 0) + more <= available) return { compact: true, visible, showMore: true };
+    if (rowWidth(compact.slice(0, visible), gap) + (visible > 0 ? gap : 0) + more <= available)
+      return { compact: true, visible, showMore: true };
   }
   return { compact: true, visible: 0, showMore: false };
 }

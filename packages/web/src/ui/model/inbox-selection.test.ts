@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_SELECTION, isSelected, moveCursor, pruneSelection, selectAll, selectRange, settleCursor, toggleSelected } from './inbox-selection';
+import {
+  EMPTY_SELECTION,
+  isSelected,
+  moveCursor,
+  pruneSelection,
+  selectAll,
+  selectRange,
+  settleCursor,
+  toggleSelected,
+} from './inbox-selection';
 
 const ORDER = ['a', 'b', 'c', 'd', 'e'];
 

@@ -8,7 +8,17 @@ import { icon } from '../icons';
 import { branchChip } from '../model/git';
 import { buildRooms, roomColor, type AgentRowModel, type RoomModel } from '../model/rooms';
 import { displayStatus, primaryShell, statusLabel } from '../model/status';
-import { accountChip, createAvatar, iconButton, liveText, setDisabled, setLive, setStatusDot, statusDot, updateAccountChip } from '../widgets';
+import {
+  accountChip,
+  createAvatar,
+  iconButton,
+  liveText,
+  setDisabled,
+  setLive,
+  setStatusDot,
+  statusDot,
+  updateAccountChip,
+} from '../widgets';
 
 const AVATAR_SIZE = 30;
 /** Portraits become available asynchronously; refresh the rows from time to time. */
@@ -46,11 +56,47 @@ export class Sidebar implements Component {
         this.list.querySelector<HTMLElement>('.ao-agent-row')?.focus();
       }
     });
-    this.clearBtn = h('button', { type: 'button', class: 'ao-search-clear', 'aria-label': t('sidebar.search.clear'), hidden: true, onclick: () => this.setQuery('') }, icon('x', 14));
-    const search = h('label', { class: 'ao-search' }, icon('search', 16), this.input, h('kbd', { class: 'ao-kbd' }, '/'), this.clearBtn);
-    this.hireBtn = iconButton({ icon: 'plus', label: t('hire.action'), className: 'ao-sidebar-hire', onClick: () => ctx.openHire() });
-    this.el.append(h('div', { class: 'ao-sidebar-head' }, h('div', { class: 'ao-sidebar-searchrow' }, search, this.hireBtn), this.chips), this.replayNote, this.list, this.note);
-    this.rooms = new KeyedList(this.list, (room) => room.project.id, (room) => this.createRoom(room));
+    this.clearBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-search-clear',
+        'aria-label': t('sidebar.search.clear'),
+        hidden: true,
+        onclick: () => this.setQuery(''),
+      },
+      icon('x', 14),
+    );
+    const search = h(
+      'label',
+      { class: 'ao-search' },
+      icon('search', 16),
+      this.input,
+      h('kbd', { class: 'ao-kbd' }, '/'),
+      this.clearBtn,
+    );
+    this.hireBtn = iconButton({
+      icon: 'plus',
+      label: t('hire.action'),
+      className: 'ao-sidebar-hire',
+      onClick: () => ctx.openHire(),
+    });
+    this.el.append(
+      h(
+        'div',
+        { class: 'ao-sidebar-head' },
+        h('div', { class: 'ao-sidebar-searchrow' }, search, this.hireBtn),
+        this.chips,
+      ),
+      this.replayNote,
+      this.list,
+      this.note,
+    );
+    this.rooms = new KeyedList(
+      this.list,
+      (room) => room.project.id,
+      (room) => this.createRoom(room),
+    );
     this.list.addEventListener('keydown', (event) => this.onListKey(event));
   }
 
@@ -117,7 +163,13 @@ export class Sidebar implements Component {
         const on = selected.includes(account.id);
         const chip = h(
           'button',
-          { type: 'button', class: `ao-chip ${on ? 'is-on' : ''}`.trim(), 'aria-pressed': String(on), title: t('sidebar.accountOnly', { label: accountLabel(account) }), onclick: () => this.ctx.ui.toggleAccount(account.id) },
+          {
+            type: 'button',
+            class: `ao-chip ${on ? 'is-on' : ''}`.trim(),
+            'aria-pressed': String(on),
+            title: t('sidebar.accountOnly', { label: accountLabel(account) }),
+            onclick: () => this.ctx.ui.toggleAccount(account.id),
+          },
           accountChip(account),
           h('span', null, accountLabel(account)),
         );
@@ -139,12 +191,41 @@ export class Sidebar implements Component {
     const progressBar = h('span', { class: 'ao-progress-bar' });
     const progress = h('span', { class: 'ao-progress', hidden: true }, progressBar);
     const progressText = h('span', { class: 'ao-room-tasks' });
-    const hire = iconButton({ icon: 'plus', label: t('hire.action'), size: 15, className: 'ao-iconbtn--small ao-room-hire', onClick: () => this.ctx.openHire({ projectPath: path }) });
-    const toggle = h('button', { type: 'button', class: 'ao-room-toggle', 'aria-label': t('sidebar.room.toggle') }, icon('chevronDown', 16));
-    const main = h('button', { type: 'button', class: 'ao-room-main' }, swatch, name, attention, count, progressText, progress);
+    const hire = iconButton({
+      icon: 'plus',
+      label: t('hire.action'),
+      size: 15,
+      className: 'ao-iconbtn--small ao-room-hire',
+      onClick: () => this.ctx.openHire({ projectPath: path }),
+    });
+    const toggle = h(
+      'button',
+      { type: 'button', class: 'ao-room-toggle', 'aria-label': t('sidebar.room.toggle') },
+      icon('chevronDown', 16),
+    );
+    const main = h(
+      'button',
+      { type: 'button', class: 'ao-room-main' },
+      swatch,
+      name,
+      attention,
+      count,
+      progressText,
+      progress,
+    );
     const rowsEl = h('div', { class: 'ao-room-rows' });
-    const el = h('section', { class: 'ao-room' }, h('div', { class: 'ao-room-head' }, toggle, main, hire), branch, rowsEl);
-    const rows = new KeyedList<AgentRowModel>(rowsEl, (row) => row.agent.id, (row) => this.createRow(row));
+    const el = h(
+      'section',
+      { class: 'ao-room' },
+      h('div', { class: 'ao-room-head' }, toggle, main, hire),
+      branch,
+      rowsEl,
+    );
+    const rows = new KeyedList<AgentRowModel>(
+      rowsEl,
+      (row) => row.agent.id,
+      (row) => this.createRow(row),
+    );
     let projectId = initial.project.id;
     let path = initial.project.path;
 
@@ -170,7 +251,11 @@ export class Sidebar implements Component {
         branch.hidden = chip === null;
         if (chip !== null) {
           setText(branchText, chip.label);
-          setAttr(branch, 'title', t(chip.dirty ? 'sidebar.room.branchDirty' : 'sidebar.room.branch', { branch: chip.label }));
+          setAttr(
+            branch,
+            'title',
+            t(chip.dirty ? 'sidebar.room.branchDirty' : 'sidebar.room.branch', { branch: chip.label }),
+          );
           toggleClass(branch, 'is-dirty', chip.dirty);
           toggleClass(branch, 'is-op', chip.op !== null);
         }
@@ -248,7 +333,12 @@ export class Sidebar implements Component {
   }
 
   private activityText(agent: Agent): string {
-    if (agent.status === 'waiting') return (agent.permission ? permissionSummary(agent.permission) : undefined) ?? agentWaitingFor(agent) ?? t('sidebar.row.needsYou');
+    if (agent.status === 'waiting')
+      return (
+        (agent.permission ? permissionSummary(agent.permission) : undefined) ??
+        agentWaitingFor(agent) ??
+        t('sidebar.row.needsYou')
+      );
     if (agent.activity) return `${agent.activity.icon} ${activityText(agent.activity)}`;
     return agentTitle(agent) ?? t('sidebar.row.noActivity');
   }

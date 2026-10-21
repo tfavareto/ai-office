@@ -20,7 +20,16 @@ interface Field {
 
 function field(label: string, control: HTMLElement, hint?: HTMLElement, wide = false): Field {
   const id = control.id;
-  return { el: h('div', { class: wide ? 'ao-rule-field ao-rule-field--wide' : 'ao-rule-field' }, h('label', { class: 'ao-rule-label', for: id }, label), control, hint ?? null), control };
+  return {
+    el: h(
+      'div',
+      { class: wide ? 'ao-rule-field ao-rule-field--wide' : 'ao-rule-field' },
+      h('label', { class: 'ao-rule-label', for: id }, label),
+      control,
+      hint ?? null,
+    ),
+    control,
+  };
 }
 
 function syncValue(input: HTMLInputElement | HTMLSelectElement, value: string, force: boolean): void {
@@ -39,19 +48,45 @@ export class RuleEditor implements Component {
     ] as const,
     (value) => this.ctx.rules.setForm({ effect: value }),
   );
-  private readonly tool = h('input', { type: 'text', id: 'ao-rule-tool', class: 'ao-input', list: TOOL_LIST_ID, autocomplete: 'off', spellcheck: 'false' });
+  private readonly tool = h('input', {
+    type: 'text',
+    id: 'ao-rule-tool',
+    class: 'ao-input',
+    list: TOOL_LIST_ID,
+    autocomplete: 'off',
+    spellcheck: 'false',
+  });
   private readonly kind = h('select', { id: 'ao-rule-kind', class: 'ao-select' });
-  private readonly value = h('input', { type: 'text', id: 'ao-rule-value', class: 'ao-input ao-rule-value', autocomplete: 'off', spellcheck: 'false' });
+  private readonly value = h('input', {
+    type: 'text',
+    id: 'ao-rule-value',
+    class: 'ao-input ao-rule-value',
+    autocomplete: 'off',
+    spellcheck: 'false',
+  });
   private readonly valueField: Field;
   private readonly hint = h('p', { class: 'ao-setting-hint' });
   private readonly project = h('select', { id: 'ao-rule-project', class: 'ao-select' });
   private readonly account = h('select', { id: 'ao-rule-account', class: 'ao-select' });
-  private readonly note = h('input', { type: 'text', id: 'ao-rule-note', class: 'ao-input', maxlength: 200, autocomplete: 'off', placeholder: t('rules.editor.note.placeholder') });
-  private readonly enabled = createSwitch(t('rules.editor.enabled'), () => this.ctx.rules.setForm({ enabled: !(this.ctx.rules.get().editor?.form.enabled ?? true) }));
+  private readonly note = h('input', {
+    type: 'text',
+    id: 'ao-rule-note',
+    class: 'ao-input',
+    maxlength: 200,
+    autocomplete: 'off',
+    placeholder: t('rules.editor.note.placeholder'),
+  });
+  private readonly enabled = createSwitch(t('rules.editor.enabled'), () =>
+    this.ctx.rules.setForm({ enabled: !(this.ctx.rules.get().editor?.form.enabled ?? true) }),
+  );
   private readonly preview = h('p', { class: 'ao-rule-preview', role: 'status', 'aria-live': 'polite' });
   private readonly refusal = h('p', { class: 'ao-rule-refusal', role: 'alert', hidden: true });
   private readonly saveBtn: HTMLButtonElement;
-  private readonly toolsList = h('datalist', { id: TOOL_LIST_ID }, ...COMMON_TOOLS.map((tool) => h('option', { value: tool })));
+  private readonly toolsList = h(
+    'datalist',
+    { id: TOOL_LIST_ID },
+    ...COMMON_TOOLS.map((tool) => h('option', { value: tool })),
+  );
   private wasOpen = false;
   private kindSignature = '';
   private projectSignature = '';
@@ -59,20 +94,34 @@ export class RuleEditor implements Component {
 
   constructor(private readonly ctx: AppContext) {
     this.valueField = field(t('rules.editor.value'), this.value, this.hint, true);
-    this.saveBtn = h('button', { type: 'submit', class: 'ao-btn ao-btn--primary' }, h('span', null, t('rules.editor.save')));
+    this.saveBtn = h(
+      'button',
+      { type: 'submit', class: 'ao-btn ao-btn--primary' },
+      h('span', null, t('rules.editor.save')),
+    );
     const back = button({ label: t('rules.editor.back'), variant: 'ghost', onClick: () => ctx.rules.closeEditor() });
     const toolHint = h('p', { class: 'ao-setting-hint' }, t('rules.editor.tool.hint'));
     this.el.append(
       this.title,
       this.source,
-      h('div', { class: 'ao-rule-field' }, h('span', { class: 'ao-rule-label' }, t('rules.editor.effect')), this.effect.el),
+      h(
+        'div',
+        { class: 'ao-rule-field' },
+        h('span', { class: 'ao-rule-label' }, t('rules.editor.effect')),
+        this.effect.el,
+      ),
       field(t('rules.editor.tool'), this.tool, toolHint).el,
       field(t('rules.editor.kind'), this.kind).el,
       this.valueField.el,
       field(t('rules.editor.scope'), this.project).el,
       field(t('rules.editor.account'), this.account).el,
       field(t('rules.editor.note'), this.note, undefined, true).el,
-      h('div', { class: 'ao-rule-field ao-rule-field--row' }, h('span', { class: 'ao-rule-label' }, t('rules.editor.enabled')), this.enabled.el),
+      h(
+        'div',
+        { class: 'ao-rule-field ao-rule-field--row' },
+        h('span', { class: 'ao-rule-label' }, t('rules.editor.enabled')),
+        this.enabled.el,
+      ),
       this.preview,
       h('p', { class: 'ao-setting-hint ao-rule-safety' }, t('rules.editor.safety')),
       this.refusal,
@@ -87,7 +136,9 @@ export class RuleEditor implements Component {
     this.tool.addEventListener('input', () => rules.setTool(this.tool.value));
     this.kind.addEventListener('change', () => rules.setKind(this.kind.value as RuleMatcherKind));
     this.value.addEventListener('input', () => rules.setForm({ value: this.value.value }));
-    this.project.addEventListener('change', () => rules.setForm({ onlyProject: this.project.value !== '', projectPath: this.project.value }));
+    this.project.addEventListener('change', () =>
+      rules.setForm({ onlyProject: this.project.value !== '', projectPath: this.project.value }),
+    );
     this.account.addEventListener('change', () => rules.setForm({ accountId: this.account.value }));
     this.note.addEventListener('input', () => rules.setForm({ note: this.note.value }));
     this.el.addEventListener('submit', (event) => {
@@ -124,7 +175,8 @@ export class RuleEditor implements Component {
     const { form } = editor;
     setText(this.title, editor.ruleId === null ? t('rules.new') : t('rules.editor.titleEdit'));
     this.source.hidden = editor.source === null;
-    if (editor.source !== null) setText(this.source, t('rules.editor.from', { name: editor.source.agentName, summary: editor.source.summary }));
+    if (editor.source !== null)
+      setText(this.source, t('rules.editor.from', { name: editor.source.agentName, summary: editor.source.summary }));
     this.effect.set(form.effect);
     syncValue(this.tool, form.tool, force);
     this.renderKinds(form.tool, form.kind);
@@ -141,7 +193,10 @@ export class RuleEditor implements Component {
     this.renderPreview(editor.refusal === null ? editor.preview : { status: 'idle' });
     this.renderRefusal(editor.refusal === null ? null : explainRejection(editor.refusal), editor.failure);
     this.saveBtn.disabled = editor.saving || !isFormComplete(form);
-    setText(this.saveBtn.firstElementChild as HTMLElement, editor.saving ? t('rules.editor.saving') : t('rules.editor.save'));
+    setText(
+      this.saveBtn.firstElementChild as HTMLElement,
+      editor.saving ? t('rules.editor.saving') : t('rules.editor.save'),
+    );
     if (!this.wasOpen) {
       this.wasOpen = true;
       queueMicrotask(() => this.focusFirst());
@@ -153,18 +208,26 @@ export class RuleEditor implements Component {
     const signature = kinds.join('|');
     if (signature !== this.kindSignature) {
       this.kindSignature = signature;
-      this.kind.replaceChildren(...kinds.map((kind) => h('option', { value: kind }, t(`rules.kind.${kind}` as TextKey))));
+      this.kind.replaceChildren(
+        ...kinds.map((kind) => h('option', { value: kind }, t(`rules.kind.${kind}` as TextKey))),
+      );
     }
     syncValue(this.kind, current, true);
   }
 
   private renderProjects(selectedPath: string): void {
     const projects = (this.ctx.snapshot?.projects ?? []).map((project) => ({ path: project.path, name: project.name }));
-    if (selectedPath !== '' && !projects.some((project) => project.path === selectedPath)) projects.push({ path: selectedPath, name: folderName(selectedPath) });
+    if (selectedPath !== '' && !projects.some((project) => project.path === selectedPath))
+      projects.push({ path: selectedPath, name: folderName(selectedPath) });
     const signature = projects.map((project) => project.path).join('|');
     if (signature === this.projectSignature) return;
     this.projectSignature = signature;
-    this.project.replaceChildren(h('option', { value: '' }, t('rules.scope.all')), ...projects.map((project) => h('option', { value: project.path }, t('rules.scope.project', { name: project.name }))));
+    this.project.replaceChildren(
+      h('option', { value: '' }, t('rules.scope.all')),
+      ...projects.map((project) =>
+        h('option', { value: project.path }, t('rules.scope.project', { name: project.name })),
+      ),
+    );
   }
 
   private renderAccounts(): void {
@@ -172,7 +235,10 @@ export class RuleEditor implements Component {
     const signature = accounts.map((account) => `${account.id}:${account.label}`).join('|');
     if (signature === this.accountSignature) return;
     this.accountSignature = signature;
-    this.account.replaceChildren(h('option', { value: '' }, t('rules.editor.account.all')), ...accounts.map((account) => h('option', { value: account.id }, accountLabel(account))));
+    this.account.replaceChildren(
+      h('option', { value: '' }, t('rules.editor.account.all')),
+      ...accounts.map((account) => h('option', { value: account.id }, accountLabel(account))),
+    );
   }
 
   private renderPreview(preview: PreviewState): void {
@@ -185,7 +251,12 @@ export class RuleEditor implements Component {
         setText(this.preview, t('rules.preview.loading'));
         return;
       case 'ready':
-        setText(this.preview, preview.preview.total === 0 ? t('rules.preview.none') : t('rules.preview.result', { matches: preview.preview.matches, total: preview.preview.total }));
+        setText(
+          this.preview,
+          preview.preview.total === 0
+            ? t('rules.preview.none')
+            : t('rules.preview.result', { matches: preview.preview.matches, total: preview.preview.total }),
+        );
         return;
       case 'refused':
         setText(this.preview, explainRejection(preview.rejection));

@@ -2,7 +2,16 @@
 // plus the live "would have answered N requests today" preview) and the log filters. Talks to the backend, nothing else.
 import type { AutoDecision, Rule, RuleDraft, RuleErrorBody, RuleMatcherKind, RulePreview } from '@ai-office/shared';
 import { RuleRejectedError, describeError, type Backend } from '../net/backend';
-import { EMPTY_FILTER, draftFromForm, formFromDraft, isFormComplete, withKind, withTool, type LogFilter, type RuleForm } from './model/rules';
+import {
+  EMPTY_FILTER,
+  draftFromForm,
+  formFromDraft,
+  isFormComplete,
+  withKind,
+  withTool,
+  type LogFilter,
+  type RuleForm,
+} from './model/rules';
 import { Observable } from './observable';
 
 export type RulesTab = 'rules' | 'log';
@@ -14,7 +23,12 @@ export interface RuleSource {
   summary: string;
 }
 
-export type PreviewState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; preview: RulePreview } | { status: 'refused'; rejection: RuleErrorBody } | { status: 'failed' };
+export type PreviewState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; preview: RulePreview }
+  | { status: 'refused'; rejection: RuleErrorBody }
+  | { status: 'failed' };
 
 export interface EditorData {
   /** The rule being edited; null for a new one. */
@@ -48,7 +62,17 @@ export type ActionResult = { ok: true } | { ok: false; message: string; rejectio
 export const PREVIEW_DELAY_MS = 350;
 export const REFRESH_MS = 5000;
 
-const INITIAL: RulesData = { status: 'idle', error: '', rules: [], log: [], tab: 'rules', filter: EMPTY_FILTER, editor: null, confirmDelete: null, busy: false };
+const INITIAL: RulesData = {
+  status: 'idle',
+  error: '',
+  rules: [],
+  log: [],
+  tab: 'rules',
+  filter: EMPTY_FILTER,
+  editor: null,
+  confirmDelete: null,
+  busy: false,
+};
 
 export class RulesController extends Observable<RulesData> {
   private previewTimer: ReturnType<typeof setTimeout> | undefined;
@@ -131,7 +155,10 @@ export class RulesController extends Observable<RulesData> {
   }
 
   private openEditor(base: Pick<EditorData, 'ruleId' | 'form' | 'source'>): void {
-    this.patch({ editor: { ...base, preview: { status: 'idle' }, refusal: null, failure: null, saving: false }, confirmDelete: null });
+    this.patch({
+      editor: { ...base, preview: { status: 'idle' }, refusal: null, failure: null, saving: false },
+      confirmDelete: null,
+    });
     this.schedulePreview(0);
   }
 
@@ -190,7 +217,10 @@ export class RulesController extends Observable<RulesData> {
       if (token === this.previewToken) this.patchEditor({ preview: { status: 'ready', preview } });
     } catch (error) {
       if (token !== this.previewToken) return;
-      this.patchEditor({ preview: error instanceof RuleRejectedError ? { status: 'refused', rejection: error.rejection } : { status: 'failed' } });
+      this.patchEditor({
+        preview:
+          error instanceof RuleRejectedError ? { status: 'refused', rejection: error.rejection } : { status: 'failed' },
+      });
     }
   }
 
@@ -201,7 +231,10 @@ export class RulesController extends Observable<RulesData> {
     this.patchEditor({ saving: true, refusal: null, failure: null });
     const draft = draftFromForm(editor.form);
     try {
-      const saved = editor.ruleId === null ? await this.backend().createRule(draft) : await this.backend().updateRule(editor.ruleId, { ...draft, note: draft.note ?? null });
+      const saved =
+        editor.ruleId === null
+          ? await this.backend().createRule(draft)
+          : await this.backend().updateRule(editor.ruleId, { ...draft, note: draft.note ?? null });
       this.clearPreviewTimer();
       this.previewToken++;
       this.patch({ editor: null, tab: 'rules' });
@@ -251,7 +284,9 @@ export class RulesController extends Observable<RulesData> {
       await action();
       return { ok: true };
     } catch (error) {
-      return error instanceof RuleRejectedError ? { ok: false, message: '', rejection: error.rejection } : { ok: false, message: describeError(error) };
+      return error instanceof RuleRejectedError
+        ? { ok: false, message: '', rejection: error.rejection }
+        : { ok: false, message: describeError(error) };
     } finally {
       this.patch({ busy: false });
     }

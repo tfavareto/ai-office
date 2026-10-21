@@ -1,5 +1,16 @@
 import type { Agent, OfficeSnapshot } from '@ai-office/shared';
-import { Box3, Frustum, Group, Matrix4, Plane, Vector3, type Material, type Mesh, type MeshStandardMaterial, type Texture } from 'three';
+import {
+  Box3,
+  Frustum,
+  Group,
+  Matrix4,
+  Plane,
+  Vector3,
+  type Material,
+  type Mesh,
+  type MeshStandardMaterial,
+  type Texture,
+} from 'three';
 import { BUILDING_H } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import { nearestWalkable } from '../layout/grid';
@@ -8,7 +19,15 @@ import { bubbleText } from '../sim/bubbles';
 import type { DeskTarget } from '../sim/desks';
 import { OfficeSim } from '../sim/sim';
 import {
-  DEFAULT_WORLD_OPTIONS, type CameraMode, type DeskRef, type HoverInfo, type Selection, type ViewInsets, type WorldApi, type WorldFactoryOptions, type WorldOptions,
+  DEFAULT_WORLD_OPTIONS,
+  type CameraMode,
+  type DeskRef,
+  type HoverInfo,
+  type Selection,
+  type ViewInsets,
+  type WorldApi,
+  type WorldFactoryOptions,
+  type WorldOptions,
 } from '../world/api';
 import { DayNight } from '../world2d/lighting';
 import { summarizeRoom, withRoomGit } from '../world2d/runtime/boards';
@@ -113,18 +132,25 @@ export class World3D implements WorldApi {
   private worldVersion = -1;
   private width = 1;
   private height = 1;
-  private pointer: { id: number; x: number; y: number; startX: number; startY: number; dragging: boolean } | null = null;
+  private pointer: { id: number; x: number; y: number; startX: number; startY: number; dragging: boolean } | null =
+    null;
   private readonly capsules: ScreenCapsule[] = [];
 
   private constructor(
     private readonly container: HTMLElement,
     opts: WorldFactoryOptions,
-    private readonly parts: { materials: Materials; library: HumanLibrary; models: Awaited<ReturnType<typeof loadModels>>; city: Awaited<ReturnType<typeof loadCityModels>> },
+    private readonly parts: {
+      materials: Materials;
+      library: HumanLibrary;
+      models: Awaited<ReturnType<typeof loadModels>>;
+      city: Awaited<ReturnType<typeof loadCityModels>>;
+    },
   ) {
     this.options = { ...DEFAULT_WORLD_OPTIONS, ...opts.options };
     this.insets = { ...opts.insets };
     const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
+    canvas.style.cssText =
+      'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab';
     canvas.tabIndex = 0;
     this.canvas = canvas;
     this.updateAriaLabel();
@@ -155,7 +181,12 @@ export class World3D implements WorldApi {
   /** Loads every asset, builds the static scene, precompiles shaders and starts rendering. */
   static async create(container: HTMLElement, opts: WorldFactoryOptions): Promise<World3D> {
     const loader = new TextureLoader();
-    const [sets, models, library, city] = await Promise.all([loadTextureSets(loader), loadModels(), HumanLibrary.load(), loadCityModels()]);
+    const [sets, models, library, city] = await Promise.all([
+      loadTextureSets(loader),
+      loadModels(),
+      HumanLibrary.load(),
+      loadCityModels(),
+    ]);
     const mats = new Materials(sets);
     const world = new World3D(container, opts, { materials: mats, library, models, city });
     await world.warmUp();
@@ -173,7 +204,10 @@ export class World3D implements WorldApi {
     this.updateWorldBounds();
     this.overview(false);
     this.rig.update(0, true);
-    const dummies = [this.parts.library.create(MALE_MODELS[0], '#1f2a44'), this.parts.library.create(FEMALE_MODELS[0], '#5a2f3a')];
+    const dummies = [
+      this.parts.library.create(MALE_MODELS[0], '#1f2a44'),
+      this.parts.library.create(FEMALE_MODELS[0], '#5a2f3a'),
+    ];
     for (const d of dummies) this.stage.scene.add(d.root);
     await this.stage.warmPrograms(this.rig.ortho);
     const materials = new Set<Material>();
@@ -231,7 +265,14 @@ export class World3D implements WorldApi {
   private refreshTicker(): void {
     const stats = this.tickerStats;
     if (!stats) return;
-    this.ticker = tickerText(stats.rooms, stats.agents, stats.working, stats.waiting, stats.shells, worldText(this.options.locale));
+    this.ticker = tickerText(
+      stats.rooms,
+      stats.agents,
+      stats.working,
+      stats.waiting,
+      stats.shells,
+      worldText(this.options.locale),
+    );
   }
 
   private updateAriaLabel(): void {
@@ -252,7 +293,11 @@ export class World3D implements WorldApi {
   }
 
   private applyOptions(): void {
-    this.sim.setOptions({ liveliness: this.options.liveliness, reducedMotion: this.options.reducedMotion, bubbles: this.options.bubbles });
+    this.sim.setOptions({
+      liveliness: this.options.liveliness,
+      reducedMotion: this.options.reducedMotion,
+      bubbles: this.options.bubbles,
+    });
     this.dayNight.setMode(this.options.daylight);
   }
 
@@ -452,7 +497,11 @@ export class World3D implements WorldApi {
     const refreshScreens = this.screenTimer >= SCREEN_REFRESH;
     if (refreshScreens) this.screenTimer = 0;
     this.areas.update({
-      time: this.clock, dt, night, refreshScreens, tickerText: this.ticker,
+      time: this.clock,
+      dt,
+      night,
+      refreshScreens,
+      tickerText: this.ticker,
       info: (id) => this.infoOf(id),
       taskBoard: this.taskBoard,
       namesIn: (areaId) => this.sim.characters.filter((c) => c.areaId === areaId && c.alpha > 0.5).map((c) => c.name),
@@ -462,11 +511,17 @@ export class World3D implements WorldApi {
     });
     this.updateCamera(dt);
     const cam = this.rig.active;
-    this.frustum.setFromProjectionMatrix(this.viewProjection.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    this.frustum.setFromProjectionMatrix(
+      this.viewProjection.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse),
+    );
     this.crowd.update({
-      time: this.clock, dt, accountColor: (id) => this.accountColors.get(id) ?? '#8d99ad',
-      selectedId: this.selection?.type === 'agent' ? this.selection.id : null, hoveredId: this.hover.agentId,
-      detail: true, still: this.options.reducedMotion,
+      time: this.clock,
+      dt,
+      accountColor: (id) => this.accountColors.get(id) ?? '#8d99ad',
+      selectedId: this.selection?.type === 'agent' ? this.selection.id : null,
+      hoveredId: this.hover.agentId,
+      detail: true,
+      still: this.options.reducedMotion,
     });
     this.city.update(this.clock, night);
     this.deskHint.set(this.options.hireEnabled ? this.hoverDesk : null);
@@ -507,7 +562,8 @@ export class World3D implements WorldApi {
     for (const c of this.sim.characters) {
       if (c.areaId !== area.id || c.alpha < 0.5 || !SEATED_POSES.has(c.pose)) continue;
       for (const d of desks) {
-        if (Math.hypot(c.x - d.x, c.y - d.y) < 0.6 && d.deskIndex !== undefined) out[d.deskIndex] = { status: c.status, seed: c.seed & 0xff };
+        if (Math.hypot(c.x - d.x, c.y - d.y) < 0.6 && d.deskIndex !== undefined)
+          out[d.deskIndex] = { status: c.status, seed: c.seed & 0xff };
       }
     }
     return out;
@@ -518,8 +574,13 @@ export class World3D implements WorldApi {
     if (this.poolTimer >= POOL_REFRESH) {
       this.poolTimer = 0;
       const glow = this.stage.glow;
-      const focus = this.rig.mode === 'overview' ? { x: this.rig.iso.target.x, z: this.rig.iso.target.z } : { x: this.rig.walker.x, z: this.rig.walker.z };
-      const centres = this.areas.litCentres().sort((a, b) => Math.hypot(a.x - focus.x, a.z - focus.z) - Math.hypot(b.x - focus.x, b.z - focus.z));
+      const focus =
+        this.rig.mode === 'overview'
+          ? { x: this.rig.iso.target.x, z: this.rig.iso.target.z }
+          : { x: this.rig.walker.x, z: this.rig.walker.z };
+      const centres = this.areas
+        .litCentres()
+        .sort((a, b) => Math.hypot(a.x - focus.x, a.z - focus.z) - Math.hypot(b.x - focus.x, b.z - focus.z));
       this.stage.pool.forEach((p, i) => {
         const c = centres[i];
         if (!c || glow < 0.02) {
@@ -598,12 +659,28 @@ export class World3D implements WorldApi {
     const turn = (k.has('arrowright') ? -1 : 0) + (k.has('arrowleft') ? 1 : 0);
     if (turn) this.rig.look(turn * LOOK_SPEED * dt, 0);
     const speed = 2.3 * (k.has('shift') ? RUN_FACTOR : 1);
-    this.rig.walker = stepWalker(this.rig.walker, { forward: k.has('arrowup') || k.has('arrowdown') ? 0 : forward, strafe }, dt, this.blocked, speed);
+    this.rig.walker = stepWalker(
+      this.rig.walker,
+      { forward: k.has('arrowup') || k.has('arrowdown') ? 0 : forward, strafe },
+      dt,
+      this.blocked,
+      speed,
+    );
     if (k.has('arrowup') || k.has('arrowdown')) {
-      this.rig.walker = stepWalker(this.rig.walker, { forward: (k.has('arrowup') ? 1 : 0) - (k.has('arrowdown') ? 1 : 0), strafe: 0 }, dt, this.blocked, speed);
+      this.rig.walker = stepWalker(
+        this.rig.walker,
+        { forward: (k.has('arrowup') ? 1 : 0) - (k.has('arrowdown') ? 1 : 0), strafe: 0 },
+        dt,
+        this.blocked,
+        speed,
+      );
     }
     const w = this.rig.walker;
-    const dir = this.tmpA.set(Math.sin(w.yaw) * Math.cos(w.pitch), Math.sin(w.pitch), Math.cos(w.yaw) * Math.cos(w.pitch));
+    const dir = this.tmpA.set(
+      Math.sin(w.yaw) * Math.cos(w.pitch),
+      Math.sin(w.pitch),
+      Math.cos(w.yaw) * Math.cos(w.pitch),
+    );
     const targets: SightTarget[] = [];
     for (const c of this.sim.characters) {
       if (c.alpha < 0.5) continue;
@@ -650,14 +727,31 @@ export class World3D implements WorldApi {
       const head = this.crowd.headTop(c.id, this.tmpA);
       if (!head) continue;
       this.rig.project(head, this.screenA);
-      if (!this.screenA.visible || this.screenA.x < -80 || this.screenA.x > this.width + 80 || this.screenA.y < -60 || this.screenA.y > this.height + 40) continue;
+      if (
+        !this.screenA.visible ||
+        this.screenA.x < -80 ||
+        this.screenA.x > this.width + 80 ||
+        this.screenA.y < -60 ||
+        this.screenA.y > this.height + 40
+      )
+        continue;
       if (this.rig.mode !== 'overview' && this.screenA.depth > 14) continue;
       const agent = this.agents.get(c.agentId);
-      const emphasis = !c.hiring && ((this.selection?.type === 'agent' && this.selection.id === c.agentId) || this.hover.agentId === c.agentId);
+      const emphasis =
+        !c.hiring &&
+        ((this.selection?.type === 'agent' && this.selection.id === c.agentId) || this.hover.agentId === c.agentId);
       const b = bubbles.get(c.agentId);
       items.push({
-        id: c.id, sx: this.screenA.x, sy: this.screenA.y, name: c.hiring ? text.t('overlay.arriving') : (agent?.name ?? c.name), accent: this.accountColors.get(c.accountId) ?? '#8d99ad',
-        status: c.status, sub: c.kind === 'sub', emphasis, alert: c.alert && !b, arriving: c.hiring,
+        id: c.id,
+        sx: this.screenA.x,
+        sy: this.screenA.y,
+        name: c.hiring ? text.t('overlay.arriving') : (agent?.name ?? c.name),
+        accent: this.accountColors.get(c.accountId) ?? '#8d99ad',
+        status: c.status,
+        sub: c.kind === 'sub',
+        emphasis,
+        alert: c.alert && !b,
+        arriving: c.hiring,
         bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky } : null,
       });
     }
@@ -666,7 +760,12 @@ export class World3D implements WorldApi {
     this.drawDeskBadge();
     if (first && this.minimap) {
       this.overlay.drawMinimap((ctx, w, h) =>
-        paintMinimap(ctx, w, h, { building: this.sim.building, characters: this.sim.characters, player: this.rig.walker, accent: (c) => this.accountColors.get(c.accountId) ?? '#8d99ad' }),
+        paintMinimap(ctx, w, h, {
+          building: this.sim.building,
+          characters: this.sim.characters,
+          player: this.rig.walker,
+          accent: (c) => this.accountColors.get(c.accountId) ?? '#8d99ad',
+        }),
       );
     }
   }
@@ -759,7 +858,15 @@ export class World3D implements WorldApi {
       const head = person.headTop(this.tmpA);
       this.rig.project(head, this.screenA);
       const height = Math.hypot(this.screenA.x - this.screenB.x, this.screenA.y - this.screenB.y);
-      this.capsules.push({ id: c.agentId, ax: this.screenB.x, ay: this.screenB.y, bx: this.screenA.x, by: this.screenA.y + height * 0.05, radius: clamp(height * 0.2, 9, 46), depth: this.screenB.depth });
+      this.capsules.push({
+        id: c.agentId,
+        ax: this.screenB.x,
+        ay: this.screenB.y,
+        bx: this.screenA.x,
+        by: this.screenA.y + height * 0.05,
+        radius: clamp(height * 0.2, 9, 46),
+        depth: this.screenB.depth,
+      });
     }
     const agent = pickCapsule(this.capsules, p.x, p.y);
     if (agent) return { type: 'agent', id: agent };
@@ -817,15 +924,34 @@ export class World3D implements WorldApi {
       roomId = area?.projectId ?? null;
     }
     this.setHover(agentId, roomId, p, desk);
-    this.canvasEl.style.cursor = picked || this.overBoard(p, picked) ? 'pointer' : this.rig.mode === 'overview' ? 'grab' : 'crosshair';
+    this.canvasEl.style.cursor =
+      picked || this.overBoard(p, picked) ? 'pointer' : this.rig.mode === 'overview' ? 'grab' : 'crosshair';
   }
 
-  private setHover(agentId: string | null, roomId: string | null, p: { x: number; y: number } | null, desk: DeskTarget | null = null): void {
-    const changed = agentId !== this.hover.agentId || roomId !== this.hover.roomId || desk?.deskIndex !== this.hoverDesk?.deskIndex || desk?.projectId !== this.hoverDesk?.projectId;
+  private setHover(
+    agentId: string | null,
+    roomId: string | null,
+    p: { x: number; y: number } | null,
+    desk: DeskTarget | null = null,
+  ): void {
+    const changed =
+      agentId !== this.hover.agentId ||
+      roomId !== this.hover.roomId ||
+      desk?.deskIndex !== this.hoverDesk?.deskIndex ||
+      desk?.projectId !== this.hoverDesk?.projectId;
     this.hover = { agentId, roomId };
     this.hoverDesk = desk;
     if (!changed && !(p && (agentId || roomId))) return;
-    const info: HoverInfo | null = p && (agentId || roomId) ? { agentId, roomId, x: p.x, y: p.y, ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}) } : null;
+    const info: HoverInfo | null =
+      p && (agentId || roomId)
+        ? {
+            agentId,
+            roomId,
+            x: p.x,
+            y: p.y,
+            ...(desk ? { desk: { projectId: desk.projectId, deskIndex: desk.deskIndex } } : {}),
+          }
+        : null;
     for (const cb of this.hoverListeners) cb(info);
   }
 

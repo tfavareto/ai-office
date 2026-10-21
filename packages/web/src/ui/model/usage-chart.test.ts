@@ -32,7 +32,12 @@ describe('niceScale', () => {
 });
 
 describe('buildChart', () => {
-  const options = { width: 400, height: 200, includeCacheRead: false, margin: { left: 40, top: 10, right: 0, bottom: 20 } };
+  const options = {
+    width: 400,
+    height: 200,
+    includeCacheRead: false,
+    margin: { left: 40, top: 10, right: 0, bottom: 20 },
+  };
 
   it('stacks the token types from the bottom and scales to the tallest bar', () => {
     // Arrange

@@ -4,7 +4,13 @@ import { SHARED_CATALOGS, translateShared } from '../index';
 
 const KEYS = Object.keys(SHARED_CATALOGS['pt-BR']);
 /** Keys whose text is the same in every language (placeholders, symbols, unit abbreviations). */
-const LANGUAGE_NEUTRAL = new Set(['activity.bash.run', 'activity.mcp', 'duration.seconds', 'duration.minutes', 'duration.hours']);
+const LANGUAGE_NEUTRAL = new Set([
+  'activity.bash.run',
+  'activity.mcp',
+  'duration.seconds',
+  'duration.minutes',
+  'duration.hours',
+]);
 const NUMERIC_PARAMS = new Set(['s', 'm', 'h', 'n']);
 
 function paramNames(template: string): string[] {
@@ -34,7 +40,8 @@ describe('shared catalogs', () => {
   test('every locale keeps the placeholders of the pt-BR text', () => {
     for (const key of KEYS) {
       const expected = paramNames(SHARED_CATALOGS['pt-BR'][key] as string);
-      for (const locale of LOCALES) expect([key, locale, paramNames(SHARED_CATALOGS[locale][key] as string)]).toEqual([key, locale, expected]);
+      for (const locale of LOCALES)
+        expect([key, locale, paramNames(SHARED_CATALOGS[locale][key] as string)]).toEqual([key, locale, expected]);
     }
   });
 
@@ -51,7 +58,9 @@ describe('shared catalogs', () => {
   });
 
   test('English is translated, not a copy of the Portuguese text, for every language-specific key', () => {
-    const untranslated = KEYS.filter((key) => !LANGUAGE_NEUTRAL.has(key) && SHARED_CATALOGS.en[key] === SHARED_CATALOGS['pt-BR'][key]);
+    const untranslated = KEYS.filter(
+      (key) => !LANGUAGE_NEUTRAL.has(key) && SHARED_CATALOGS.en[key] === SHARED_CATALOGS['pt-BR'][key],
+    );
     expect(untranslated).toEqual([]);
   });
 

@@ -29,7 +29,9 @@ function isMockMode(): boolean {
 }
 
 function showFatal(root: HTMLElement, message: string): void {
-  root.replaceChildren(h('div', { class: 'ao-fatal', role: 'alert' }, h('h1', null, 'AI Office'), h('p', null, message)));
+  root.replaceChildren(
+    h('div', { class: 'ao-fatal', role: 'alert' }, h('h1', null, 'AI Office'), h('p', null, message)),
+  );
 }
 
 function createStore(): Store {
@@ -68,7 +70,13 @@ async function main(): Promise<void> {
     store,
     app,
     world,
-    debug: () => ({ mode: store.mode, connection: store.data.connection, rev: store.snapshot?.rev ?? null, kind: world.kind, world: world.stats() }),
+    debug: () => ({
+      mode: store.mode,
+      connection: store.data.connection,
+      rev: store.snapshot?.rev ?? null,
+      kind: world.kind,
+      world: world.stats(),
+    }),
   };
 }
 

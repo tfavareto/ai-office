@@ -1,5 +1,14 @@
 import { describe, expect, test } from 'vitest';
-import { HOUR_MS, addDays, addMonths, floorToHour, periodRange, startOfDay, startOfMonth, startOfWeek } from './periods';
+import {
+  HOUR_MS,
+  addDays,
+  addMonths,
+  floorToHour,
+  periodRange,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from './periods';
 import { useTimeZone } from './test-zone';
 
 // A zone with daylight saving time: 2026-03-08 has 23 hours and 2026-11-01 has 25.

@@ -42,9 +42,16 @@ export interface SessionLabel {
   isSub: boolean;
 }
 
-export function sessionLabel(row: Pick<UsageSessionRow, 'session' | 'agent' | 'title'>, title: string | undefined): SessionLabel {
+export function sessionLabel(
+  row: Pick<UsageSessionRow, 'session' | 'agent' | 'title'>,
+  title: string | undefined,
+): SessionLabel {
   const own = title ?? row.title;
-  return { title: own !== undefined && own.trim().length > 0 ? own.trim() : undefined, shortId: (row.agent ?? row.session).slice(0, SHORT_ID_LENGTH), isSub: row.agent !== undefined };
+  return {
+    title: own !== undefined && own.trim().length > 0 ? own.trim() : undefined,
+    shortId: (row.agent ?? row.session).slice(0, SHORT_ID_LENGTH),
+    isSub: row.agent !== undefined,
+  };
 }
 
 /** Accounts the picker offers: every account of the snapshot, in order, with "all" first when there is more than one. */

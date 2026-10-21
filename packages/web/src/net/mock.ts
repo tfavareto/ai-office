@@ -1,7 +1,34 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
-import { RuleBook, autoAnswer, buildUsageDetail, createDemoSimulator, dayRange, demoDayReport, demoTimelapse, hourMapsFromRows, withOfficeSessions, type DemoSimulator, type GitSettings, type HireCheckResponse, type HireRequest, type OfficeSnapshot, type PermissionDecision, type RuleDraft, type RuleResult, type UsagePeriod } from '@ai-office/shared';
+import {
+  RuleBook,
+  autoAnswer,
+  buildUsageDetail,
+  createDemoSimulator,
+  dayRange,
+  demoDayReport,
+  demoTimelapse,
+  hourMapsFromRows,
+  withOfficeSessions,
+  type DemoSimulator,
+  type GitSettings,
+  type HireCheckResponse,
+  type HireRequest,
+  type OfficeSnapshot,
+  type PermissionDecision,
+  type RuleDraft,
+  type RuleResult,
+  type UsagePeriod,
+} from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type ReportQuery, type TimelapseQuery, type TranscriptQuery } from './backend';
+import {
+  BackendError,
+  RuleRejectedError,
+  type Backend,
+  type DecisionResult,
+  type ReportQuery,
+  type TimelapseQuery,
+  type TranscriptQuery,
+} from './backend';
 import { MockLog, mockDay, mockSessions } from './mock-data';
 import type { Transport, TransportHandlers } from './transport';
 
@@ -55,7 +82,10 @@ class MockTransport implements Transport {
 function unwrap<T>(result: RuleResult<T>): T {
   if (result.ok) return result.value;
   const { code, field, detail } = result.error;
-  throw new RuleRejectedError({ error: code, ...(field !== undefined ? { field } : {}), ...(detail !== undefined ? { detail } : {}) }, code === 'not-found' ? 404 : code === 'duplicate-rule' || code === 'too-many-rules' ? 409 : 400);
+  throw new RuleRejectedError(
+    { error: code, ...(field !== undefined ? { field } : {}), ...(detail !== undefined ? { detail } : {}) },
+    code === 'not-found' ? 404 : code === 'duplicate-rule' || code === 'too-many-rules' ? 409 : 400,
+  );
 }
 
 class MockBackend implements Backend {
@@ -97,7 +127,11 @@ class MockBackend implements Backend {
   }
 
   async transcript(query: TranscriptQuery) {
-    const agent = this.snapshot().agents.find((candidate) => candidate.sessionId === query.sessionId && (query.agentId ? candidate.id === query.agentId : candidate.kind === 'main'));
+    const agent = this.snapshot().agents.find(
+      (candidate) =>
+        candidate.sessionId === query.sessionId &&
+        (query.agentId ? candidate.id === query.agentId : candidate.kind === 'main'),
+    );
     return this.log.transcript(agent, query.after ?? 0);
   }
 
@@ -123,13 +157,27 @@ class MockBackend implements Backend {
     const range = dayRange(query.date);
     if (range === undefined) throw new BackendError(t('error.generic'), 400);
     const now = Date.now();
-    return demoDayReport({ range, now, locale: locale(), agents: this.sim.agents(), usageRows: this.sim.usageRows(now), account: query.account, includeRequests: query.includeRequests });
+    return demoDayReport({
+      range,
+      now,
+      locale: locale(),
+      agents: this.sim.agents(),
+      usageRows: this.sim.usageRows(now),
+      account: query.account,
+      includeRequests: query.includeRequests,
+    });
   }
 
   async timelapse(query: TimelapseQuery) {
     const range = dayRange(query.date);
     if (range === undefined) throw new BackendError(t('error.generic'), 400);
-    return demoTimelapse({ range, now: Date.now(), locale: locale(), agents: this.sim.agents(), account: query.account });
+    return demoTimelapse({
+      range,
+      now: Date.now(),
+      locale: locale(),
+      agents: this.sim.agents(),
+      account: query.account,
+    });
   }
 
   async setDemo(on: boolean): Promise<boolean> {
@@ -197,7 +245,16 @@ export function createMockEnvironment(): { transport: Transport; backend: Backen
     sessions: 4,
     pullRequests: () => pullRequests.on,
     autoDecide: (request, agent) =>
-      autoAnswer(book, { toolName: request.toolName, input: request.input, summary: request.summary, projectPath: agent.projectId, accountId: agent.accountId, agentId: agent.id, agentName: agent.name, demo: true })?.decision,
+      autoAnswer(book, {
+        toolName: request.toolName,
+        input: request.input,
+        summary: request.summary,
+        projectPath: agent.projectId,
+        accountId: agent.accountId,
+        agentId: agent.id,
+        agentName: agent.name,
+        demo: true,
+      })?.decision,
   });
   const log = new MockLog();
   const backend = new MockBackend(sim, log, book, pullRequests);

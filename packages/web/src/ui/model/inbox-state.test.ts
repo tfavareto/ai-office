@@ -43,7 +43,10 @@ describe('inbox state', () => {
     const now = 10 * SEEN_MAX_AGE_MS;
     const old = { ...EMPTY_INBOX_STATE, seen: { old: now - SEEN_MAX_AGE_MS - 1, recent: now - 1 } };
     expect(pruneSeen(old, now).seen).toEqual({ recent: now - 1 });
-    const many = { ...EMPTY_INBOX_STATE, seen: Object.fromEntries(Array.from({ length: SEEN_MAX_ENTRIES + 5 }, (_, i) => [`id${i}`, now - i])) };
+    const many = {
+      ...EMPTY_INBOX_STATE,
+      seen: Object.fromEntries(Array.from({ length: SEEN_MAX_ENTRIES + 5 }, (_, i) => [`id${i}`, now - i])),
+    };
     const pruned = pruneSeen(many, now);
     expect(Object.keys(pruned.seen)).toHaveLength(SEEN_MAX_ENTRIES);
     expect(isSeen(pruned, 'id0')).toBe(true);

@@ -5,7 +5,12 @@ export function makeProject(i: number): Project {
   return { id: `/work/proj-${i}`, name: `proj-${i}`, path: `/work/proj-${i}`, seed: 1000 + i * 7919, order: i };
 }
 
-export function makeAgent(id: string, projectIndex: number, status: AgentStatus = 'working', over: Partial<Agent> = {}): Agent {
+export function makeAgent(
+  id: string,
+  projectIndex: number,
+  status: AgentStatus = 'working',
+  over: Partial<Agent> = {},
+): Agent {
   return {
     id,
     kind: 'main',

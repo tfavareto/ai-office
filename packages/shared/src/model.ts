@@ -337,7 +337,8 @@ export interface DayStats {
 // ---- Approval rules -------------------------------------------------------------------------------------------------
 
 /** Why a request deserves a second look (destructive, privileged or hard to undo). */
-export type RiskReason = 'delete' | 'sudo' | 'force-push' | 'reset' | 'permissions' | 'pipe-shell' | 'disk' | 'data' | 'sensitive-file';
+export type RiskReason =
+  'delete' | 'sudo' | 'force-push' | 'reset' | 'permissions' | 'pipe-shell' | 'disk' | 'data' | 'sensitive-file';
 
 /** Why an allow rule never answers a request: a {@link RiskReason}, or code that runs inline (`bash -c`, `node -e`). */
 export type RuleBlockReason = RiskReason | 'inline-code';

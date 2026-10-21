@@ -163,7 +163,15 @@ export class TranscriptState {
       if (tool.name !== 'Bash' || tool.background || this.jobs.has(tool.id)) continue;
       if (now - tool.at < FOREGROUND_SHELL_AFTER_MS) continue;
       const draft = describeToolUse('Bash', tool.input);
-      shells.push({ id: tool.id, label: draft.text, labelMsg: draft.msg, ...(draft.detail ? { command: draft.detail } : {}), background: false, kind: 'shell', startedAt: tool.at });
+      shells.push({
+        id: tool.id,
+        label: draft.text,
+        labelMsg: draft.msg,
+        ...(draft.detail ? { command: draft.detail } : {}),
+        background: false,
+        kind: 'shell',
+        startedAt: tool.at,
+      });
     }
     return shells;
   }
@@ -282,7 +290,8 @@ export class TranscriptState {
       const name = tool?.name ?? 'ferramenta';
       effects.toolResults.push({ toolUseId: result.toolUseId, name });
       if (line.structured !== undefined) this.applyStructured(result.toolUseId, tool, line.structured);
-      if (tool !== undefined && !(tool.name in USER_TOOLS) && !line.structured?.asyncAgent) this.finishTool(tool, line.structured, line.at);
+      if (tool !== undefined && !(tool.name in USER_TOOLS) && !line.structured?.asyncAgent)
+        this.finishTool(tool, line.structured, line.at);
       if (result.isError) {
         effects.error = { tool: name, detail: result.text.slice(0, 400) };
         this.push(errorDraft(name, result.text), line.at, effects);
@@ -292,7 +301,8 @@ export class TranscriptState {
 
   private finishTool(tool: PendingTool, structured: StructuredResult | undefined, at: number): void {
     const spawn = this.spawnMap.get(tool.id);
-    if (spawn !== undefined && !(structured?.asyncAgent ?? false)) this.spawnMap.set(tool.id, { ...spawn, done: true, doneAt: at });
+    if (spawn !== undefined && !(structured?.asyncAgent ?? false))
+      this.spawnMap.set(tool.id, { ...spawn, done: true, doneAt: at });
     if (tool.name === 'Bash' && !tool.background) this.jobs.delete(tool.id);
   }
 
@@ -301,7 +311,11 @@ export class TranscriptState {
     if (structured.backgroundTaskId !== undefined) this.taskAliases.set(structured.backgroundTaskId, toolUseId);
     const spawn = this.spawnMap.get(toolUseId);
     if (spawn !== undefined && structured.asyncAgent) {
-      this.spawnMap.set(toolUseId, { ...spawn, async: true, ...(structured.agentId !== undefined ? { agentId: structured.agentId } : {}) });
+      this.spawnMap.set(toolUseId, {
+        ...spawn,
+        async: true,
+        ...(structured.agentId !== undefined ? { agentId: structured.agentId } : {}),
+      });
     }
     if (tool?.name === 'TaskCreate' && structured.createdTaskId !== undefined) {
       this.tasksList = renameTask(this.tasksList, `pending:${toolUseId}`, structured.createdTaskId);
@@ -315,7 +329,8 @@ export class TranscriptState {
       this.jobs.delete(resolved);
       this.pending.delete(resolved);
       this.rememberResult(resolved);
-      const spawn = this.spawnMap.get(resolved) ?? [...this.spawnMap.values()].find((candidate) => candidate.agentId === id);
+      const spawn =
+        this.spawnMap.get(resolved) ?? [...this.spawnMap.values()].find((candidate) => candidate.agentId === id);
       if (spawn !== undefined) this.spawnMap.set(spawn.toolUseId, { ...spawn, done: true, doneAt: at });
     }
   }
@@ -327,7 +342,12 @@ export class TranscriptState {
     }
     if (line.model !== undefined) this.model = line.model;
     if (line.usage !== undefined) this.stats.addUsage(line.messageId, line.model, line.usage);
-    if (line.apiError) this.push(errorDraft('API', line.blocks.map((b) => (b.type === 'text' ? b.text : '')).join(' ')), line.at, effects);
+    if (line.apiError)
+      this.push(
+        errorDraft('API', line.blocks.map((b) => (b.type === 'text' ? b.text : '')).join(' ')),
+        line.at,
+        effects,
+      );
     for (const block of line.blocks) {
       if (block.type === 'thinking') this.push(thinkingDraft(), line.at, effects);
       else if (block.type === 'text' && !line.apiError) this.push(replyDraft(block.text), line.at, effects);
@@ -359,8 +379,10 @@ export class TranscriptState {
     else if (name === 'Monitor') this.addJob(id, input, 'monitor', at);
     else if (name === 'KillShell' || name === 'TaskStop') this.removeJob(input);
     else if (name === 'TodoWrite') this.tasksList = stampTaskChanges(this.tasksList, tasksFromTodoWrite(input), at);
-    else if (name === 'TaskCreate') this.tasksList = stampTaskChanges(this.tasksList, appendTask(this.tasksList, input, `pending:${id}`), at);
-    else if (name === 'TaskUpdate') this.tasksList = stampTaskChanges(this.tasksList, updateTask(this.tasksList, input), at);
+    else if (name === 'TaskCreate')
+      this.tasksList = stampTaskChanges(this.tasksList, appendTask(this.tasksList, input, `pending:${id}`), at);
+    else if (name === 'TaskUpdate')
+      this.tasksList = stampTaskChanges(this.tasksList, updateTask(this.tasksList, input), at);
   }
 
   private registerSpawn(id: string, input: Record<string, unknown>, at: number, background: boolean): void {
@@ -378,7 +400,15 @@ export class TranscriptState {
   private addJob(id: string, input: Record<string, unknown>, kind: ShellJob['kind'], at: number): void {
     const draft = describeToolUse(kind === 'monitor' ? 'Monitor' : 'Bash', input);
     const command = asString(input.command);
-    this.jobs.set(id, { id, label: draft.text, labelMsg: draft.msg, ...(command !== undefined ? { command } : {}), background: true, kind, startedAt: at });
+    this.jobs.set(id, {
+      id,
+      label: draft.text,
+      labelMsg: draft.msg,
+      ...(command !== undefined ? { command } : {}),
+      background: true,
+      kind,
+      startedAt: at,
+    });
   }
 
   private removeJob(input: Record<string, unknown>): void {

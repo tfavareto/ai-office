@@ -11,7 +11,15 @@ const SKIRT_Y = 28;
 const PANE_Y = 4;
 const PANE_H = 6;
 
-function slats(ctx: Ctx, x: number, y: number, w: number, h: number, wood: { dark: string; base: string; mid: string; light: string; hi: string }, seed: number): void {
+function slats(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  wood: { dark: string; base: string; mid: string; light: string; hi: string },
+  seed: number,
+): void {
   rect(ctx, x, y, w, h, wood.dark);
   for (let sx = 0; sx < w; sx += 3) {
     const tone = noise2(Math.floor((x + sx) / 3), seed, 3);
@@ -199,7 +207,8 @@ export function paintDoors(ctx: Ctx, area: AreaLayout, corridorFloor: AreaLayout
     const h = door.rect.h * T;
     ctx.clearRect(x, y, w, h);
     if (area.row === 'north') {
-      for (let i = 0; i < door.rect.w; i++) paintFloorTile(ctx, corridorFloor, door.rect.x + i, door.rect.y, x + i * T, y, 'corridor');
+      for (let i = 0; i < door.rect.w; i++)
+        paintFloorTile(ctx, corridorFloor, door.rect.x + i, door.rect.y, x + i * T, y, 'corridor');
       rect(ctx, x, y + 5, w, 1, BRASS.base);
       rect(ctx, x - 2, y + 3, 2, 13, BRASS.dark);
       rect(ctx, x + w, y + 3, 2, 13, BRASS.dark);
@@ -211,7 +220,8 @@ export function paintDoors(ctx: Ctx, area: AreaLayout, corridorFloor: AreaLayout
     } else {
       rect(ctx, x, y, w, h, '#2b2118');
       for (let j = 0; j < door.rect.h; j++) {
-        for (let i = 0; i < door.rect.w; i++) paintFloorTile(ctx, corridorFloor, door.rect.x + i, door.rect.y + j, x + i * T, y + j * T, 'corridor');
+        for (let i = 0; i < door.rect.w; i++)
+          paintFloorTile(ctx, corridorFloor, door.rect.x + i, door.rect.y + j, x + i * T, y + j * T, 'corridor');
       }
       rect(ctx, x, y, w, h, 'rgba(20,16,12,0.28)');
       rect(ctx, x - 2, y, 2, h, BRASS.dark);

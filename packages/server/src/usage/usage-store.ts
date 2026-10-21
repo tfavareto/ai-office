@@ -39,19 +39,27 @@ export class UsageStore {
 
   /** Adds (or, with negative numbers, corrects) the usage of one cell. */
   add(delta: UsageRow): void {
-    if (delta.input === 0 && delta.output === 0 && delta.cacheWrite === 0 && delta.cacheRead === 0 && delta.costUSD === 0) return;
+    if (
+      delta.input === 0 &&
+      delta.output === 0 &&
+      delta.cacheWrite === 0 &&
+      delta.cacheRead === 0 &&
+      delta.costUSD === 0
+    )
+      return;
     const key = rowKey(delta);
     const current = this.rows.get(key);
-    const next: UsageRow = current === undefined
-      ? { ...delta, costUSD: roundCost(delta.costUSD) }
-      : {
-          ...current,
-          input: current.input + delta.input,
-          output: current.output + delta.output,
-          cacheWrite: current.cacheWrite + delta.cacheWrite,
-          cacheRead: current.cacheRead + delta.cacheRead,
-          costUSD: roundCost(current.costUSD + delta.costUSD),
-        };
+    const next: UsageRow =
+      current === undefined
+        ? { ...delta, costUSD: roundCost(delta.costUSD) }
+        : {
+            ...current,
+            input: current.input + delta.input,
+            output: current.output + delta.output,
+            cacheWrite: current.cacheWrite + delta.cacheWrite,
+            cacheRead: current.cacheRead + delta.cacheRead,
+            costUSD: roundCost(current.costUSD + delta.costUSD),
+          };
     this.rows.set(key, next);
     this.bumpHour(delta);
     this.dirty.add(monthOf(delta.hour));
@@ -65,7 +73,10 @@ export class UsageStore {
       this.hours.set(delta.account, hours);
     }
     const found = hours.get(delta.hour);
-    hours.set(delta.hour, { tokens: Math.max(0, (found?.tokens ?? 0) + rowTokens(delta)), costUSD: Math.max(0, roundCost((found?.costUSD ?? 0) + delta.costUSD)) });
+    hours.set(delta.hour, {
+      tokens: Math.max(0, (found?.tokens ?? 0) + rowTokens(delta)),
+      costUSD: Math.max(0, roundCost((found?.costUSD ?? 0) + delta.costUSD)),
+    });
   }
 
   /** Months changed since the last `takeDirty`. */

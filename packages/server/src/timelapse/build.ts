@@ -81,7 +81,9 @@ interface Draft {
 }
 
 function projectOf(files: readonly TraceFile[]): string {
-  return files.find((file) => file.agent === '')?.day.cwd ?? files.find((file) => file.day.cwd !== undefined)?.day.cwd ?? '';
+  return (
+    files.find((file) => file.agent === '')?.day.cwd ?? files.find((file) => file.day.cwd !== undefined)?.day.cwd ?? ''
+  );
 }
 
 function mainIntervals(spans: readonly TraceSpan[], input: BuildInput): Interval[] {
@@ -93,9 +95,11 @@ function mainIntervals(spans: readonly TraceSpan[], input: BuildInput): Interval
 
 /** The spawn a subagent file belongs to: by the tool call id in its meta, else the closest earlier unclaimed call. */
 function spawnOf(file: TraceFile, spawns: readonly TraceSpawn[], claimed: Set<string>): TraceSpawn | undefined {
-  const byId = file.meta?.toolUseId === undefined ? undefined : spawns.find((spawn) => spawn.toolUseId === file.meta?.toolUseId);
+  const byId =
+    file.meta?.toolUseId === undefined ? undefined : spawns.find((spawn) => spawn.toolUseId === file.meta?.toolUseId);
   const first = file.trace.firstAt ?? 0;
-  const found = byId ?? [...spawns].reverse().find((spawn) => !claimed.has(spawn.toolUseId) && spawn.at <= first + 5000);
+  const found =
+    byId ?? [...spawns].reverse().find((spawn) => !claimed.has(spawn.toolUseId) && spawn.at <= first + 5000);
   if (found !== undefined) claimed.add(found.toolUseId);
   return found;
 }
@@ -117,14 +121,32 @@ function collectDrafts(input: BuildInput): Draft[] {
     const mainId = `${session.accountId}:${session.sessionId}`;
     const projectPath = projectOf(session.files);
     if (projectPath === '') continue;
-    drafts.push({ id: mainId, kind: 'main', accountId: session.accountId, projectPath, file: main, intervals: mainIntervals(main.trace.spans, input) });
+    drafts.push({
+      id: mainId,
+      kind: 'main',
+      accountId: session.accountId,
+      projectPath,
+      file: main,
+      intervals: mainIntervals(main.trace.spans, input),
+    });
     const claimed = new Set<string>();
-    const subs = session.files.filter((file) => file.agent !== '').sort((a, b) => (a.trace.firstAt ?? 0) - (b.trace.firstAt ?? 0));
+    const subs = session.files
+      .filter((file) => file.agent !== '')
+      .sort((a, b) => (a.trace.firstAt ?? 0) - (b.trace.firstAt ?? 0));
     for (const file of subs) {
       const spawn = spawnOf(file, main.trace.spawns, claimed);
       const interval = subInterval(file, spawn, input);
       if (interval === undefined) continue;
-      drafts.push({ id: `${mainId}:${file.agent}`, kind: 'sub', parentId: mainId, accountId: session.accountId, projectPath, file, ...(spawn !== undefined ? { spawn } : {}), intervals: [interval] });
+      drafts.push({
+        id: `${mainId}:${file.agent}`,
+        kind: 'sub',
+        parentId: mainId,
+        accountId: session.accountId,
+        projectPath,
+        file,
+        ...(spawn !== undefined ? { spawn } : {}),
+        intervals: [interval],
+      });
     }
   }
   return drafts;
@@ -147,7 +169,12 @@ function statusPoints(draft: Draft): StatusPoint[] {
     const status = draft.kind === 'sub' && event.status === 'idle' ? 'working' : event.status;
     const previous = points[points.length - 1];
     if (previous !== undefined && previous.status === status && previous.waitingFor === event.waitingFor) continue;
-    points.push({ at: event.at, status, ...(event.waitingFor !== undefined ? { waitingFor: event.waitingFor } : {}), ...(event.waitingForMsg !== undefined ? { waitingForMsg: event.waitingForMsg } : {}) });
+    points.push({
+      at: event.at,
+      status,
+      ...(event.waitingFor !== undefined ? { waitingFor: event.waitingFor } : {}),
+      ...(event.waitingForMsg !== undefined ? { waitingForMsg: event.waitingForMsg } : {}),
+    });
   }
   return points;
 }
@@ -162,7 +189,14 @@ function statusAt(points: readonly StatusPoint[], at: number, kind: Draft['kind'
 }
 
 function statusEvent(index: number, point: StatusPoint, at: number): TimelapseEvent {
-  return { at, type: 'status', agent: index, status: point.status, ...(point.waitingFor !== undefined ? { waitingFor: point.waitingFor } : {}), ...(point.waitingForMsg !== undefined ? { waitingForMsg: point.waitingForMsg } : {}) };
+  return {
+    at,
+    type: 'status',
+    agent: index,
+    status: point.status,
+    ...(point.waitingFor !== undefined ? { waitingFor: point.waitingFor } : {}),
+    ...(point.waitingForMsg !== undefined ? { waitingForMsg: point.waitingForMsg } : {}),
+  };
 }
 
 function inInterval(at: number, interval: Interval): boolean {
@@ -171,11 +205,17 @@ function inInterval(at: number, interval: Interval): boolean {
 
 function agentEvents(draft: Draft, index: number): TimelapseEvent[] {
   const points = statusPoints(draft);
-  const stream = [...draft.file.trace.events.flatMap((event) => mapEvent(event, index)), ...points.map((point) => statusEvent(index, point, point.at))].sort(compareEvents);
+  const stream = [
+    ...draft.file.trace.events.flatMap((event) => mapEvent(event, index)),
+    ...points.map((point) => statusEvent(index, point, point.at)),
+  ].sort(compareEvents);
   const events: TimelapseEvent[] = [];
   const openShells = new Set<string>();
   for (const interval of draft.intervals) {
-    events.push({ at: interval.from, type: 'arrive', agent: index }, statusEvent(index, statusAt(points, interval.from, draft.kind), interval.from));
+    events.push(
+      { at: interval.from, type: 'arrive', agent: index },
+      statusEvent(index, statusAt(points, interval.from, draft.kind), interval.from),
+    );
     for (const event of stream) {
       if (!inInterval(event.at, interval) || (event.type === 'status' && event.at <= interval.from)) continue;
       events.push(event);
@@ -185,7 +225,8 @@ function agentEvents(draft: Draft, index: number): TimelapseEvent[] {
       }
     }
     if (interval.to === undefined) continue;
-    for (const id of openShells) events.push({ at: interval.to, type: 'shell', agent: index, on: false, id, background: false });
+    for (const id of openShells)
+      events.push({ at: interval.to, type: 'shell', agent: index, on: false, id, background: false });
     openShells.clear();
     events.push({ at: interval.to, type: 'leave', agent: index });
   }
@@ -195,11 +236,33 @@ function agentEvents(draft: Draft, index: number): TimelapseEvent[] {
 function mapEvent(event: TraceEvent, agent: number): TimelapseEvent[] {
   switch (event.t) {
     case 'activity':
-      return [{ at: event.at, type: 'activity', agent, kind: event.kind, icon: event.icon, text: event.text, msg: event.msg, ...(event.error === true ? { error: true } : {}) }];
+      return [
+        {
+          at: event.at,
+          type: 'activity',
+          agent,
+          kind: event.kind,
+          icon: event.icon,
+          text: event.text,
+          msg: event.msg,
+          ...(event.error === true ? { error: true } : {}),
+        },
+      ];
     case 'tasks':
       return [{ at: event.at, type: 'tasks', agent, tasks: event.tasks }];
     case 'shell':
-      return [{ at: event.at, type: 'shell', agent, on: event.on, id: event.id, background: event.background, ...(event.label !== undefined ? { label: event.label } : {}), ...(event.labelMsg !== undefined ? { labelMsg: event.labelMsg } : {}) }];
+      return [
+        {
+          at: event.at,
+          type: 'shell',
+          agent,
+          on: event.on,
+          id: event.id,
+          background: event.background,
+          ...(event.label !== undefined ? { label: event.label } : {}),
+          ...(event.labelMsg !== undefined ? { labelMsg: event.labelMsg } : {}),
+        },
+      ];
     case 'permission':
       return [{ at: event.at, type: 'permission', agent, tool: event.tool, durationMs: event.durationMs }];
     case 'status':
@@ -221,7 +284,12 @@ function testEvents(draft: Draft, index: number): TimelapseEvent[] {
   }));
 }
 
-function commitEvents(drafts: readonly Draft[], indexes: ReadonlyMap<string, number>, projects: ReadonlyMap<string, number>, input: BuildInput): TimelapseEvent[] {
+function commitEvents(
+  drafts: readonly Draft[],
+  indexes: ReadonlyMap<string, number>,
+  projects: ReadonlyMap<string, number>,
+  input: BuildInput,
+): TimelapseEvent[] {
   const events: TimelapseEvent[] = [];
   for (const [path, project] of projects) {
     const agentOf = new Map<ReportCommit, number>();
@@ -252,7 +320,9 @@ function commitEvents(drafts: readonly Draft[], indexes: ReadonlyMap<string, num
 // ---- the day -----------------------------------------------------------------------------------------------------
 
 function projectsOf(drafts: readonly Draft[], arrivals: ReadonlyMap<string, number>): TimelapseProject[] {
-  const paths = [...new Set(drafts.map((draft) => draft.projectPath))].sort((a, b) => (arrivals.get(a) ?? 0) - (arrivals.get(b) ?? 0) || a.localeCompare(b));
+  const paths = [...new Set(drafts.map((draft) => draft.projectPath))].sort(
+    (a, b) => (arrivals.get(a) ?? 0) - (arrivals.get(b) ?? 0) || a.localeCompare(b),
+  );
   return paths.map((path, order) => ({ id: path, name: basename(path), order, seed: fnv1a(path) }));
 }
 
@@ -261,14 +331,19 @@ function identity(draft: Draft, person: PersonName, input: BuildInput): Timelaps
   const recorded = input.recordedOf(draft.id);
   const title = draft.kind === 'main' ? file.trace.title : (file.meta?.description ?? draft.spawn?.description);
   const subRole = file.meta?.agentType ?? draft.spawn?.subagentType;
-  const role = draft.kind === 'main' ? sourceText(msg('agent.role.main')) : (subRole ?? sourceText(msg('agent.role.sub')));
+  const role =
+    draft.kind === 'main' ? sourceText(msg('agent.role.main')) : (subRole ?? sourceText(msg('agent.role.sub')));
   return {
     id: draft.id,
     kind: draft.kind,
     ...(draft.parentId !== undefined ? { parentId: draft.parentId } : {}),
     name: person.name,
     role,
-    ...(draft.kind === 'main' ? { roleMsg: msg('agent.role.main') } : subRole === undefined ? { roleMsg: msg('agent.role.sub') } : {}),
+    ...(draft.kind === 'main'
+      ? { roleMsg: msg('agent.role.main') }
+      : subRole === undefined
+        ? { roleMsg: msg('agent.role.sub') }
+        : {}),
     ...(title !== undefined ? { title: truncate(maskSecrets(title), PARAM_MAX) } : {}),
     accountId: draft.accountId,
     projectId: draft.projectPath,
@@ -290,9 +365,17 @@ function firstArrivals(drafts: readonly Draft[]): Map<string, number> {
 export function buildTimelapse(input: BuildInput): Timelapse {
   const base = { date: input.date, generatedAt: input.now, account: input.account, start: input.start, end: input.end };
   const all = collectDrafts(input).sort((a, b) => (a.intervals[0]?.from ?? 0) - (b.intervals[0]?.from ?? 0));
-  const mains = new Set(all.filter((draft) => draft.kind === 'main').slice(0, TIMELAPSE_MAX_AGENTS).map((draft) => draft.id));
-  const drafts = all.filter((draft) => (draft.kind === 'main' ? mains.has(draft.id) : mains.has(draft.parentId as string))).slice(0, TIMELAPSE_MAX_AGENTS);
-  if (drafts.length === 0) return { ...base, projects: [], agents: [], events: [], ...(input.truncated ? { truncated: true } : {}) };
+  const mains = new Set(
+    all
+      .filter((draft) => draft.kind === 'main')
+      .slice(0, TIMELAPSE_MAX_AGENTS)
+      .map((draft) => draft.id),
+  );
+  const drafts = all
+    .filter((draft) => (draft.kind === 'main' ? mains.has(draft.id) : mains.has(draft.parentId as string)))
+    .slice(0, TIMELAPSE_MAX_AGENTS);
+  if (drafts.length === 0)
+    return { ...base, projects: [], agents: [], events: [], ...(input.truncated ? { truncated: true } : {}) };
 
   const projects = projectsOf(drafts, firstArrivals(drafts));
   const projectIndex = new Map(projects.map((project, index) => [project.id, index]));

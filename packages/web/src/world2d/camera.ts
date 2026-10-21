@@ -74,7 +74,8 @@ export class Camera {
 
   /** True when nothing is easing any more. */
   get settled(): boolean {
-    const pinMoving = this.pin !== null && this.pinGoal !== null && (this.pin.x !== this.pinGoal.x || this.pin.y !== this.pinGoal.y);
+    const pinMoving =
+      this.pin !== null && this.pinGoal !== null && (this.pin.x !== this.pinGoal.x || this.pin.y !== this.pinGoal.y);
     return this.zoom === this.tz && !pinMoving && this.easedInsets === null;
   }
 

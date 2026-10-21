@@ -181,12 +181,22 @@
 }
 
 .ao-usage-fill--input,
-.ao-usage-seg--input { fill: var(--usage-input); }
+.ao-usage-seg--input {
+  fill: var(--usage-input);
+}
 .ao-usage-fill--output,
-.ao-usage-seg--output { fill: var(--usage-output); }
-.ao-usage-fill--cacheWrite { fill: var(--usage-cache-write); }
-.ao-usage-fill--cacheRead { fill: var(--usage-cache-read); }
-.ao-usage-hatch { fill: rgba(11, 17, 27, 0.55); }
+.ao-usage-seg--output {
+  fill: var(--usage-output);
+}
+.ao-usage-fill--cacheWrite {
+  fill: var(--usage-cache-write);
+}
+.ao-usage-fill--cacheRead {
+  fill: var(--usage-cache-read);
+}
+.ao-usage-hatch {
+  fill: rgba(11, 17, 27, 0.55);
+}
 
 .ao-usage-gridline,
 .ao-usage-axis {
@@ -398,10 +408,18 @@
   background: var(--idle);
 }
 
-.ao-usage-family--opus { background: var(--accent); }
-.ao-usage-family--sonnet { background: var(--working); }
-.ao-usage-family--haiku { background: var(--waiting); }
-.ao-usage-family--fable { background: var(--shell); }
+.ao-usage-family--opus {
+  background: var(--accent);
+}
+.ao-usage-family--sonnet {
+  background: var(--working);
+}
+.ao-usage-family--haiku {
+  background: var(--waiting);
+}
+.ao-usage-family--fable {
+  background: var(--shell);
+}
 
 .ao-usage-link {
   max-width: 100%;
@@ -540,10 +558,18 @@
   transition: width var(--t-base) var(--ease);
 }
 
-.ao-usage-meter--ok .ao-usage-meter-track > span { background: var(--working); }
-.ao-usage-meter--near .ao-usage-meter-track > span { background: var(--waiting); }
-.ao-usage-meter--alert .ao-usage-meter-track > span { background: var(--error); }
-.ao-usage-meter--muted .ao-usage-meter-track > span { background: var(--idle); }
+.ao-usage-meter--ok .ao-usage-meter-track > span {
+  background: var(--working);
+}
+.ao-usage-meter--near .ao-usage-meter-track > span {
+  background: var(--waiting);
+}
+.ao-usage-meter--alert .ao-usage-meter-track > span {
+  background: var(--error);
+}
+.ao-usage-meter--muted .ao-usage-meter-track > span {
+  background: var(--idle);
+}
 
 .ao-usage-forecast-grid {
   display: grid;
@@ -557,9 +583,15 @@
   border-left: 3px solid var(--idle);
 }
 
-.ao-usage-forecast--ok { border-left-color: var(--working); }
-.ao-usage-forecast--near { border-left-color: var(--waiting); }
-.ao-usage-forecast--alert { border-left-color: var(--error); }
+.ao-usage-forecast--ok {
+  border-left-color: var(--working);
+}
+.ao-usage-forecast--near {
+  border-left-color: var(--waiting);
+}
+.ao-usage-forecast--alert {
+  border-left-color: var(--error);
+}
 
 .ao-usage-forecast h4 {
   margin: 0;

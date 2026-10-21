@@ -22,21 +22,52 @@ export interface Marker {
 }
 
 function raw(timelapse: Timelapse): Marker[] {
-  const projectOf = (agent: number): string => timelapse.projects.find((project) => project.id === timelapse.agents[agent]?.projectId)?.name ?? '';
+  const projectOf = (agent: number): string =>
+    timelapse.projects.find((project) => project.id === timelapse.agents[agent]?.projectId)?.name ?? '';
   const markers: Marker[] = [];
   for (const event of timelapse.events) {
     switch (event.type) {
       case 'commit':
-        markers.push({ at: event.at, kind: 'commit', ...(event.agent !== undefined ? { agent: timelapse.agents[event.agent]?.name ?? '' } : {}), project: timelapse.projects[event.project]?.name ?? '', detail: event.subject, count: 1 });
+        markers.push({
+          at: event.at,
+          kind: 'commit',
+          ...(event.agent !== undefined ? { agent: timelapse.agents[event.agent]?.name ?? '' } : {}),
+          project: timelapse.projects[event.project]?.name ?? '',
+          detail: event.subject,
+          count: 1,
+        });
         break;
       case 'test':
-        if (event.outcome === 'failed') markers.push({ at: event.at, kind: 'test-failed', agent: timelapse.agents[event.agent]?.name ?? '', project: projectOf(event.agent), detail: event.runner, count: 1 });
+        if (event.outcome === 'failed')
+          markers.push({
+            at: event.at,
+            kind: 'test-failed',
+            agent: timelapse.agents[event.agent]?.name ?? '',
+            project: projectOf(event.agent),
+            detail: event.runner,
+            count: 1,
+          });
         break;
       case 'permission':
-        markers.push({ at: event.at, kind: 'wait', agent: timelapse.agents[event.agent]?.name ?? '', project: projectOf(event.agent), detail: event.tool, durationMs: event.durationMs, count: 1 });
+        markers.push({
+          at: event.at,
+          kind: 'wait',
+          agent: timelapse.agents[event.agent]?.name ?? '',
+          project: projectOf(event.agent),
+          detail: event.tool,
+          durationMs: event.durationMs,
+          count: 1,
+        });
         break;
       case 'arrive':
-        if (timelapse.agents[event.agent]?.kind === 'main') markers.push({ at: event.at, kind: 'arrival', agent: timelapse.agents[event.agent]?.name ?? '', project: projectOf(event.agent), count: 1 });
+        if (timelapse.agents[event.agent]?.kind === 'main')
+          markers.push({
+            at: event.at,
+            kind: 'arrival',
+            agent: timelapse.agents[event.agent]?.name ?? '',
+            project: projectOf(event.agent),
+            count: 1,
+          });
         break;
       default:
         break;
@@ -71,7 +102,8 @@ export function markerNear(markers: readonly Marker[], at: number, toleranceMs: 
     if (best === undefined) best = marker;
     else {
       const bestDistance = Math.abs(best.at - at);
-      if (distance < bestDistance || (distance === bestDistance && PRIORITY[marker.kind] < PRIORITY[best.kind])) best = marker;
+      if (distance < bestDistance || (distance === bestDistance && PRIORITY[marker.kind] < PRIORITY[best.kind]))
+        best = marker;
     }
   }
   return best;

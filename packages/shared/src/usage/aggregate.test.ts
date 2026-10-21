@@ -10,12 +10,29 @@ const local = (y: number, m: number, d: number, h = 0, min = 0): number => new D
 const hourAt = (at: number): number => Math.floor(at / HOUR_MS) * HOUR_MS;
 
 function row(at: number, over: Partial<UsageRow> = {}): UsageRow {
-  return { hour: hourAt(at), account: 'a', project: '/work/alpha', model: 'claude-sonnet-5-5', session: 's1', agent: '', input: 10, output: 20, cacheWrite: 30, cacheRead: 400, costUSD: 1, ...over };
+  return {
+    hour: hourAt(at),
+    account: 'a',
+    project: '/work/alpha',
+    model: 'claude-sonnet-5-5',
+    session: 's1',
+    agent: '',
+    input: 10,
+    output: 20,
+    cacheWrite: 30,
+    cacheRead: 400,
+    costUSD: 1,
+    ...over,
+  };
 }
 
 function detail(rows: UsageRow[], now: number, period: 'today' | 'week' | 'month' = 'today', accounts = ['a']) {
   const maps = hourMapsFromRows(rows);
-  return buildUsageDetail(rows, { accounts, label: accounts.length === 1 ? (accounts[0] as string) : 'all', period, now }, (account) => maps.get(account) ?? new Map());
+  return buildUsageDetail(
+    rows,
+    { accounts, label: accounts.length === 1 ? (accounts[0] as string) : 'all', period, now },
+    (account) => maps.get(account) ?? new Map(),
+  );
 }
 
 describe('totals and breakdowns', () => {
@@ -131,7 +148,12 @@ describe('comparison and windows', () => {
 
   test('carries the indexing progress', () => {
     const maps = hourMapsFromRows([]);
-    const result = buildUsageDetail([], { accounts: ['a'], label: 'a', period: 'today', now: 1_000_000_000_000 }, (a) => maps.get(a) ?? new Map(), { state: 'indexing', percent: 42, filesDone: 3, filesTotal: 7 });
+    const result = buildUsageDetail(
+      [],
+      { accounts: ['a'], label: 'a', period: 'today', now: 1_000_000_000_000 },
+      (a) => maps.get(a) ?? new Map(),
+      { state: 'indexing', percent: 42, filesDone: 3, filesTotal: 7 },
+    );
     expect(result.progress).toEqual({ state: 'indexing', percent: 42, filesDone: 3, filesTotal: 7 });
   });
 });

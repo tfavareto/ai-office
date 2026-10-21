@@ -156,7 +156,8 @@ export const uiPtBR = {
   'usage.kind.cacheRead': 'Leitura de cache',
   'usage.tip.total': '{n} tokens',
   'usage.tip.cost': '{cost} estimado',
-  'usage.bar.label': '{when}: {total} tokens, {cost}. Entrada {input}, saída {output}, escrita de cache {cacheWrite}, leitura de cache {cacheRead}.',
+  'usage.bar.label':
+    '{when}: {total} tokens, {cost}. Entrada {input}, saída {output}, escrita de cache {cacheWrite}, leitura de cache {cacheRead}.',
   'usage.window.used': '{tokens} tokens · {cost}',
   'usage.window.idle': 'Nenhuma janela aberta: a próxima começa na sua próxima mensagem.',
   'usage.gauge.time': 'Tempo da janela',
@@ -165,7 +166,8 @@ export const uiPtBR = {
   'usage.gauge.usage': 'Uso da referência',
   'usage.gauge.noReference': 'sem referência',
   'usage.forecast.title': 'Previsão de limite',
-  'usage.forecast.estimate': 'Estimativa: o seu plano não mostra os limites neste computador. A referência é o limite que você informar ou, sem ele, o seu maior bloco recente.',
+  'usage.forecast.estimate':
+    'Estimativa: o seu plano não mostra os limites neste computador. A referência é o limite que você informar ou, sem ele, o seu maior bloco recente.',
   'usage.forecast.scope.window5h': 'Janela de 5 h',
   'usage.forecast.scope.week': 'Semana',
   'usage.forecast.window.pace': 'No ritmo atual, você chega a {amount} até {time} (fim da janela).',
@@ -175,12 +177,14 @@ export const uiPtBR = {
   'usage.forecast.idle.week': 'Sem consumo na última meia hora: a semana termina em {amount}.',
   'usage.forecast.over.configured': 'Você já usou {used}, acima do seu limite de {limit}.',
   'usage.forecast.over.estimate': 'Você já usou {used}, acima do seu maior bloco recente ({limit}).',
-  'usage.forecast.none': 'Ainda sem referência: informe o seu limite em "Limites" ou use mais alguns blocos de 5 h para estimar.',
+  'usage.forecast.none':
+    'Ainda sem referência: informe o seu limite em "Limites" ou use mais alguns blocos de 5 h para estimar.',
   'usage.forecast.ref.configured': 'Referência: {limit} (seu limite)',
   'usage.forecast.ref.estimate': 'Referência: {limit} (seu maior bloco recente, estimativa)',
   'usage.amount.tokens': '{n} tokens',
   'usage.limits.title': 'Limites (opcional)',
-  'usage.limits.hint': 'Informe quanto o seu plano permite por janela de 5 h e por semana para a previsão usar. Fica salvo só neste navegador.',
+  'usage.limits.hint':
+    'Informe quanto o seu plano permite por janela de 5 h e por semana para a previsão usar. Fica salvo só neste navegador.',
   'usage.limits.unit': 'Unidade',
   'usage.limits.unit.usd': 'US$ (custo estimado)',
   'usage.limits.unit.tokens': 'Milhões de tokens',
@@ -206,7 +210,8 @@ export const uiPtBR = {
   'usage.session.fallbackSub': 'Subagente {id}',
   'usage.session.select': 'Ver {name} no escritório',
   'usage.sessions.more': 'e mais {n, plural, one {# sessão} other {# sessões}}',
-  'usage.footer': 'Valores estimados com os preços públicos da API; o seu plano pode cobrar de outra forma. O histórico vem das conversas guardadas neste computador.',
+  'usage.footer':
+    'Valores estimados com os preços públicos da API; o seu plano pode cobrar de outra forma. O histórico vem das conversas guardadas neste computador.',
   'usage.alert.hit': 'Conta {account}: no ritmo atual, o limite deve ser atingido por volta de {time}.',
   // Sidebar
   'sidebar.label': 'Salas e agentes',
@@ -387,7 +392,8 @@ export const uiPtBR = {
   'inbox.confirm.empty': 'Nada para decidir aqui.',
   'inbox.hint': 'J/K mover · Espaço selecionar · A aprovar · D recusar · Enter abrir · E visto',
   'inbox.result.sent': '{n, plural, =1 {# resposta enviada} other {# respostas enviadas}}.',
-  'inbox.result.failed': '{n, plural, =1 {# resposta não foi enviada} other {# respostas não foram enviadas}}. Tente de novo.',
+  'inbox.result.failed':
+    '{n, plural, =1 {# resposta não foi enviada} other {# respostas não foram enviadas}}. Tente de novo.',
   'waiting.title': 'Precisa de você',
   'waiting.default': 'O agente parou e espera uma resposta sua. Responda no terminal onde a sessão está rodando.',
   // Notifications, toasts, feed
@@ -440,7 +446,8 @@ export const uiPtBR = {
   'board.group.column': 'Por coluna',
   'board.group.room': 'Por sala',
   'board.empty.title': 'Nenhuma tarefa no quadro',
-  'board.empty.body': 'As tarefas aparecem quando os agentes escrevem uma lista de tarefas. Use + para pedir uma a um agente.',
+  'board.empty.body':
+    'As tarefas aparecem quando os agentes escrevem uma lista de tarefas. Use + para pedir uma a um agente.',
   'board.empty.filtered': 'Nenhuma tarefa com estes filtros.',
   'board.column.empty': 'Nada por aqui.',
   'board.lane.agents': '{n, plural, one {# agente} other {# agentes}}',
@@ -459,7 +466,8 @@ export const uiPtBR = {
   'board.menu.toAgent': 'Passar para {name}',
   'board.menu.none': 'Nenhum destino disponível.',
   'board.confirm.title': 'Enviar pedido a {name}',
-  'board.confirm.hint': 'O quadro não muda a lista sozinho: ele envia este pedido ao agente, que atualiza as próprias tarefas. Você pode editar o texto.',
+  'board.confirm.hint':
+    'O quadro não muda a lista sozinho: ele envia este pedido ao agente, que atualiza as próprias tarefas. Você pode editar o texto.',
   'board.confirm.label': 'Mensagem',
   'board.confirm.send': 'Enviar pedido',
   'board.add.title': 'Pedir uma nova tarefa',
@@ -541,17 +549,23 @@ export const uiPtBR = {
   'report.tool.mcp': 'MCP',
   'report.tool.question': 'Perguntas',
   'report.tool.other': 'Outras',
-  'report.tests.runner': '{runner}: {passed, plural, =1 {# execução passou} other {# execuções passaram}}, {failed, plural, =0 {nenhuma falhou} =1 {# falhou} other {# falharam}}',
+  'report.tests.runner':
+    '{runner}: {passed, plural, =1 {# execução passou} other {# execuções passaram}}, {failed, plural, =0 {nenhuma falhou} =1 {# falhou} other {# falharam}}',
   'report.more': 'e mais {n}',
   'report.unknownProject': 'Projeto desconhecido',
-  'report.highlight.tasksCommits': '{name} fechou {tasks, plural, =1 {# tarefa} other {# tarefas}} e fez {commits, plural, =1 {# commit} other {# commits}} em {project}',
+  'report.highlight.tasksCommits':
+    '{name} fechou {tasks, plural, =1 {# tarefa} other {# tarefas}} e fez {commits, plural, =1 {# commit} other {# commits}} em {project}',
   'report.highlight.tasks': '{name} fechou {tasks, plural, =1 {# tarefa} other {# tarefas}} em {project}',
   'report.highlight.commits': '{name} fez {commits, plural, =1 {# commit} other {# commits}} em {project}',
-  'report.highlight.testsPassed': '{name} rodou os testes {runs, plural, =1 {uma vez} other {# vezes}} em {project} e tudo passou',
-  'report.highlight.testsMixed': '{name} rodou os testes {runs, plural, =1 {uma vez} other {# vezes}} em {project}; {failed, plural, =1 {# falhou} other {# falharam}}',
-  'report.highlight.files': '{name} alterou {files, plural, =1 {# arquivo} other {# arquivos}} em {project} (+{added} −{removed})',
+  'report.highlight.testsPassed':
+    '{name} rodou os testes {runs, plural, =1 {uma vez} other {# vezes}} em {project} e tudo passou',
+  'report.highlight.testsMixed':
+    '{name} rodou os testes {runs, plural, =1 {uma vez} other {# vezes}} em {project}; {failed, plural, =1 {# falhou} other {# falharam}}',
+  'report.highlight.files':
+    '{name} alterou {files, plural, =1 {# arquivo} other {# arquivos}} em {project} (+{added} −{removed})',
   'report.highlight.spend': '{name} concentrou {share} do custo do dia ({cost})',
-  'report.highlight.testsFailed': 'Atenção: {runs, plural, =1 {# execução de testes falhou} other {# execuções de testes falharam}} em {project}',
+  'report.highlight.testsFailed':
+    'Atenção: {runs, plural, =1 {# execução de testes falhou} other {# execuções de testes falharam}} em {project}',
   'report.md.title': 'Relatório do dia — {date}',
   'report.md.meta': '{scope}. Gerado pelo AI Office às {time}.',
   'report.md.scopeAll': 'Todas as contas',
@@ -583,7 +597,8 @@ export const uiPtBR = {
   // Splash, banner, empty state
   'splash.connecting': 'Conectando ao escritório…',
   'splash.slow': 'Ainda tentando conectar…',
-  'splash.hint': 'Confira se o servidor do AI Office está rodando (npm run dev ou npm start). Vamos tentar de novo automaticamente.',
+  'splash.hint':
+    'Confira se o servidor do AI Office está rodando (npm run dev ou npm start). Vamos tentar de novo automaticamente.',
   'banner.lost': 'Conexão com o AI Office perdida. Os dados na tela podem estar desatualizados.',
   'banner.retry': 'Tentar agora',
   'banner.retryIn': 'Nova tentativa em {time}',
@@ -656,7 +671,8 @@ export const uiPtBR = {
   'hire.mode.hint.default': 'Pergunta antes de editar arquivos ou rodar comandos.',
   'hire.mode.hint.acceptEdits': 'Edita arquivos sem perguntar; os comandos continuam pedindo permissão.',
   'hire.mode.hint.plan': 'Só analisa e propõe um plano; nada é alterado até você aprovar.',
-  'hire.note': 'Abre uma nova janela do terminal com o Claude Code. A pessoa chega ao escritório quando a sessão começar.',
+  'hire.note':
+    'Abre uma nova janela do terminal com o Claude Code. A pessoa chega ao escritório quando a sessão começar.',
   'hire.submit': 'Contratar',
   'hire.submitting': 'Abrindo o terminal…',
   'hire.toast.opened': 'Terminal aberto em {project}. O agente chega quando a sessão começar.',
@@ -667,9 +683,12 @@ export const uiPtBR = {
   'hire.error.projectNotFound': 'A pasta do projeto não existe.',
   'hire.error.projectNotDirectory': 'O caminho informado não é uma pasta.',
   'hire.error.projectNotReadable': 'Sem permissão para abrir a pasta do projeto.',
-  'hire.error.claudeNotFound': 'Não encontrei o Claude Code neste computador. Instale-o e confira se o comando claude funciona no terminal.',
-  'hire.error.noTerminal': 'Não encontrei um aplicativo de terminal para abrir. Instale um (como o gnome-terminal ou o xterm) e tente de novo.',
-  'hire.error.terminalFailed': 'Não foi possível abrir o terminal. No macOS, permita que o AI Office controle o Terminal em Ajustes do Sistema > Privacidade e Segurança > Automação.',
+  'hire.error.claudeNotFound':
+    'Não encontrei o Claude Code neste computador. Instale-o e confira se o comando claude funciona no terminal.',
+  'hire.error.noTerminal':
+    'Não encontrei um aplicativo de terminal para abrir. Instale um (como o gnome-terminal ou o xterm) e tente de novo.',
+  'hire.error.terminalFailed':
+    'Não foi possível abrir o terminal. No macOS, permita que o AI Office controle o Terminal em Ajustes do Sistema > Privacidade e Segurança > Automação.',
   'hire.error.unsupportedPlatform': 'Abrir o terminal só funciona no macOS e no Linux.',
   'hover.desk.title': 'Mesa livre',
   'hover.desk.hint': 'Clique para contratar um agente aqui.',
@@ -678,7 +697,8 @@ export const uiPtBR = {
   // Help
   'help.title': 'Ajuda',
   'help.status.title': 'Status das pessoas',
-  'help.status.note': 'Cada projeto aberto é uma sala; cada sessão do Claude Code é uma pessoa. Subagentes chegam, trabalham e saem.',
+  'help.status.note':
+    'Cada projeto aberto é uma sala; cada sessão do Claude Code é uma pessoa. Subagentes chegam, trabalham e saem.',
   'help.icons.title': 'Ícones',
   'help.icon.fit': 'Visão geral: enquadra todo o escritório',
   'help.icon.bell': 'Notificações e "Não perturbe"',
@@ -716,8 +736,10 @@ export const uiPtBR = {
   'help.shortcut.inbox.open': 'Na fila: abrir o agente',
   'help.shortcut.inbox.seen': 'Na fila: marcar como visto',
   'help.install.title': 'Instalar o plugin do Claude Code',
-  'help.install.intro': 'O plugin permite responder permissões e enviar mensagens pelo escritório. Na pasta do AI Office, rode:',
-  'help.install.outro': 'Ele instala em todas as contas detectadas. Para conferir use npm run plugin:status; para remover, npm run plugin:uninstall. Reinicie as sessões abertas do Claude Code depois.',
+  'help.install.intro':
+    'O plugin permite responder permissões e enviar mensagens pelo escritório. Na pasta do AI Office, rode:',
+  'help.install.outro':
+    'Ele instala em todas as contas detectadas. Para conferir use npm run plugin:status; para remover, npm run plugin:uninstall. Reinicie as sessões abertas do Claude Code depois.',
   'help.install.copy': 'Copiar comando',
   'help.install.copied': 'Comando copiado.',
   // Announcements (screen readers)
@@ -750,7 +772,8 @@ export const uiPtBR = {
   'rules.new': 'Nova regra',
   'rules.loading': 'Carregando as regras…',
   'rules.empty.title': 'Nenhuma regra ainda',
-  'rules.empty.text': 'Uma regra responde sozinha aos pedidos de permissão que se repetem, aprovando ou recusando por comando, pasta ou site, e cada resposta fica no registro.',
+  'rules.empty.text':
+    'Uma regra responde sozinha aos pedidos de permissão que se repetem, aprovando ou recusando por comando, pasta ou site, e cada resposta fica no registro.',
   'rules.empty.action': 'Criar uma regra',
   'rules.list': 'Regras de aprovação',
   'rules.effect.allow': 'Aprova',
@@ -807,9 +830,11 @@ export const uiPtBR = {
   'rules.placeholder.exact': 'npm test',
   'rules.placeholder.path-glob': 'src/**',
   'rules.placeholder.host': 'docs.stripe.com',
-  'rules.hint.command-prefix': 'Palavras inteiras no começo do comando: “npm test” vale para “npm test -- --watch”, não para “npm testx”. Comandos com ; && | > ou $( nunca casam com uma regra de aprovar.',
+  'rules.hint.command-prefix':
+    'Palavras inteiras no começo do comando: “npm test” vale para “npm test -- --watch”, não para “npm testx”. Comandos com ; && | > ou $( nunca casam com uma regra de aprovar.',
   'rules.hint.exact': 'O comando, o arquivo, o endereço ou a pesquisa inteira, sem variações.',
-  'rules.hint.path-glob': '* fica dentro de uma pasta e ** atravessa pastas; arquivos que começam com ponto (.env) nunca casam. Caminhos relativos valem a partir do projeto.',
+  'rules.hint.path-glob':
+    '* fica dentro de uma pasta e ** atravessa pastas; arquivos que começam com ponto (.env) nunca casam. Caminhos relativos valem a partir do projeto.',
   'rules.hint.host': 'O endereço do site, ou *.exemplo.com para todos os subdomínios.',
   'rules.hint.any': 'Vale para todo pedido desta ferramenta.',
   'rules.editor.scope': 'Onde vale',
@@ -820,9 +845,11 @@ export const uiPtBR = {
   'rules.editor.enabled': 'Regra ativa',
   'rules.editor.save': 'Salvar regra',
   'rules.editor.saving': 'Salvando…',
-  'rules.editor.safety': 'Pedidos perigosos (apagar arquivos, sudo, push forçado…) nunca são aprovados por regra: continuam chegando até você.',
+  'rules.editor.safety':
+    'Pedidos perigosos (apagar arquivos, sudo, push forçado…) nunca são aprovados por regra: continuam chegando até você.',
   'rules.preview.loading': 'Calculando…',
-  'rules.preview.result': 'Esta regra teria respondido {matches} de {total} {total, plural, =1 {pedido} other {pedidos}} de hoje.',
+  'rules.preview.result':
+    'Esta regra teria respondido {matches} de {total} {total, plural, =1 {pedido} other {pedidos}} de hoje.',
   'rules.preview.none': 'Ainda não houve pedidos hoje para comparar.',
   'rules.preview.failed': 'Não foi possível calcular agora.',
   'rules.error.invalid': 'Esta regra tem um campo inválido.',
@@ -832,11 +859,13 @@ export const uiPtBR = {
   'rules.error.invalidNote': 'A anotação passa de 200 caracteres.',
   'rules.error.unsupported': 'Esta ferramenta não aceita esse tipo de regra.',
   'rules.error.compound': 'Comandos compostos (com ; && | > ou $( ) nunca podem ser aprovados por uma regra.',
-  'rules.error.broadAny': 'Aprovar qualquer pedido desta ferramenta é amplo demais: escolha um comando, uma pasta ou um site.',
+  'rules.error.broadAny':
+    'Aprovar qualquer pedido desta ferramenta é amplo demais: escolha um comando, uma pasta ou um site.',
   'rules.error.broadTool': 'Curingas só valem para um servidor MCP inteiro (mcp__servidor__*).',
   'rules.error.broadPath': 'Este caminho é amplo demais: use uma pasta do projeto, como src/**.',
   'rules.error.broadHost': 'Este domínio é amplo demais: use docs.exemplo.com ou *.exemplo.com.',
-  'rules.error.dangerous': 'Este padrão também aprovaria pedidos perigosos ({reason}). Use um padrão mais específico ou crie uma regra de recusar.',
+  'rules.error.dangerous':
+    'Este padrão também aprovaria pedidos perigosos ({reason}). Use um padrão mais específico ou crie uma regra de recusar.',
   'rules.error.duplicate': 'Já existe uma regra igual.',
   'rules.error.tooMany': 'Limite de 200 regras atingido: exclua alguma antes de criar outra.',
   'rules.error.notFound': 'A regra não existe mais.',
@@ -888,13 +917,15 @@ export const uiPtBR = {
   'git.checks.failing': 'Falhando: {names}',
   'git.checks.more': 'e mais {n} falhando',
   'git.checks.pending': '{n, plural, one {# check em andamento} other {# checks em andamento}}',
-  'git.pr.off': 'Para ver o pull request e o CI desta branch, ligue “Consultar pull requests com o gh” nas configurações.',
+  'git.pr.off':
+    'Para ver o pull request e o CI desta branch, ligue “Consultar pull requests com o gh” nas configurações.',
   'sidebar.room.branch': 'Branch {branch}',
   'sidebar.room.branchDirty': 'Branch {branch}: alterações ainda não commitadas',
   'hover.room.branch': 'Branch {branch}',
   'settings.git': 'Mostrar status do Git',
   'settings.gitPr': 'Consultar pull requests com o gh (usa a internet)',
-  'settings.gitPr.hint': 'É a única parte do AI Office que usa a internet, e só pelo seu próprio gh, enquanto estiver ligada.',
+  'settings.gitPr.hint':
+    'É a única parte do AI Office que usa a internet, e só pelo seu próprio gh, enquanto estiver ligada.',
   'settings.gitPr.missing': 'O gh não foi encontrado neste computador.',
   'settings.gitPr.unauthenticated': 'O gh não está autenticado. Rode “gh auth login” no terminal.',
   // Time-lapse

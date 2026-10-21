@@ -3,7 +3,8 @@ import type { Agent, Project } from '@ai-office/shared';
 import { watchedRooms } from './rooms';
 
 const project = (id: string): Project => ({ id, name: id, path: `/work/${id}`, seed: 1, order: 0 });
-const agent = (projectId: string, status: Agent['status'], demo = false): Agent => ({ projectId, status, ...(demo ? { demo: true } : {}) }) as Agent;
+const agent = (projectId: string, status: Agent['status'], demo = false): Agent =>
+  ({ projectId, status, ...(demo ? { demo: true } : {}) }) as Agent;
 
 describe('watchedRooms', () => {
   test('follows real rooms and marks the ones with working or waiting agents as active', () => {

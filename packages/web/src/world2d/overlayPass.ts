@@ -176,11 +176,24 @@ export class OverlayPass {
     for (const c of sim.characters) {
       if (c.alpha <= 0.35) continue;
       const head = cam.worldToScreen(c.x * TILE, c.y * TILE + FOOT_OFFSET - HEAD_HEIGHT + (c.seat ? 4 : 0));
-      if (head.x < free.x - FREE_MARGIN || head.x > free.x + free.w + FREE_MARGIN || head.y < free.y - FREE_MARGIN || head.y > free.y + free.h + FREE_MARGIN) continue;
+      if (
+        head.x < free.x - FREE_MARGIN ||
+        head.x > free.x + free.w + FREE_MARGIN ||
+        head.y < free.y - FREE_MARGIN ||
+        head.y > free.y + free.h + FREE_MARGIN
+      )
+        continue;
       const selected = s.selection?.type === 'agent' && s.selection.id === c.agentId;
       const hovered = s.hover.agentId === c.agentId;
-      const showTag = selected || hovered || c.alert || ((s.options.showNames || c.hiring) && cam.zoom >= NAME_MIN_ZOOM);
-      let tagPriority: number = selected ? Priority.Selected : hovered ? Priority.Hovered : c.alert ? Priority.AlertTag : Priority.Tag;
+      const showTag =
+        selected || hovered || c.alert || ((s.options.showNames || c.hiring) && cam.zoom >= NAME_MIN_ZOOM);
+      let tagPriority: number = selected
+        ? Priority.Selected
+        : hovered
+          ? Priority.Hovered
+          : c.alert
+            ? Priority.AlertTag
+            : Priority.Tag;
       const tagId = `tag:${c.agentId}`;
 
       const bubble = bubbles.get(c.agentId);
@@ -188,7 +201,11 @@ export class OverlayPass {
       if (bubble && bubbleAlphaNow > 0.02 && (cam.zoom >= BUBBLE_MIN_ZOOM || bubble.sticky)) {
         const tone = bubble.sticky ? 'alert' : bubble.importance >= 60 && bubble.icon === '✅' ? 'good' : 'normal';
         const sprite = sprites.bubble(bubbleText(bubble, text.tm), bubble.icon, tone);
-        const priority = bubble.sticky ? Priority.AlertBubble : selected ? Priority.Selected - 1 : Priority.Bubble + bubble.importance;
+        const priority = bubble.sticky
+          ? Priority.AlertBubble
+          : selected
+            ? Priority.Selected - 1
+            : Priority.Bubble + bubble.importance;
         const id = `bub:${c.agentId}`;
         const rise = (1 - Math.min(1, (sim.time - bubble.shownAt) / FADE_IN)) * 5;
         payloads.set(id, { sprite, alpha: bubbleAlphaNow, rise, layer: 'bubble' });
@@ -209,7 +226,14 @@ export class OverlayPass {
         const label = c.hiring ? text.t('overlay.arriving') : c.name;
         const sprite = sprites.nameTag(label, s.accountColor(c.accountId), statusOf(c), c.kind, selected || hovered);
         payloads.set(tagId, { sprite, alpha: c.alpha, rise: 0, layer: 'tag' });
-        items.push({ id: tagId, priority: tagPriority, w: sprite.w, h: sprite.h, spots: tagSpots(head, sprite.w, sprite.h), required: selected || hovered || c.alert });
+        items.push({
+          id: tagId,
+          priority: tagPriority,
+          w: sprite.w,
+          h: sprite.h,
+          spots: tagSpots(head, sprite.w, sprite.h),
+          required: selected || hovered || c.alert,
+        });
       }
 
       if (c.alert) {
@@ -223,7 +247,10 @@ export class OverlayPass {
           priority: Priority.AlertBadge,
           w: badge.w,
           h: badge.h,
-          spots: [{ x: head.x + side, y: head.y + 2 - badge.h / 2 }, { x: head.x - side - badge.w, y: head.y + 2 - badge.h / 2 }],
+          spots: [
+            { x: head.x + side, y: head.y + 2 - badge.h / 2 },
+            { x: head.x - side - badge.w, y: head.y + 2 - badge.h / 2 },
+          ],
           required: true,
         });
       } else if (c.pose === 'sleep' && cam.zoom >= NAME_MIN_ZOOM) {
@@ -231,7 +258,13 @@ export class OverlayPass {
         const bob = s.options.reducedMotion ? 0 : Math.sin(s.time * 2) * 2;
         const id = `badge:${c.agentId}`;
         payloads.set(id, { sprite: badge, alpha: c.alpha * 0.9, rise: bob, layer: 'badge' });
-        items.push({ id, priority: Priority.Sleep, w: badge.w, h: badge.h, spots: [{ x: head.x + 12 - badge.w / 2, y: head.y - 6 }] });
+        items.push({
+          id,
+          priority: Priority.Sleep,
+          w: badge.w,
+          h: badge.h,
+          spots: [{ x: head.x + 12 - badge.w / 2, y: head.y - 6 }],
+        });
       }
     }
     return items;
@@ -252,7 +285,8 @@ export class OverlayPass {
       if (cam.zoom > ROOM_LABEL_MAX_ZOOM && !emphasis) continue;
       const topLeft = cam.worldToScreen(area.rect.x * TILE, area.rect.y * TILE);
       const size = { w: area.rect.w * TILE * cam.zoom, h: area.rect.h * TILE * cam.zoom };
-      if (topLeft.x > cam.view.width || topLeft.y > cam.view.height || topLeft.x + size.w < 0 || topLeft.y + size.h < 0) continue;
+      if (topLeft.x > cam.view.width || topLeft.y > cam.view.height || topLeft.x + size.w < 0 || topLeft.y + size.h < 0)
+        continue;
       if (emphasis && projectId === selectedRoom) {
         ctx.strokeStyle = 'rgba(160,195,255,0.95)';
         ctx.lineWidth = 2;

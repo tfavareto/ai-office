@@ -75,7 +75,11 @@ function timestampOf(text: string): number | undefined {
 }
 
 /** Timestamp of the first line that starts after `offset` (or at 0 when `offset` is 0), with where it starts. */
-async function probe(handle: FileHandle, offset: number, size: number): Promise<{ at: number; lineStart: number } | undefined> {
+async function probe(
+  handle: FileHandle,
+  offset: number,
+  size: number,
+): Promise<{ at: number; lineStart: number } | undefined> {
   let lineStart = offset;
   if (offset > 0) {
     const newline = await newlineFrom(handle, offset, size);
@@ -99,7 +103,11 @@ async function probe(handle: FileHandle, offset: number, size: number): Promise<
  * A byte offset, at the start of a line, from which every line of the day is still ahead (lines before the day may
  * follow it), and whether the file itself began during the day.
  */
-export async function seekDayStart(path: string, size: number, window: DayWindow): Promise<{ offset: number; startedInDay: boolean }> {
+export async function seekDayStart(
+  path: string,
+  size: number,
+  window: DayWindow,
+): Promise<{ offset: number; startedInDay: boolean }> {
   const handle = await open(path, 'r');
   try {
     const first = await probe(handle, 0, size);
@@ -135,9 +143,21 @@ export interface ReadOptions {
  * Brings the accumulator of one file up to date for the day. `previous` is resumed when the file only grew (and, when
  * the moments are wanted, already has them); otherwise the file is read again from the start of the day.
  */
-export async function readFileDay(path: string, stamp: FileStamp, window: DayWindow, role: FileRole, previous: ReadState | undefined, budget: ReadBudget, options: ReadOptions = {}): Promise<ReadState> {
-  const resume = previous !== undefined && isResumable(previous, stamp) && (options.trace !== true || previous.trace !== undefined) ? previous : undefined;
-  if (resume !== undefined && (resume.done || (resume.size === stamp.size && !resume.truncated))) return { ...resume, ...stamp };
+export async function readFileDay(
+  path: string,
+  stamp: FileStamp,
+  window: DayWindow,
+  role: FileRole,
+  previous: ReadState | undefined,
+  budget: ReadBudget,
+  options: ReadOptions = {},
+): Promise<ReadState> {
+  const resume =
+    previous !== undefined && isResumable(previous, stamp) && (options.trace !== true || previous.trace !== undefined)
+      ? previous
+      : undefined;
+  if (resume !== undefined && (resume.done || (resume.size === stamp.size && !resume.truncated)))
+    return { ...resume, ...stamp };
   let acc = resume?.acc;
   let trace = resume?.trace;
   let startOffset = resume?.offset ?? 0;

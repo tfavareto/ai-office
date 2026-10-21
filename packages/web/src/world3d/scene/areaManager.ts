@@ -60,7 +60,10 @@ export class AreaManager {
   private lastBuilding: BuildingLayout | null = null;
   private text: WorldText = worldText('pt-BR');
 
-  constructor(private readonly deps: SceneDeps, private readonly sim: OfficeSim) {
+  constructor(
+    private readonly deps: SceneDeps,
+    private readonly sim: OfficeSim,
+  ) {
     this.group.add(this.batcher.group);
   }
 
@@ -153,7 +156,8 @@ export class AreaManager {
     const out: { projectId: string; areaId: string; box: Box3 }[] = [];
     for (const [id, entry] of this.entries) {
       const room = this.sim.rooms.byArea(id);
-      if (entry.scene.area.kind === 'project' && room && !room.ghost) out.push({ projectId: room.projectId, areaId: id, box: entry.scene.bounds });
+      if (entry.scene.area.kind === 'project' && room && !room.ghost)
+        out.push({ projectId: room.projectId, areaId: id, box: entry.scene.bounds });
     }
     return out;
   }

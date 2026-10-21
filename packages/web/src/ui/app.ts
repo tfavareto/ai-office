@@ -1,5 +1,22 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
-import { suggestRule, type Account, type Agent, type BossMessage, type FeedItem, type GitSettings, type HireRequest, type Msg, type Notice, type NoticeLevel, type OfficeSnapshot, type PendingHire, type PermissionDecision, type PermissionRequest, type Project, type RecentSession } from '@ai-office/shared';
+import {
+  suggestRule,
+  type Account,
+  type Agent,
+  type BossMessage,
+  type FeedItem,
+  type GitSettings,
+  type HireRequest,
+  type Msg,
+  type Notice,
+  type NoticeLevel,
+  type OfficeSnapshot,
+  type PendingHire,
+  type PermissionDecision,
+  type PermissionRequest,
+  type Project,
+  type RecentSession,
+} from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
@@ -47,7 +64,16 @@ import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
 import { SoundPlayer, type CueKind } from './sound';
-import { NARROW_BREAKPOINT, UiState, initialUiData, type DayTab, type DialogId, type DrawerTab, type PopoverId, type TerminalTarget } from './state';
+import {
+  NARROW_BREAKPOINT,
+  UiState,
+  initialUiData,
+  type DayTab,
+  type DialogId,
+  type DrawerTab,
+  type PopoverId,
+  type TerminalTarget,
+} from './state';
 import { tickLive } from './widgets';
 import type { WorldHost } from './world-host';
 import type { ViewInsets } from '../world/api';
@@ -58,10 +84,26 @@ const RELOAD_GUARD_KEY = 'ai-office:reload-at';
 const RELOAD_GUARD_MS = 15_000;
 
 /** Scrollable panels whose position survives the rebuild after a language change. */
-const SCROLL_SELECTORS = ['.ao-sidebar-list', '.ao-agent-body', '.ao-feed-list', '.ao-settings-body', '.ao-help-body', '.ao-sessions-body', '.ao-notif-list', '.ao-inbox-list'] as const;
+const SCROLL_SELECTORS = [
+  '.ao-sidebar-list',
+  '.ao-agent-body',
+  '.ao-feed-list',
+  '.ao-settings-body',
+  '.ao-help-body',
+  '.ao-sessions-body',
+  '.ao-notif-list',
+  '.ao-inbox-list',
+] as const;
 
 /** What acts on live sessions or reads live data: it explains itself instead of running while a time-lapse is on. */
-const LIVE_ONLY_ACTIONS: ReadonlySet<ShortcutAction> = new Set(['inbox', 'permission', 'usage', 'hire', 'message', 'terminal']);
+const LIVE_ONLY_ACTIONS: ReadonlySet<ShortcutAction> = new Set([
+  'inbox',
+  'permission',
+  'usage',
+  'hire',
+  'message',
+  'terminal',
+]);
 
 const CUE_BY_LEVEL: Record<NoticeLevel, CueKind> = { alert: 'alert', warn: 'info', info: 'info', success: 'success' };
 
@@ -82,7 +124,12 @@ export class App implements AppContext {
   private hoverTip!: HoverTip;
   private readonly worldContainer: HTMLElement;
   private readonly scrim = h('div', { class: 'ao-scrim ao-panel-scrim' });
-  private readonly liveRegion = h('div', { class: 'ao-visually-hidden', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
+  private readonly liveRegion = h('div', {
+    class: 'ao-visually-hidden',
+    role: 'status',
+    'aria-live': 'polite',
+    'aria-atomic': 'true',
+  });
   private frame = 0;
   private pendingSnapshot: OfficeSnapshot | null = null;
   private appliedInsets: ViewInsets | null = null;
@@ -110,7 +157,11 @@ export class App implements AppContext {
     this.notifications.setDnd(initial.dnd);
     this.rules = new RulesController(() => this.store.backend);
     // The inbox is about the live office, whatever the panels show.
-    this.inbox = new InboxController({ snapshot: () => this.liveSnapshot, notifications: () => this.notifications.get().items, now: () => this.store.now() });
+    this.inbox = new InboxController({
+      snapshot: () => this.liveSnapshot,
+      notifications: () => this.notifications.get().items,
+      now: () => this.store.now(),
+    });
     this.replay = new ReplayController({
       backend: () => this.store.backend,
       account: () => {
@@ -128,7 +179,14 @@ export class App implements AppContext {
       nameOf: (id) => this.liveSnapshot?.agents.find((agent) => agent.id === id)?.name ?? t('agent.fallback'),
       now: () => this.store.now(),
       onDelivery: (summary, agentId, final) => {
-        this.notifications.upsertGrouped({ key: summary.key, at: this.now(), level: summary.level, kind: 'message', text: summary.text, agentId });
+        this.notifications.upsertGrouped({
+          key: summary.key,
+          at: this.now(),
+          level: summary.level,
+          kind: 'message',
+          text: summary.text,
+          agentId,
+        });
         if (final) this.flash(summary.level, summary.text, { agentId });
         if (final && shouldInterrupt(this.notifications.get(), summary.level)) this.cue(CUE_BY_LEVEL[summary.level]);
       },
@@ -158,14 +216,41 @@ export class App implements AppContext {
     const drawer = new Drawer(this);
     const feed = new Feed(this);
     const toasts = new Toasts(this);
-    const popovers = [new NotificationCenter(this), new InboxPopover(this), new SessionHistory(this), new Settings(this), new UsagePopover(this)];
-    const dialogs = [new DayDialog(this), new UsageDialog(this), new BoardDialog(this), new HelpDialog(this), new HireDialog(this), new RulesDialog(this)];
+    const popovers = [
+      new NotificationCenter(this),
+      new InboxPopover(this),
+      new SessionHistory(this),
+      new Settings(this),
+      new UsagePopover(this),
+    ];
+    const dialogs = [
+      new DayDialog(this),
+      new UsageDialog(this),
+      new BoardDialog(this),
+      new HelpDialog(this),
+      new HireDialog(this),
+      new RulesDialog(this),
+    ];
     const empty = new EmptyState(this);
     const replayBar = new ReplayBar(this);
     const replayBadge = new ReplayBadge(this);
     const banner = new ConnectionBanner(this);
     const splash = this.snapshot === null ? new Splash(this) : null;
-    this.components = [topbar, this.sidebar, drawer, this.terminal, feed, replayBar, replayBadge, toasts, ...popovers, ...dialogs, empty, banner, ...(splash ? [splash] : [])];
+    this.components = [
+      topbar,
+      this.sidebar,
+      drawer,
+      this.terminal,
+      feed,
+      replayBar,
+      replayBadge,
+      toasts,
+      ...popovers,
+      ...dialogs,
+      empty,
+      banner,
+      ...(splash ? [splash] : []),
+    ];
 
     for (const child of Array.from(this.root.children)) if (child !== this.worldContainer) child.remove();
     if (this.worldContainer.parentElement !== this.root) this.root.prepend(this.worldContainer);
@@ -194,8 +279,11 @@ export class App implements AppContext {
     document.documentElement.lang = locale();
     this.updateDocumentMeta();
     this.world.setOptions({ locale: locale() });
-    const focusKey = document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute(FOCUS_KEY_ATTR) : null;
-    const scrolls = SCROLL_SELECTORS.map((selector) => Array.from(this.root.querySelectorAll<HTMLElement>(selector), (el) => el.scrollTop));
+    const focusKey =
+      document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute(FOCUS_KEY_ATTR) : null;
+    const scrolls = SCROLL_SELECTORS.map((selector) =>
+      Array.from(this.root.querySelectorAll<HTMLElement>(selector), (el) => el.scrollTop),
+    );
     this.buildShell();
     this.lastTitle = '';
     this.renderAll();
@@ -205,7 +293,10 @@ export class App implements AppContext {
       });
     });
     // The popover moves focus to itself when it opens (microtask); give it back to the control the user was using.
-    if (focusKey) queueMicrotask(() => this.root.querySelector<HTMLElement>(`[${FOCUS_KEY_ATTR}="${focusKey}"]`)?.focus({ preventScroll: true }));
+    if (focusKey)
+      queueMicrotask(() =>
+        this.root.querySelector<HTMLElement>(`[${FOCUS_KEY_ATTR}="${focusKey}"]`)?.focus({ preventScroll: true }),
+      );
   }
 
   private updateDocumentMeta(): void {
@@ -252,7 +343,11 @@ export class App implements AppContext {
 
   selectAgent(id: string, opts?: { focus?: boolean; tab?: DrawerTab }): void {
     const selection: Selection = { type: 'agent', id };
-    this.ui.set({ selection, drawerTab: opts?.tab ?? this.ui.get().drawerTab, ...(this.ui.get().narrow ? { sidebarOpen: false } : {}) });
+    this.ui.set({
+      selection,
+      drawerTab: opts?.tab ?? this.ui.get().drawerTab,
+      ...(this.ui.get().narrow ? { sidebarOpen: false } : {}),
+    });
     this.world.select(selection, { focus: opts?.focus });
   }
 
@@ -274,7 +369,9 @@ export class App implements AppContext {
       accountId: agent.accountId,
       agentId: agent.kind === 'sub' ? agent.id : undefined,
       title: agent.name,
-      subtitle: [project?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)].filter(Boolean).join(' · '),
+      subtitle: [project?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)]
+        .filter(Boolean)
+        .join(' · '),
       officeAgentId: agent.id,
     };
     this.ui.set({ terminal: target });
@@ -288,7 +385,12 @@ export class App implements AppContext {
       return;
     }
     this.ui.set({
-      terminal: { sessionId: session.sessionId, accountId: session.accountId, title: session.projectName, subtitle: localizedOptional(session.titleMsg, session.title) ?? t('terminal.sessionEnded') },
+      terminal: {
+        sessionId: session.sessionId,
+        accountId: session.accountId,
+        title: session.projectName,
+        subtitle: localizedOptional(session.titleMsg, session.title) ?? t('terminal.sessionEnded'),
+      },
     });
   }
 
@@ -417,7 +519,14 @@ export class App implements AppContext {
     const notice: Notice =
       typeof message === 'string'
         ? { id: `local-${++this.localId}`, at: this.now(), level, text: message, ...opts }
-        : { id: `local-${++this.localId}`, at: this.now(), level, text: tm(message, message.key), msg: message, ...opts };
+        : {
+            id: `local-${++this.localId}`,
+            at: this.now(),
+            level,
+            text: tm(message, message.key),
+            msg: message,
+            ...opts,
+          };
     this.handleNotice(notice);
   }
 
@@ -462,7 +571,14 @@ export class App implements AppContext {
     try {
       const result = await this.store.backend.decidePermission(permission.id, decision);
       if (result === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
-      else this.announce(decision.behavior === 'allow' ? t('announce.permission.allowed') : decision.behavior === 'deny' ? t('announce.permission.denied') : t('announce.permission.terminal'));
+      else
+        this.announce(
+          decision.behavior === 'allow'
+            ? t('announce.permission.allowed')
+            : decision.behavior === 'deny'
+              ? t('announce.permission.denied')
+              : t('announce.permission.terminal'),
+        );
       return true;
     } catch (error) {
       this.notifyLocal('warn', describeError(error), { agentId: agent.id });
@@ -482,7 +598,8 @@ export class App implements AppContext {
   async hireAgent(request: HireRequest): Promise<PendingHire> {
     if (!this.isLocal) throw new Error(localOnlyHint());
     const hire = await this.store.backend.hireAgent(request);
-    const project = this.project(hire.projectId)?.name ?? hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId;
+    const project =
+      this.project(hire.projectId)?.name ?? hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId;
     this.cue('sent');
     this.flash('info', t('hire.toast.opened', { project }));
     this.announce(t('announce.hire.opened', { project }));
@@ -508,11 +625,19 @@ export class App implements AppContext {
       if (event.type === 'snapshot') {
         this.onSnapshot(event.snapshot);
         this.inbox.sync(event.snapshot);
-      }
-      else if (event.type === 'notice') this.handleNotice(event.notice);
+      } else if (event.type === 'notice') this.handleNotice(event.notice);
       this.refresh();
     });
-    for (const observable of [this.ui, this.notifications, this.toasts, this.messages, this.inbox, this.board, this.rules]) observable.subscribe(() => this.refresh());
+    for (const observable of [
+      this.ui,
+      this.notifications,
+      this.toasts,
+      this.messages,
+      this.inbox,
+      this.board,
+      this.rules,
+    ])
+      observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
       // Opening an agent counts as having seen that its work finished.
       if (data.selection?.type === 'agent' && !this.replay.engaged) this.inbox.markAgentSeen(data.selection.id);
@@ -568,7 +693,13 @@ export class App implements AppContext {
 
   private applyWorldOptions(): void {
     const following = this.ui.get().following && this.ui.get().selection?.type === 'agent';
-    this.world.setOptions(toWorldOptions(this.prefs.get(), { followSelected: following, reducedMotion: this.reducedMotion.matches, hireEnabled: this.isLocal }));
+    this.world.setOptions(
+      toWorldOptions(this.prefs.get(), {
+        followSelected: following,
+        reducedMotion: this.reducedMotion.matches,
+        hireEnabled: this.isLocal,
+      }),
+    );
     toggleClass(this.root, 'is-reduced-motion', this.reducedMotion.matches);
   }
 
@@ -592,8 +723,10 @@ export class App implements AppContext {
   /** Clears the selection when its agent or room is not in the snapshot any more. */
   private dropGoneSelection(snapshot: OfficeSnapshot): void {
     const selection = this.ui.get().selection;
-    if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id)) this.clearSelection();
-    if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id)) this.clearSelection();
+    if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id))
+      this.clearSelection();
+    if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id))
+      this.clearSelection();
   }
 
   /** One notification per account and window when the limit is about to be reached (the toast respects "Do not disturb"). */
@@ -608,7 +741,10 @@ export class App implements AppContext {
     for (const alert of fresh) {
       const account = this.account(alert.accountId);
       const time = formatClock(alert.forecast.hitsAt ?? now);
-      this.notifyLocal('warn', { key: 'usage.alert.hit', params: { account: account ? accountLabel(account) : alert.accountId, time } });
+      this.notifyLocal('warn', {
+        key: 'usage.alert.hit',
+        params: { account: account ? accountLabel(account) : alert.accountId, time },
+      });
     }
   }
 
@@ -637,7 +773,10 @@ export class App implements AppContext {
     if (result.isNew) {
       this.cue(CUE_BY_LEVEL[notice.level]);
       if (notice.level === 'alert' && this.prefs.get().browserNotifications && notifyPermission() === 'granted') {
-        showBrowserNotification(localized(notice.msg, notice.text), () => notice.agentId && this.agent(notice.agentId) && this.selectAgent(notice.agentId, { focus: true }));
+        showBrowserNotification(
+          localized(notice.msg, notice.text),
+          () => notice.agentId && this.agent(notice.agentId) && this.selectAgent(notice.agentId, { focus: true }),
+        );
       }
     }
     if (notice.level === 'alert' || notice.level === 'warn') this.announce(localized(notice.msg, notice.text));
@@ -647,7 +786,13 @@ export class App implements AppContext {
 
   private currentInsets(): ViewInsets {
     const ui = this.ui.get();
-    return computeInsets({ sidebarOpen: ui.sidebarOpen, drawerOpen: ui.selection !== null, feedOpen: ui.feedOpen, narrow: ui.narrow, replay: this.replay.engaged });
+    return computeInsets({
+      sidebarOpen: ui.sidebarOpen,
+      drawerOpen: ui.selection !== null,
+      feedOpen: ui.feedOpen,
+      narrow: ui.narrow,
+      replay: this.replay.engaged,
+    });
   }
 
   private renderAll(): void {
@@ -704,7 +849,8 @@ export class App implements AppContext {
     const target = event.target;
     if (!(target instanceof Element)) return;
     // The inbox is a work surface: it stays open while the user looks at agents (Esc or its counter closes it).
-    if (this.ui.get().popover === 'inbox' || target.closest('.ao-popover') || target.closest('[data-popover-trigger]')) return;
+    if (this.ui.get().popover === 'inbox' || target.closest('.ao-popover') || target.closest('[data-popover-trigger]'))
+      return;
     this.closePopover();
   }
 
@@ -825,7 +971,10 @@ export class App implements AppContext {
       this.announce(localOnlyHint());
       return;
     }
-    this.ui.set({ drawerTab: ui.selection.type === 'agent' ? 'messages' : ui.drawerTab, composerFocus: ui.composerFocus + 1 });
+    this.ui.set({
+      drawerTab: ui.selection.type === 'agent' ? 'messages' : ui.drawerTab,
+      composerFocus: ui.composerFocus + 1,
+    });
   }
 
   private jumpToPermission(): void {

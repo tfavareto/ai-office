@@ -36,7 +36,16 @@ export function vline(ctx: Ctx, x: number, y: number, h: number, color: string):
 }
 
 /** Filled rect with a 1px lighter top/left and darker bottom/right edge (pixel-art bevel). */
-export function bevel(ctx: Ctx, x: number, y: number, w: number, h: number, base: string, light: string, dark: string): void {
+export function bevel(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  base: string,
+  light: string,
+  dark: string,
+): void {
   rect(ctx, x, y, w, h, base);
   hline(ctx, x, y, w, light);
   vline(ctx, x, y, h, light);

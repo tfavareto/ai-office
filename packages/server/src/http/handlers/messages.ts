@@ -19,7 +19,9 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
     if (realTargets.length === 0 && demoTargets.length === 0) return sendError(res, 404, 'no-agents');
     const messages: BossMessage[] = [
       ...(realTargets.length > 0 ? app.messages.send(realTargets, text, locale) : []),
-      ...(demoTargets.length > 0 ? (app.office.demoSimulator?.sendMessage(demoTargets, text, app.now(), locale) ?? []) : []),
+      ...(demoTargets.length > 0
+        ? (app.office.demoSimulator?.sendMessage(demoTargets, text, app.now(), locale) ?? [])
+        : []),
     ];
     sendJson(res, 201, { messages });
   });
@@ -29,7 +31,10 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
     const agentId = url.searchParams.get('agent');
     if (agentId === null) return sendError(res, 400, 'invalid-agent');
     const demo = app.office.demoSimulator;
-    const messages = demo?.agents().some((agent) => agent.id === agentId) === true ? demo.messages(agentId) : app.messages.list(agentId);
+    const messages =
+      demo?.agents().some((agent) => agent.id === agentId) === true
+        ? demo.messages(agentId)
+        : app.messages.list(agentId);
     sendJson(res, 200, { messages });
   });
 
@@ -44,7 +49,10 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
 
   router.add('GET', `${base}/wait`, async ({ req, res, url, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
-    const agent = app.office.findAgent(url.searchParams.get('session') ?? '', url.searchParams.get('agent') ?? undefined);
+    const agent = app.office.findAgent(
+      url.searchParams.get('session') ?? '',
+      url.searchParams.get('agent') ?? undefined,
+    );
     if (agent === undefined) return sendJson(res, 200, { skip: 'unknown-session' } satisfies InboxResponse);
     if (app.hub.localViewers() === 0) return sendJson(res, 200, { skip: 'no-viewer' } satisfies InboxResponse);
     const timeout = parseTimeoutMs(url.searchParams.get('timeout'), MAX_WAIT_MS / 1000, 25);
@@ -57,7 +65,10 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
     const input = parseAttention(await readJsonBody(req));
     const agent = app.office.findAgent(input.sessionId, input.agentId);
     if (agent === undefined) return sendJson(res, 200, { skip: 'unknown-session' });
-    const marked = app.attention.mark(agent.id, { ...(input.message !== undefined ? { message: input.message } : {}), ...(input.type !== undefined ? { notificationType: input.type } : {}) });
+    const marked = app.attention.mark(agent.id, {
+      ...(input.message !== undefined ? { message: input.message } : {}),
+      ...(input.type !== undefined ? { notificationType: input.type } : {}),
+    });
     sendJson(res, 200, marked ? { ok: true } : { skip: 'idle-prompt' });
   });
 }

@@ -17,17 +17,29 @@ export interface DeskTarget {
 }
 
 /** The unclaimed desk whose table, monitors or chair cover the tile position (tx, ty), in a room that is fully built. */
-export function emptyDeskAt(building: BuildingLayout, spots: SpotBook, rooms: RoomManager, tx: number, ty: number): DeskTarget | null {
+export function emptyDeskAt(
+  building: BuildingLayout,
+  spots: SpotBook,
+  rooms: RoomManager,
+  tx: number,
+  ty: number,
+): DeskTarget | null {
   for (const area of building.areas) {
     if (area.kind !== 'project' || area.projectId === undefined) continue;
     const room = rooms.byArea(area.id);
     if (room === undefined || room.ghost || room.phase !== 'open') continue;
     for (const desk of area.furniture) {
       if (desk.kind !== 'desk') continue;
-      if (tx < desk.x || tx >= desk.x + desk.w || ty < desk.y - ABOVE_TILES || ty >= desk.y + desk.h + BELOW_TILES) continue;
+      if (tx < desk.x || tx >= desk.x + desk.w || ty < desk.y - ABOVE_TILES || ty >= desk.y + desk.h + BELOW_TILES)
+        continue;
       const seat = area.spots.find((spot) => spot.kind === 'desk' && spot.deskIndex === desk.variant);
       if (seat === undefined || !spots.isFree(seat.id)) continue;
-      return { projectId: area.projectId, areaId: area.id, deskIndex: desk.variant, rect: { x: desk.x, y: desk.y, w: desk.w, h: desk.h } };
+      return {
+        projectId: area.projectId,
+        areaId: area.id,
+        deskIndex: desk.variant,
+        rect: { x: desk.x, y: desk.y, w: desk.w, h: desk.h },
+      };
     }
   }
   return null;

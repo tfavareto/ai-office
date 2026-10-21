@@ -16,7 +16,8 @@ export function commandPrefixOf(command: string): string {
   if (words.length === 0) return '';
   const isOption = second.startsWith('-') || second.includes('/') || second.includes('.') || second === '';
   if (isOption) return first;
-  if (PACKAGE_RUNNERS.includes(first) && RUN_WORDS.includes(second) && third !== '' && !third.startsWith('-')) return `${first} ${second} ${third}`;
+  if (PACKAGE_RUNNERS.includes(first) && RUN_WORDS.includes(second) && third !== '' && !third.startsWith('-'))
+    return `${first} ${second} ${third}`;
   return `${first} ${second}`;
 }
 
@@ -41,14 +42,26 @@ export function folderGlobOf(path: string, projectPath?: string): string {
  */
 export function suggestRule(request: RuleRequest): RuleDraft {
   const risky = detectRisk({ toolName: request.toolName, input: request.input, summary: request.summary }) !== null;
-  const base = { effect: risky ? ('deny' as const) : ('allow' as const), tool: request.toolName, scope: { ...(request.projectPath !== undefined ? { projectPath: request.projectPath } : {}) }, enabled: true };
+  const base = {
+    effect: risky ? ('deny' as const) : ('allow' as const),
+    tool: request.toolName,
+    scope: { ...(request.projectPath !== undefined ? { projectPath: request.projectPath } : {}) },
+    enabled: true,
+  };
   const command = commandOfRequest(request);
   if (request.toolName === 'Bash' && command !== undefined) {
     const prefix = commandPrefixOf(command);
-    return { ...base, matcher: isSimpleCommand(command) && prefix !== '' ? { kind: 'command-prefix', value: prefix } : { kind: 'exact', value: command.trim() } };
+    return {
+      ...base,
+      matcher:
+        isSimpleCommand(command) && prefix !== ''
+          ? { kind: 'command-prefix', value: prefix }
+          : { kind: 'exact', value: command.trim() },
+    };
   }
   const path = pathOfRequest(request);
-  if (isFileTool(request.toolName) && path !== undefined) return { ...base, matcher: { kind: 'path-glob', value: folderGlobOf(path, request.projectPath) } };
+  if (isFileTool(request.toolName) && path !== undefined)
+    return { ...base, matcher: { kind: 'path-glob', value: folderGlobOf(path, request.projectPath) } };
   const url = urlOfRequest(request);
   const host = url === undefined ? undefined : hostOfUrl(url)?.hostname;
   if (host !== undefined) return { ...base, matcher: { kind: 'host', value: host } };

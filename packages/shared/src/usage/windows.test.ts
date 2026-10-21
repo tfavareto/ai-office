@@ -63,7 +63,11 @@ describe('computeAccountUsage', () => {
   });
 
   test('accounts without usage report zeros', () => {
-    expect(computeAccountUsage('z', new Map(), NOW)).toMatchObject({ accountId: 'z', today: { tokens: 0, costUSD: 0 }, week: { tokens: 0 } });
+    expect(computeAccountUsage('z', new Map(), NOW)).toMatchObject({
+      accountId: 'z',
+      today: { tokens: 0, costUSD: 0 },
+      week: { tokens: 0 },
+    });
   });
 
   test('today starts at local midnight', () => {

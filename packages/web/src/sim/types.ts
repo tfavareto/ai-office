@@ -3,8 +3,23 @@ import type { Dir, SpotKind } from '../layout/types';
 
 /** Body poses the renderers know how to draw. */
 export type Pose =
-  | 'stand' | 'walk' | 'sit' | 'type' | 'hand' | 'coffee' | 'celebrate' | 'sleep' | 'lean' | 'stretch' | 'popcorn'
-  | 'talk' | 'listen' | 'play' | 'arcade' | 'read' | 'wash';
+  | 'stand'
+  | 'walk'
+  | 'sit'
+  | 'type'
+  | 'hand'
+  | 'coffee'
+  | 'celebrate'
+  | 'sleep'
+  | 'lean'
+  | 'stretch'
+  | 'popcorn'
+  | 'talk'
+  | 'listen'
+  | 'play'
+  | 'arcade'
+  | 'read'
+  | 'wash';
 
 /** What the character is sitting on (renderers lower the body accordingly); null when standing. */
 export type SeatKind = SpotKind | null;

@@ -2,10 +2,23 @@ import type { Agent, TaskItem } from '@ai-office/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setLocale } from '../../i18n';
 import { account, agent, project, snapshot } from '../../test/fixtures';
-import { boardOptions, buildBoard, buildCards, DONE_PER_ROOM, NO_FILTER, sanitizeFilter, type BoardView } from './board';
+import {
+  boardOptions,
+  buildBoard,
+  buildCards,
+  DONE_PER_ROOM,
+  NO_FILTER,
+  sanitizeFilter,
+  type BoardView,
+} from './board';
 import type { SentMark } from './board-moves';
 
-const task = (id: string, status: TaskItem['status'], patch: Partial<TaskItem> = {}): TaskItem => ({ id, title: `Task ${id}`, status, ...patch });
+const task = (id: string, status: TaskItem['status'], patch: Partial<TaskItem> = {}): TaskItem => ({
+  id,
+  title: `Task ${id}`,
+  status,
+  ...patch,
+});
 const COLUMN_VIEW: BoardView = { grouping: 'column', showAllDone: false };
 
 /** Two rooms: "loja" (order 0) with Ana and Bia, "api" (order 1) with Caio on another account. */
@@ -14,9 +27,32 @@ function office(patch: { ana?: Partial<Agent>; bia?: Partial<Agent>; caio?: Part
     accounts: [account({ id: 'acc1' }), account({ id: 'acc2', label: 'Trabalho' })],
     projects: [project({ id: 'p1', name: 'loja', order: 0 }), project({ id: 'p2', name: 'api', order: 1 })],
     agents: [
-      agent({ id: 'ana', name: 'Ana', projectId: 'p1', startedAt: 1, tasks: [task('1', 'completed'), task('2', 'in_progress', { activeForm: 'Doing 2' }), task('3', 'pending')], ...patch.ana }),
-      agent({ id: 'bia', name: 'Bia', projectId: 'p1', startedAt: 2, status: 'idle', tasks: [task('1', 'pending')], ...patch.bia }),
-      agent({ id: 'caio', name: 'Caio', projectId: 'p2', accountId: 'acc2', startedAt: 3, tasks: [task('1', 'in_progress')], ...patch.caio }),
+      agent({
+        id: 'ana',
+        name: 'Ana',
+        projectId: 'p1',
+        startedAt: 1,
+        tasks: [task('1', 'completed'), task('2', 'in_progress', { activeForm: 'Doing 2' }), task('3', 'pending')],
+        ...patch.ana,
+      }),
+      agent({
+        id: 'bia',
+        name: 'Bia',
+        projectId: 'p1',
+        startedAt: 2,
+        status: 'idle',
+        tasks: [task('1', 'pending')],
+        ...patch.bia,
+      }),
+      agent({
+        id: 'caio',
+        name: 'Caio',
+        projectId: 'p2',
+        accountId: 'acc2',
+        startedAt: 3,
+        tasks: [task('1', 'in_progress')],
+        ...patch.caio,
+      }),
     ],
   });
 }
@@ -28,12 +64,32 @@ describe('buildCards', () => {
     const cards = buildCards(office());
 
     expect(cards.map((card) => card.key)).toEqual(['ana:1', 'ana:2', 'ana:3', 'bia:1', 'caio:1']);
-    expect(cards.find((card) => card.key === 'ana:2')).toMatchObject({ label: 'Doing 2', title: 'Task 2', projectId: 'p1', accountId: 'acc1', status: 'in_progress', index: 1 });
+    expect(cards.find((card) => card.key === 'ana:2')).toMatchObject({
+      label: 'Doing 2',
+      title: 'Task 2',
+      projectId: 'p1',
+      accountId: 'acc1',
+      status: 'in_progress',
+      index: 1,
+    });
     expect(cards.find((card) => card.key === 'ana:3')?.label).toBe('Task 3');
   });
 
   it('renders demo task titles in the current language', () => {
-    const demo = snapshot({ agents: [agent({ tasks: [task('1', 'in_progress', { title: 'Implementar a mudança', titleMsg: { key: 'demo.task.2.title' }, activeForm: 'Implementando a mudança', activeFormMsg: { key: 'demo.task.2.active' } })] })] });
+    const demo = snapshot({
+      agents: [
+        agent({
+          tasks: [
+            task('1', 'in_progress', {
+              title: 'Implementar a mudança',
+              titleMsg: { key: 'demo.task.2.title' },
+              activeForm: 'Implementando a mudança',
+              activeFormMsg: { key: 'demo.task.2.active' },
+            }),
+          ],
+        }),
+      ],
+    });
 
     setLocale('en');
     const [card] = buildCards(demo);
@@ -82,7 +138,9 @@ describe('buildBoard columns', () => {
 
   it('counts the tasks of a subagent for its main agent', () => {
     const withSub = office();
-    withSub.agents.push(agent({ id: 'sub', kind: 'sub', parentId: 'bia', projectId: 'p1', startedAt: 9, tasks: [task('1', 'pending')] }));
+    withSub.agents.push(
+      agent({ id: 'sub', kind: 'sub', parentId: 'bia', projectId: 'p1', startedAt: 9, tasks: [task('1', 'pending')] }),
+    );
 
     const board = buildBoard(withSub, { ...NO_FILTER, agentId: 'bia' }, COLUMN_VIEW);
 
@@ -113,7 +171,16 @@ describe('buildBoard filters', () => {
 
   it('"only active" keeps agents that work, wait for you or run a shell', () => {
     const base = office();
-    base.agents.push(agent({ id: 'dan', name: 'Dan', projectId: 'p1', startedAt: 4, status: 'waiting', tasks: [task('1', 'pending')] }));
+    base.agents.push(
+      agent({
+        id: 'dan',
+        name: 'Dan',
+        projectId: 'p1',
+        startedAt: 4,
+        status: 'waiting',
+        tasks: [task('1', 'pending')],
+      }),
+    );
 
     const board = buildBoard(base, { ...NO_FILTER, onlyActive: true }, COLUMN_VIEW);
 
@@ -165,7 +232,14 @@ describe('completed collapse', () => {
 
   it('applies the limit to each room separately, also in lanes', () => {
     const rooms = manyDone();
-    rooms.agents.push(agent({ id: 'eva', projectId: 'p2', startedAt: 8, tasks: [task('1', 'completed', { changedAt: 9000 }), task('2', 'completed', { changedAt: 1 })] }));
+    rooms.agents.push(
+      agent({
+        id: 'eva',
+        projectId: 'p2',
+        startedAt: 8,
+        tasks: [task('1', 'completed', { changedAt: 9000 }), task('2', 'completed', { changedAt: 1 })],
+      }),
+    );
 
     const board = buildBoard(rooms, NO_FILTER, { grouping: 'room', showAllDone: false });
 
@@ -175,7 +249,9 @@ describe('completed collapse', () => {
   });
 
   it('falls back to list order when tasks carry no stamp', () => {
-    const plain = office({ ana: { tasks: [task('1', 'completed'), task('2', 'completed'), task('3', 'completed'), task('4', 'completed')] } });
+    const plain = office({
+      ana: { tasks: [task('1', 'completed'), task('2', 'completed'), task('3', 'completed'), task('4', 'completed')] },
+    });
 
     const board = buildBoard(plain, NO_FILTER, COLUMN_VIEW);
 
@@ -184,7 +260,15 @@ describe('completed collapse', () => {
 });
 
 describe('sent marks', () => {
-  const mark = (patch: Partial<SentMark>): SentMark => ({ id: 'm1', kind: 'start', agentId: 'bia', title: 'Task 1', column: 'in_progress', sentAt: 1, ...patch });
+  const mark = (patch: Partial<SentMark>): SentMark => ({
+    id: 'm1',
+    kind: 'start',
+    agentId: 'bia',
+    title: 'Task 1',
+    column: 'in_progress',
+    sentAt: 1,
+    ...patch,
+  });
 
   it('decorates the card a message is about', () => {
     const board = buildBoard(office(), NO_FILTER, COLUMN_VIEW, [mark({ cardKey: 'bia:1', baseStatus: 'pending' })]);
@@ -194,7 +278,9 @@ describe('sent marks', () => {
   });
 
   it('adds a ghost card for a requested task that the agent has not written down yet', () => {
-    const board = buildBoard(office(), NO_FILTER, COLUMN_VIEW, [mark({ id: 'g1', kind: 'add', agentId: 'ana', title: 'Write docs', column: 'pending' })]);
+    const board = buildBoard(office(), NO_FILTER, COLUMN_VIEW, [
+      mark({ id: 'g1', kind: 'add', agentId: 'ana', title: 'Write docs', column: 'pending' }),
+    ]);
 
     const ghost = board.columns[0]?.cards.find((card) => card.ghost);
     expect(ghost).toMatchObject({ key: 'ghost:g1', agentId: 'ana', label: 'Write docs', status: 'pending' });
@@ -203,7 +289,9 @@ describe('sent marks', () => {
   });
 
   it('hides the ghost card of an agent the filter leaves out', () => {
-    const board = buildBoard(office(), { ...NO_FILTER, roomId: 'p2' }, COLUMN_VIEW, [mark({ id: 'g1', kind: 'add', agentId: 'ana', title: 'Write docs', column: 'pending' })]);
+    const board = buildBoard(office(), { ...NO_FILTER, roomId: 'p2' }, COLUMN_VIEW, [
+      mark({ id: 'g1', kind: 'add', agentId: 'ana', title: 'Write docs', column: 'pending' }),
+    ]);
 
     expect(board.columns.flatMap((column) => column.cards).some((card) => card.ghost)).toBe(false);
   });

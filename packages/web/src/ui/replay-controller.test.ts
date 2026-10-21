@@ -1,12 +1,25 @@
 import { describe, expect, test, vi } from 'vitest';
-import { type OfficeSnapshot, type Timelapse, createDemoSimulator, dayRange, demoTimelapse, emptyTimelapse } from '@ai-office/shared';
+import {
+  type OfficeSnapshot,
+  type Timelapse,
+  createDemoSimulator,
+  dayRange,
+  demoTimelapse,
+  emptyTimelapse,
+} from '@ai-office/shared';
 import { BackendError, type Backend } from '../net/backend';
 import { PRESENT_EVERY_MS, RENDER_EVERY_MS, ReplayController } from './replay-controller';
 
 const NOW = new Date(2026, 9, 21, 15, 30).getTime();
 const range = dayRange('2026-10-20');
 if (range === undefined) throw new Error('no range');
-const DAY = demoTimelapse({ range, now: NOW, locale: 'en', agents: createDemoSimulator({ seed: 3, now: () => NOW }).agents(), account: 'all' });
+const DAY = demoTimelapse({
+  range,
+  now: NOW,
+  locale: 'en',
+  agents: createDemoSimulator({ seed: 3, now: () => NOW }).agents(),
+  account: 'all',
+});
 const FROM = DAY.from ?? 0;
 const TO = DAY.to ?? 0;
 
@@ -25,7 +38,12 @@ function harness(load: (query: { date: string; account: string }) => Promise<Tim
   let renders = 0;
   let pending: ((stamp: number) => void) | undefined;
   let stamp = 1000;
-  const backend = { timelapse: async (query: { date: string; account: string }) => (requested.push(`${query.date}|${query.account}`), load(query)) } as unknown as Backend;
+  const backend = {
+    timelapse: async (query: { date: string; account: string }) => (
+      requested.push(`${query.date}|${query.account}`),
+      load(query)
+    ),
+  } as unknown as Backend;
   const controller = new ReplayController({
     backend: () => backend,
     account: () => 'all',
@@ -68,7 +86,13 @@ describe('starting', () => {
     await loading;
 
     expect(requested).toEqual(['2026-10-20|all']);
-    expect(controller.get()).toMatchObject({ phase: 'ready', date: '2026-10-20', empty: false, playing: true, speed: 600 });
+    expect(controller.get()).toMatchObject({
+      phase: 'ready',
+      date: '2026-10-20',
+      empty: false,
+      playing: true,
+      speed: 600,
+    });
     expect(controller.clock).toMatchObject({ from: FROM, to: TO, t: FROM });
     expect(presented).toHaveLength(1);
     expect(presented[0]).toMatchObject({ at: FROM, jump: true });
@@ -101,7 +125,13 @@ describe('starting', () => {
   });
 
   test('an empty day is ready but has nothing to play', async () => {
-    const empty = emptyTimelapse({ date: '2026-10-19', generatedAt: 1, account: 'all', start: range.start, end: range.end });
+    const empty = emptyTimelapse({
+      date: '2026-10-19',
+      generatedAt: 1,
+      account: 'all',
+      start: range.start,
+      end: range.end,
+    });
     const { controller, presented } = harness(async () => empty);
     await controller.start('2026-10-19');
     controller.togglePlay();

@@ -43,7 +43,9 @@ export class MessageHistory implements Component {
   render(): void {
     const all = this.agentIds.flatMap((id) => this.ctx.messages.messagesOf(id));
     const groups = groupMessages(all);
-    const signature = groups.map((g) => `${g.key}:${g.messages.map((m) => m.status + (m.via ?? '')).join('')}`).join('|');
+    const signature = groups
+      .map((g) => `${g.key}:${g.messages.map((m) => m.status + (m.via ?? '')).join('')}`)
+      .join('|');
     if (signature === this.signature) return;
     this.signature = signature;
     if (groups.length === 0) {
@@ -55,17 +57,35 @@ export class MessageHistory implements Component {
 
   private groupView(group: MessageGroupView): HTMLElement {
     const pending = group.queued > 0;
-    const status = h('span', { class: `ao-msg-status ${pending ? 'is-pending' : group.expired > 0 ? 'is-expired' : 'is-done'}` }, groupStatusLabel(group));
+    const status = h(
+      'span',
+      { class: `ao-msg-status ${pending ? 'is-pending' : group.expired > 0 ? 'is-expired' : 'is-done'}` },
+      groupStatusLabel(group),
+    );
     const body = h('p', { class: 'ao-msg-text' });
     setText(body, group.text);
-    const item = h('article', { class: 'ao-msg' }, h('div', { class: 'ao-msg-head' }, h('span', { class: 'ao-msg-time' }, formatClock(group.createdAt)), status), body);
+    const item = h(
+      'article',
+      { class: 'ao-msg' },
+      h('div', { class: 'ao-msg-head' }, h('span', { class: 'ao-msg-time' }, formatClock(group.createdAt)), status),
+      body,
+    );
     if (group.isTeam && group.total > 1) {
       item.append(
         h(
           'ul',
           { class: 'ao-msg-members' },
           ...group.messages.map((message) =>
-            h('li', null, h('span', null, this.nameOf(message.agentId)), h('span', { class: `ao-msg-member-status is-${message.status}` }, groupStatusLabel({ ...group, messages: [message], isTeam: false }))),
+            h(
+              'li',
+              null,
+              h('span', null, this.nameOf(message.agentId)),
+              h(
+                'span',
+                { class: `ao-msg-member-status is-${message.status}` },
+                groupStatusLabel({ ...group, messages: [message], isTeam: false }),
+              ),
+            ),
           ),
         ),
       );

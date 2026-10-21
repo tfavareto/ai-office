@@ -24,7 +24,8 @@ export function paintMinimap(ctx: CanvasRenderingContext2D, _w: number, h: numbe
   ctx.fillRect(-6, -6, MAP_W + 12, mapH + 12);
   ctx.fillStyle = 'rgba(255,255,255,0.14)';
   for (let y = 0; y < b.height; y++) {
-    for (let x = 0; x < b.width; x++) if (b.grid.walkable[y * b.width + x]) ctx.fillRect(x * scale, y * scale, scale + 0.4, scale + 0.4);
+    for (let x = 0; x < b.width; x++)
+      if (b.grid.walkable[y * b.width + x]) ctx.fillRect(x * scale, y * scale, scale + 0.4, scale + 0.4);
   }
   ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 1;

@@ -34,7 +34,10 @@ async function main(): Promise<void> {
   try {
     await app.start();
   } catch (error) {
-    log.error(error instanceof Error ? error.message : 'Falha ao iniciar o servidor', error instanceof Error ? undefined : error);
+    log.error(
+      error instanceof Error ? error.message : 'Falha ao iniciar o servidor',
+      error instanceof Error ? undefined : error,
+    );
     process.exit(1);
   }
 }

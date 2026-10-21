@@ -21,7 +21,9 @@ export function registerSystemRoutes(router: Router, app: AppContext): void {
       version: app.version,
       local,
       demo: app.isDemo(),
-      accounts: app.engine.accountList().map((account) => ({ id: account.id, dir: account.dir, sessions: counts.get(account.id) ?? 0 })),
+      accounts: app.engine
+        .accountList()
+        .map((account) => ({ id: account.id, dir: account.dir, sessions: counts.get(account.id) ?? 0 })),
     };
     sendJson(res, 200, body);
   });

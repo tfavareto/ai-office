@@ -33,7 +33,13 @@ describe('folderGlobOf', () => {
 describe('suggestRule', () => {
   it('suggests a command prefix for this project', () => {
     const suggestion = suggestRule(bash('npm install zod'));
-    expect(suggestion).toEqual({ effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'npm install' }, scope: { projectPath: PROJECT }, enabled: true });
+    expect(suggestion).toEqual({
+      effect: 'allow',
+      tool: 'Bash',
+      matcher: { kind: 'command-prefix', value: 'npm install' },
+      scope: { projectPath: PROJECT },
+      enabled: true,
+    });
     expect(checkRuleDraft(suggestion).ok).toBe(true);
   });
 
@@ -56,7 +62,14 @@ describe('suggestRule', () => {
   });
 
   it('suggests the host for web fetches and any for other tools', () => {
-    expect(suggestRule(fetchUrl('https://docs.stripe.com/api'))).toMatchObject({ tool: 'WebFetch', matcher: { kind: 'host', value: 'docs.stripe.com' } });
-    expect(suggestRule({ toolName: 'mcp__docs__search', input: {}, summary: 'docs: search' })).toMatchObject({ tool: 'mcp__docs__search', matcher: { kind: 'any', value: '' }, scope: {} });
+    expect(suggestRule(fetchUrl('https://docs.stripe.com/api'))).toMatchObject({
+      tool: 'WebFetch',
+      matcher: { kind: 'host', value: 'docs.stripe.com' },
+    });
+    expect(suggestRule({ toolName: 'mcp__docs__search', input: {}, summary: 'docs: search' })).toMatchObject({
+      tool: 'mcp__docs__search',
+      matcher: { kind: 'any', value: '' },
+      scope: {},
+    });
   });
 });

@@ -40,7 +40,13 @@ export function renderPlaque(info: RoomGit): HTMLCanvasElement {
   rect(ctx, 1, 1, PLAQUE_W - 2, PLAQUE_H - 2, EBONY.base);
   hline(ctx, 1, 0, PLAQUE_W - 2, BRASS.base);
   rect(ctx, LEFT_PAD, 2, MARKER_W, 3, PLAQUE_COLORS[plaqueTone(info)]);
-  drawPixelText(ctx, layout.text, layout.textX, Math.floor((PLAQUE_H - GLYPH_H) / 2), info.detached ? GRAPHITE.hi : BRASS.hi);
+  drawPixelText(
+    ctx,
+    layout.text,
+    layout.textX,
+    Math.floor((PLAQUE_H - GLYPH_H) / 2),
+    info.detached ? GRAPHITE.hi : BRASS.hi,
+  );
   if (layout.lightX !== null && info.ci !== 'none') {
     rect(ctx, layout.lightX - 1, 2, LIGHT_SIZE + 2, LIGHT_SIZE, GRAPHITE.deep);
     rect(ctx, layout.lightX, 2, LIGHT_SIZE, LIGHT_SIZE, CI_COLORS[info.ci]);

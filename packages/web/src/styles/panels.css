@@ -10,7 +10,10 @@
   height: var(--feed-h);
   overflow: hidden;
   border-radius: var(--radius);
-  transition: height var(--t-base) var(--ease), left var(--t-base) var(--ease), right var(--t-base) var(--ease);
+  transition:
+    height var(--t-base) var(--ease),
+    left var(--t-base) var(--ease),
+    right var(--t-base) var(--ease);
 }
 
 .ao-feed-bar {
@@ -124,7 +127,10 @@
 }
 
 @keyframes ao-toast-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
 }
 
 .ao-toast-icon {
@@ -137,11 +143,25 @@
   background: var(--bg-hover);
 }
 
-.ao-toast--success .ao-toast-icon { background: rgba(62, 207, 142, 0.16); color: var(--working); }
-.ao-toast--info .ao-toast-icon { background: var(--accent-soft); color: var(--accent); }
-.ao-toast--warn .ao-toast-icon { background: rgba(245, 181, 68, 0.16); color: var(--waiting); }
-.ao-toast--alert { border-color: rgba(245, 181, 68, 0.55); }
-.ao-toast--alert .ao-toast-icon { background: rgba(245, 181, 68, 0.2); color: var(--waiting); }
+.ao-toast--success .ao-toast-icon {
+  background: rgba(62, 207, 142, 0.16);
+  color: var(--working);
+}
+.ao-toast--info .ao-toast-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ao-toast--warn .ao-toast-icon {
+  background: rgba(245, 181, 68, 0.16);
+  color: var(--waiting);
+}
+.ao-toast--alert {
+  border-color: rgba(245, 181, 68, 0.55);
+}
+.ao-toast--alert .ao-toast-icon {
+  background: rgba(245, 181, 68, 0.2);
+  color: var(--waiting);
+}
 
 .ao-toast-body {
   display: grid;

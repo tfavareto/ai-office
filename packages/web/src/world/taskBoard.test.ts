@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { agent, project } from '../test/fixtures';
 import { compareBoardAgents, EMPTY_TASK_BOARD, isBoardAgent, summarizeTaskBoard, taskBoardKey } from './taskBoard';
 
-const task = (id: string, status: TaskItem['status'], patch: Partial<TaskItem> = {}): TaskItem => ({ id, title: `Task ${id}`, status, ...patch });
+const task = (id: string, status: TaskItem['status'], patch: Partial<TaskItem> = {}): TaskItem => ({
+  id,
+  title: `Task ${id}`,
+  status,
+  ...patch,
+});
 
 describe('summarizeTaskBoard', () => {
   it('counts the tasks of every agent per column', () => {
@@ -18,7 +23,10 @@ describe('summarizeTaskBoard', () => {
   });
 
   it('ignores the tasks of agents that left the office', () => {
-    const agents = [agent({ id: 'a', status: 'offline', tasks: [task('1', 'in_progress')] }), agent({ id: 'b', status: 'done', tasks: [task('1', 'pending')] })];
+    const agents = [
+      agent({ id: 'a', status: 'offline', tasks: [task('1', 'in_progress')] }),
+      agent({ id: 'b', status: 'done', tasks: [task('1', 'pending')] }),
+    ];
 
     expect(summarizeTaskBoard(agents, [project()])).toEqual(EMPTY_TASK_BOARD);
   });
@@ -26,8 +34,21 @@ describe('summarizeTaskBoard', () => {
   it('lists at most three in-progress titles, using the doing form, in room then arrival order', () => {
     const projects = [project({ id: 'p1', order: 1 }), project({ id: 'p2', order: 0 })];
     const agents = [
-      agent({ id: 'late', projectId: 'p1', startedAt: 5, tasks: [task('1', 'in_progress', { activeForm: 'Doing late' })] }),
-      agent({ id: 'early', projectId: 'p2', startedAt: 9, tasks: [task('1', 'in_progress', { title: 'Plain title' }), task('2', 'in_progress', { activeForm: 'Doing two', activeFormMsg: { key: 'demo.task.1.active' } })] }),
+      agent({
+        id: 'late',
+        projectId: 'p1',
+        startedAt: 5,
+        tasks: [task('1', 'in_progress', { activeForm: 'Doing late' })],
+      }),
+      agent({
+        id: 'early',
+        projectId: 'p2',
+        startedAt: 9,
+        tasks: [
+          task('1', 'in_progress', { title: 'Plain title' }),
+          task('2', 'in_progress', { activeForm: 'Doing two', activeFormMsg: { key: 'demo.task.1.active' } }),
+        ],
+      }),
       agent({ id: 'extra', projectId: 'p1', startedAt: 7, tasks: [task('1', 'in_progress')] }),
     ];
 
@@ -57,7 +78,11 @@ describe('board agents', () => {
 
   it('sorts by room arrival, then agent arrival', () => {
     const compare = compareBoardAgents([project({ id: 'p1', order: 1 }), project({ id: 'p2', order: 0 })]);
-    const sorted = [agent({ id: 'x', projectId: 'p1', startedAt: 1 }), agent({ id: 'y', projectId: 'p2', startedAt: 9 }), agent({ id: 'z', projectId: 'p1', startedAt: 0 })].sort(compare);
+    const sorted = [
+      agent({ id: 'x', projectId: 'p1', startedAt: 1 }),
+      agent({ id: 'y', projectId: 'p2', startedAt: 9 }),
+      agent({ id: 'z', projectId: 'p1', startedAt: 0 }),
+    ].sort(compare);
 
     expect(sorted.map((a) => a.id)).toEqual(['y', 'z', 'x']);
   });

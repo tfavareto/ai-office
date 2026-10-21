@@ -31,7 +31,9 @@ export function summarizeDelivery(messages: readonly BossMessage[], ctx: Deliver
   if (!isTeam) {
     const name = ctx.nameOf(first.agentId);
     if (first.status === 'delivered') {
-      const text = t(first.via === 'stop' ? 'delivery.single.deliveredStop' : 'delivery.single.deliveredTool', { name });
+      const text = t(first.via === 'stop' ? 'delivery.single.deliveredStop' : 'delivery.single.deliveredTool', {
+        name,
+      });
       return { key: first.id, text, level: 'success', complete, delivered, total };
     }
     if (first.status === 'expired') {
@@ -42,7 +44,10 @@ export function summarizeDelivery(messages: readonly BossMessage[], ctx: Deliver
 
   const team = ctx.teamLabel ? t('delivery.team.named', { room: ctx.teamLabel }) : t('delivery.team.unnamed');
   const progress = t('message.group.progress', { delivered, total });
-  const text = complete && expired > 0 ? t('delivery.team.withExpired', { team, progress, expired }) : t('delivery.team.line', { team, progress });
+  const text =
+    complete && expired > 0
+      ? t('delivery.team.withExpired', { team, progress, expired })
+      : t('delivery.team.line', { team, progress });
   return {
     key: first.group ?? first.id,
     text,

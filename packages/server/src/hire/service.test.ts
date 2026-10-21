@@ -14,8 +14,21 @@ import { LaunchError, type TerminalLauncher } from './terminals';
 const T0 = 1_800_000_000_000;
 const CLAUDE = '/home/ana/.local/bin/claude';
 
-const DEFAULT_ACCOUNT: Account = { id: 'claude', label: 'Pessoal', initial: 'P', color: '#fff', dir: '/home/ana/.claude', isDefault: true };
-const WORK_ACCOUNT: Account = { id: 'claude-work', label: 'work', initial: 'W', color: '#0f0', dir: '/home/ana/.claude-work' };
+const DEFAULT_ACCOUNT: Account = {
+  id: 'claude',
+  label: 'Pessoal',
+  initial: 'P',
+  color: '#fff',
+  dir: '/home/ana/.claude',
+  isDefault: true,
+};
+const WORK_ACCOUNT: Account = {
+  id: 'claude-work',
+  label: 'work',
+  initial: 'W',
+  color: '#0f0',
+  dir: '/home/ana/.claude-work',
+};
 
 interface Opened {
   scriptPath: string;
@@ -51,7 +64,12 @@ function harness(
 ): Harness {
   let clock = T0;
   const opened: Opened[] = [];
-  const registry = new HireRegistry({ now: () => clock, newId: () => 'hire-1', onChange: () => undefined, onExpired: () => undefined });
+  const registry = new HireRegistry({
+    now: () => clock,
+    newId: () => 'hire-1',
+    onChange: () => undefined,
+    onExpired: () => undefined,
+  });
   const launcher: TerminalLauncher = options.launcher ?? {
     open: async (scriptPath) => {
       opened.push({ scriptPath, script: await readFile(scriptPath, 'utf8') });
@@ -114,7 +132,14 @@ describe('HireService.hire (real sessions)', () => {
   test('passes the model, the permission mode, the prompt, the account directory and the language', async () => {
     const { service, opened } = harness();
 
-    await service.hire({ projectPath: project, accountId: 'claude-work', model: 'opus', permissionMode: 'plan', prompt: 'Fix "login"', locale: 'en' });
+    await service.hire({
+      projectPath: project,
+      accountId: 'claude-work',
+      model: 'opus',
+      permissionMode: 'plan',
+      prompt: 'Fix "login"',
+      locale: 'en',
+    });
 
     const script = opened[0]?.script ?? '';
     expect(script).toContain("CLAUDE_CONFIG_DIR='/home/ana/.claude-work'");
@@ -152,17 +177,32 @@ describe('HireService.hire (real sessions)', () => {
   test('refuses a folder that is not absolute, missing or not a directory', async () => {
     const { service, opened } = harness();
 
-    expect(await code(service.hire({ projectPath: 'relative/dir' }))).toEqual({ status: 400, error: 'invalid-projectPath' });
-    expect(await code(service.hire({ projectPath: join(root, 'missing') }))).toEqual({ status: 404, error: 'project-not-found' });
-    expect(await code(service.hire({ projectPath: join(project, '..', 'nope', 'x') }))).toEqual({ status: 404, error: 'project-not-found' });
+    expect(await code(service.hire({ projectPath: 'relative/dir' }))).toEqual({
+      status: 400,
+      error: 'invalid-projectPath',
+    });
+    expect(await code(service.hire({ projectPath: join(root, 'missing') }))).toEqual({
+      status: 404,
+      error: 'project-not-found',
+    });
+    expect(await code(service.hire({ projectPath: join(project, '..', 'nope', 'x') }))).toEqual({
+      status: 404,
+      error: 'project-not-found',
+    });
     expect(opened).toHaveLength(0);
   });
 
   test('refuses an unknown account, including a demo account id', async () => {
     const { service, opened } = harness();
 
-    expect(await code(service.hire({ projectPath: project, accountId: 'nope' }))).toEqual({ status: 400, error: 'unknown-account' });
-    expect(await code(service.hire({ projectPath: project, accountId: 'demo-pessoal' }))).toEqual({ status: 400, error: 'unknown-account' });
+    expect(await code(service.hire({ projectPath: project, accountId: 'nope' }))).toEqual({
+      status: 400,
+      error: 'unknown-account',
+    });
+    expect(await code(service.hire({ projectPath: project, accountId: 'demo-pessoal' }))).toEqual({
+      status: 400,
+      error: 'unknown-account',
+    });
     expect(opened).toHaveLength(0);
   });
 
@@ -177,20 +217,23 @@ describe('HireService.hire (real sessions)', () => {
     ['no-terminal', 503],
     ['terminal-failed', 502],
     ['unsupported-platform', 501],
-  ] as const)('maps a %s launch failure to HTTP %i, registers nothing and removes the launcher folder', async (failure, status) => {
-    const { service, registry } = harness({
-      launcher: {
-        open: async () => {
-          throw new LaunchError(failure, 'boom');
+  ] as const)(
+    'maps a %s launch failure to HTTP %i, registers nothing and removes the launcher folder',
+    async (failure, status) => {
+      const { service, registry } = harness({
+        launcher: {
+          open: async () => {
+            throw new LaunchError(failure, 'boom');
+          },
         },
-      },
-    });
+      });
 
-    expect(await code(service.hire({ projectPath: project, prompt: 'x' }))).toEqual({ status, error: failure });
+      expect(await code(service.hire({ projectPath: project, prompt: 'x' }))).toEqual({ status, error: failure });
 
-    expect(registry.list(T0)).toEqual([]);
-    expect((await readdir(root)).filter((name) => name.startsWith('ai-office-hire-'))).toEqual([]);
-  });
+      expect(registry.list(T0)).toEqual([]);
+      expect((await readdir(root)).filter((name) => name.startsWith('ai-office-hire-'))).toEqual([]);
+    },
+  );
 
   test('limits launches per minute and counts only requests that reach the launcher', async () => {
     const { service, opened, setClock } = harness({ limit: 2 });
@@ -223,7 +266,12 @@ describe('HireService.hire (demo mode)', () => {
     const demo = createDemoSimulator({ sessions: 1, seed: 3, now: () => T0 });
     const { service, opened } = harness({ demo, claude: undefined });
 
-    const hire = await service.hire({ projectPath: demoPath, accountId: 'demo-trabalho', prompt: 'Revisar o checkout', deskIndex: 1 });
+    const hire = await service.hire({
+      projectPath: demoPath,
+      accountId: 'demo-trabalho',
+      prompt: 'Revisar o checkout',
+      deskIndex: 1,
+    });
 
     expect(opened).toHaveLength(0);
     expect(hire).toMatchObject({ demo: true, projectId: demoPath, accountId: 'demo-trabalho', deskIndex: 1 });

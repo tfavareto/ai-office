@@ -7,7 +7,11 @@ const prefix = (value: string) => ({ kind: 'command-prefix' as const, value });
 describe('evaluateRules: matching', () => {
   it('answers a request that matches an allow rule', () => {
     const allow = rule();
-    expect(evaluateRules([allow], bash('npm test -- --watch'))).toEqual({ kind: 'decided', rule: allow, effect: 'allow' });
+    expect(evaluateRules([allow], bash('npm test -- --watch'))).toEqual({
+      kind: 'decided',
+      rule: allow,
+      effect: 'allow',
+    });
   });
 
   it('leaves unmatched requests alone', () => {
@@ -31,7 +35,9 @@ describe('evaluateRules: matching', () => {
     expect(evaluateRules([docs], fetchUrl('https://stripe.com/api')).kind).toBe('none');
     expect(evaluateRules([docs], fetchUrl('https://docs.stripe.com.evil.example/')).kind).toBe('none');
     expect(evaluateRules([docs], fetchUrl('https://docs.stripe.com@evil.example/')).kind).toBe('none');
-    expect(evaluateRules([mcp], { toolName: 'mcp__docs__search', input: {}, summary: 'docs: search' }).kind).toBe('decided');
+    expect(evaluateRules([mcp], { toolName: 'mcp__docs__search', input: {}, summary: 'docs: search' }).kind).toBe(
+      'decided',
+    );
     expect(evaluateRules([mcp], { toolName: 'mcp__other__search', input: {}, summary: 'x' }).kind).toBe('none');
   });
 });
@@ -40,7 +46,11 @@ describe('evaluateRules: precedence', () => {
   it('lets a deny rule win over an allow rule', () => {
     const allow = rule({ matcher: prefix('git') });
     const deny = rule({ effect: 'deny', matcher: prefix('git push') });
-    expect(evaluateRules([allow, deny], bash('git push origin main'))).toMatchObject({ kind: 'decided', effect: 'deny', rule: deny });
+    expect(evaluateRules([allow, deny], bash('git push origin main'))).toMatchObject({
+      kind: 'decided',
+      effect: 'deny',
+      rule: deny,
+    });
   });
 
   it('makes a deny rule see through chaining', () => {
@@ -83,20 +93,30 @@ describe('evaluateRules: scope', () => {
 });
 
 describe('evaluateRules: safety net', () => {
-  it.each(['rm -rf dist', 'sudo npm test', 'git push --force', 'bash -c "npm test"', 'node -e process.exit', 'python3 -c print'])(
-    'hands the risky request %s back to the user even when an allow rule matches',
-    (command) => {
-      const first = command.split(' ')[0] as string;
-      const all = rule({ matcher: prefix(first) });
-      expect(evaluateRules([all], bash(command)).kind).toBe('ask');
-    },
-  );
+  it.each([
+    'rm -rf dist',
+    'sudo npm test',
+    'git push --force',
+    'bash -c "npm test"',
+    'node -e process.exit',
+    'python3 -c print',
+  ])('hands the risky request %s back to the user even when an allow rule matches', (command) => {
+    const first = command.split(' ')[0] as string;
+    const all = rule({ matcher: prefix(first) });
+    expect(evaluateRules([all], bash(command)).kind).toBe('ask');
+  });
 
   it('never auto-allows a write to a secret, but still lets a deny rule answer', () => {
     const allow = rule({ tool: 'Write', matcher: { kind: 'exact', value: `${PROJECT}/.env` } });
-    expect(evaluateRules([allow], file('Write', `${PROJECT}/.env`))).toMatchObject({ kind: 'ask', reason: 'sensitive-file' });
+    expect(evaluateRules([allow], file('Write', `${PROJECT}/.env`))).toMatchObject({
+      kind: 'ask',
+      reason: 'sensitive-file',
+    });
     const deny = rule({ effect: 'deny', tool: 'Write', matcher: { kind: 'exact', value: `${PROJECT}/.env` } });
-    expect(evaluateRules([allow, deny], file('Write', `${PROJECT}/.env`))).toMatchObject({ kind: 'decided', effect: 'deny' });
+    expect(evaluateRules([allow, deny], file('Write', `${PROJECT}/.env`))).toMatchObject({
+      kind: 'decided',
+      effect: 'deny',
+    });
   });
 
   it('answers a dangerous request with a deny rule', () => {

@@ -61,7 +61,9 @@ export function reportFilename(date: string): string {
 
 /** Sum of the half-hour buckets of several agents. */
 export function sumActivity(agents: readonly ReportAgent[]): number[] {
-  return Array.from({ length: REPORT_BUCKETS }, (_, i) => agents.reduce((sum, agent) => sum + (agent.activity[i] ?? 0), 0));
+  return Array.from({ length: REPORT_BUCKETS }, (_, i) =>
+    agents.reduce((sum, agent) => sum + (agent.activity[i] ?? 0), 0),
+  );
 }
 
 /** How busy a half hour was, 0..1 (a full half hour of one agent at work is 1). */
@@ -75,12 +77,25 @@ function entriesOf(project: ReportProject): ReportEntry[] {
 
 export function reportSections(report: Pick<DayReport, 'projects'>, groupBy: ReportGroupBy): ReportSection[] {
   if (groupBy === 'project') {
-    return report.projects.map((project) => ({ id: project.id, title: projectLabel(project), totals: projectTotals(project), entries: entriesOf(project), activity: sumActivity(project.agents) }));
+    return report.projects.map((project) => ({
+      id: project.id,
+      title: projectLabel(project),
+      totals: projectTotals(project),
+      entries: entriesOf(project),
+      activity: sumActivity(project.agents),
+    }));
   }
   return report.projects
     .flatMap(entriesOf)
     .sort((a, b) => b.agent.activeMs - a.agent.activeMs || a.agent.name.localeCompare(b.agent.name))
-    .map((entry) => ({ id: entry.agent.agentId, title: entry.agent.name, subtitle: entry.projectName, totals: entry.totals, entries: [entry], activity: sumActivity([entry.agent]) }));
+    .map((entry) => ({
+      id: entry.agent.agentId,
+      title: entry.agent.name,
+      subtitle: entry.projectName,
+      totals: entry.totals,
+      entries: [entry],
+      activity: sumActivity([entry.agent]),
+    }));
 }
 
 // ---- smaller pieces -----------------------------------------------------------------------------------------------
@@ -145,11 +160,23 @@ function agentHighlight(entry: ReportEntry): Candidate | undefined {
   const project = entry.projectName;
   const runs = testsPassed + testsFailed;
   const score = tasks * SCORE_TASK + commits * SCORE_COMMIT + runs * SCORE_TEST_RUN + files * SCORE_FILE;
-  if (tasks > 0 && commits > 0) return { score, text: t('report.highlight.tasksCommits', { name, tasks, commits, project }) };
+  if (tasks > 0 && commits > 0)
+    return { score, text: t('report.highlight.tasksCommits', { name, tasks, commits, project }) };
   if (tasks > 0) return { score, text: t('report.highlight.tasks', { name, tasks, project }) };
   if (commits > 0) return { score, text: t('report.highlight.commits', { name, commits, project }) };
-  if (runs > 0) return { score, text: testsFailed > 0 ? t('report.highlight.testsMixed', { name, runs, project, failed: testsFailed }) : t('report.highlight.testsPassed', { name, runs, project }) };
-  if (files >= MIN_FILES_HIGHLIGHT) return { score, text: t('report.highlight.files', { name, files, project, added: linesAdded, removed: linesRemoved }) };
+  if (runs > 0)
+    return {
+      score,
+      text:
+        testsFailed > 0
+          ? t('report.highlight.testsMixed', { name, runs, project, failed: testsFailed })
+          : t('report.highlight.testsPassed', { name, runs, project }),
+    };
+  if (files >= MIN_FILES_HIGHLIGHT)
+    return {
+      score,
+      text: t('report.highlight.files', { name, files, project, added: linesAdded, removed: linesRemoved }),
+    };
   return undefined;
 }
 
@@ -161,7 +188,10 @@ export function reportHighlights(report: Pick<DayReport, 'projects'>): string[] 
     if (failed > 0) lines.push(t('report.highlight.testsFailed', { runs: failed, project: projectLabel(project) }));
   }
   const entries = report.projects.flatMap(entriesOf);
-  const people = entries.map(agentHighlight).filter((item): item is Candidate => item !== undefined).sort((a, b) => b.score - a.score);
+  const people = entries
+    .map(agentHighlight)
+    .filter((item): item is Candidate => item !== undefined)
+    .sort((a, b) => b.score - a.score);
   lines.push(...people.map((item) => item.text));
   const spend = spendHighlight(entries);
   if (spend !== undefined) lines.push(spend);
@@ -171,6 +201,11 @@ export function reportHighlights(report: Pick<DayReport, 'projects'>): string[] 
 function spendHighlight(entries: readonly ReportEntry[]): string | undefined {
   const total = entries.reduce((sum, entry) => sum + entry.agent.usage.costUSD, 0);
   const top = [...entries].sort((a, b) => b.agent.usage.costUSD - a.agent.usage.costUSD)[0];
-  if (top === undefined || entries.length < 2 || total <= 0 || top.agent.usage.costUSD / total < MIN_SPEND_SHARE) return undefined;
-  return t('report.highlight.spend', { name: top.agent.name, share: formatShare(top.agent.usage.costUSD / total), cost: formatCost(top.agent.usage.costUSD) });
+  if (top === undefined || entries.length < 2 || total <= 0 || top.agent.usage.costUSD / total < MIN_SPEND_SHARE)
+    return undefined;
+  return t('report.highlight.spend', {
+    name: top.agent.name,
+    share: formatShare(top.agent.usage.costUSD / total),
+    cost: formatCost(top.agent.usage.costUSD),
+  });
 }

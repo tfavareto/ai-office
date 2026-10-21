@@ -3,7 +3,17 @@ import type { RoomGit } from '../../world/roomGit';
 import { textWidth } from '../font';
 import { PLAQUE_W, plaqueLayout } from './plaque';
 
-const info = (patch: Partial<RoomGit> = {}): RoomGit => ({ ref: 'main', detached: false, dirty: false, conflicted: false, ahead: 0, behind: 0, op: null, ci: 'none', ...patch });
+const info = (patch: Partial<RoomGit> = {}): RoomGit => ({
+  ref: 'main',
+  detached: false,
+  dirty: false,
+  conflicted: false,
+  ahead: 0,
+  behind: 0,
+  op: null,
+  ci: 'none',
+  ...patch,
+});
 
 describe('plaqueLayout', () => {
   it('keeps a short branch whole and leaves no room for a light that is not there', () => {
@@ -17,7 +27,12 @@ describe('plaqueLayout', () => {
     expect(layout.textX + textWidth(layout.text)).toBeLessThan(layout.lightX as number);
   });
 
-  it.each(['feat/a-very-long-branch-name', 'chore/dependency-updates-for-october', 'ação/configuração-ñ', 'x'.repeat(80)])('never draws %s outside the plate', (ref) => {
+  it.each([
+    'feat/a-very-long-branch-name',
+    'chore/dependency-updates-for-october',
+    'ação/configuração-ñ',
+    'x'.repeat(80),
+  ])('never draws %s outside the plate', (ref) => {
     for (const ci of ['none', 'success'] as const) {
       const layout = plaqueLayout(info({ ref, ci }));
       const right = layout.lightX ?? PLAQUE_W;

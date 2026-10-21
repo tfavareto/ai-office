@@ -12,7 +12,12 @@ function makeBook(initial?: ConstructorParameters<typeof RuleBook>[1]) {
   return { book, onChange, tick: (ms: number) => (clock += ms) };
 }
 
-const draft = (value: string, extra: Record<string, unknown> = {}) => ({ effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value }, ...extra });
+const draft = (value: string, extra: Record<string, unknown> = {}) => ({
+  effect: 'allow',
+  tool: 'Bash',
+  matcher: { kind: 'command-prefix', value },
+  ...extra,
+});
 const asker = { agentId: 'ag1', agentName: 'Ana' };
 
 describe('RuleBook: rules', () => {
@@ -34,7 +39,9 @@ describe('RuleBook: rules', () => {
     expect(book.create(draft('npm test'))).toMatchObject({ ok: false, error: { code: 'duplicate-rule' } });
     expect(book.update('nope', {})).toMatchObject({ ok: false, error: { code: 'not-found' } });
     const other = book.create(draft('npm run build'));
-    expect(book.update(other.ok ? other.value.id : '', { matcher: { kind: 'command-prefix', value: 'npm test' } })).toMatchObject({ ok: false, error: { code: 'duplicate-rule' } });
+    expect(
+      book.update(other.ok ? other.value.id : '', { matcher: { kind: 'command-prefix', value: 'npm test' } }),
+    ).toMatchObject({ ok: false, error: { code: 'duplicate-rule' } });
   });
 
   it('caps the number of rules', () => {
@@ -50,7 +57,16 @@ describe('RuleBook: decisions and log', () => {
     book.create(draft('npm test'));
     tick(5000);
     const decision = book.decide({ ...bash('npm test -- --watch'), ...asker });
-    expect(decision).toMatchObject({ kind: 'allow', entry: { outcome: 'allow', subject: 'npm test -- --watch', agentName: 'Ana', requestTool: 'Bash', projectPath: PROJECT } });
+    expect(decision).toMatchObject({
+      kind: 'allow',
+      entry: {
+        outcome: 'allow',
+        subject: 'npm test -- --watch',
+        agentName: 'Ana',
+        requestTool: 'Bash',
+        projectPath: PROJECT,
+      },
+    });
     expect(book.rules()[0]).toMatchObject({ hits: 1, lastHitAt: NOON + 5000 });
     expect(book.log()).toHaveLength(1);
   });
@@ -70,7 +86,20 @@ describe('RuleBook: decisions and log', () => {
     const raw = book.decide({ ...bash('npm test'), ...asker, input: { command: 'npm test' } });
     expect(raw.kind).toBe('allow');
     // Hand-made stored rule that is too broad: the safety net still stops the risky request.
-    const { book: loose } = makeBook({ rules: [{ id: 'x1', effect: 'allow', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: {}, enabled: true, createdAt: 1, hits: 0 }] });
+    const { book: loose } = makeBook({
+      rules: [
+        {
+          id: 'x1',
+          effect: 'allow',
+          tool: 'Bash',
+          matcher: { kind: 'any', value: '' },
+          scope: {},
+          enabled: true,
+          createdAt: 1,
+          hits: 0,
+        },
+      ],
+    });
     const asked = loose.decide({ ...bash('sudo reboot'), ...asker });
     expect(asked).toMatchObject({ kind: 'ask', entry: { outcome: 'ask', blockedBy: 'sudo' } });
     expect(loose.rules()[0]?.hits).toBe(0);
@@ -101,7 +130,8 @@ describe('RuleBook: decisions and log', () => {
 describe('RuleBook: preview', () => {
   it('counts the requests of today a rule would have answered', () => {
     const { book } = makeBook();
-    for (const command of ['npm test', 'npm test -- -u', 'npm install', 'sudo npm test', 'npm test; ls']) book.decide({ ...bash(command), ...asker });
+    for (const command of ['npm test', 'npm test -- -u', 'npm install', 'sudo npm test', 'npm test; ls'])
+      book.decide({ ...bash(command), ...asker });
     expect(book.preview(draft('npm test'))).toMatchObject({ ok: true, value: { matches: 2, total: 5 } });
   });
 

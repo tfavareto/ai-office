@@ -3,7 +3,14 @@ import { asArray, asNumber, asRecord, asString } from '../util/fs-safe';
 import type { AssistantBlock, LineMeta, ParsedLine, StructuredResult, ToolResultInfo, UsageInfo } from './types';
 
 const INTERRUPT_PREFIX = '[Request interrupted by user';
-const IGNORED_USER_PREFIXES = ['<system-reminder>', '<local-command-', '<bash-input>', '<bash-stdout>', '<bash-stderr>', 'Caveat:'];
+const IGNORED_USER_PREFIXES = [
+  '<system-reminder>',
+  '<local-command-',
+  '<bash-input>',
+  '<bash-stdout>',
+  '<bash-stderr>',
+  'Caveat:',
+];
 
 function readMeta(line: Record<string, unknown>): LineMeta | undefined {
   const timestamp = asString(line.timestamp);
@@ -136,7 +143,11 @@ function parseUser(line: Record<string, unknown>, meta: LineMeta): ParsedLine | 
   for (const raw of asArray(content)) {
     const block = asRecord(raw);
     if (block.type === 'tool_result' && typeof block.tool_use_id === 'string') {
-      results.push({ toolUseId: block.tool_use_id, text: flattenContent(block.content), isError: block.is_error === true });
+      results.push({
+        toolUseId: block.tool_use_id,
+        text: flattenContent(block.content),
+        isError: block.is_error === true,
+      });
     } else if (block.type === 'text' && typeof block.text === 'string') {
       texts.push(block.text);
     }
@@ -209,7 +220,9 @@ export function parseLine(raw: string): ParsedLine | undefined {
     }
     case 'last-prompt': {
       const lastPrompt = asString(line.lastPrompt)?.trim();
-      return lastPrompt === undefined || lastPrompt.length === 0 ? undefined : { kind: 'last-prompt', text: lastPrompt };
+      return lastPrompt === undefined || lastPrompt.length === 0
+        ? undefined
+        : { kind: 'last-prompt', text: lastPrompt };
     }
     case 'mode': {
       const mode = asString(line.mode);
@@ -218,7 +231,12 @@ export function parseLine(raw: string): ParsedLine | undefined {
     case 'cost-state': {
       const costUSD = asNumber(line.totalCostUSD);
       if (costUSD === undefined) return undefined;
-      return { kind: 'cost-state', costUSD, linesAdded: number(line.totalLinesAdded), linesRemoved: number(line.totalLinesRemoved) };
+      return {
+        kind: 'cost-state',
+        costUSD,
+        linesAdded: number(line.totalLinesAdded),
+        linesRemoved: number(line.totalLinesRemoved),
+      };
     }
     case 'queue-operation': {
       const content = asString(line.content);

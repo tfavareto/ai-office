@@ -83,7 +83,13 @@ export function boardLineForms(info: RoomInfo, text: WorldText): string[] {
 }
 
 /** Wall board of a project room: task progress and the task being worked on. */
-export function renderBoard(w: number, h: number, info: RoomInfo, accent: string, text: WorldText = worldText('pt-BR')): HTMLCanvasElement {
+export function renderBoard(
+  w: number,
+  h: number,
+  info: RoomInfo,
+  accent: string,
+  text: WorldText = worldText('pt-BR'),
+): HTMLCanvasElement {
   const canvas = makeCanvas(w, h);
   const ctx = context2d(canvas);
   rect(ctx, 0, 0, w, h, '#0b1322');
@@ -100,12 +106,23 @@ export function renderBoard(w: number, h: number, info: RoomInfo, accent: string
 }
 
 /** Meeting-room TV: who is in the room. */
-export function renderMeetingTv(w: number, h: number, names: readonly string[], text: WorldText = worldText('pt-BR')): HTMLCanvasElement {
+export function renderMeetingTv(
+  w: number,
+  h: number,
+  names: readonly string[],
+  text: WorldText = worldText('pt-BR'),
+): HTMLCanvasElement {
   const canvas = makeCanvas(w, h);
   const ctx = context2d(canvas);
   rect(ctx, 0, 0, w, h, '#0a1424');
   rect(ctx, 0, 0, w, 7, '#1d3a63');
-  drawPixelText(ctx, names.length ? text.t('meeting.inRoom', { n: names.length }) : text.t('meeting.free'), 3, 1, '#e8f1ff');
+  drawPixelText(
+    ctx,
+    names.length ? text.t('meeting.inRoom', { n: names.length }) : text.t('meeting.free'),
+    3,
+    1,
+    '#e8f1ff',
+  );
   hline(ctx, 0, 7, w, LED.teal);
   const cols = 3;
   const colW = Math.floor((w - 4) / cols);
@@ -124,7 +141,12 @@ const INK = '#2a3344';
 const TITLES_2D = 2;
 
 /** Meeting-room whiteboard: cards per column and the first tasks in progress, in marker colors. */
-export function renderTaskBoard(w: number, h: number, summary: TaskBoardSummary, text: WorldText = worldText('pt-BR')): HTMLCanvasElement {
+export function renderTaskBoard(
+  w: number,
+  h: number,
+  summary: TaskBoardSummary,
+  text: WorldText = worldText('pt-BR'),
+): HTMLCanvasElement {
   const canvas = makeCanvas(w, h);
   const ctx = context2d(canvas);
   rect(ctx, 0, 0, w, h, '#f3f5f6');
@@ -134,7 +156,13 @@ export function renderTaskBoard(w: number, h: number, summary: TaskBoardSummary,
     [TASK_COLUMN_COLORS.done, summary.done],
   ] as const;
   if (counts.every(([, n]) => n === 0)) {
-    drawPixelText(ctx, pickFitting([text.t('taskboard.empty'), text.t('taskboard.empty.short')], w - 6), 3, 2, '#7b8392');
+    drawPixelText(
+      ctx,
+      pickFitting([text.t('taskboard.empty'), text.t('taskboard.empty.short')], w - 6),
+      3,
+      2,
+      '#7b8392',
+    );
     return canvas;
   }
   let x = 3;

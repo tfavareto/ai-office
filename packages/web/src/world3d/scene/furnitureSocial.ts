@@ -42,7 +42,9 @@ export function buildVending(f: FurnCtx): void {
   c.boxOn(m.graphite, 0, 0, 0, w * 0.75, 1.85, d * 0.85);
   c.boxOn(m.led('#e8f4ff'), -0.12, 0.5, d * 0.43, w * 0.75 * 0.6, 1.2, 0.01);
   const colors = ['#e0525a', '#e8b84a', '#4aa3e8', '#58c47a', '#c06ae0'];
-  for (let r = 0; r < 5; r++) for (let k = 0; k < 4; k++) c.boxOn(m.solid(colors[(r + k) % 5], 0.6), -0.4 + k * 0.17, 0.58 + r * 0.2, d * 0.435, 0.12, 0.13, 0.015);
+  for (let r = 0; r < 5; r++)
+    for (let k = 0; k < 4; k++)
+      c.boxOn(m.solid(colors[(r + k) % 5], 0.6), -0.4 + k * 0.17, 0.58 + r * 0.2, d * 0.435, 0.12, 0.13, 0.015);
   c.boxOn(m.black, w * 0.28, 0.5, d * 0.434, 0.18, 0.5, 0.012);
   f.light(0, 1.0, d * 0.5, false);
 }
@@ -100,7 +102,8 @@ export function buildPingPong(f: FurnCtx): void {
   c.boxOn(m.ceramic, 0, 0.752, 0, w * 0.74, 0.003, 0.02);
   c.boxOn(m.ceramic, 0, 0.752, 0, 0.02, 0.003, d * 0.72);
   c.boxOn(m.black, 0, 0.752, 0, 0.012, 0.15, d * 0.74);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.boxOn(m.graphite, sx * w * 0.3, 0, sz * d * 0.28, 0.06, 0.72, 0.06);
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) c.boxOn(m.graphite, sx * w * 0.3, 0, sz * d * 0.28, 0.06, 0.72, 0.06);
 }
 
 export function buildArcade(f: FurnCtx): void {

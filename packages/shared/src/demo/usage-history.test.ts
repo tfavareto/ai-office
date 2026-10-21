@@ -22,9 +22,16 @@ describe('demo usage history', () => {
 
   test('is quieter at night and on weekends than during the working day', () => {
     const rows = demoUsageRows(NOW).filter((row) => row.account === 'demo-trabalho' && row.hour < NOW - 24 * HOUR_MS);
-    const share = (match: (date: Date) => boolean): number => rows.filter((row) => match(new Date(row.hour))).reduce((sum, row) => sum + row.input + row.output + row.cacheWrite, 0);
-    expect(share((d) => d.getHours() >= 9 && d.getHours() <= 17 && d.getDay() >= 1 && d.getDay() <= 5)).toBeGreaterThan(share((d) => d.getHours() <= 5) * 20);
-    expect(share((d) => d.getDay() === 0 || d.getDay() === 6)).toBeLessThan(share((d) => d.getDay() >= 1 && d.getDay() <= 5) / 5);
+    const share = (match: (date: Date) => boolean): number =>
+      rows
+        .filter((row) => match(new Date(row.hour)))
+        .reduce((sum, row) => sum + row.input + row.output + row.cacheWrite, 0);
+    expect(share((d) => d.getHours() >= 9 && d.getHours() <= 17 && d.getDay() >= 1 && d.getDay() <= 5)).toBeGreaterThan(
+      share((d) => d.getHours() <= 5) * 20,
+    );
+    expect(share((d) => d.getDay() === 0 || d.getDay() === 6)).toBeLessThan(
+      share((d) => d.getDay() >= 1 && d.getDay() <= 5) / 5,
+    );
   });
 
   test('is working right now whatever the time of day', () => {
@@ -35,7 +42,9 @@ describe('demo usage history', () => {
   });
 
   test('attributes today to the given sessions so the tables can link to people', () => {
-    const rows = demoUsageRows(NOW, [{ account: 'demo-pessoal', session: 'demo-session-demo-1', project: '/Users/demo/projetos/loja-online' }]);
+    const rows = demoUsageRows(NOW, [
+      { account: 'demo-pessoal', session: 'demo-session-demo-1', project: '/Users/demo/projetos/loja-online' },
+    ]);
     const today = rows.filter((row) => row.account === 'demo-pessoal' && row.hour >= NOW - 3 * HOUR_MS);
     expect(today.some((row) => row.session === 'demo-session-demo-1')).toBe(true);
   });
@@ -54,7 +63,11 @@ describe('demo usage history', () => {
     const maps = hourMapsFromRows(rows);
     const cards = demoAccountUsage(NOW, rows);
     for (const period of ['today', 'week'] as const) {
-      const detail = buildUsageDetail(rows, { accounts: ['demo-trabalho'], label: 'demo-trabalho', period, now: NOW }, (account) => maps.get(account) ?? new Map());
+      const detail = buildUsageDetail(
+        rows,
+        { accounts: ['demo-trabalho'], label: 'demo-trabalho', period, now: NOW },
+        (account) => maps.get(account) ?? new Map(),
+      );
       const card = cards.find((account) => account.accountId === 'demo-trabalho');
       expect(detail.totals.tokens).toBe(period === 'today' ? card?.today.tokens : card?.week.tokens);
     }

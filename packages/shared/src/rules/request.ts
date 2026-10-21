@@ -100,7 +100,14 @@ export function compactRequest(request: RuleRequest): RuleRequest {
   return {
     toolName: request.toolName,
     summary: request.summary.slice(0, FACET_MAX),
-    input: { ...facet(input, 'command'), ...facet(input, 'file_path'), ...facet(input, 'notebook_path'), ...facet(input, 'path'), ...facet(input, 'url'), ...facet(input, 'query') },
+    input: {
+      ...facet(input, 'command'),
+      ...facet(input, 'file_path'),
+      ...facet(input, 'notebook_path'),
+      ...facet(input, 'path'),
+      ...facet(input, 'url'),
+      ...facet(input, 'query'),
+    },
     ...(request.projectPath !== undefined ? { projectPath: request.projectPath } : {}),
     ...(request.accountId !== undefined ? { accountId: request.accountId } : {}),
   };

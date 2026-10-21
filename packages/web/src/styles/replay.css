@@ -4,7 +4,7 @@
   --replay-strong: #8b6cf0;
   --replay-soft: rgba(167, 139, 250, 0.16);
   --replay-line: rgba(167, 139, 250, 0.42);
-  }
+}
 
 /* ---- what tells it apart from live ------------------------------------------------------------------------------ */
 .ao-root.is-replay .ao-topbar {
@@ -85,7 +85,10 @@
   box-shadow: var(--shadow);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
-  transition: left var(--t-base) var(--ease), right var(--t-base) var(--ease), bottom var(--t-base) var(--ease);
+  transition:
+    left var(--t-base) var(--ease),
+    right var(--t-base) var(--ease),
+    bottom var(--t-base) var(--ease);
 }
 
 .ao-replay[hidden] {

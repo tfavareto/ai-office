@@ -20,7 +20,8 @@ function run(seed: number, seconds: number) {
     const result = sim.tick(clock);
     feed.push(...result.feed);
     notices.push(...result.notices);
-    for (const agent of sim.agents()) seen.set(`${agent.id}:${agent.status}:${agent.waitingFor ?? ''}:${agent.permission?.id ?? ''}`, agent);
+    for (const agent of sim.agents())
+      seen.set(`${agent.id}:${agent.status}:${agent.waitingFor ?? ''}:${agent.permission?.id ?? ''}`, agent);
   }
   return { sim, feed, notices, agents: [...seen.values()] };
 }
@@ -71,10 +72,14 @@ describe('demo content is localizable', () => {
 
   test('agents carry messages for roles, generated titles, tasks, shells, waiting reasons and permissions', () => {
     const agents = [...result.agents, ...second.agents];
-    expect(agents.filter((a) => a.kind === 'main').every((a) => a.roleMsg !== undefined && a.titleMsg !== undefined)).toBe(true);
+    expect(
+      agents.filter((a) => a.kind === 'main').every((a) => a.roleMsg !== undefined && a.titleMsg !== undefined),
+    ).toBe(true);
     expect(agents.filter((a) => a.kind === 'sub').every((a) => a.titleMsg !== undefined)).toBe(true);
     expect(agents.some((a) => a.tasks.length > 0)).toBe(true);
-    expect(agents.flatMap((a) => a.tasks).every((t) => t.titleMsg !== undefined && t.activeFormMsg !== undefined)).toBe(true);
+    expect(agents.flatMap((a) => a.tasks).every((t) => t.titleMsg !== undefined && t.activeFormMsg !== undefined)).toBe(
+      true,
+    );
     expect(agents.flatMap((a) => a.shells).every((s) => s.labelMsg !== undefined)).toBe(true);
     expect(agents.some((a) => a.waitingForMsg !== undefined)).toBe(true);
     const permissions = agents.flatMap((a) => (a.permission ? [a.permission] : []));
@@ -85,7 +90,8 @@ describe('demo content is localizable', () => {
   test('every message of the story renders in Portuguese as its text, and in English and Spanish without leaking keys', () => {
     // Distinct messages only: a long story repeats the same ones thousands of times.
     const distinct = new Map<string, { message: Msg; text: string }>();
-    for (const pair of [...collectMessages(result), ...collectMessages(second)]) distinct.set(JSON.stringify([pair.message, pair.text]), pair);
+    for (const pair of [...collectMessages(result), ...collectMessages(second)])
+      distinct.set(JSON.stringify([pair.message, pair.text]), pair);
     const pairs = [...distinct.values()];
     expect(pairs.length).toBeGreaterThan(100);
     for (const { message, text } of pairs) {
@@ -102,7 +108,8 @@ describe('demo content is localizable', () => {
   });
 
   test('notices read naturally in English and Spanish', () => {
-    const texts = (locale: Locale): string[] => result.notices.map((notice) => translateShared(locale, notice.msg as Msg));
+    const texts = (locale: Locale): string[] =>
+      result.notices.map((notice) => translateShared(locale, notice.msg as Msg));
     expect(texts('en').some((text) => /^.+ finished in \d+ (s|min)/.test(text))).toBe(true);
     expect(texts('es').some((text) => /^.+ terminó en \d+ (s|min)/.test(text))).toBe(true);
     expect(texts('en').some((text) => /^.+ needs you: /.test(text))).toBe(true);
@@ -120,15 +127,24 @@ describe('demo content is localizable', () => {
   });
 
   test('the default demo account is flagged so the client localizes "Pessoal"', () => {
-    expect(DEMO_ACCOUNTS.find((account) => account.id === 'demo-pessoal')).toMatchObject({ label: 'Pessoal', isDefault: true });
+    expect(DEMO_ACCOUNTS.find((account) => account.id === 'demo-pessoal')).toMatchObject({
+      label: 'Pessoal',
+      isDefault: true,
+    });
   });
 
   test('permission suggestions have messages that render in English', () => {
     const permissions = result.agents.flatMap((a) => (a.permission ? [a.permission] : []));
-    const labels = permissions.flatMap((p) => (p.suggestionMsgs ?? []).map((message) => translateShared('en', message)));
+    const labels = permissions.flatMap((p) =>
+      (p.suggestionMsgs ?? []).map((message) => translateShared('en', message)),
+    );
     expect(labels.length).toBeGreaterThan(0);
     expect(labels.every((label) => /^(Always allow|Allow edits)/.test(label))).toBe(true);
-    expect(permissions.some((p) => p.summaryMsg !== undefined && /^(Edit|Access) /.test(translateShared('en', p.summaryMsg)))).toBe(true);
+    expect(
+      permissions.some(
+        (p) => p.summaryMsg !== undefined && /^(Edit|Access) /.test(translateShared('en', p.summaryMsg)),
+      ),
+    ).toBe(true);
   });
 
   test('a denial leaves an activity with a message', () => {
@@ -139,10 +155,20 @@ describe('demo content is localizable', () => {
       sim.tick(clock);
     }
     const waiting = sim.agents().find((a) => a.permission !== undefined) as Agent;
-    expect(sim.decidePermission((waiting.permission as { id: string }).id, { behavior: 'deny', message: 'não', locale: 'en' })).toBe(true);
+    expect(
+      sim.decidePermission((waiting.permission as { id: string }).id, {
+        behavior: 'deny',
+        message: 'não',
+        locale: 'en',
+      }),
+    ).toBe(true);
     clock += 250;
     const denied = sim.tick(clock).feed.find((item) => item.activity.icon === '🚫');
-    expect(denied?.activity).toMatchObject({ text: 'Pedido recusado por você', detail: 'não', msg: { key: 'activity.denied' } });
+    expect(denied?.activity).toMatchObject({
+      text: 'Pedido recusado por você',
+      detail: 'não',
+      msg: { key: 'activity.denied' },
+    });
     expect(translateShared('en', denied?.activity.msg as Msg)).toBe('Request denied by you');
   });
 

@@ -7,7 +7,18 @@ import { h, setText, toggleClass } from '../dom';
 import { icon, type IconName } from '../icons';
 import { displayStatus, statusHint, statusLabel } from '../model/status';
 import type { DrawerTab } from '../state';
-import { accountChip, createAvatar, emptyNote, liveText, setDisabled, setLive, setPressed, setStatusDot, statusDot, updateAccountChip } from '../widgets';
+import {
+  accountChip,
+  createAvatar,
+  emptyNote,
+  liveText,
+  setDisabled,
+  setLive,
+  setPressed,
+  setStatusDot,
+  statusDot,
+  updateAccountChip,
+} from '../widgets';
 import { ActivityTab, DataTab, MessagesTab, SummaryTab, type AgentTab } from './agent-tabs';
 import { closeButton } from './overlay';
 import { PermissionCard, ShellCard, WaitingCard } from './urgent-cards';
@@ -68,13 +79,22 @@ export class AgentView implements Component {
       terminal: this.action('terminal', t('agent.action.terminal'), () => this.toggleTerminal()),
     };
     this.roomLink.append(icon('folder', 14), this.roomName);
-    this.roomLink.addEventListener('click', () => this.agentId && ctx.selectRoom(this.ctx.agent(this.agentId)?.projectId ?? '', { focus: true }));
+    this.roomLink.addEventListener(
+      'click',
+      () => this.agentId && ctx.selectRoom(this.ctx.agent(this.agentId)?.projectId ?? '', { focus: true }),
+    );
 
     const hero = h(
       'header',
       { class: 'ao-hero' },
       h('div', { class: 'ao-hero-avatar' }, this.avatar.el, this.dot),
-      h('div', { class: 'ao-hero-info' }, this.name, h('div', { class: 'ao-hero-tags' }, this.kindChip, this.account), this.roomLink),
+      h(
+        'div',
+        { class: 'ao-hero-info' },
+        this.name,
+        h('div', { class: 'ao-hero-tags' }, this.kindChip, this.account),
+        this.roomLink,
+      ),
       closeButton(t('drawer.close'), () => ctx.clearSelection()),
     );
     const statusRow = h(
@@ -86,11 +106,34 @@ export class AgentView implements Component {
     const tablist = h('div', { class: 'ao-tabs', role: 'tablist', 'aria-label': t('drawer.tabs') });
     for (const tab of TABS) {
       const badge = h('span', { class: 'ao-tab-badge', hidden: true });
-      const btn = h('button', { type: 'button', role: 'tab', id: `ao-tab-${tab.id}`, 'aria-controls': `ao-panel-${tab.id}`, class: 'ao-tab', onclick: () => ctx.ui.set({ drawerTab: tab.id }) }, h('span', null, t(tab.label)), badge);
+      const btn = h(
+        'button',
+        {
+          type: 'button',
+          role: 'tab',
+          id: `ao-tab-${tab.id}`,
+          'aria-controls': `ao-panel-${tab.id}`,
+          class: 'ao-tab',
+          onclick: () => ctx.ui.set({ drawerTab: tab.id }),
+        },
+        h('span', null, t(tab.label)),
+        badge,
+      );
       this.tabButtons.set(tab.id, btn);
       this.tabBadges.set(tab.id, badge);
       tablist.appendChild(btn);
-      const panel = h('div', { class: 'ao-tabpanel', role: 'tabpanel', id: `ao-panel-${tab.id}`, 'aria-labelledby': `ao-tab-${tab.id}`, tabindex: '0', hidden: true }, this.tabs[tab.id].el);
+      const panel = h(
+        'div',
+        {
+          class: 'ao-tabpanel',
+          role: 'tabpanel',
+          id: `ao-panel-${tab.id}`,
+          'aria-labelledby': `ao-tab-${tab.id}`,
+          tabindex: '0',
+          hidden: true,
+        },
+        this.tabs[tab.id].el,
+      );
       this.panels.set(tab.id, panel);
     }
     tablist.addEventListener('keydown', (event) => this.onTabKey(event));
@@ -101,7 +144,19 @@ export class AgentView implements Component {
 
   private action(name: IconName, label: string, onClick: () => void): ActionButton {
     const text = h('span', null, label);
-    const el = h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-action', 'aria-pressed': 'false', title: label, 'data-base-title': label, onclick: onClick }, icon(name, 15), text);
+    const el = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-btn ao-btn--soft ao-action',
+        'aria-pressed': 'false',
+        title: label,
+        'data-base-title': label,
+        onclick: onClick,
+      },
+      icon(name, 15),
+      text,
+    );
     return { el, label: text };
   }
 

@@ -70,25 +70,60 @@ export class TopBar implements Component {
       onClick: () => ctx.ui.set({ sidebarOpen: !ctx.ui.get().sidebarOpen }),
     });
     this.pillText = h('span', null, t('topbar.connection.connecting'));
-    this.pill = h('div', { class: 'ao-pill ao-pill--connecting', role: 'status' }, h('span', { class: 'ao-pill-dot' }), this.pillText);
+    this.pill = h(
+      'div',
+      { class: 'ao-pill ao-pill--connecting', role: 'status' },
+      h('span', { class: 'ao-pill-dot' }),
+      this.pillText,
+    );
     this.counters = COUNTERS.map((def) => this.createCounter(def));
     this.usage = new UsageCards(ctx);
 
     this.cameraLabel = h('span', { class: 'ao-camera-label' }, t(CAMERA_LABEL.overview));
-    this.cameraBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-camera-btn', hidden: true, title: t('topbar.camera.cycle'), onclick: () => this.cycleCamera() }, icon('camera', 16), this.cameraLabel);
+    this.cameraBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-btn ao-btn--ghost ao-camera-btn',
+        hidden: true,
+        title: t('topbar.camera.cycle'),
+        onclick: () => this.cycleCamera(),
+      },
+      icon('camera', 16),
+      this.cameraLabel,
+    );
 
-    this.feedBtn = iconButton({ icon: 'feed', label: t('topbar.feed'), pressed: false, onClick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }) });
+    this.feedBtn = iconButton({
+      icon: 'feed',
+      label: t('topbar.feed'),
+      pressed: false,
+      onClick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }),
+    });
     this.bellBadge = h('span', { class: 'ao-badge', hidden: true });
-    this.bellBtn = iconButton({ icon: 'bell', label: t('topbar.notifications'), onClick: () => ctx.togglePopover('notifications') });
+    this.bellBtn = iconButton({
+      icon: 'bell',
+      label: t('topbar.notifications'),
+      onClick: () => ctx.togglePopover('notifications'),
+    });
     this.bellBtn.dataset.popoverTrigger = 'notifications';
     this.bellBtn.appendChild(this.bellBadge);
     this.boardBtn = iconButton({ icon: 'board', label: t('topbar.board'), onClick: () => ctx.openDialog('board') });
     this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDay('time') });
-    this.helpBtn = iconButton({ icon: 'help', label: t('topbar.help'), className: 'ao-help-btn', onClick: () => ctx.openDialog('help') });
+    this.helpBtn = iconButton({
+      icon: 'help',
+      label: t('topbar.help'),
+      className: 'ao-help-btn',
+      onClick: () => ctx.openDialog('help'),
+    });
 
     this.el.append(
       h('div', { class: 'ao-topbar-group ao-topbar-left' }, this.sidebarBtn, this.brand(), this.pill),
-      h('div', { class: 'ao-topbar-group ao-topbar-center' }, h('div', { class: 'ao-counters', role: 'list' }, ...this.counters.map((c) => c.el)), this.usage.el),
+      h(
+        'div',
+        { class: 'ao-topbar-group ao-topbar-center' },
+        h('div', { class: 'ao-counters', role: 'list' }, ...this.counters.map((c) => c.el)),
+        this.usage.el,
+      ),
       h(
         'div',
         { class: 'ao-topbar-group ao-topbar-right' },
@@ -109,7 +144,12 @@ export class TopBar implements Component {
   }
 
   private brand(): HTMLElement {
-    return h('div', { class: 'ao-brand' }, logo(28), h('span', { class: 'ao-wordmark' }, 'AI ', h('span', null, 'Office')));
+    return h(
+      'div',
+      { class: 'ao-brand' },
+      logo(28),
+      h('span', { class: 'ao-wordmark' }, 'AI ', h('span', null, 'Office')),
+    );
   }
 
   private popoverButton(id: PopoverId, name: IconName, label: string): HTMLButtonElement {
@@ -129,7 +169,16 @@ export class TopBar implements Component {
       return { def, el, value, text };
     }
     if (def.jump === 'inbox') return this.createInboxCounter(def, inner, value, text);
-    const el = h('button', { type: 'button', class: `ao-counter ao-counter--${def.key} is-action`, role: 'listitem', onclick: () => this.ctx.jumpToShell() }, ...inner);
+    const el = h(
+      'button',
+      {
+        type: 'button',
+        class: `ao-counter ao-counter--${def.key} is-action`,
+        role: 'listitem',
+        onclick: () => this.ctx.jumpToShell(),
+      },
+      ...inner,
+    );
     return { def, el, value, text };
   }
 
@@ -139,7 +188,14 @@ export class TopBar implements Component {
     const finished = h('span', { class: 'ao-counter-finished', hidden: true }, icon('check', 12), finishedValue);
     const el = h(
       'button',
-      { type: 'button', class: `ao-counter ao-counter--${def.key} is-action`, role: 'listitem', 'aria-haspopup': 'dialog', 'data-popover-trigger': 'inbox', onclick: () => this.ctx.togglePopover('inbox') },
+      {
+        type: 'button',
+        class: `ao-counter ao-counter--${def.key} is-action`,
+        role: 'listitem',
+        'aria-haspopup': 'dialog',
+        'data-popover-trigger': 'inbox',
+        onclick: () => this.ctx.togglePopover('inbox'),
+      },
       ...inner,
       finished,
     );
@@ -172,7 +228,11 @@ export class TopBar implements Component {
       setAttr(this.pill, 'title', t('replay.pill.hint'));
     } else if (connection === 'live') {
       kind = mock ? 'mock' : 'live';
-      text = mock ? t('topbar.connection.mock') : this.ctx.snapshot?.meta.demo ? t('topbar.connection.liveDemo') : t('topbar.connection.live');
+      text = mock
+        ? t('topbar.connection.mock')
+        : this.ctx.snapshot?.meta.demo
+          ? t('topbar.connection.liveDemo')
+          : t('topbar.connection.live');
     } else if (connection === 'reconnecting') {
       kind = 'warn';
       text = t('topbar.connection.reconnecting');
@@ -240,7 +300,10 @@ export class TopBar implements Component {
     const unread = unreadCount(this.ctx.notifications.get());
     this.bellBadge.hidden = unread === 0;
     setText(this.bellBadge, unread > 9 ? '9+' : String(unread));
-    this.bellBtn.setAttribute('aria-label', unread > 0 ? t('topbar.notifications.unread', { n: unread }) : t('topbar.notifications'));
+    this.bellBtn.setAttribute(
+      'aria-label',
+      unread > 0 ? t('topbar.notifications.unread', { n: unread }) : t('topbar.notifications'),
+    );
 
     const modes = this.ctx.world.cameraModes();
     this.cameraBtn.hidden = modes.length < 2;

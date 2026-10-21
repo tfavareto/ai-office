@@ -9,7 +9,13 @@ const INK = '#27303f';
 const MUTED = '#7b8392';
 const PAD = 22;
 
-export function paintTaskBoard(ctx: CanvasRenderingContext2D, w: number, h: number, summary: TaskBoardSummary, text: WorldText = worldText('pt-BR')): void {
+export function paintTaskBoard(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  summary: TaskBoardSummary,
+  text: WorldText = worldText('pt-BR'),
+): void {
   ctx.fillStyle = '#f4f6f8';
   ctx.fillRect(0, 0, w, h);
   ctx.textBaseline = 'middle';
@@ -33,7 +39,10 @@ export function paintTaskBoard(ctx: CanvasRenderingContext2D, w: number, h: numb
     ctx.font = font(48, 700);
     ctx.fillText(String(column.n), x, 96);
     const label = column.label.toLocaleUpperCase(text.locale);
-    ctx.font = font(fitFont(ctx, label, (size) => font(size, 600), cell - 14, 16, 11), 600);
+    ctx.font = font(
+      fitFont(ctx, label, (size) => font(size, 600), cell - 14, 16, 11),
+      600,
+    );
     ctx.fillStyle = INK;
     ctx.fillText(fitText(ctx, label, cell - 14), x, 132);
   });

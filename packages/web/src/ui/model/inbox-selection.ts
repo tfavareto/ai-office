@@ -14,7 +14,9 @@ export function isSelected(selection: InboxSelection, id: string): boolean {
 }
 
 export function toggleSelected(selection: InboxSelection, id: string): InboxSelection {
-  const ids = isSelected(selection, id) ? selection.ids.filter((candidate) => candidate !== id) : [...selection.ids, id];
+  const ids = isSelected(selection, id)
+    ? selection.ids.filter((candidate) => candidate !== id)
+    : [...selection.ids, id];
   return { ids, anchor: id };
 }
 
@@ -37,7 +39,8 @@ export function selectAll(ordered: readonly string[]): InboxSelection {
 export function pruneSelection(selection: InboxSelection, ordered: readonly string[]): InboxSelection {
   const present = new Set(ordered);
   const ids = selection.ids.filter((id) => present.has(id));
-  if (ids.length === selection.ids.length && (selection.anchor === null || present.has(selection.anchor))) return selection;
+  if (ids.length === selection.ids.length && (selection.anchor === null || present.has(selection.anchor)))
+    return selection;
   return { ids, anchor: selection.anchor !== null && present.has(selection.anchor) ? selection.anchor : null };
 }
 
@@ -53,7 +56,11 @@ export function moveCursor(ordered: readonly string[], cursor: string | null, de
  * Keeps the cursor on the same item when it is still there; otherwise on the row that took its place (so deciding
  * item after item keeps the cursor where the eyes are). The first row when there was no cursor.
  */
-export function settleCursor(previous: readonly string[], next: readonly string[], cursor: string | null): string | null {
+export function settleCursor(
+  previous: readonly string[],
+  next: readonly string[],
+  cursor: string | null,
+): string | null {
   if (next.length === 0) return null;
   if (cursor !== null && next.includes(cursor)) return cursor;
   const index = cursor === null ? 0 : Math.max(0, previous.indexOf(cursor));

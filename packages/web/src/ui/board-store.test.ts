@@ -3,14 +3,39 @@ import { BoardStore } from './board-store';
 import { NO_FILTER, type BoardCard } from './model/board';
 import type { SentMark } from './model/board-moves';
 
-const mark = (patch: Partial<SentMark> = {}): SentMark => ({ id: 'sent-1', kind: 'start', agentId: 'ana', cardKey: 'ana:1', baseStatus: 'pending', title: 'T', column: 'in_progress', sentAt: 0, ...patch });
-const card: BoardCard = { key: 'ana:1', agentId: 'ana', taskId: '1', projectId: 'p1', accountId: 'a', status: 'pending', label: 'T', title: 'T', index: 0 };
+const mark = (patch: Partial<SentMark> = {}): SentMark => ({
+  id: 'sent-1',
+  kind: 'start',
+  agentId: 'ana',
+  cardKey: 'ana:1',
+  baseStatus: 'pending',
+  title: 'T',
+  column: 'in_progress',
+  sentAt: 0,
+  ...patch,
+});
+const card: BoardCard = {
+  key: 'ana:1',
+  agentId: 'ana',
+  taskId: '1',
+  projectId: 'p1',
+  accountId: 'a',
+  status: 'pending',
+  label: 'T',
+  title: 'T',
+  index: 0,
+};
 
 describe('BoardStore', () => {
   it('starts grouped by column with no filter and nothing sent', () => {
     const state = new BoardStore().get();
 
-    expect(state).toMatchObject({ filter: NO_FILTER, view: { grouping: 'column', showAllDone: false }, sent: [], focusTask: null });
+    expect(state).toMatchObject({
+      filter: NO_FILTER,
+      view: { grouping: 'column', showAllDone: false },
+      sent: [],
+      focusTask: null,
+    });
   });
 
   it('clears the agent when the room changes, unless both are set together', () => {

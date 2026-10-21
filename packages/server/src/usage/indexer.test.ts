@@ -4,7 +4,17 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { Account, UsageRow } from '@ai-office/shared';
 import { accountsFromDirs } from '../claude/accounts';
 import { silentLogger } from '../log';
-import { type FakeClaudeDir, T0, assistantLine, jsonl, makeFakeClaude, makeTempDir, removeDir, text, userLine } from '../test-helpers';
+import {
+  type FakeClaudeDir,
+  T0,
+  assistantLine,
+  jsonl,
+  makeFakeClaude,
+  makeTempDir,
+  removeDir,
+  text,
+  userLine,
+} from '../test-helpers';
 import { INDEX_DIR_NAME } from './index-file';
 import { UsageIndexer } from './indexer';
 
@@ -44,14 +54,23 @@ async function restart(): Promise<UsageIndexer> {
   return boot();
 }
 
-const usageOf = (input: number, output: number, write = 0, read = 0): Record<string, unknown> => ({ input_tokens: input, output_tokens: output, cache_creation_input_tokens: write, cache_read_input_tokens: read });
+const usageOf = (input: number, output: number, write = 0, read = 0): Record<string, unknown> => ({
+  input_tokens: input,
+  output_tokens: output,
+  cache_creation_input_tokens: write,
+  cache_read_input_tokens: read,
+});
 const rows = (target: UsageIndexer): UsageRow[] => [...target.rows()];
-const sum = (list: readonly UsageRow[], key: 'input' | 'output' | 'cacheWrite' | 'cacheRead'): number => list.reduce((total, row) => total + row[key], 0);
+const sum = (list: readonly UsageRow[], key: 'input' | 'output' | 'cacheWrite' | 'cacheRead'): number =>
+  list.reduce((total, row) => total + row[key], 0);
 
 describe('indexing a transcript', () => {
   test('aggregates by hour, project, model and session, with the estimated cost', async () => {
     // Arrange
-    await fake.writeTranscript('s1', jsonl(userLine('hi', 0), assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(100, 50, 200, 3000) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('hi', 0), assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(100, 50, 200, 3000) })),
+    );
     // Act
     const target = await boot();
     // Assert
@@ -94,10 +113,16 @@ describe('indexing a transcript', () => {
 
   test('a message continued after the first read is still counted once', async () => {
     // Arrange
-    await fake.writeTranscript('s1', jsonl(assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(100, 5, 0, 10) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(100, 5, 0, 10) })),
+    );
     const target = await boot();
     // Act: the rest of the same message arrives later, with the final output count.
-    await fake.appendTranscript('s1', jsonl(assistantLine([text('b')], 1200, { id: 'm1', usage: usageOf(100, 60, 0, 10) })));
+    await fake.appendTranscript(
+      's1',
+      jsonl(assistantLine([text('b')], 1200, { id: 'm1', usage: usageOf(100, 60, 0, 10) })),
+    );
     await target.refresh({ walk: true });
     // Assert
     expect(sum(rows(target), 'output')).toBe(60);
@@ -107,7 +132,19 @@ describe('indexing a transcript', () => {
   test('includes subagent transcripts under their session, ignoring other lines', async () => {
     // Arrange
     await fake.writeTranscript('s1', jsonl(assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(1, 1) })));
-    await fake.writeSubagent('s1', 'ag7', jsonl(assistantLine([text('b')], 1500, { id: 'sub1', model: 'claude-haiku-4-5', usage: usageOf(2, 3), extra: { agentId: 'ag7' } }), userLine('noise', 1600)));
+    await fake.writeSubagent(
+      's1',
+      'ag7',
+      jsonl(
+        assistantLine([text('b')], 1500, {
+          id: 'sub1',
+          model: 'claude-haiku-4-5',
+          usage: usageOf(2, 3),
+          extra: { agentId: 'ag7' },
+        }),
+        userLine('noise', 1600),
+      ),
+    );
     // Act
     const target = await boot();
     // Assert
@@ -119,7 +156,15 @@ describe('indexing a transcript', () => {
   test('skips synthetic messages, lines before the previous month and bad lines', async () => {
     // Arrange
     const old = assistantLine([text('o')], -90 * 24 * 3_600_000, { id: 'old', usage: usageOf(999, 999) });
-    await fake.writeTranscript('s1', jsonl(old, assistantLine([text('s')], 1000, { id: 'syn', model: '<synthetic>', usage: usageOf(5, 5) }), '{ broken "usage" "type":"assistant"', assistantLine([text('k')], 2000, { id: 'ok', usage: usageOf(4, 4) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        old,
+        assistantLine([text('s')], 1000, { id: 'syn', model: '<synthetic>', usage: usageOf(5, 5) }),
+        '{ broken "usage" "type":"assistant"',
+        assistantLine([text('k')], 2000, { id: 'ok', usage: usageOf(4, 4) }),
+      ),
+    );
     // Act
     const target = await boot();
     // Assert
@@ -130,12 +175,19 @@ describe('indexing a transcript', () => {
     // Arrange
     accounts = accountsFromDirs([fake.dir, join(fake.home, '.claude-work')], fake.home);
     await mkdir(join(fake.home, '.claude-work', 'projects', '-work-proj'), { recursive: true });
-    await writeFile(join(fake.home, '.claude-work', 'projects', '-work-proj', 'w1.jsonl'), jsonl(assistantLine([text('w')], 1000, { id: 'w', usage: usageOf(8, 8) })));
+    await writeFile(
+      join(fake.home, '.claude-work', 'projects', '-work-proj', 'w1.jsonl'),
+      jsonl(assistantLine([text('w')], 1000, { id: 'w', usage: usageOf(8, 8) })),
+    );
     await fake.writeTranscript('s1', jsonl(assistantLine([text('a')], 1000, { id: 'a', usage: usageOf(1, 1) })));
     // Act
     const target = await boot();
     // Assert
-    expect(rows(target).map((row) => [row.account, row.input]).sort()).toEqual([
+    expect(
+      rows(target)
+        .map((row) => [row.account, row.input])
+        .sort(),
+    ).toEqual([
       ['claude', 1],
       ['claude-work', 8],
     ]);
@@ -186,7 +238,13 @@ describe('incremental reading and persistence', () => {
 
   test('stores only numbers, with private permissions', async () => {
     // Arrange
-    await fake.writeTranscript('s1', jsonl(userLine('SECRET-PROMPT', 0), assistantLine([text('SECRET-REPLY')], 1000, { id: 'm1', usage: usageOf(1, 1) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('SECRET-PROMPT', 0),
+        assistantLine([text('SECRET-REPLY')], 1000, { id: 'm1', usage: usageOf(1, 1) }),
+      ),
+    );
     // Act
     await boot();
     await indexer.stop();
@@ -217,7 +275,13 @@ describe('incremental reading and persistence', () => {
 
 describe('recovery', () => {
   const seed = async (): Promise<void> => {
-    await fake.writeTranscript('s1', jsonl(assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(10, 1) }), assistantLine([text('b')], 4_000_000, { id: 'm2', usage: usageOf(20, 2) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(10, 1) }),
+        assistantLine([text('b')], 4_000_000, { id: 'm2', usage: usageOf(20, 2) }),
+      ),
+    );
     await boot();
     await indexer.stop();
   };
@@ -231,7 +295,9 @@ describe('recovery', () => {
 
   test('a damaged shard is ignored and the index is rebuilt', async () => {
     await seed();
-    const shard = (await readdir(join(state, INDEX_DIR_NAME))).find((name) => /^\d{4}-\d{2}\.json$/.test(name)) as string;
+    const shard = (await readdir(join(state, INDEX_DIR_NAME))).find((name) =>
+      /^\d{4}-\d{2}\.json$/.test(name),
+    ) as string;
     await writeFile(join(state, INDEX_DIR_NAME, shard), 'garbage');
     const again = await boot();
     expect(sum(rows(again), 'input')).toBe(30);
@@ -258,7 +324,13 @@ describe('recovery', () => {
 
   test('a transcript that was truncated or replaced rebuilds the index', async () => {
     // Arrange
-    await fake.writeTranscript('s1', jsonl(assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(10, 1) }), assistantLine([text('b')], 2000, { id: 'm2', usage: usageOf(20, 2) })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        assistantLine([text('a')], 1000, { id: 'm1', usage: usageOf(10, 1) }),
+        assistantLine([text('b')], 2000, { id: 'm2', usage: usageOf(20, 2) }),
+      ),
+    );
     const target = await boot();
     expect(sum(rows(target), 'input')).toBe(30);
     // Act

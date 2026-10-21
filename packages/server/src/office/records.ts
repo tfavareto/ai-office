@@ -42,7 +42,13 @@ export function sessionKey(accountId: string, sessionId: string): string {
   return `${accountId}:${sessionId}`;
 }
 
-export function createSessionRecord(account: Account, sessionId: string, registry: RegistryEntry | undefined, registryMode: boolean, now: number): SessionRecord {
+export function createSessionRecord(
+  account: Account,
+  sessionId: string,
+  registry: RegistryEntry | undefined,
+  registryMode: boolean,
+  now: number,
+): SessionRecord {
   return {
     key: sessionKey(account.id, sessionId),
     account,

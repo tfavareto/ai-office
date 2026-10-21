@@ -1,9 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_POSES, solvePose, isSeatedPose, type PoseContext } from './poses';
-import { BONE_INDEX, createPose, lerpPose, blendFactor, POSE_SIZE, readCurl, readPelvisOffset, readReach } from './poseVec';
+import {
+  BONE_INDEX,
+  createPose,
+  lerpPose,
+  blendFactor,
+  POSE_SIZE,
+  readCurl,
+  readPelvisOffset,
+  readReach,
+} from './poseVec';
 
 const ctx = (over: Partial<PoseContext> = {}): PoseContext => ({
-  t: 1.3, walk: 0.3, phase: 0.2, pelvisRest: 0.95, seated: false, seatHeight: 0.47, shellStage: 0, ...over,
+  t: 1.3,
+  walk: 0.3,
+  phase: 0.2,
+  pelvisRest: 0.95,
+  seated: false,
+  seatHeight: 0.47,
+  shellStage: 0,
+  ...over,
 });
 
 describe('pose solvers', () => {

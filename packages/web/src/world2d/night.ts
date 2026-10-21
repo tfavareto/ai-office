@@ -33,7 +33,14 @@ function pool(ctx: Ctx, sprite: HTMLCanvasElement, cx: number, cy: number, radiu
  * Night pass: multiply-darken the outdoors and rooms (lit rooms stay warm), then add warm light pools, monitor glow,
  * lamp posts and car headlights with additive blending.
  */
-export function drawLighting(ctx: Ctx, renderer: Renderer, s: FrameState, ordered: AreaCanvas[], vis: Rect, cars: readonly CarDraw[]): void {
+export function drawLighting(
+  ctx: Ctx,
+  renderer: Renderer,
+  s: FrameState,
+  ordered: AreaCanvas[],
+  vis: Rect,
+  cars: readonly CarDraw[],
+): void {
   warm ??= glowSprite(255, 196, 120);
   const night = s.night;
   const b = s.sim.building;
@@ -94,7 +101,8 @@ function drawAreaPools(ctx: Ctx, ac: AreaCanvas, strength: number): void {
   const area = ac.area;
   const radius = area.kind === 'corridor' ? 44 : 40;
   if (area.kind === 'corridor') {
-    for (let x = 6 * TILE; x < ac.w; x += 8 * TILE) pool(ctx, warm!, ac.x + x, ac.y + 40, radius * 1.2, strength * 0.38);
+    for (let x = 6 * TILE; x < ac.w; x += 8 * TILE)
+      pool(ctx, warm!, ac.x + x, ac.y + 40, radius * 1.2, strength * 0.38);
     return;
   }
   if (area.kind === 'project') {

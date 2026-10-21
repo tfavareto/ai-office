@@ -28,7 +28,9 @@ export function registerUsageRoutes(router: Router, app: AppContext): void {
         period,
         now,
         agents: state.agents,
-        ...(app.isDemo() && app.office.demoSimulator !== undefined ? { demoRows: app.office.demoSimulator.usageRows(now) } : {}),
+        ...(app.isDemo() && app.office.demoSimulator !== undefined
+          ? { demoRows: app.office.demoSimulator.usageRows(now) }
+          : {}),
       }),
     );
   });

@@ -46,7 +46,13 @@ export function withHireProjects(projects: readonly Project[], hires: readonly P
   for (const hire of hires) {
     if (known.has(hire.projectId)) continue;
     known.add(hire.projectId);
-    extra.push({ id: hire.projectId, name: hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId, path: hire.projectId, seed: fnv1a(hire.projectId), order: order++ });
+    extra.push({
+      id: hire.projectId,
+      name: hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId,
+      path: hire.projectId,
+      seed: fnv1a(hire.projectId),
+      order: order++,
+    });
   }
   return extra.length === 0 ? [...projects] : [...projects, ...extra];
 }

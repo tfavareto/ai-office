@@ -22,7 +22,10 @@ function earliest(...values: (number | undefined)[]): number {
   return known.length === 0 ? 0 : Math.min(...known);
 }
 
-function commonFields(state: TranscriptState, now: number): Pick<Agent, 'activity' | 'recent' | 'tasks' | 'shells' | 'stats' | 'model' | 'gitBranch' | 'permissionMode'> {
+function commonFields(
+  state: TranscriptState,
+  now: number,
+): Pick<Agent, 'activity' | 'recent' | 'tasks' | 'shells' | 'stats' | 'model' | 'gitBranch' | 'permissionMode'> {
   const activity = state.activity;
   return {
     ...(activity !== undefined ? { activity } : {}),
@@ -54,7 +57,9 @@ function statusFields(
     ...(overlay.attention !== undefined ? { attentionMessage: overlay.attention } : {}),
     // Attention marks only ever carry the generic "needs you" text.
     ...(overlay.attention === NEEDS_YOU_TEXT ? { attentionMsg: NEEDS_YOU_MSG } : {}),
-    ...(userTool !== undefined ? { pendingUserTool: userTool.waitingFor, pendingUserToolMsg: userTool.waitingForMsg } : {}),
+    ...(userTool !== undefined
+      ? { pendingUserTool: userTool.waitingFor, pendingUserToolMsg: userTool.waitingForMsg }
+      : {}),
     ...(blocking !== undefined ? { blockingTool: { name: blocking.name, at: blocking.at } } : {}),
   });
   return {
@@ -65,16 +70,33 @@ function statusFields(
   };
 }
 
-export function buildMainAgent(record: SessionRecord, projectId: string, person: { name: string; look: 'f' | 'm' }, overlay: Overlay, now: number): Agent {
+export function buildMainAgent(
+  record: SessionRecord,
+  projectId: string,
+  person: { name: string; look: 'f' | 'm' },
+  overlay: Overlay,
+  now: number,
+): Agent {
   const state = record.main;
   const registry = record.registry;
   const closed = record.closedAt !== undefined;
   const base = closed
     ? { status: 'offline' as AgentStatus }
-    : statusFields(state, now, overlay, registry === undefined ? undefined : { ...(registry.status !== undefined ? { status: registry.status } : {}), ...(registry.statusUpdatedAt !== undefined ? { at: registry.statusUpdatedAt } : {}) });
+    : statusFields(
+        state,
+        now,
+        overlay,
+        registry === undefined
+          ? undefined
+          : {
+              ...(registry.status !== undefined ? { status: registry.status } : {}),
+              ...(registry.statusUpdatedAt !== undefined ? { at: registry.statusUpdatedAt } : {}),
+            },
+      );
   const title = registry?.name ?? state.title();
   const id = mainAgentId(record);
-  const startedAt = registry?.startedAt && registry.startedAt > 0 ? registry.startedAt : earliest(state.firstEventAt, record.openedAt);
+  const startedAt =
+    registry?.startedAt && registry.startedAt > 0 ? registry.startedAt : earliest(state.firstEventAt, record.openedAt);
   return {
     id,
     kind: 'main',
@@ -95,13 +117,27 @@ export function buildMainAgent(record: SessionRecord, projectId: string, person:
   };
 }
 
-function subStatus(sub: SubRecord, done: boolean, overlay: Overlay, now: number): Pick<Agent, 'status' | 'waitingFor' | 'waitingForMsg' | 'permission'> {
+function subStatus(
+  sub: SubRecord,
+  done: boolean,
+  overlay: Overlay,
+  now: number,
+): Pick<Agent, 'status' | 'waitingFor' | 'waitingForMsg' | 'permission'> {
   if (done) return { status: 'done' };
-  const needsUser = overlay.permission !== undefined || overlay.attention !== undefined || sub.state.pendingUserTool() !== undefined;
+  const needsUser =
+    overlay.permission !== undefined || overlay.attention !== undefined || sub.state.pendingUserTool() !== undefined;
   return needsUser ? statusFields(sub.state, now, overlay, undefined) : { status: 'working' };
 }
 
-export function buildSubAgent(record: SessionRecord, sub: SubRecord, projectId: string, parentId: string, person: { name: string; look: 'f' | 'm' }, overlay: Overlay, now: number): Agent {
+export function buildSubAgent(
+  record: SessionRecord,
+  sub: SubRecord,
+  projectId: string,
+  parentId: string,
+  person: { name: string; look: 'f' | 'm' },
+  overlay: Overlay,
+  now: number,
+): Agent {
   const state = sub.state;
   const spawn = sub.meta?.toolUseId === undefined ? undefined : record.main.spawn(sub.meta.toolUseId);
   const done = isSubDone(record, sub, now);

@@ -23,13 +23,24 @@ export class SessionHistory extends Popover {
 
   constructor(ctx: AppContext) {
     super(ctx, 'sessions', t('topbar.sessions'), 'ao-popover--sessions');
-    this.input = h('input', { type: 'search', class: 'ao-search-input ao-input', placeholder: t('sessions.search'), 'aria-label': t('sessions.search.label'), autocomplete: 'off' });
+    this.input = h('input', {
+      type: 'search',
+      class: 'ao-search-input ao-input',
+      placeholder: t('sessions.search'),
+      'aria-label': t('sessions.search.label'),
+      autocomplete: 'off',
+    });
     this.input.addEventListener('input', () => {
       this.signature = '';
       this.ctx.refresh();
     });
     this.el.append(
-      h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.sessions')), h('span', { class: 'ao-popover-hint' }, t('sessions.range'))),
+      h(
+        'header',
+        { class: 'ao-popover-head' },
+        h('strong', null, t('topbar.sessions')),
+        h('span', { class: 'ao-popover-hint' }, t('sessions.range')),
+      ),
       h('div', { class: 'ao-popover-sub' }, this.input),
       this.body,
     );
@@ -75,7 +86,14 @@ export class SessionHistory extends Popover {
       return;
     }
     if (this.state === 'error') {
-      this.body.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
+      this.body.replaceChildren(
+        h('p', { class: 'ao-error' }, this.error),
+        h(
+          'button',
+          { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() },
+          t('common.retry'),
+        ),
+      );
       return;
     }
     const groups = groupSessionsByDay(filterSessions(this.sessions, this.input.value), this.ctx.now());
@@ -85,7 +103,12 @@ export class SessionHistory extends Popover {
     }
     this.body.replaceChildren(
       ...groups.map((group) =>
-        h('section', { class: 'ao-session-group' }, h('h3', { class: 'ao-session-day' }, group.label), h('ul', { class: 'ao-session-list' }, ...group.sessions.map((s) => h('li', null, this.row(s))))),
+        h(
+          'section',
+          { class: 'ao-session-group' },
+          h('h3', { class: 'ao-session-day' }, group.label),
+          h('ul', { class: 'ao-session-list' }, ...group.sessions.map((s) => h('li', null, this.row(s)))),
+        ),
       ),
     );
   }
@@ -95,8 +118,18 @@ export class SessionHistory extends Popover {
       'button',
       { type: 'button', class: 'ao-session', title: session.projectPath },
       accountChip(this.ctx.account(session.accountId)),
-      h('span', { class: 'ao-session-body' }, h('strong', null, session.projectName), h('span', null, localizedOptional(session.titleMsg, session.title) ?? t('sessions.untitled'))),
-      h('span', { class: 'ao-session-meta' }, session.open ? h('span', { class: 'ao-tag ao-tag--live' }, t('sessions.open')) : null, h('span', null, `${formatClock(session.firstAt)}–${formatClock(session.lastAt)}`)),
+      h(
+        'span',
+        { class: 'ao-session-body' },
+        h('strong', null, session.projectName),
+        h('span', null, localizedOptional(session.titleMsg, session.title) ?? t('sessions.untitled')),
+      ),
+      h(
+        'span',
+        { class: 'ao-session-meta' },
+        session.open ? h('span', { class: 'ao-tag ao-tag--live' }, t('sessions.open')) : null,
+        h('span', null, `${formatClock(session.firstAt)}–${formatClock(session.lastAt)}`),
+      ),
       icon('chevronRight', 14),
     );
     row.addEventListener('click', () => {

@@ -15,7 +15,13 @@ import {
   withTool,
 } from './rules';
 
-const draft: RuleDraft = { effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'npm test' }, scope: { projectPath: '/demo/loja' }, enabled: true };
+const draft: RuleDraft = {
+  effect: 'allow',
+  tool: 'Bash',
+  matcher: { kind: 'command-prefix', value: 'npm test' },
+  scope: { projectPath: '/demo/loja' },
+  enabled: true,
+};
 
 const entry = (over: Partial<AutoDecision> = {}): AutoDecision => ({
   id: 'e1',
@@ -35,7 +41,10 @@ const entry = (over: Partial<AutoDecision> = {}): AutoDecision => ({
 describe('rule form', () => {
   it('round-trips a draft', () => {
     expect(draftFromForm(formFromDraft(draft))).toEqual(draft);
-    expect(draftFromForm(formFromDraft({ ...draft, note: ' x ', scope: { accountId: 'acc1' } }))).toMatchObject({ note: 'x', scope: { accountId: 'acc1' } });
+    expect(draftFromForm(formFromDraft({ ...draft, note: ' x ', scope: { accountId: 'acc1' } }))).toMatchObject({
+      note: 'x',
+      scope: { accountId: 'acc1' },
+    });
   });
 
   it('drops the project when the rule is for all projects', () => {
@@ -76,8 +85,13 @@ describe('rejectionMessage', () => {
   });
 
   it('names the danger with the inbox wording when it has one', () => {
-    expect(rejectionMessage({ error: 'matcher-dangerous', detail: 'sudo' })).toEqual({ key: 'rules.error.dangerous', reasonKey: 'inbox.risk.sudo' });
-    expect(rejectionMessage({ error: 'matcher-dangerous', detail: 'inline-code' }).reasonKey).toBe('rules.danger.inlineCode');
+    expect(rejectionMessage({ error: 'matcher-dangerous', detail: 'sudo' })).toEqual({
+      key: 'rules.error.dangerous',
+      reasonKey: 'inbox.risk.sudo',
+    });
+    expect(rejectionMessage({ error: 'matcher-dangerous', detail: 'inline-code' }).reasonKey).toBe(
+      'rules.danger.inlineCode',
+    );
     expect(rejectionMessage({ error: 'matcher-dangerous', detail: 'command' }).reasonKey).toBe('rules.danger.command');
   });
 
@@ -89,7 +103,11 @@ describe('rejectionMessage', () => {
 });
 
 describe('log filters', () => {
-  const entries = [entry(), entry({ id: 'e2', outcome: 'deny', ruleId: 'r2', subject: 'git push', agentName: 'Bruno' }), entry({ id: 'e3', outcome: 'ask', subject: 'sudo ls' })];
+  const entries = [
+    entry(),
+    entry({ id: 'e2', outcome: 'deny', ruleId: 'r2', subject: 'git push', agentName: 'Bruno' }),
+    entry({ id: 'e3', outcome: 'ask', subject: 'sudo ls' }),
+  ];
 
   it('filters by outcome, rule and text (subject, agent or tool)', () => {
     expect(filterLog(entries, EMPTY_FILTER)).toHaveLength(3);
@@ -109,6 +127,10 @@ describe('helpers', () => {
 
   it('lists active rules first, newest first', () => {
     const rule = (id: string, enabled: boolean, createdAt: number) => ({ ...draft, id, enabled, createdAt, hits: 0 });
-    expect(sortRules([rule('a', false, 3), rule('b', true, 1), rule('c', true, 2)]).map((r) => r.id)).toEqual(['c', 'b', 'a']);
+    expect(sortRules([rule('a', false, 3), rule('b', true, 1), rule('c', true, 2)]).map((r) => r.id)).toEqual([
+      'c',
+      'b',
+      'a',
+    ]);
   });
 });

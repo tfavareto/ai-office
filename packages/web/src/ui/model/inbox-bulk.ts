@@ -51,10 +51,17 @@ export function planBulk(action: BulkAction, items: readonly InboxItem[]): BulkP
 export function similarGroups(items: readonly InboxItem[]): SimilarGroup[] {
   const groups = new Map<string, SimilarGroup>();
   for (const item of items) {
-    if (skipReason('approve', item) !== null || item.permission === undefined || item.similarKey === undefined) continue;
+    if (skipReason('approve', item) !== null || item.permission === undefined || item.similarKey === undefined)
+      continue;
     const group = groups.get(item.similarKey);
     if (group) group.items.push(item);
-    else groups.set(item.similarKey, { key: item.similarKey, toolName: item.permission.toolName, label: similarityLabel(item.permission), items: [item] });
+    else
+      groups.set(item.similarKey, {
+        key: item.similarKey,
+        toolName: item.permission.toolName,
+        label: similarityLabel(item.permission),
+        items: [item],
+      });
   }
   return Array.from(groups.values())
     .filter((group) => group.items.length >= MIN_GROUP_SIZE)

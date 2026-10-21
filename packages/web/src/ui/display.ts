@@ -1,7 +1,16 @@
 // Display texts of the office model in the current language. The server and the demo send a pt-BR `text` plus an
 // optional `Msg` (key + params); everything shown to the user goes through here so a language switch re-renders it.
 // Text that comes from real sessions (prompts, titles, commands, file names) has no `Msg` and is shown as it is.
-import type { Account, Activity, Agent, Msg, PermissionRequest, ShellJob, TaskItem, TranscriptEntry } from '@ai-office/shared';
+import type {
+  Account,
+  Activity,
+  Agent,
+  Msg,
+  PermissionRequest,
+  ShellJob,
+  TaskItem,
+  TranscriptEntry,
+} from '@ai-office/shared';
 import { t, tm, type TextKey, type TextParams } from '../i18n';
 
 const MAX_PARAM_DEPTH = 4;
@@ -62,7 +71,9 @@ export function taskTitle(task: Pick<TaskItem, 'title' | 'titleMsg'>): string {
 }
 
 /** What to show for a task: the "doing…" form while it is in progress. */
-export function taskLabel(task: Pick<TaskItem, 'title' | 'titleMsg' | 'activeForm' | 'activeFormMsg' | 'status'>): string {
+export function taskLabel(
+  task: Pick<TaskItem, 'title' | 'titleMsg' | 'activeForm' | 'activeFormMsg' | 'status'>,
+): string {
   if (task.status === 'in_progress') {
     const active = localizedOptional(task.activeFormMsg, task.activeForm);
     if (active) return active;
@@ -78,7 +89,10 @@ export function permissionSummary(permission: Pick<PermissionRequest, 'summary' 
   return localized(permission.summaryMsg, permission.summary);
 }
 
-export function permissionSuggestion(permission: Pick<PermissionRequest, 'suggestions' | 'suggestionMsgs'>, index: number): string {
+export function permissionSuggestion(
+  permission: Pick<PermissionRequest, 'suggestions' | 'suggestionMsgs'>,
+  index: number,
+): string {
   return localized(permission.suggestionMsgs?.[index], permission.suggestions[index] ?? '');
 }
 
@@ -94,7 +108,9 @@ export function uiMsg(key: TextKey, params?: TextParams): Msg {
 
 /** The letter of the account chip; follows the localized label for the default account. */
 export function accountInitial(account: Pick<Account, 'label' | 'labelMsg' | 'initial' | 'isDefault'>): string {
-  return account.isDefault === true ? (accountLabel(account).trim().slice(0, 1).toUpperCase() || account.initial) : account.initial;
+  return account.isDefault === true
+    ? accountLabel(account).trim().slice(0, 1).toUpperCase() || account.initial
+    : account.initial;
 }
 
 /** Summary line of a tool entry of the terminal: the icon and the localized text when the server sent a message. */

@@ -4,7 +4,20 @@ import { UsageStore, monthOf } from './usage-store';
 
 const HOUR = 3_600_000;
 const BASE = Date.UTC(2026, 9, 19, 12);
-const row = (over: Partial<UsageRow> = {}): UsageRow => ({ hour: BASE, account: 'a', project: '/p', model: 'm', session: 's', agent: '', input: 10, output: 20, cacheWrite: 30, cacheRead: 40, costUSD: 1, ...over });
+const row = (over: Partial<UsageRow> = {}): UsageRow => ({
+  hour: BASE,
+  account: 'a',
+  project: '/p',
+  model: 'm',
+  session: 's',
+  agent: '',
+  input: 10,
+  output: 20,
+  cacheWrite: 30,
+  cacheRead: 40,
+  costUSD: 1,
+  ...over,
+});
 
 describe('UsageStore', () => {
   test('adds into the same cell and keeps the hour totals of the account', () => {
@@ -40,7 +53,12 @@ describe('UsageStore', () => {
     store.add(row({ hour: Date.UTC(2026, 8, 30, 23) }));
     expect(store.takeDirty().sort()).toEqual(['2026-09', '2026-10']);
     expect(store.takeDirty()).toEqual([]);
-    expect(store.monthCounts()).toEqual(new Map([['2026-09', 1], ['2026-10', 1]]));
+    expect(store.monthCounts()).toEqual(
+      new Map([
+        ['2026-09', 1],
+        ['2026-10', 1],
+      ]),
+    );
     expect(monthOf(BASE)).toBe('2026-10');
   });
 

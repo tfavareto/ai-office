@@ -2,7 +2,12 @@
 import type { BossMessage } from '@ai-office/shared';
 import { t, type UiKey } from '../../i18n';
 
-const QUICK_MESSAGE_KEYS = ['message.quick.progress', 'message.quick.plan', 'message.quick.tests', 'message.quick.finish'] as const satisfies readonly UiKey[];
+const QUICK_MESSAGE_KEYS = [
+  'message.quick.progress',
+  'message.quick.plan',
+  'message.quick.tests',
+  'message.quick.finish',
+] as const satisfies readonly UiKey[];
 
 /** Ready-made orders offered as chips above the composer, in the current language. */
 export function quickMessages(): string[] {
@@ -38,7 +43,9 @@ export interface MessageGroupView {
 }
 
 /** "2 de 3 entregues" / "Entregue" / "Na fila" for a group of one or more messages. */
-export function groupStatusLabel(group: Pick<MessageGroupView, 'delivered' | 'expired' | 'queued' | 'total' | 'messages' | 'isTeam'>): string {
+export function groupStatusLabel(
+  group: Pick<MessageGroupView, 'delivered' | 'expired' | 'queued' | 'total' | 'messages' | 'isTeam'>,
+): string {
   if (!group.isTeam) return messageStatusLabel(group.messages[0]);
   const base = t('message.group.progress', { delivered: group.delivered, total: group.total });
   if (group.queued > 0) return t('message.group.withQueued', { base, queued: group.queued });
@@ -87,6 +94,7 @@ export function hasPending(messages: readonly BossMessage[]): boolean {
 export function validateMessageText(raw: string): { ok: true; text: string } | { ok: false; error: string } {
   const text = raw.trim();
   if (!text) return { ok: false, error: t('message.error.empty') };
-  if (text.length > MAX_MESSAGE_LENGTH) return { ok: false, error: t('message.error.tooLong', { max: String(MAX_MESSAGE_LENGTH) }) };
+  if (text.length > MAX_MESSAGE_LENGTH)
+    return { ok: false, error: t('message.error.tooLong', { max: String(MAX_MESSAGE_LENGTH) }) };
   return { ok: true, text };
 }

@@ -1,5 +1,20 @@
 // What components may use from the application (implemented by App). Keeps components decoupled from each other.
-import type { Account, Agent, BossMessage, FeedItem, GitSettings, HireRequest, Msg, NoticeLevel, OfficeSnapshot, PendingHire, PermissionDecision, PermissionRequest, Project, RecentSession } from '@ai-office/shared';
+import type {
+  Account,
+  Agent,
+  BossMessage,
+  FeedItem,
+  GitSettings,
+  HireRequest,
+  Msg,
+  NoticeLevel,
+  OfficeSnapshot,
+  PendingHire,
+  PermissionDecision,
+  PermissionRequest,
+  Project,
+  RecentSession,
+} from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';

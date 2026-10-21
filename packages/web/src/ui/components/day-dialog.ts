@@ -35,12 +35,47 @@ export class DayDialog extends Dialog {
     super(ctx, 'day', 'ao-day-title', 'ao-dialog--day');
     this.time = new DayTimeView(ctx);
     this.report = new ReportView(ctx);
-    const prev = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.prev'), title: t('day.prev'), onclick: () => this.shift(-1) }, icon('chevronLeft', 16));
-    this.nextBtn = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('day.next'), title: t('day.next'), onclick: () => this.shift(1) }, icon('chevronRight', 16));
+    const prev = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small',
+        'aria-label': t('day.prev'),
+        title: t('day.prev'),
+        onclick: () => this.shift(-1),
+      },
+      icon('chevronLeft', 16),
+    );
+    this.nextBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small',
+        'aria-label': t('day.next'),
+        title: t('day.next'),
+        onclick: () => this.shift(1),
+      },
+      icon('chevronRight', 16),
+    );
     this.nav = h('div', { class: 'ao-day-nav' }, prev, this.dateLabel, this.nextBtn);
-    this.watchBtn = button({ label: t('day.watch'), icon: 'play', variant: 'soft', title: t('day.watch.hint'), className: 'ao-day-watch', onClick: () => this.watch() });
+    this.watchBtn = button({
+      label: t('day.watch'),
+      icon: 'play',
+      variant: 'soft',
+      title: t('day.watch.hint'),
+      className: 'ao-day-watch',
+      onClick: () => this.watch(),
+    });
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-day-title' }, t('day.title')), this.tabs.el, this.nav, this.watchBtn, closeButton(t('common.close'), () => ctx.closeDialog())),
+      h(
+        'header',
+        { class: 'ao-dialog-head' },
+        h('h2', { id: 'ao-day-title' }, t('day.title')),
+        this.tabs.el,
+        this.nav,
+        this.watchBtn,
+        closeButton(t('common.close'), () => ctx.closeDialog()),
+      ),
       this.time.el,
       this.report.el,
     );
@@ -73,7 +108,11 @@ export class DayDialog extends Dialog {
   protected update(): void {
     const tab = this.ctx.ui.get().dayTab;
     const watchable = reportDates(this.ctx.store.now()).includes(this.shownDate());
-    setDisabled(this.watchBtn, !this.ctx.store.isLocal || !watchable, !this.ctx.store.isLocal ? localOnlyHint() : undefined);
+    setDisabled(
+      this.watchBtn,
+      !this.ctx.store.isLocal || !watchable,
+      !this.ctx.store.isLocal ? localOnlyHint() : undefined,
+    );
     this.tabs.set(tab);
     if (tab !== this.tab) {
       this.tab = tab;
@@ -87,7 +126,10 @@ export class DayDialog extends Dialog {
       this.report.update();
       return;
     }
-    this.dateLabel.textContent = this.date === toDateKey(this.ctx.store.now()) ? t('day.today', { date: formatDateKey(this.date) }) : formatDateKey(this.date);
+    this.dateLabel.textContent =
+      this.date === toDateKey(this.ctx.store.now())
+        ? t('day.today', { date: formatDateKey(this.date) })
+        : formatDateKey(this.date);
     this.nextBtn.disabled = this.date >= toDateKey(this.ctx.store.now());
     this.time.update();
   }

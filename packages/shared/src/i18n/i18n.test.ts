@@ -37,7 +37,9 @@ describe('formatMessage', () => {
     const template = '{count, plural, one {# agente} other {# agentes}}';
     expect(formatMessage('pt-BR', template, { count: 1 })).toBe('1 agente');
     expect(formatMessage('pt-BR', template, { count: 3 })).toBe('3 agentes');
-    expect(formatMessage('en', '{count, plural, =0 {no rooms} one {# room} other {# rooms}}', { count: 0 })).toBe('no rooms');
+    expect(formatMessage('en', '{count, plural, =0 {no rooms} one {# room} other {# rooms}}', { count: 0 })).toBe(
+      'no rooms',
+    );
   });
 
   test('supports select on a string parameter', () => {
@@ -68,6 +70,8 @@ describe('createTranslator', () => {
 
   test('translates nested message parameters', () => {
     const t = createTranslator({ 'pt-BR': {}, en: { wrap: 'Asking: {inner}', inner: 'run {cmd}' }, es: {} });
-    expect(t('en', { key: 'wrap', params: { inner: { key: 'inner', params: { cmd: 'npm test' } } } })).toBe('Asking: run npm test');
+    expect(t('en', { key: 'wrap', params: { inner: { key: 'inner', params: { cmd: 'npm test' } } } })).toBe(
+      'Asking: run npm test',
+    );
   });
 });

@@ -19,7 +19,14 @@ export interface IconButtonOptions {
 export function iconButton(opts: IconButtonOptions): HTMLButtonElement {
   const button = h(
     'button',
-    { type: 'button', class: `ao-iconbtn ${opts.className ?? ''}`.trim(), 'aria-label': opts.label, title: opts.label, 'data-base-title': opts.label, onclick: opts.onClick as EventListener },
+    {
+      type: 'button',
+      class: `ao-iconbtn ${opts.className ?? ''}`.trim(),
+      'aria-label': opts.label,
+      title: opts.label,
+      'data-base-title': opts.label,
+      onclick: opts.onClick as EventListener,
+    },
     icon(opts.icon, opts.size ?? 18),
   );
   if (opts.pressed !== undefined) button.setAttribute('aria-pressed', String(opts.pressed));
@@ -56,7 +63,11 @@ export function button(opts: ButtonOptions): HTMLButtonElement {
 }
 
 /** Enables/disables a control and explains why through its tooltip (falling back to its normal tooltip). */
-export function setDisabled(el: HTMLButtonElement | HTMLTextAreaElement | HTMLInputElement, disabled: boolean, reason?: string): void {
+export function setDisabled(
+  el: HTMLButtonElement | HTMLTextAreaElement | HTMLInputElement,
+  disabled: boolean,
+  reason?: string,
+): void {
   if (el.disabled !== disabled) el.disabled = disabled;
   const title = disabled && reason ? reason : (el.dataset.baseTitle ?? '');
   setAttr(el, 'title', title || null);
@@ -81,7 +92,12 @@ export function updateAccountChip(chip: HTMLElement, account: Account | undefine
   const color = account?.color ?? '#8d99ad';
   chip.style.setProperty('--account', color);
   chip.title = account ? t('account.chip', { label: accountLabel(account) }) : t('account.unknown');
-  chip.replaceChildren(...compact(h('span', { class: 'ao-account-initial' }, account ? accountInitial(account) : '?'), withLabel ? h('span', { class: 'ao-account-label' }, account ? accountLabel(account) : '') : null));
+  chip.replaceChildren(
+    ...compact(
+      h('span', { class: 'ao-account-initial' }, account ? accountInitial(account) : '?'),
+      withLabel ? h('span', { class: 'ao-account-label' }, account ? accountLabel(account) : '') : null,
+    ),
+  );
 }
 
 export interface Avatar {
@@ -168,11 +184,25 @@ export interface Segmented<T extends string> {
   set(value: T): void;
 }
 
-export function createSegmented<T extends string>(label: string, options: readonly { value: T; label: string }[], onChange: (value: T) => void): Segmented<T> {
+export function createSegmented<T extends string>(
+  label: string,
+  options: readonly { value: T; label: string }[],
+  onChange: (value: T) => void,
+): Segmented<T> {
   const buttons = new Map<T, HTMLButtonElement>();
   const el = h('div', { class: 'ao-segmented', role: 'radiogroup', 'aria-label': label });
   for (const option of options) {
-    const btn = h('button', { type: 'button', role: 'radio', 'aria-checked': 'false', class: 'ao-segmented-item', onclick: () => onChange(option.value) }, option.label);
+    const btn = h(
+      'button',
+      {
+        type: 'button',
+        role: 'radio',
+        'aria-checked': 'false',
+        class: 'ao-segmented-item',
+        onclick: () => onChange(option.value),
+      },
+      option.label,
+    );
     buttons.set(option.value, btn);
     el.appendChild(btn);
   }

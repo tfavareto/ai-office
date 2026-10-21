@@ -28,22 +28,31 @@ export interface SidebarFilter {
 }
 
 export function normalizeQuery(query: string): string {
-  return query
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
+  return query.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
 function agentHaystack(agent: Agent, project: Project | undefined, account: Account | undefined): string {
   return normalizeQuery(
-    [agent.name, agentRole(agent), agentTitle(agent), agent.activity ? activityText(agent.activity) : undefined, project?.name, project?.path, account ? accountLabel(account) : undefined]
+    [
+      agent.name,
+      agentRole(agent),
+      agentTitle(agent),
+      agent.activity ? activityText(agent.activity) : undefined,
+      project?.name,
+      project?.path,
+      account ? accountLabel(account) : undefined,
+    ]
       .filter(Boolean)
       .join(' '),
   );
 }
 
-export function agentMatches(agent: Agent, query: string, project: Project | undefined, account: Account | undefined): boolean {
+export function agentMatches(
+  agent: Agent,
+  query: string,
+  project: Project | undefined,
+  account: Account | undefined,
+): boolean {
   const q = normalizeQuery(query);
   if (!q) return true;
   const haystack = agentHaystack(agent, project, account);
@@ -51,7 +60,11 @@ export function agentMatches(agent: Agent, query: string, project: Project | und
 }
 
 function compareAgents(a: Agent, b: Agent): number {
-  return statusRank(displayStatus(a)) - statusRank(displayStatus(b)) || a.startedAt - b.startedAt || a.name.localeCompare(b.name);
+  return (
+    statusRank(displayStatus(a)) - statusRank(displayStatus(b)) ||
+    a.startedAt - b.startedAt ||
+    a.name.localeCompare(b.name)
+  );
 }
 
 export function flattenTasks(agents: readonly Agent[]): TaskItem[] {
@@ -63,7 +76,11 @@ export function flattenTasks(agents: readonly Agent[]): TaskItem[] {
  * rooms keep the order of arrival so they stay where the user expects them.
  * `keepId` keeps the selected agent visible even after it left the office.
  */
-export function buildRooms(snapshot: OfficeSnapshot | null, filter: SidebarFilter, keepId: string | null = null): RoomModel[] {
+export function buildRooms(
+  snapshot: OfficeSnapshot | null,
+  filter: SidebarFilter,
+  keepId: string | null = null,
+): RoomModel[] {
   if (!snapshot) return [];
   const accounts = new Map(snapshot.accounts.map((account) => [account.id, account]));
   const projects = new Map(snapshot.projects.map((project) => [project.id, project]));
@@ -96,10 +113,13 @@ function buildRoom(project: Project, agents: Agent[]): RoomModel {
   const rows: AgentRowModel[] = [];
   for (const main of mains) {
     rows.push({ agent: main, depth: 0 });
-    for (const sub of subs.filter((candidate) => candidate.parentId === main.id).sort(compareAgents)) rows.push({ agent: sub, depth: 1 });
+    for (const sub of subs.filter((candidate) => candidate.parentId === main.id).sort(compareAgents))
+      rows.push({ agent: sub, depth: 1 });
   }
   // Subagents whose parent is filtered out or unknown still show up, at the end.
-  for (const sub of subs.filter((candidate) => !candidate.parentId || !ids.has(candidate.parentId)).sort(compareAgents)) {
+  for (const sub of subs
+    .filter((candidate) => !candidate.parentId || !ids.has(candidate.parentId))
+    .sort(compareAgents)) {
     rows.push({ agent: sub, depth: 1 });
   }
   const tasks = flattenTasks(mains);

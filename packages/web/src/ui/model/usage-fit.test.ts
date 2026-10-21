@@ -31,9 +31,21 @@ describe('fitUsageCards', () => {
   });
 
   it('handles a single account and no account', () => {
-    expect(fitUsageCards({ available: 200, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({ compact: false, visible: 1, showMore: false });
-    expect(fitUsageCards({ available: 120, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({ compact: true, visible: 1, showMore: false });
-    expect(fitUsageCards({ available: 50, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({ compact: true, visible: 0, showMore: true });
+    expect(fitUsageCards({ available: 200, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({
+      compact: false,
+      visible: 1,
+      showMore: false,
+    });
+    expect(fitUsageCards({ available: 120, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({
+      compact: true,
+      visible: 1,
+      showMore: false,
+    });
+    expect(fitUsageCards({ available: 50, gap: 8, full: [140], compact: [100], more: 36 })).toEqual({
+      compact: true,
+      visible: 0,
+      showMore: true,
+    });
     expect(fitUsageCards({ ...base, full: [], compact: [] })).toEqual({ compact: false, visible: 0, showMore: false });
   });
 });

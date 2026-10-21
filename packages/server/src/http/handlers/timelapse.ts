@@ -11,15 +11,30 @@ export function registerTimelapseRoutes(router: Router, app: AppContext): void {
     const now = app.now();
     const query = parseTimelapseQuery(url.searchParams, now);
     const state = app.office.state();
-    if (query.account !== 'all' && !state.accounts.some((account) => account.id === query.account)) return sendError(res, 404, 'account-not-found');
-    const accounts = app.engine.accountList().filter((account) => query.account === 'all' || account.id === query.account);
+    if (query.account !== 'all' && !state.accounts.some((account) => account.id === query.account))
+      return sendError(res, 404, 'account-not-found');
+    const accounts = app.engine
+      .accountList()
+      .filter((account) => query.account === 'all' || account.id === query.account);
     const real: Timelapse =
       accounts.length > 0
         ? await app.report.timelapse({ range: query.range, accounts, label: query.account })
-        : emptyTimelapse({ date: query.range.date, generatedAt: now, account: query.account, start: query.range.start, end: query.range.end });
+        : emptyTimelapse({
+            date: query.range.date,
+            generatedAt: now,
+            account: query.account,
+            start: query.range.start,
+            end: query.range.end,
+          });
     const simulator = app.isDemo() ? app.office.demoSimulator : undefined;
     if (simulator === undefined) return sendJson(res, 200, real);
-    const demo = demoTimelapse({ range: query.range, now, locale: query.locale, agents: simulator.agents(), account: query.account });
+    const demo = demoTimelapse({
+      range: query.range,
+      now,
+      locale: query.locale,
+      agents: simulator.agents(),
+      account: query.account,
+    });
     sendJson(res, 200, mergeTimelapses(real, demo));
   });
 }

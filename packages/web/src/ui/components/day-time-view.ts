@@ -53,7 +53,14 @@ export class DayTimeView {
     if (this.state === 'loading') {
       this.el.replaceChildren(emptyNote(t('day.loading')));
     } else if (this.state === 'error') {
-      this.el.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
+      this.el.replaceChildren(
+        h('p', { class: 'ao-error' }, this.error),
+        h(
+          'button',
+          { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() },
+          t('common.retry'),
+        ),
+      );
     } else if (!this.view || this.view.rows.length === 0) {
       this.el.replaceChildren(emptyNote(t('day.empty')));
     } else {
@@ -65,12 +72,25 @@ export class DayTimeView {
     return h(
       'div',
       { class: 'ao-day-totals' },
-      ...DAY_STATUSES.map((status) => h('div', { class: `ao-day-total ao-day-total--${status}` }, h('span', { class: 'ao-day-total-label' }, dayStatusLabel(status)), h('strong', null, formatDuration(view.totals[status])))),
+      ...DAY_STATUSES.map((status) =>
+        h(
+          'div',
+          { class: `ao-day-total ao-day-total--${status}` },
+          h('span', { class: 'ao-day-total-label' }, dayStatusLabel(status)),
+          h('strong', null, formatDuration(view.totals[status])),
+        ),
+      ),
     );
   }
 
   private legend(): HTMLElement {
-    return h('ul', { class: 'ao-day-legend', 'aria-hidden': 'true' }, ...DAY_STATUSES.map((status) => h('li', null, h('span', { class: `ao-day-swatch ao-day-seg--${status}` }), dayStatusLabel(status))));
+    return h(
+      'ul',
+      { class: 'ao-day-legend', 'aria-hidden': 'true' },
+      ...DAY_STATUSES.map((status) =>
+        h('li', null, h('span', { class: `ao-day-swatch ao-day-seg--${status}` }), dayStatusLabel(status)),
+      ),
+    );
   }
 
   private bars(view: DayView): HTMLElement {
@@ -78,15 +98,32 @@ export class DayTimeView {
       'ul',
       { class: 'ao-day-rows' },
       ...view.rows.map((row) => {
-        const summary = DAY_STATUSES.map((status: DayStatus) => `${dayStatusLabel(status)} ${formatDuration(row.segments.find((s) => s.status === status)?.ms ?? 0)}`).join(', ');
+        const summary = DAY_STATUSES.map(
+          (status: DayStatus) =>
+            `${dayStatusLabel(status)} ${formatDuration(row.segments.find((s) => s.status === status)?.ms ?? 0)}`,
+        ).join(', ');
         return h(
           'li',
           { class: 'ao-day-row' },
-          h('div', { class: 'ao-day-row-head' }, h('strong', null, row.name), h('span', { class: 'ao-day-row-room' }, this.ctx.project(row.projectId)?.name ?? ''), h('span', { class: 'ao-day-row-total' }, formatDuration(row.totalMs))),
+          h(
+            'div',
+            { class: 'ao-day-row-head' },
+            h('strong', null, row.name),
+            h('span', { class: 'ao-day-row-room' }, this.ctx.project(row.projectId)?.name ?? ''),
+            h('span', { class: 'ao-day-row-total' }, formatDuration(row.totalMs)),
+          ),
           h(
             'div',
             { class: 'ao-day-bar', role: 'img', 'aria-label': `${row.name}: ${summary}` },
-            ...row.segments.filter((s) => s.ms > 0).map((s) => h('span', { class: `ao-day-seg ao-day-seg--${s.status}`, style: `width:${s.widthPct}%`, title: `${dayStatusLabel(s.status)}: ${formatDuration(s.ms)}` })),
+            ...row.segments
+              .filter((s) => s.ms > 0)
+              .map((s) =>
+                h('span', {
+                  class: `ao-day-seg ao-day-seg--${s.status}`,
+                  style: `width:${s.widthPct}%`,
+                  title: `${dayStatusLabel(s.status)}: ${formatDuration(s.ms)}`,
+                }),
+              ),
           ),
         );
       }),

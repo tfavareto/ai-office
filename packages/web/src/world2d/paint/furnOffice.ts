@@ -25,7 +25,8 @@ export function desk(ctx: Ctx, it: FurnitureItem): void {
   rect(ctx, 0, 2, w, 10, top.mid);
   hline(ctx, 0, 2, w, top.hi);
   hline(ctx, 0, 3, w, top.light);
-  for (let x = 2; x < w - 2; x += 7) hline(ctx, x + (noise2(x, it.variant, 4) > 0.5 ? 1 : 0), 6 + (x % 3) * 2, 5, shade(top.mid, -0.08));
+  for (let x = 2; x < w - 2; x += 7)
+    hline(ctx, x + (noise2(x, it.variant, 4) > 0.5 ? 1 : 0), 6 + (x % 3) * 2, 5, shade(top.mid, -0.08));
   rect(ctx, 0, 12, w, 4, top.dark);
   hline(ctx, 0, 12, w, shade(top.dark, 0.25));
   rect(ctx, 1, 13, 3, 3, EBONY.dark);

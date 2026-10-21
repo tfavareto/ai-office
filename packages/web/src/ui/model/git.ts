@@ -1,6 +1,17 @@
 // Presentation logic of a room's repository: which parts the Git section shows and with what meaning. Pure; the
 // components turn these descriptions into (translated) text.
-import { GIT_FAILING_MAX, gitRef, isDirty, type CiState, type GitChecks, type GitOperation, type GitPullRequest, type ProjectGit, type PullRequestState, type ReviewDecision } from '@ai-office/shared';
+import {
+  GIT_FAILING_MAX,
+  gitRef,
+  isDirty,
+  type CiState,
+  type GitChecks,
+  type GitOperation,
+  type GitPullRequest,
+  type ProjectGit,
+  type PullRequestState,
+  type ReviewDecision,
+} from '@ai-office/shared';
 
 export type ChangeKind = 'staged' | 'unstaged' | 'untracked' | 'conflicted';
 
@@ -49,12 +60,23 @@ export interface ChecksView {
 
 export function checksView(checks: GitChecks): ChecksView {
   const failing = (checks.failing ?? []).slice(0, GIT_FAILING_MAX);
-  return { total: checks.total, passed: checks.passed, failing, moreFailing: Math.max(0, checks.failed - failing.length), pending: checks.pending };
+  return {
+    total: checks.total,
+    passed: checks.passed,
+    failing,
+    moreFailing: Math.max(0, checks.failed - failing.length),
+    pending: checks.pending,
+  };
 }
 
 export type PrTone = 'ok' | 'warn' | 'bad' | 'muted';
 
-export const CI_TONE: Readonly<Record<CiState, PrTone>> = { success: 'ok', pending: 'warn', failure: 'bad', none: 'muted' };
+export const CI_TONE: Readonly<Record<CiState, PrTone>> = {
+  success: 'ok',
+  pending: 'warn',
+  failure: 'bad',
+  none: 'muted',
+};
 
 /** Message state of a pull request, as the badge reads it (a draft is an open pull request that is not ready). */
 export type PrBadgeState = PullRequestState | 'draft';
@@ -63,7 +85,11 @@ export function prBadgeState(pr: GitPullRequest): PrBadgeState {
   return pr.state === 'open' && pr.draft ? 'draft' : pr.state;
 }
 
-export const REVIEW_TONE: Readonly<Record<ReviewDecision, PrTone>> = { approved: 'ok', 'changes-requested': 'bad', 'review-required': 'warn' };
+export const REVIEW_TONE: Readonly<Record<ReviewDecision, PrTone>> = {
+  approved: 'ok',
+  'changes-requested': 'bad',
+  'review-required': 'warn',
+};
 
 /** Everything the sidebar row needs from a room's repository. */
 export interface BranchChip {

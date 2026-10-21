@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest';
 import type { PermissionRequest } from './model';
 import { detectRisk, isSensitivePath } from './permission-risk';
 
-const permission = (over: Partial<PermissionRequest> = {}): PermissionRequest => ({ id: 'perm1', agentId: 'ag1', toolName: 'Bash', summary: 'npm test', input: { command: 'npm test' }, suggestions: [], createdAt: 1_000, expiresAt: 61_000, ...over });
+const permission = (over: Partial<PermissionRequest> = {}): PermissionRequest => ({
+  id: 'perm1',
+  agentId: 'ag1',
+  toolName: 'Bash',
+  summary: 'npm test',
+  input: { command: 'npm test' },
+  suggestions: [],
+  createdAt: 1_000,
+  expiresAt: 61_000,
+  ...over,
+});
 const bash = (command: string) => permission({ toolName: 'Bash', summary: command, input: { command } });
 
 describe('detectRisk', () => {
@@ -37,15 +47,22 @@ describe('detectRisk', () => {
 
   it('sees through quoting used to hide the command', () => {
     expect(detectRisk(bash('"rm" -rf dist'))).toBe('delete');
-    expect(detectRisk(bash("r\\m -rf dist"))).toBe('delete');
+    expect(detectRisk(bash('r\\m -rf dist'))).toBe('delete');
   });
 
-  it.each(['npm test', 'npm install zod', 'git push origin feat/cupom', 'git status', 'ls -la src', 'rm dist/old.js', 'curl -s https://example.com/api', 'git branch -d merged', 'chmod +x run.sh'])(
-    'lets the ordinary command %s through',
-    (command) => {
-      expect(detectRisk(bash(command))).toBeNull();
-    },
-  );
+  it.each([
+    'npm test',
+    'npm install zod',
+    'git push origin feat/cupom',
+    'git status',
+    'ls -la src',
+    'rm dist/old.js',
+    'curl -s https://example.com/api',
+    'git branch -d merged',
+    'chmod +x run.sh',
+  ])('lets the ordinary command %s through', (command) => {
+    expect(detectRisk(bash(command))).toBeNull();
+  });
 
   it('does not let a safe command hide the dangerous one after it', () => {
     expect(detectRisk(bash('npm test && rm -rf dist'))).toBe('delete');
@@ -57,15 +74,27 @@ describe('detectRisk', () => {
   });
 
   it('flags writes to secrets and system files, but not reads or ordinary files', () => {
-    expect(detectRisk(permission({ toolName: 'Write', summary: 'Escrever .env', input: { file_path: '/demo/app/.env' } }))).toBe('sensitive-file');
-    expect(detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: '/Users/x/.ssh/config' } }))).toBe('sensitive-file');
-    expect(detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: '/etc/hosts' } }))).toBe('sensitive-file');
-    expect(detectRisk(permission({ toolName: 'Read', summary: 'Ler', input: { file_path: '/demo/app/.env' } }))).toBeNull();
-    expect(detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: 'src/config.ts' } }))).toBeNull();
+    expect(
+      detectRisk(permission({ toolName: 'Write', summary: 'Escrever .env', input: { file_path: '/demo/app/.env' } })),
+    ).toBe('sensitive-file');
+    expect(
+      detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: '/Users/x/.ssh/config' } })),
+    ).toBe('sensitive-file');
+    expect(detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: '/etc/hosts' } }))).toBe(
+      'sensitive-file',
+    );
+    expect(
+      detectRisk(permission({ toolName: 'Read', summary: 'Ler', input: { file_path: '/demo/app/.env' } })),
+    ).toBeNull();
+    expect(
+      detectRisk(permission({ toolName: 'Edit', summary: 'Editar', input: { file_path: 'src/config.ts' } })),
+    ).toBeNull();
   });
 
   it('ignores tools it knows nothing about', () => {
-    expect(detectRisk(permission({ toolName: 'mcp__x__run', summary: 'rm -rf /', input: { anything: 'sudo' } }))).toBeNull();
+    expect(
+      detectRisk(permission({ toolName: 'mcp__x__run', summary: 'rm -rf /', input: { anything: 'sudo' } })),
+    ).toBeNull();
   });
 });
 

@@ -1,6 +1,18 @@
 // HTTP + Server-Sent Events protocol between the AI Office server and the web app / plugin hooks.
 import type { Locale } from './i18n/i18n';
-import type { AutoDecision, BossMessage, DayStats, FeedItem, Notice, OfficeSnapshot, PendingHire, PermissionDecision, RecentSession, Rule, TranscriptEntry } from './model';
+import type {
+  AutoDecision,
+  BossMessage,
+  DayStats,
+  FeedItem,
+  Notice,
+  OfficeSnapshot,
+  PendingHire,
+  PermissionDecision,
+  RecentSession,
+  Rule,
+  TranscriptEntry,
+} from './model';
 import type { RuleBookErrorCode, RulePreview } from './rules';
 import type { RuleDanger, RuleErrorCode, RuleField } from './rules/validate';
 
@@ -124,9 +136,7 @@ export type PermissionHookCreated = { id: string } | { skip: string };
 
 /** GET /api/permissions/:id/wait?timeout=<s> → still pending, or the decision. */
 export type PermissionWaitResponse =
-  | { status: 'pending' }
-  | ({ status: 'decided' } & PermissionDecision)
-  | { status: 'expired' | 'cancelled' };
+  { status: 'pending' } | ({ status: 'decided' } & PermissionDecision) | { status: 'expired' | 'cancelled' };
 
 /** POST /api/permissions/:id/decision body = PermissionDecision (optional `locale`: language of the answer, used by the hook) → 200 { ok: true } | 409 already answered. */
 
@@ -140,7 +150,8 @@ export interface MessagesResponse {
  * (A POST because it consumes the queue.)
  * GET /api/messages/wait?session=&agent=&timeout=<s> → same shape; long-poll (≤ 25 s) used by the Stop hook.
  */
-export type InboxResponse = { messages: { id: string; text: string; createdAt: number; locale?: Locale }[] } | { skip: string };
+export type InboxResponse =
+  { messages: { id: string; text: string; createdAt: number; locale?: Locale }[] } | { skip: string };
 
 /** GET /api/rules */
 export interface RulesResponse {

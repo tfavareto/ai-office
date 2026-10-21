@@ -2,7 +2,13 @@ import { describe, expect, test } from 'vitest';
 import { PR_FIELDS, lookupPullRequest, parsePullRequest, summarizeChecks } from './pull-request';
 import { RunError, type Runner } from './run';
 
-const run = (check: Record<string, unknown>): Record<string, unknown> => ({ __typename: 'CheckRun', status: 'COMPLETED', conclusion: 'SUCCESS', name: 'build', ...check });
+const run = (check: Record<string, unknown>): Record<string, unknown> => ({
+  __typename: 'CheckRun',
+  status: 'COMPLETED',
+  conclusion: 'SUCCESS',
+  name: 'build',
+  ...check,
+});
 
 describe('summarizeChecks', () => {
   test('counts check runs and commit statuses', () => {
@@ -35,11 +41,21 @@ describe('summarizeChecks', () => {
 });
 
 describe('parsePullRequest', () => {
-  const base = { number: 142, title: 'Coupon', state: 'OPEN', url: 'https://github.com/o/r/pull/142', isDraft: false, reviewDecision: 'REVIEW_REQUIRED' };
+  const base = {
+    number: 142,
+    title: 'Coupon',
+    state: 'OPEN',
+    url: 'https://github.com/o/r/pull/142',
+    isDraft: false,
+    reviewDecision: 'REVIEW_REQUIRED',
+  };
 
   test('maps the fields of gh pr view', () => {
     // Arrange
-    const output = JSON.stringify({ ...base, statusCheckRollup: [run({}), run({ name: 'unit', conclusion: 'FAILURE' })] });
+    const output = JSON.stringify({
+      ...base,
+      statusCheckRollup: [run({}), run({ name: 'unit', conclusion: 'FAILURE' })],
+    });
     // Act
     const pr = parsePullRequest(output);
     // Assert
@@ -69,7 +85,11 @@ describe('parsePullRequest', () => {
   });
 
   test('is pending while a check runs and success when all passed', () => {
-    expect(parsePullRequest(JSON.stringify({ ...base, statusCheckRollup: [run({}), run({ status: 'IN_PROGRESS', conclusion: '' })] }))?.ci).toBe('pending');
+    expect(
+      parsePullRequest(
+        JSON.stringify({ ...base, statusCheckRollup: [run({}), run({ status: 'IN_PROGRESS', conclusion: '' })] }),
+      )?.ci,
+    ).toBe('pending');
     expect(parsePullRequest(JSON.stringify({ ...base, statusCheckRollup: [run({})] }))?.ci).toBe('success');
   });
 
@@ -92,14 +112,19 @@ describe('parsePullRequest', () => {
 });
 
 describe('lookupPullRequest', () => {
-  const fails = (code: string | number, stderr: string): Runner => () => Promise.reject(new RunError('failed', code, stderr, false));
+  const fails =
+    (code: string | number, stderr: string): Runner =>
+    () =>
+      Promise.reject(new RunError('failed', code, stderr, false));
 
   test('asks gh for exactly the fields we read, in the project folder', async () => {
     // Arrange
     const calls: { file: string; args: readonly string[]; cwd: string }[] = [];
     const runner: Runner = (file, args, options) => {
       calls.push({ file, args, cwd: options.cwd });
-      return Promise.resolve(JSON.stringify({ number: 1, title: 't', state: 'OPEN', url: 'https://github.com/o/r/pull/1' }));
+      return Promise.resolve(
+        JSON.stringify({ number: 1, title: 't', state: 'OPEN', url: 'https://github.com/o/r/pull/1' }),
+      );
     };
     // Act
     const result = await lookupPullRequest(runner, '/work/proj');
@@ -109,7 +134,9 @@ describe('lookupPullRequest', () => {
   });
 
   test('says there is no pull request for the branch', async () => {
-    expect(await lookupPullRequest(fails(1, 'no pull requests found for branch "x"'), '/p')).toEqual({ status: 'none' });
+    expect(await lookupPullRequest(fails(1, 'no pull requests found for branch "x"'), '/p')).toEqual({
+      status: 'none',
+    });
   });
 
   test('says gh is missing', async () => {
@@ -117,7 +144,10 @@ describe('lookupPullRequest', () => {
   });
 
   test('says gh is not signed in', async () => {
-    const result = await lookupPullRequest(fails(4, 'To get started with GitHub CLI, please run:  gh auth login'), '/p');
+    const result = await lookupPullRequest(
+      fails(4, 'To get started with GitHub CLI, please run:  gh auth login'),
+      '/p',
+    );
     expect(result).toEqual({ status: 'unavailable', gh: 'unauthenticated' });
   });
 

@@ -8,11 +8,24 @@ import type { AppContext, Component } from '../context';
 import { h, setAttr, setText, toggleClass } from '../dom';
 import { formatClock, formatDateKey, formatDateLong, formatDuration } from '../format';
 import { icon } from '../icons';
-import { MARKER_REACH_PX, axisTicks, fractionAt, liveAttention, markerStep, percentOf, pixelsToMs } from '../model/replay';
+import {
+  MARKER_REACH_PX,
+  axisTicks,
+  fractionAt,
+  liveAttention,
+  markerStep,
+  percentOf,
+  pixelsToMs,
+} from '../model/replay';
 import { createSegmented, iconButton } from '../widgets';
 import { pickerLabel } from './report-parts';
 
-const MARKER_CLASS: Readonly<Record<Marker['kind'], string>> = { commit: 'commit', 'test-failed': 'failed', wait: 'wait', arrival: 'arrival' };
+const MARKER_CLASS: Readonly<Record<Marker['kind'], string>> = {
+  commit: 'commit',
+  'test-failed': 'failed',
+  wait: 'wait',
+  arrival: 'arrival',
+};
 
 /** The words that describe a mark (what happened, who, where). */
 export function describeMarker(marker: Marker): string {
@@ -20,11 +33,18 @@ export function describeMarker(marker: Marker): string {
   const detail = marker.detail ?? '';
   switch (marker.kind) {
     case 'commit':
-      return marker.agent === undefined ? t('replay.marker.commitAnon', { project: marker.project, subject: detail }) : t('replay.marker.commit', { agent: who, project: marker.project, subject: detail });
+      return marker.agent === undefined
+        ? t('replay.marker.commitAnon', { project: marker.project, subject: detail })
+        : t('replay.marker.commit', { agent: who, project: marker.project, subject: detail });
     case 'test-failed':
       return t('replay.marker.testFailed', { runner: detail, agent: who, project: marker.project });
     case 'wait':
-      return t('replay.marker.wait', { agent: who, duration: formatDuration(marker.durationMs ?? 0), tool: detail, project: marker.project });
+      return t('replay.marker.wait', {
+        agent: who,
+        duration: formatDuration(marker.durationMs ?? 0),
+        tool: detail,
+        project: marker.project,
+      });
     case 'arrival':
       return t('replay.marker.arrival', { agent: who, project: marker.project });
   }
@@ -35,12 +55,23 @@ export class ReplayBar implements Component {
   private readonly playBtn: HTMLButtonElement;
   private readonly time = h('span', { class: 'ao-replay-time' });
   private readonly date = h('span', { class: 'ao-replay-date' });
-  private readonly range = h('input', { type: 'range', class: 'ao-replay-range', min: '0', max: '1', step: '1', 'aria-label': t('replay.scrubber') });
+  private readonly range = h('input', {
+    type: 'range',
+    class: 'ao-replay-range',
+    min: '0',
+    max: '1',
+    step: '1',
+    'aria-label': t('replay.scrubber'),
+  });
   private readonly markers = h('div', { class: 'ao-replay-markers' });
   private readonly axis = h('div', { class: 'ao-replay-axis', 'aria-hidden': 'true' });
   private readonly tip = h('div', { class: 'ao-replay-tip', role: 'presentation', hidden: true });
   private readonly track = h('div', { class: 'ao-replay-track' });
-  private readonly speeds = createSegmented<`${Speed}`>(t('replay.speed'), SPEEDS.map((speed) => ({ value: `${speed}` as const, label: `${speed}×` })), (value) => this.setSpeed(Number(value)));
+  private readonly speeds = createSegmented<`${Speed}`>(
+    t('replay.speed'),
+    SPEEDS.map((speed) => ({ value: `${speed}` as const, label: `${speed}×` })),
+    (value) => this.setSpeed(Number(value)),
+  );
   private readonly days = h('select', { class: 'ao-replay-days', 'aria-label': t('replay.day') });
   private readonly liveBtn: HTMLButtonElement;
   private readonly status = h('p', { class: 'ao-replay-status', role: 'status' });
@@ -54,9 +85,32 @@ export class ReplayBar implements Component {
   private shownPlaying: boolean | undefined;
 
   constructor(private readonly ctx: AppContext) {
-    this.attention = h('button', { type: 'button', class: 'ao-replay-attention', hidden: true, title: t('replay.attention.hint'), onclick: () => ctx.stopReplay() });
-    this.playBtn = iconButton({ icon: 'play', label: t('replay.play'), className: 'ao-replay-play', size: 20, onClick: () => ctx.replay.togglePlay() });
-    this.liveBtn = h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-replay-live', title: t('replay.live.hint'), onclick: () => ctx.stopReplay() }, icon('x', 16), h('span', null, t('replay.live')), h('kbd', { class: 'ao-kbd' }, 'Esc'));
+    this.attention = h('button', {
+      type: 'button',
+      class: 'ao-replay-attention',
+      hidden: true,
+      title: t('replay.attention.hint'),
+      onclick: () => ctx.stopReplay(),
+    });
+    this.playBtn = iconButton({
+      icon: 'play',
+      label: t('replay.play'),
+      className: 'ao-replay-play',
+      size: 20,
+      onClick: () => ctx.replay.togglePlay(),
+    });
+    this.liveBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-btn ao-btn--soft ao-replay-live',
+        title: t('replay.live.hint'),
+        onclick: () => ctx.stopReplay(),
+      },
+      icon('x', 16),
+      h('span', null, t('replay.live')),
+      h('kbd', { class: 'ao-kbd' }, 'Esc'),
+    );
     this.range.addEventListener('input', () => ctx.replay.seek(Number(this.range.value)));
     this.range.addEventListener('keydown', (event) => this.onRangeKey(event));
     this.range.addEventListener('pointermove', (event) => this.showTip(event));
@@ -67,11 +121,24 @@ export class ReplayBar implements Component {
     const clock = h('div', { class: 'ao-replay-clock', 'aria-hidden': 'true' }, this.time, this.date);
     this.el.append(
       this.notes,
-      h('div', { class: 'ao-replay-main' }, this.playBtn, clock, h('span', { class: 'ao-replay-spacer' }), this.speeds.el, h('label', { class: 'ao-replay-dayrow' }, icon('calendar', 16), this.days), this.liveBtn),
+      h(
+        'div',
+        { class: 'ao-replay-main' },
+        this.playBtn,
+        clock,
+        h('span', { class: 'ao-replay-spacer' }),
+        this.speeds.el,
+        h('label', { class: 'ao-replay-dayrow' }, icon('calendar', 16), this.days),
+        this.liveBtn,
+      ),
       this.track,
       this.status,
     );
-    this.speeds.el.querySelectorAll('button').forEach((option, position) => option.setAttribute('title', t('replay.speed.option', { n: SPEEDS[position] ?? 0 })));
+    this.speeds.el
+      .querySelectorAll('button')
+      .forEach((option, position) =>
+        option.setAttribute('title', t('replay.speed.option', { n: SPEEDS[position] ?? 0 })),
+      );
     this.unsubscribe = ctx.replay.onFrame((clockState) => this.paint(clockState));
   }
 
@@ -104,7 +171,14 @@ export class ReplayBar implements Component {
   // ---- parts ------------------------------------------------------------------------------------------------------
 
   private renderStatus(phase: string, error: string | undefined, empty: boolean): void {
-    const text = phase === 'loading' ? t('replay.loading') : phase === 'error' ? `${t('replay.error')} ${error ?? ''}`.trim() : empty ? t('replay.empty') : '';
+    const text =
+      phase === 'loading'
+        ? t('replay.loading')
+        : phase === 'error'
+          ? `${t('replay.error')} ${error ?? ''}`.trim()
+          : empty
+            ? t('replay.empty')
+            : '';
     setText(this.status, text);
     this.status.hidden = text === '';
     toggleClass(this.status, 'is-error', phase === 'error');
@@ -137,7 +211,11 @@ export class ReplayBar implements Component {
   }
 
   private renderNotes(notes: { truncated: boolean; trimmed: boolean; demo: boolean }): void {
-    const lines = [notes.demo ? t('replay.note.demo') : '', notes.truncated ? t('replay.note.truncated') : '', notes.trimmed ? t('replay.note.trimmed') : ''].filter((line) => line !== '');
+    const lines = [
+      notes.demo ? t('replay.note.demo') : '',
+      notes.truncated ? t('replay.note.truncated') : '',
+      notes.trimmed ? t('replay.note.trimmed') : '',
+    ].filter((line) => line !== '');
     const signature = lines.join('|');
     if (signature === this.noteSignature) return;
     this.noteSignature = signature;
@@ -152,7 +230,8 @@ export class ReplayBar implements Component {
   private renderAttention(): void {
     const waiting = liveAttention(this.ctx.liveSnapshot);
     this.attention.hidden = waiting === 0;
-    if (waiting > 0) this.attention.replaceChildren(icon('alert', 14), h('span', null, t('replay.attention', { n: waiting })));
+    if (waiting > 0)
+      this.attention.replaceChildren(icon('alert', 14), h('span', null, t('replay.attention', { n: waiting })));
     this.syncNotes();
   }
 
@@ -164,23 +243,24 @@ export class ReplayBar implements Component {
     this.spanSignature = signature;
     this.range.min = String(clock.from);
     this.range.max = String(clock.to);
-    this.axis.replaceChildren(...axisTicks(clock.from, clock.to).map((at) => h('span', { style: `left:${percentOf(at, clock.from, clock.to)}%` }, formatClock(at))));
+    this.axis.replaceChildren(
+      ...axisTicks(clock.from, clock.to).map((at) =>
+        h('span', { style: `left:${percentOf(at, clock.from, clock.to)}%` }, formatClock(at)),
+      ),
+    );
     this.markers.replaceChildren(
       ...markers.map((marker) => {
         const label = describeMarker(marker);
-        return h(
-          'button',
-          {
-            type: 'button',
-            class: `ao-replay-mark ao-replay-mark--${MARKER_CLASS[marker.kind]}`,
-            style: `left:${percentOf(marker.at, clock.from, clock.to)}%`,
-            tabindex: '-1',
-            'aria-label': t('replay.marker.go', { time: formatClock(marker.at) }),
-            'data-at': String(marker.at),
-            title: label,
-            onclick: () => this.ctx.replay.seek(marker.at),
-          },
-        );
+        return h('button', {
+          type: 'button',
+          class: `ao-replay-mark ao-replay-mark--${MARKER_CLASS[marker.kind]}`,
+          style: `left:${percentOf(marker.at, clock.from, clock.to)}%`,
+          tabindex: '-1',
+          'aria-label': t('replay.marker.go', { time: formatClock(marker.at) }),
+          'data-at': String(marker.at),
+          title: label,
+          onclick: () => this.ctx.replay.seek(marker.at),
+        });
       }),
     );
   }
@@ -244,7 +324,17 @@ export class ReplayBar implements Component {
     const fraction = fractionAt(event.clientX, rect.left, rect.width);
     const at = clock.from + fraction * (clock.to - clock.from);
     const mark = markerNear(this.ctx.replay.markers, at, pixelsToMs(MARKER_REACH_PX, rect.width, clock.from, clock.to));
-    const lines = [h('strong', null, formatClock(mark?.at ?? at)), ...(mark === undefined ? [] : [h('span', null, describeMarker(mark)), ...(mark.count > 1 ? [h('span', { class: 'ao-replay-tip-more' }, t('replay.marker.more', { n: mark.count - 1 }))] : [])])];
+    const lines = [
+      h('strong', null, formatClock(mark?.at ?? at)),
+      ...(mark === undefined
+        ? []
+        : [
+            h('span', null, describeMarker(mark)),
+            ...(mark.count > 1
+              ? [h('span', { class: 'ao-replay-tip-more' }, t('replay.marker.more', { n: mark.count - 1 }))]
+              : []),
+          ]),
+    ];
     this.tip.replaceChildren(...lines);
     this.tip.hidden = false;
     this.tip.style.setProperty('--x', `${percentOf(mark?.at ?? at, clock.from, clock.to)}%`);

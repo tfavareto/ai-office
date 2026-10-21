@@ -102,12 +102,16 @@ export class MessageCenter extends Observable<MessagesByAgent> {
     const tracked = this.tracked.get(key);
     if (!tracked) return [];
     const all: BossMessage[] = [];
-    for (const list of this.value.values()) for (const message of list) if (tracked.messageIds.has(message.id)) all.push(message);
+    for (const list of this.value.values())
+      for (const message of list) if (tracked.messageIds.has(message.id)) all.push(message);
     return all.sort((a, b) => a.createdAt - b.createdAt);
   }
 
   private summaryOf(key: string): DeliverySummary | null {
-    return summarizeDelivery(this.messagesFor(key), { nameOf: this.opts.nameOf, teamLabel: this.tracked.get(key)?.teamLabel });
+    return summarizeDelivery(this.messagesFor(key), {
+      nameOf: this.opts.nameOf,
+      teamLabel: this.tracked.get(key)?.teamLabel,
+    });
   }
 
   private afterRefresh(): void {
@@ -129,7 +133,8 @@ export class MessageCenter extends Observable<MessagesByAgent> {
   private pollTargets(): string[] {
     const ids = new Set<string>();
     for (const list of this.watchedAgents.values()) for (const id of list) ids.add(id);
-    for (const key of this.tracked.keys()) for (const message of this.messagesFor(key)) if (message.status === 'queued') ids.add(message.agentId);
+    for (const key of this.tracked.keys())
+      for (const message of this.messagesFor(key)) if (message.status === 'queued') ids.add(message.agentId);
     return [...ids];
   }
 

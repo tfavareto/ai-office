@@ -10,7 +10,13 @@ import { RuleEditor } from './rules-editor';
 import { RulesList } from './rules-list';
 import { RulesLog } from './rules-log';
 
-const PRESET_NEW_RULE = { effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: '' }, scope: {}, enabled: true } as const;
+const PRESET_NEW_RULE = {
+  effect: 'allow',
+  tool: 'Bash',
+  matcher: { kind: 'command-prefix', value: '' },
+  scope: {},
+  enabled: true,
+} as const;
 
 export class RulesDialog extends Dialog {
   private readonly tabs = createSegmented<RulesTab>(
@@ -37,13 +43,35 @@ export class RulesDialog extends Dialog {
     this.list = new RulesList(app);
     this.log = new RulesLog(app);
     this.editor = new RuleEditor(app);
-    this.newBtn = button({ label: t('rules.new'), icon: 'plus', variant: 'primary', className: 'ao-btn--small', onClick: () => app.rules.startNew(PRESET_NEW_RULE) });
-    this.toolbar = h('div', { class: 'ao-rules-toolbar' }, this.tabs.el, h('span', { class: 'ao-inbox-spacer' }), this.newBtn);
-    this.retryBtn = button({ label: t('common.retry'), variant: 'soft', className: 'ao-btn--small', onClick: () => void app.rules.load() });
+    this.newBtn = button({
+      label: t('rules.new'),
+      icon: 'plus',
+      variant: 'primary',
+      className: 'ao-btn--small',
+      onClick: () => app.rules.startNew(PRESET_NEW_RULE),
+    });
+    this.toolbar = h(
+      'div',
+      { class: 'ao-rules-toolbar' },
+      this.tabs.el,
+      h('span', { class: 'ao-inbox-spacer' }),
+      this.newBtn,
+    );
+    this.retryBtn = button({
+      label: t('common.retry'),
+      variant: 'soft',
+      className: 'ao-btn--small',
+      onClick: () => void app.rules.load(),
+    });
     this.status.append(this.statusText, this.retryBtn);
     this.body.append(this.status, this.list.el, this.log.el, this.editor.el);
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-rules-title' }, t('rules.title')), closeButton(t('common.close'), () => app.closeDialog())),
+      h(
+        'header',
+        { class: 'ao-dialog-head' },
+        h('h2', { id: 'ao-rules-title' }, t('rules.title')),
+        closeButton(t('common.close'), () => app.closeDialog()),
+      ),
       this.toolbar,
       this.body,
     );

@@ -18,12 +18,23 @@ const MAX_URL = 500;
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/g;
 
-const FAILED_CONCLUSIONS = new Set(['FAILURE', 'TIMED_OUT', 'CANCELLED', 'ACTION_REQUIRED', 'STARTUP_FAILURE', 'ERROR']);
+const FAILED_CONCLUSIONS = new Set([
+  'FAILURE',
+  'TIMED_OUT',
+  'CANCELLED',
+  'ACTION_REQUIRED',
+  'STARTUP_FAILURE',
+  'ERROR',
+]);
 const PASSED_CONCLUSIONS = new Set(['SUCCESS', 'NEUTRAL', 'SKIPPED']);
 const FAILED_STATES = new Set(['FAILURE', 'ERROR']);
 const PENDING_STATES = new Set(['PENDING', 'EXPECTED']);
 const STATES: Readonly<Record<string, PullRequestState>> = { OPEN: 'open', MERGED: 'merged', CLOSED: 'closed' };
-const REVIEWS: Readonly<Record<string, ReviewDecision>> = { APPROVED: 'approved', CHANGES_REQUESTED: 'changes-requested', REVIEW_REQUIRED: 'review-required' };
+const REVIEWS: Readonly<Record<string, ReviewDecision>> = {
+  APPROVED: 'approved',
+  CHANGES_REQUESTED: 'changes-requested',
+  REVIEW_REQUIRED: 'review-required',
+};
 
 type CheckOutcome = 'passed' | 'failed' | 'pending';
 
@@ -85,7 +96,8 @@ export function parsePullRequest(output: string): GitPullRequest | undefined {
   const number = asNumber(raw.number);
   const state = STATES[asString(raw.state)?.toUpperCase() ?? ''];
   const url = safeUrl(asString(raw.url));
-  if (number === undefined || !Number.isInteger(number) || number < 1 || state === undefined || url === undefined) return undefined;
+  if (number === undefined || !Number.isInteger(number) || number < 1 || state === undefined || url === undefined)
+    return undefined;
   const checks = summarizeChecks(raw.statusCheckRollup);
   const review = REVIEWS[asString(raw.reviewDecision)?.toUpperCase() ?? ''];
   return {
@@ -100,7 +112,11 @@ export function parsePullRequest(output: string): GitPullRequest | undefined {
   };
 }
 
-export type PullRequestLookup = { status: 'found'; pr: GitPullRequest } | { status: 'none' } | { status: 'unavailable'; gh: GhStatus } | { status: 'error' };
+export type PullRequestLookup =
+  | { status: 'found'; pr: GitPullRequest }
+  | { status: 'none' }
+  | { status: 'unavailable'; gh: GhStatus }
+  | { status: 'error' };
 
 const NO_PR = /no pull requests? found/i;
 const NOT_LOGGED_IN = /gh auth login|not logged in|authentication|GH_TOKEN|HTTP 401/i;

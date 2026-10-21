@@ -59,9 +59,24 @@ const INSTALL_COMMAND = 'npm run plugin:install';
 export class HelpDialog extends Dialog {
   constructor(ctx: AppContext) {
     super(ctx, 'help', 'ao-help-title', 'ao-dialog--help');
-    const copy = h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': t('help.install.copy'), title: t('help.install.copy'), onclick: () => ctx.copy(INSTALL_COMMAND, t('help.install.copied')) }, icon('copy', 14));
+    const copy = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-iconbtn ao-iconbtn--small',
+        'aria-label': t('help.install.copy'),
+        title: t('help.install.copy'),
+        onclick: () => ctx.copy(INSTALL_COMMAND, t('help.install.copied')),
+      },
+      icon('copy', 14),
+    );
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('h2', { id: 'ao-help-title' }, t('help.title')), closeButton(t('common.close'), () => ctx.closeDialog())),
+      h(
+        'header',
+        { class: 'ao-dialog-head' },
+        h('h2', { id: 'ao-help-title' }, t('help.title')),
+        closeButton(t('common.close'), () => ctx.closeDialog()),
+      ),
       h(
         'div',
         { class: 'ao-help-body' },
@@ -69,11 +84,38 @@ export class HelpDialog extends Dialog {
           'section',
           { class: 'ao-help-section' },
           h('h3', null, t('help.status.title')),
-          h('ul', { class: 'ao-legend' }, ...LEGEND_STATUSES.map((s) => h('li', null, statusDot(s), h('strong', null, statusLabel(s)), h('span', null, statusHint(s))))),
+          h(
+            'ul',
+            { class: 'ao-legend' },
+            ...LEGEND_STATUSES.map((s) =>
+              h('li', null, statusDot(s), h('strong', null, statusLabel(s)), h('span', null, statusHint(s))),
+            ),
+          ),
           h('p', { class: 'ao-note' }, t('help.status.note')),
         ),
-        h('section', { class: 'ao-help-section' }, h('h3', null, t('help.icons.title')), h('ul', { class: 'ao-legend' }, ...ICON_LEGEND.map(([name, key]) => h('li', null, icon(name, 16), h('span', null, t(key)))))),
-        h('section', { class: 'ao-help-section' }, h('h3', null, t('help.shortcuts.title')), h('dl', { class: 'ao-shortcuts' }, ...SHORTCUTS.flatMap(([keys, text]) => [h('dt', null, h('kbd', { class: 'ao-kbd' }, keys)), h('dd', null, t(text))]))),
+        h(
+          'section',
+          { class: 'ao-help-section' },
+          h('h3', null, t('help.icons.title')),
+          h(
+            'ul',
+            { class: 'ao-legend' },
+            ...ICON_LEGEND.map(([name, key]) => h('li', null, icon(name, 16), h('span', null, t(key)))),
+          ),
+        ),
+        h(
+          'section',
+          { class: 'ao-help-section' },
+          h('h3', null, t('help.shortcuts.title')),
+          h(
+            'dl',
+            { class: 'ao-shortcuts' },
+            ...SHORTCUTS.flatMap(([keys, text]) => [
+              h('dt', null, h('kbd', { class: 'ao-kbd' }, keys)),
+              h('dd', null, t(text)),
+            ]),
+          ),
+        ),
         h(
           'section',
           { class: 'ao-help-section' },

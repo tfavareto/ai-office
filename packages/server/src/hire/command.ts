@@ -33,7 +33,8 @@ export function shellQuote(value: string): string {
 export function claudeArguments(spec: Pick<LaunchSpec, 'model' | 'permissionMode' | 'prompt'>): string[] {
   const args: string[] = [];
   if (spec.model !== undefined && spec.model !== 'default') args.push('--model', spec.model);
-  if (spec.permissionMode !== undefined && spec.permissionMode !== 'default') args.push('--permission-mode', spec.permissionMode);
+  if (spec.permissionMode !== undefined && spec.permissionMode !== 'default')
+    args.push('--permission-mode', spec.permissionMode);
   if (spec.prompt !== undefined && spec.prompt.length > 0) {
     // A prompt that starts with a dash must not be read as an option.
     if (spec.prompt.startsWith('-')) args.push('--');
@@ -48,9 +49,14 @@ function printLines(...lines: string[]): string {
 
 /** The launcher: removes its own directory, enters the project, selects the account and runs Claude Code. */
 export function buildLauncherScript(spec: LaunchSpec): string {
-  const say = (key: 'hire.launcher.noFolder' | 'hire.launcher.noClaude' | 'hire.launcher.close'): string => translateShared(spec.locale, msg(key));
-  const fail = (key: 'hire.launcher.noFolder' | 'hire.launcher.noClaude'): string => `${printLines(say(key), say('hire.launcher.close'))}; read -r _`;
-  const account = spec.configDir === undefined ? 'unset CLAUDE_CONFIG_DIR' : `CLAUDE_CONFIG_DIR=${shellQuote(spec.configDir)}; export CLAUDE_CONFIG_DIR`;
+  const say = (key: 'hire.launcher.noFolder' | 'hire.launcher.noClaude' | 'hire.launcher.close'): string =>
+    translateShared(spec.locale, msg(key));
+  const fail = (key: 'hire.launcher.noFolder' | 'hire.launcher.noClaude'): string =>
+    `${printLines(say(key), say('hire.launcher.close'))}; read -r _`;
+  const account =
+    spec.configDir === undefined
+      ? 'unset CLAUDE_CONFIG_DIR'
+      : `CLAUDE_CONFIG_DIR=${shellQuote(spec.configDir)}; export CLAUDE_CONFIG_DIR`;
   const command = [spec.claudePath, ...claudeArguments(spec)].map(shellQuote).join(' ');
   return [
     '#!/bin/sh',

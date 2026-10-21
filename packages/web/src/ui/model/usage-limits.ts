@@ -31,7 +31,11 @@ type Limits = Readonly<Record<string, AccountLimits>>;
 /** The saved limits with one field of one account changed; an account left with no value is dropped. */
 export function withLimit(limits: Limits, accountId: string, field: LimitField, value: number | undefined): Limits {
   const current: AccountLimits = limits[accountId] ?? { unit: 'usd' };
-  const next: AccountLimits = { unit: current.unit, ...(current.window5h !== undefined ? { window5h: current.window5h } : {}), ...(current.week !== undefined ? { week: current.week } : {}) };
+  const next: AccountLimits = {
+    unit: current.unit,
+    ...(current.window5h !== undefined ? { window5h: current.window5h } : {}),
+    ...(current.week !== undefined ? { week: current.week } : {}),
+  };
   const updated = value === undefined ? omit(next, field) : { ...next, [field]: value };
   return store(limits, accountId, updated);
 }

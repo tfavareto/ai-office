@@ -98,7 +98,9 @@ export class Traffic {
       const y = horizontal ? lane.pos * TILE - sprite.height / 2 : base - sprite.height / 2;
       const front = lane.dir === 1 ? 1 : -1;
       out.push({
-        sprite, x, y,
+        sprite,
+        x,
+        y,
         light: {
           x: horizontal ? x + sprite.width / 2 + front * 13 : x + sprite.width / 2,
           y: horizontal ? y + sprite.height / 2 : y + sprite.height / 2 + front * 13,

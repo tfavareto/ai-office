@@ -20,15 +20,35 @@ export interface DaylightParams {
 }
 
 const DAY: DaylightParams = {
-  skyTop: [0.36, 0.62, 0.9], skyBottom: [0.8, 0.9, 0.97], fog: [0.72, 0.83, 0.93], fogDensity: 0.0011,
-  sunColor: [1, 0.95, 0.86], sunIntensity: 3.1, hemiSky: [0.78, 0.88, 1], hemiGround: [0.62, 0.55, 0.46], hemiIntensity: 1.05,
-  envIntensity: 0.9, exposure: 1.0, bloomStrength: 0, glow: 0,
+  skyTop: [0.36, 0.62, 0.9],
+  skyBottom: [0.8, 0.9, 0.97],
+  fog: [0.72, 0.83, 0.93],
+  fogDensity: 0.0011,
+  sunColor: [1, 0.95, 0.86],
+  sunIntensity: 3.1,
+  hemiSky: [0.78, 0.88, 1],
+  hemiGround: [0.62, 0.55, 0.46],
+  hemiIntensity: 1.05,
+  envIntensity: 0.9,
+  exposure: 1.0,
+  bloomStrength: 0,
+  glow: 0,
 };
 
 const NIGHT: DaylightParams = {
-  skyTop: [0.015, 0.03, 0.09], skyBottom: [0.09, 0.12, 0.26], fog: [0.05, 0.07, 0.16], fogDensity: 0.0015,
-  sunColor: [0.55, 0.65, 1], sunIntensity: 0.9, hemiSky: [0.3, 0.38, 0.62], hemiGround: [0.16, 0.13, 0.15], hemiIntensity: 0.8,
-  envIntensity: 0.3, exposure: 1.0, bloomStrength: 0.42, glow: 1,
+  skyTop: [0.015, 0.03, 0.09],
+  skyBottom: [0.09, 0.12, 0.26],
+  fog: [0.05, 0.07, 0.16],
+  fogDensity: 0.0015,
+  sunColor: [0.55, 0.65, 1],
+  sunIntensity: 0.9,
+  hemiSky: [0.3, 0.38, 0.62],
+  hemiGround: [0.16, 0.13, 0.15],
+  hemiIntensity: 0.8,
+  envIntensity: 0.3,
+  exposure: 1.0,
+  bloomStrength: 0.42,
+  glow: 1,
 };
 
 const mixN = (a: number, b: number, t: number): number => a + (b - a) * t;

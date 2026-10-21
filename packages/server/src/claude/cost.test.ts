@@ -2,7 +2,14 @@ import { describe, expect, test } from 'vitest';
 import { billableTokens, mergeUsage, priceFor, tokensIn, usageCostUSD } from './cost';
 import type { UsageInfo } from './types';
 
-const usage = (over: Partial<UsageInfo> = {}): UsageInfo => ({ input: 0, output: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0, ...over });
+const usage = (over: Partial<UsageInfo> = {}): UsageInfo => ({
+  input: 0,
+  output: 0,
+  cacheWrite5m: 0,
+  cacheWrite1h: 0,
+  cacheRead: 0,
+  ...over,
+});
 
 describe('cost', () => {
   test('price table by model family', () => {
@@ -22,6 +29,8 @@ describe('cost', () => {
     expect(usageCostUSD('mystery', sonnet)).toBeUndefined();
     expect(billableTokens(sonnet)).toBe(3_000_000);
     expect(tokensIn(sonnet)).toBe(2_000_000);
-    expect(mergeUsage(usage({ input: 1, output: 9 }), usage({ input: 5, output: 2 }))).toEqual(usage({ input: 5, output: 9 }));
+    expect(mergeUsage(usage({ input: 1, output: 9 }), usage({ input: 5, output: 2 }))).toEqual(
+      usage({ input: 5, output: 9 }),
+    );
   });
 });

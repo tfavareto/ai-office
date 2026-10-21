@@ -10,7 +10,21 @@ export const SPRITE_H = 34;
 export const ANCHOR_X = 12;
 export const ANCHOR_Y = 32;
 
-type ArmPose = 'down' | 'swingF' | 'swingB' | 'up' | 'forward' | 'cup' | 'typeA' | 'typeB' | 'head' | 'lap' | 'out' | 'mouth' | 'gesture' | 'raised';
+type ArmPose =
+  | 'down'
+  | 'swingF'
+  | 'swingB'
+  | 'up'
+  | 'forward'
+  | 'cup'
+  | 'typeA'
+  | 'typeB'
+  | 'head'
+  | 'lap'
+  | 'out'
+  | 'mouth'
+  | 'gesture'
+  | 'raised';
 type LegPose = 'stand' | 'stepL' | 'stepR' | 'sit' | 'hidden';
 type Prop = 'cup' | 'popcorn' | 'book' | 'paddle' | 'stick' | null;
 
@@ -27,10 +41,36 @@ interface Rig {
 }
 
 const FRAMES: Record<Pose, number> = {
-  stand: 1, walk: 4, sit: 1, type: 2, hand: 2, coffee: 3, celebrate: 2, sleep: 2, lean: 1, stretch: 2, popcorn: 2, talk: 3,
-  listen: 2, play: 4, arcade: 2, read: 1, wash: 2,
+  stand: 1,
+  walk: 4,
+  sit: 1,
+  type: 2,
+  hand: 2,
+  coffee: 3,
+  celebrate: 2,
+  sleep: 2,
+  lean: 1,
+  stretch: 2,
+  popcorn: 2,
+  talk: 3,
+  listen: 2,
+  play: 4,
+  arcade: 2,
+  read: 1,
+  wash: 2,
 };
-const FRAME_SECONDS: Partial<Record<Pose, number>> = { type: 0.16, talk: 0.28, coffee: 1.1, play: 0.14, sleep: 1.4, popcorn: 0.6, stretch: 0.9, listen: 0.9, hand: 0.35, celebrate: 0.22 };
+const FRAME_SECONDS: Partial<Record<Pose, number>> = {
+  type: 0.16,
+  talk: 0.28,
+  coffee: 1.1,
+  play: 0.14,
+  sleep: 1.4,
+  popcorn: 0.6,
+  stretch: 0.9,
+  listen: 0.9,
+  hand: 0.35,
+  celebrate: 0.22,
+};
 
 export function poseFrames(pose: Pose): number {
   return FRAMES[pose];
@@ -44,7 +84,17 @@ export function frameFor(pose: Pose, poseT: number, walkPhase: number): number {
 }
 
 function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
-  const base: Rig = { bob: 0, sit: 0, legs: 'stand', armL: 'down', armR: 'down', headDx: 0, headDy: 0, eyesClosed: false, prop: null };
+  const base: Rig = {
+    bob: 0,
+    sit: 0,
+    legs: 'stand',
+    armL: 'down',
+    armR: 'down',
+    headDx: 0,
+    headDy: 0,
+    eyesClosed: false,
+    prop: null,
+  };
   const back = dir === 'n';
   switch (pose) {
     case 'stand':
@@ -61,9 +111,21 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
       };
     }
     case 'sit':
-      return { ...base, sit: 3, legs: back ? 'hidden' : 'sit', armL: back ? 'forward' : 'lap', armR: back ? 'forward' : 'lap' };
+      return {
+        ...base,
+        sit: 3,
+        legs: back ? 'hidden' : 'sit',
+        armL: back ? 'forward' : 'lap',
+        armR: back ? 'forward' : 'lap',
+      };
     case 'type':
-      return { ...base, sit: 3, legs: 'hidden', armL: frame === 0 ? 'typeA' : 'typeB', armR: frame === 0 ? 'typeB' : 'typeA' };
+      return {
+        ...base,
+        sit: 3,
+        legs: 'hidden',
+        armL: frame === 0 ? 'typeA' : 'typeB',
+        armR: frame === 0 ? 'typeB' : 'typeA',
+      };
     case 'hand':
       return { ...base, armR: 'raised', armL: 'down', bob: frame === 1 ? -1 : 0 };
     case 'coffee':
@@ -71,17 +133,45 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
     case 'celebrate':
       return { ...base, armL: 'up', armR: 'up', bob: frame === 1 ? -2 : 0 };
     case 'sleep':
-      return { ...base, sit: 4, legs: 'hidden', armL: 'forward', armR: 'forward', headDy: 3 + frame, headDx: 0, eyesClosed: true };
+      return {
+        ...base,
+        sit: 4,
+        legs: 'hidden',
+        armL: 'forward',
+        armR: 'forward',
+        headDy: 3 + frame,
+        headDx: 0,
+        eyesClosed: true,
+      };
     case 'lean':
       return { ...base, sit: 5, legs: 'hidden', armL: 'head', armR: 'head', headDy: -1 };
     case 'stretch':
       return { ...base, sit: 3, legs: 'hidden', armL: 'up', armR: 'up', headDy: frame === 1 ? -1 : 0 };
     case 'popcorn':
-      return { ...base, sit: 4, legs: back ? 'hidden' : 'sit', armL: 'lap', armR: frame === 0 ? 'mouth' : 'lap', prop: 'popcorn' };
+      return {
+        ...base,
+        sit: 4,
+        legs: back ? 'hidden' : 'sit',
+        armL: 'lap',
+        armR: frame === 0 ? 'mouth' : 'lap',
+        prop: 'popcorn',
+      };
     case 'talk':
-      return { ...base, armL: frame === 1 ? 'gesture' : 'down', armR: frame === 2 ? 'gesture' : frame === 1 ? 'out' : 'down', headDy: frame === 1 ? 1 : 0 };
+      return {
+        ...base,
+        armL: frame === 1 ? 'gesture' : 'down',
+        armR: frame === 2 ? 'gesture' : frame === 1 ? 'out' : 'down',
+        headDy: frame === 1 ? 1 : 0,
+      };
     case 'play':
-      return { ...base, legs: frame % 2 === 0 ? 'stepL' : 'stand', armR: 'forward', armL: 'down', prop: 'paddle', bob: frame === 2 ? -1 : 0 };
+      return {
+        ...base,
+        legs: frame % 2 === 0 ? 'stepL' : 'stand',
+        armR: 'forward',
+        armL: 'down',
+        prop: 'paddle',
+        bob: frame === 2 ? -1 : 0,
+      };
     case 'arcade':
       return { ...base, armL: 'forward', armR: 'forward', prop: 'stick', bob: frame === 1 ? -1 : 0 };
     case 'read':
@@ -93,7 +183,10 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
 
 /** Mirrors drawing horizontally around the centre column when drawing a west-facing character. */
 class Pen {
-  constructor(private ctx: Ctx, private flip: boolean) {}
+  constructor(
+    private ctx: Ctx,
+    private flip: boolean,
+  ) {}
   r(x: number, y: number, w: number, h: number, c: string): void {
     this.ctx.fillStyle = c;
     const px = this.flip ? SPRITE_W - x - w : x;
@@ -247,7 +340,16 @@ function torsoColor(look: Look): { body: string; dark: string; light: string } {
   return { body, dark: shade(body, -0.25), light: shade(body, 0.2) };
 }
 
-function arm(p: Pen, look: Look, kind: ArmPose, side: 'near' | 'far' | 'L' | 'R', view: 'front' | 'back' | 'side', x: number, by: number, sit: number): void {
+function arm(
+  p: Pen,
+  look: Look,
+  kind: ArmPose,
+  side: 'near' | 'far' | 'L' | 'R',
+  view: 'front' | 'back' | 'side',
+  x: number,
+  by: number,
+  sit: number,
+): void {
   const c = torsoColor(look);
   const sleeve = look.jacket ?? look.shirt;
   const hand = look.skin;
@@ -457,7 +559,8 @@ export function drawPerson(look: Look, pose: Pose, dir: Dir, frame: number): HTM
   const hx = (view === 'side' ? 9 : 8) + rig.headDx;
 
   if (view === 'side') {
-    if (look.gender === 'f' && (look.hairStyle === 0 || look.hairStyle === 4)) p.r(hx - 2, hy + 4, 4, 14, look.hairShade);
+    if (look.gender === 'f' && (look.hairStyle === 0 || look.hairStyle === 4))
+      p.r(hx - 2, hy + 4, 4, 14, look.hairShade);
     legs(p, look, rig, view);
     arm(p, look, rig.armL, 'far', view, 10, rig.bob, rig.sit);
     torso(p, look, rig, view);
@@ -465,7 +568,8 @@ export function drawPerson(look: Look, pose: Pose, dir: Dir, frame: number): HTM
     arm(p, look, rig.armR, 'near', view, 11, rig.bob, rig.sit);
     props(p, rig, view);
   } else {
-    if (view === 'front' && look.gender === 'f' && (look.hairStyle === 0 || look.hairStyle === 4)) p.r(hx - 1, hy + 6, 10, 10, look.hairShade);
+    if (view === 'front' && look.gender === 'f' && (look.hairStyle === 0 || look.hairStyle === 4))
+      p.r(hx - 1, hy + 6, 10, 10, look.hairShade);
     legs(p, look, rig, view);
     torso(p, look, rig, view);
     arm(p, look, rig.armL, 'L', view, 6, rig.bob, rig.sit);

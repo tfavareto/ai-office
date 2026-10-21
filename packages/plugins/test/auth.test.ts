@@ -6,7 +6,12 @@ import { readToken, resolveTokenPath } from '../ai-office/hooks/lib.mjs';
 import { FakeOffice, TEST_TOKEN, closedPort, makeStateDir, runHookProcess } from './helpers';
 
 const OTHER_TOKEN = 'cd'.repeat(32);
-const permissionInput = { session_id: 's1', tool_name: 'Bash', tool_input: { command: 'ls' }, hook_event_name: 'PermissionRequest' };
+const permissionInput = {
+  session_id: 's1',
+  tool_name: 'Bash',
+  tool_input: { command: 'ls' },
+  hook_event_name: 'PermissionRequest',
+};
 const messageInput = { session_id: 's1', hook_event_name: 'PostToolUse', tool_name: 'Read' };
 
 describe('token lookup', () => {
@@ -47,7 +52,11 @@ describe('hooks without a usable token behave as "AI Office offline"', () => {
   for (const [name, content] of cases) {
     test(`silent exit and no network traffic when ${name}`, async () => {
       const env = { AI_OFFICE_PORT: String(office.port), AI_OFFICE_STATE_DIR: makeStateDir(content) };
-      for (const [script, input] of [['permission', permissionInput], ['messages', messageInput], ['notify', permissionInput]] as const) {
+      for (const [script, input] of [
+        ['permission', permissionInput],
+        ['messages', messageInput],
+        ['notify', permissionInput],
+      ] as const) {
         const run = await runHookProcess(script, input, env);
         expect(run.code).toBe(0);
         expect(run.stdout).toBe('');
@@ -59,7 +68,10 @@ describe('hooks without a usable token behave as "AI Office offline"', () => {
 });
 
 describe('hooks check who they talk to', () => {
-  const env = (office: FakeOffice, token = TEST_TOKEN) => ({ AI_OFFICE_PORT: String(office.port), AI_OFFICE_STATE_DIR: makeStateDir(token) });
+  const env = (office: FakeOffice, token = TEST_TOKEN) => ({
+    AI_OFFICE_PORT: String(office.port),
+    AI_OFFICE_STATE_DIR: makeStateDir(token),
+  });
   let office: FakeOffice;
   afterEach(() => office?.stop());
 
@@ -108,7 +120,11 @@ describe('hooks check who they talk to', () => {
     office.json('POST /api/permissions', { error: 'unauthorized' }, 401);
     office.json('POST /api/messages/inbox', { error: 'unauthorized' }, 401);
     office.json('POST /api/attention', { error: 'unauthorized' }, 401);
-    for (const [script, input] of [['permission', permissionInput], ['messages', messageInput], ['notify', permissionInput]] as const) {
+    for (const [script, input] of [
+      ['permission', permissionInput],
+      ['messages', messageInput],
+      ['notify', permissionInput],
+    ] as const) {
       const run = await runHookProcess(script, input, env(office));
       expect(run.code).toBe(0);
       expect(run.stdout).toBe('');
@@ -125,7 +141,10 @@ describe('hooks check who they talk to', () => {
 
   test('offline server with a token still exits quickly', async () => {
     const port = await closedPort();
-    const run = await runHookProcess('notify', permissionInput, { AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: makeStateDir() });
+    const run = await runHookProcess('notify', permissionInput, {
+      AI_OFFICE_PORT: String(port),
+      AI_OFFICE_STATE_DIR: makeStateDir(),
+    });
     expect(run.stdout).toBe('');
     expect(run.elapsedMs).toBeLessThan(1_500);
   });

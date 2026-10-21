@@ -10,7 +10,15 @@ const boxOf = (x: number, y: number, z: number): BufferGeometry => boxGeometry(x
 const CHAIR_COLORS = ['#2b2f37', '#7d828b', '#8a5a3c'];
 
 /** Swivel office chair in local space (front +z). */
-export function officeChair(c: PartCollector, m: Materials, x: number, z: number, yaw: number, variant: number, scale = 1): void {
+export function officeChair(
+  c: PartCollector,
+  m: Materials,
+  x: number,
+  z: number,
+  yaw: number,
+  variant: number,
+  scale = 1,
+): void {
   const local = new PartCollector();
   const seatMat = variant === 2 ? m.leather(CHAIR_COLORS[2]) : m.fabric(CHAIR_COLORS[variant % 3], 0.9);
   for (let i = 0; i < 5; i++) {
@@ -60,7 +68,12 @@ export function buildDesk(f: FurnCtx): void {
   }
   if (v === 2) {
     c.cylinder(m.ceramic, 1.25, DESK_H, 0.18, 0.045, 0.08, 12, 0.055);
-    for (const [dx, dy, r] of [[0, 0.12, 0.06], [-0.04, 0.09, 0.045], [0.045, 0.1, 0.05]] as const) c.sphere(m.solid('#3f7a4a', 0.8), 1.25 + dx, DESK_H + dy, 0.18, r);
+    for (const [dx, dy, r] of [
+      [0, 0.12, 0.06],
+      [-0.04, 0.09, 0.045],
+      [0.045, 0.1, 0.05],
+    ] as const)
+      c.sphere(m.solid('#3f7a4a', 0.8), 1.25 + dx, DESK_H + dy, 0.18, r);
   }
   if (deskIndex % 2 === 0) {
     c.boxOn(m.brass, 1.25, DESK_H, -0.02, 0.1, 0.012, 0.1);
@@ -137,7 +150,10 @@ function rugGeometry(w: number, d: number): BufferGeometry {
   let g = rugGeos.get(key);
   if (!g) {
     g = new BufferGeometry();
-    g.setAttribute('position', new Float32BufferAttribute([-w / 2, 0, -d / 2, -w / 2, 0, d / 2, w / 2, 0, d / 2, w / 2, 0, -d / 2], 3));
+    g.setAttribute(
+      'position',
+      new Float32BufferAttribute([-w / 2, 0, -d / 2, -w / 2, 0, d / 2, w / 2, 0, d / 2, w / 2, 0, -d / 2], 3),
+    );
     g.setAttribute('normal', new Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
     g.setAttribute('uv', new Float32BufferAttribute([0, 0, 0, 1, 1, 1, 1, 0], 2));
     g.setIndex([0, 1, 2, 0, 2, 3]);
@@ -199,7 +215,8 @@ export function buildSofa(f: FurnCtx): void {
   for (const s of [-1, 1]) c.boxOn(mat, s * (w / 2 - 0.1), 0.42, 0, 0.2, 0.28, d);
   c.boxOn(m.walnutDark, 0, 0.0, 0, w - 0.1, 0.16, d - 0.1);
   const seats = Math.max(2, Math.round(w / 0.75));
-  for (let i = 0; i < seats; i++) c.boxOn(mat, -w / 2 + 0.3 + ((w - 0.6) * (i + 0.5)) / seats, 0.42, 0.04, (w - 0.6) / seats - 0.02, 0.12, d * 0.62);
+  for (let i = 0; i < seats; i++)
+    c.boxOn(mat, -w / 2 + 0.3 + ((w - 0.6) * (i + 0.5)) / seats, 0.42, 0.04, (w - 0.6) / seats - 0.02, 0.12, d * 0.62);
 }
 
 export function buildCoffeeTable(f: FurnCtx): void {

@@ -64,7 +64,10 @@ describe('detectAccounts', () => {
 
   test('uses the same names as the server: .claude and .claude-<name> only', () => {
     for (const name of ['.claude_backup', '.claudeold']) mkdirSync(join(home, name, 'projects'), { recursive: true });
-    expect(detectAccounts({ env: {}, home }).map((a) => a.dir)).toEqual([join(home, '.claude'), join(home, '.claude-work')]);
+    expect(detectAccounts({ env: {}, home }).map((a) => a.dir)).toEqual([
+      join(home, '.claude'),
+      join(home, '.claude-work'),
+    ]);
   });
 
   test('adds CLAUDE_CONFIG_DIR without duplicating', () => {
@@ -90,28 +93,47 @@ describe('detectAccounts', () => {
 
 describe('resolveClaudeCommand', () => {
   const home = '/home/u';
-  const onDisk = (...paths: string[]) => (path: string) => paths.includes(path);
+  const onDisk =
+    (...paths: string[]) =>
+    (path: string) =>
+      paths.includes(path);
 
   test('keeps an explicit --claude command untouched', () => {
-    expect(resolveClaudeCommand({ command: '/opt/claude', env: { PATH: '' }, home, isExecutable: onDisk() })).toBe('/opt/claude');
+    expect(resolveClaudeCommand({ command: '/opt/claude', env: { PATH: '' }, home, isExecutable: onDisk() })).toBe(
+      '/opt/claude',
+    );
   });
 
   test('uses the PATH lookup when claude is on PATH', () => {
     const env = { PATH: '/usr/bin:/home/u/bin' };
-    expect(resolveClaudeCommand({ command: 'claude', env, home, isExecutable: onDisk('/home/u/bin/claude', '/home/u/.local/bin/claude') })).toBe('claude');
+    expect(
+      resolveClaudeCommand({
+        command: 'claude',
+        env,
+        home,
+        isExecutable: onDisk('/home/u/bin/claude', '/home/u/.local/bin/claude'),
+      }),
+    ).toBe('claude');
   });
 
   test('falls back to the native installer location when claude is not on PATH', () => {
-    expect(resolveClaudeCommand({ command: 'claude', env: { PATH: '/usr/bin' }, home, isExecutable: onDisk('/home/u/.local/bin/claude') })).toBe(
-      '/home/u/.local/bin/claude',
-    );
-    expect(resolveClaudeCommand({ command: 'claude', env: {}, home, isExecutable: onDisk('/home/u/.claude/local/claude') })).toBe(
-      '/home/u/.claude/local/claude',
-    );
+    expect(
+      resolveClaudeCommand({
+        command: 'claude',
+        env: { PATH: '/usr/bin' },
+        home,
+        isExecutable: onDisk('/home/u/.local/bin/claude'),
+      }),
+    ).toBe('/home/u/.local/bin/claude');
+    expect(
+      resolveClaudeCommand({ command: 'claude', env: {}, home, isExecutable: onDisk('/home/u/.claude/local/claude') }),
+    ).toBe('/home/u/.claude/local/claude');
   });
 
   test('returns the bare command when nothing is found (the run reports the error)', () => {
-    expect(resolveClaudeCommand({ command: 'claude', env: { PATH: '/usr/bin' }, home, isExecutable: onDisk() })).toBe('claude');
+    expect(resolveClaudeCommand({ command: 'claude', env: { PATH: '/usr/bin' }, home, isExecutable: onDisk() })).toBe(
+      'claude',
+    );
   });
 });
 

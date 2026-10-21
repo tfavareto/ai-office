@@ -19,7 +19,24 @@ import { msg, sourceText, translateShared } from './i18n';
 import type { ActivityKind } from './model';
 
 const ALL_KINDS: readonly ActivityKind[] = [
-  'prompt', 'think', 'reply', 'read', 'search', 'edit', 'write', 'bash', 'web', 'task', 'subagent', 'mcp', 'question', 'permission', 'message', 'error', 'done', 'other',
+  'prompt',
+  'think',
+  'reply',
+  'read',
+  'search',
+  'edit',
+  'write',
+  'bash',
+  'web',
+  'task',
+  'subagent',
+  'mcp',
+  'question',
+  'permission',
+  'message',
+  'error',
+  'done',
+  'other',
 ];
 
 const SAMPLES: readonly ActivityDraft[] = [
@@ -64,27 +81,39 @@ describe('activity drafts carry a message', () => {
     expect(new Set(SAMPLES.map((sample) => sample.kind))).toEqual(new Set(ALL_KINDS));
   });
 
-  test.each(SAMPLES.map((sample) => [sample.text, sample] as const))('the pt-BR rendering of the message is the text: %s', (_text, sample) => {
-    expect(sample.text).toBe(truncate(sourceText(sample.msg), ACTIVITY_TEXT_MAX));
-  });
+  test.each(SAMPLES.map((sample) => [sample.text, sample] as const))(
+    'the pt-BR rendering of the message is the text: %s',
+    (_text, sample) => {
+      expect(sample.text).toBe(truncate(sourceText(sample.msg), ACTIVITY_TEXT_MAX));
+    },
+  );
 
-  test.each(SAMPLES.map((sample) => [sample.text, sample] as const))('en and es render the message without leaking the key: %s', (_text, sample) => {
-    for (const locale of ['en', 'es'] as const) {
-      const rendered = translateShared(locale, sample.msg);
-      expect(rendered).not.toBe(sample.msg.key);
-      expect(rendered).not.toMatch(/[{}]/);
-      expect(rendered).not.toMatch(/^[a-z]+(\.[a-z]+)+$/);
-    }
-  });
+  test.each(SAMPLES.map((sample) => [sample.text, sample] as const))(
+    'en and es render the message without leaking the key: %s',
+    (_text, sample) => {
+      for (const locale of ['en', 'es'] as const) {
+        const rendered = translateShared(locale, sample.msg);
+        expect(rendered).not.toBe(sample.msg.key);
+        expect(rendered).not.toMatch(/[{}]/);
+        expect(rendered).not.toMatch(/^[a-z]+(\.[a-z]+)+$/);
+      }
+    },
+  );
 
   test('data stays untranslated in every language: file names, hosts, commands and queries are params', () => {
     const read = describeToolUse('Read', { file_path: '/p/src/App.tsx' });
     expect(translateShared('en', read.msg)).toBe('Reading App.tsx');
     expect(translateShared('es', read.msg)).toBe('Leyendo App.tsx');
-    expect(translateShared('en', describeToolUse('WebFetch', { url: 'https://www.exemplo.com.br/x' }).msg)).toBe('Fetching exemplo.com.br');
-    expect(translateShared('es', describeToolUse('WebSearch', { query: 'vitest' }).msg)).toBe('Buscando en la web “vitest”');
+    expect(translateShared('en', describeToolUse('WebFetch', { url: 'https://www.exemplo.com.br/x' }).msg)).toBe(
+      'Fetching exemplo.com.br',
+    );
+    expect(translateShared('es', describeToolUse('WebSearch', { query: 'vitest' }).msg)).toBe(
+      'Buscando en la web “vitest”',
+    );
     for (const locale of ['pt-BR', 'en', 'es'] as const) {
-      expect(translateShared(locale, describeToolUse('Bash', { command: 'npm test', description: 'Rodando os testes' }).msg)).toBe('Rodando os testes');
+      expect(
+        translateShared(locale, describeToolUse('Bash', { command: 'npm test', description: 'Rodando os testes' }).msg),
+      ).toBe('Rodando os testes');
       expect(translateShared(locale, describeToolUse('mcp__github__list_issues', {}).msg)).toBe('github: list_issues');
     }
   });
@@ -127,31 +156,45 @@ describe('activity drafts carry a message', () => {
   });
 
   test('a generated (demo) prompt nests its message and keeps the same pt-BR text', () => {
-    const generated = { text: 'Corrigir o cálculo do frete para pedidos internacionais', msg: msg('demo.prompt.store.2') };
+    const generated = {
+      text: 'Corrigir o cálculo do frete para pedidos internacionais',
+      msg: msg('demo.prompt.store.2'),
+    };
     const draft = promptDraft(generated);
     expect(draft.text).toBe('Nova tarefa: “Corrigir o cálculo do frete para pedido…”');
     expect(draft.detail).toBe(generated.text);
     expect(draft.detailMsg).toEqual(generated.msg);
     expect(translateShared('en', draft.msg)).toBe('New task: “Fix shipping cost for international orders”');
-    expect(translateShared('es', draft.detailMsg as never)).toBe('Corregir el cálculo del envío en pedidos internacionales');
+    expect(translateShared('es', draft.detailMsg as never)).toBe(
+      'Corregir el cálculo del envío en pedidos internacionales',
+    );
   });
 
   test('localizeDraft swaps the message and the pt-BR text together', () => {
-    const swapped = localizeDraft(describeToolUse('Bash', { command: 'npm test' }), msg('activity.bash.run', { text: msg('demo.cmd.test') }));
+    const swapped = localizeDraft(
+      describeToolUse('Bash', { command: 'npm test' }),
+      msg('activity.bash.run', { text: msg('demo.cmd.test') }),
+    );
     expect(swapped).toMatchObject({ kind: 'bash', text: 'Rodando os testes', detail: 'npm test' });
     expect(translateShared('en', swapped.msg)).toBe('Running the tests');
   });
 });
 
 describe('durations are nested messages', () => {
-  test.each([0, 400, 999, 42_000, 59_499, 60_000, 65_000, 3_599_000, 3_600_000, 4_800_000, 90_000_000])('%d ms renders like formatDuration in pt-BR', (ms) => {
-    expect(sourceText(durationMsg(ms))).toBe(formatDuration(ms));
-  });
+  test.each([0, 400, 999, 42_000, 59_499, 60_000, 65_000, 3_599_000, 3_600_000, 4_800_000, 90_000_000])(
+    '%d ms renders like formatDuration in pt-BR',
+    (ms) => {
+      expect(sourceText(durationMsg(ms))).toBe(formatDuration(ms));
+    },
+  );
 
   test('"Concluiu em" nests the duration and works in every language', () => {
     const done = doneDraft(65_000);
     expect(done).toMatchObject({ text: 'Concluiu em 1 min 05 s', durationMs: 65_000 });
-    expect(done.msg).toEqual({ key: 'activity.done', params: { duration: { key: 'duration.minutes', params: { m: 1, s: '05' } } } });
+    expect(done.msg).toEqual({
+      key: 'activity.done',
+      params: { duration: { key: 'duration.minutes', params: { m: 1, s: '05' } } },
+    });
     expect(translateShared('en', done.msg)).toBe('Finished in 1 min 05 s');
     expect(translateShared('es', done.msg)).toBe('Terminó en 1 min 05 s');
     expect(translateShared('en', doneDraft(42_000).msg)).toBe('Finished in 42 s');

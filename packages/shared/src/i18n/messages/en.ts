@@ -51,7 +51,8 @@ export const en: Readonly<Record<SharedMessageKey, string>> = {
   'notice.needs': '{name} needs you',
   'notice.needs.detail': '{name} needs you: {detail}',
   'notice.question': '{name} has a question for you',
-  'notice.hire.timeout': 'The session in {project} has not shown up yet. The terminal that opened may be waiting for you.',
+  'notice.hire.timeout':
+    'The session in {project} has not shown up yet. The terminal that opened may be waiting for you.',
   'hire.launcher.noFolder': 'AI Office: the project folder no longer exists.',
   'hire.launcher.noClaude': 'AI Office: could not start Claude Code.',
   'hire.launcher.close': 'Press Enter to close this window.',
@@ -71,11 +72,16 @@ export const en: Readonly<Record<SharedMessageKey, string>> = {
   'perm.web.fetch': 'Access {host}',
   'perm.web.search': 'Search “{query}”',
   'perm.mode.new': 'new',
-  'perm.suggestion.allow': 'Always allow {rules}{scope, select, session { for this session} project { for this project} user { always} other {}}',
-  'perm.suggestion.deny': 'Always deny {rules}{scope, select, session { for this session} project { for this project} user { always} other {}}',
-  'perm.suggestion.mode': 'Switch to {mode} mode{scope, select, session { for this session} project { for this project} user { always} other {}}',
-  'perm.suggestion.dirs': 'Allow access to {dirs}{scope, select, session { for this session} project { for this project} user { always} other {}}',
-  'perm.suggestion.remember': 'Remember this decision{scope, select, session { for this session} project { for this project} user { always} other {}}',
+  'perm.suggestion.allow':
+    'Always allow {rules}{scope, select, session { for this session} project { for this project} user { always} other {}}',
+  'perm.suggestion.deny':
+    'Always deny {rules}{scope, select, session { for this session} project { for this project} user { always} other {}}',
+  'perm.suggestion.mode':
+    'Switch to {mode} mode{scope, select, session { for this session} project { for this project} user { always} other {}}',
+  'perm.suggestion.dirs':
+    'Allow access to {dirs}{scope, select, session { for this session} project { for this project} user { always} other {}}',
+  'perm.suggestion.remember':
+    'Remember this decision{scope, select, session { for this session} project { for this project} user { always} other {}}',
   'demo.prompt.store.1': 'Add a discount coupon to the cart',
   'demo.prompt.store.2': 'Fix shipping cost for international orders',
   'demo.prompt.store.3': 'Move the checkout screen to the new design',

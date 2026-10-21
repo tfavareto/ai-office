@@ -45,7 +45,8 @@ export function pickRoom(building: BuildingLayout, rooms: readonly RoomState[], 
 export function whiteboardRect(building: BuildingLayout): { x: number; y: number; w: number; h: number } | null {
   for (const area of building.areas) {
     const item = area.wallItems.find((wi) => wi.kind === 'whiteboard' && wi.side === 'north');
-    if (item) return { x: item.x * TILE + 1, y: area.rect.y * TILE + WHITEBOARD.y, w: item.w * TILE - 2, h: WHITEBOARD.h };
+    if (item)
+      return { x: item.x * TILE + 1, y: area.rect.y * TILE + WHITEBOARD.y, w: item.w * TILE - 2, h: WHITEBOARD.h };
   }
   return null;
 }

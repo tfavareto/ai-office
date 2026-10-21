@@ -18,13 +18,31 @@ describe('parseHireRequest', () => {
   });
 
   test('accepts every field and trims the prompt', () => {
-    const body = { projectPath: '/work/app', accountId: 'claude-work', prompt: '  Fix the login\n', model: 'opus', permissionMode: 'acceptEdits', deskIndex: 3, locale: 'es' };
+    const body = {
+      projectPath: '/work/app',
+      accountId: 'claude-work',
+      prompt: '  Fix the login\n',
+      model: 'opus',
+      permissionMode: 'acceptEdits',
+      deskIndex: 3,
+      locale: 'es',
+    };
 
     expect(parseHireRequest(body)).toEqual({ ...body, prompt: 'Fix the login' });
   });
 
   test('treats null and empty optional values as absent', () => {
-    expect(parseHireRequest({ projectPath: '/work/app', prompt: '   ', accountId: null, model: null, permissionMode: null, deskIndex: null, locale: null })).toEqual({ projectPath: '/work/app' });
+    expect(
+      parseHireRequest({
+        projectPath: '/work/app',
+        prompt: '   ',
+        accountId: null,
+        model: null,
+        permissionMode: null,
+        deskIndex: null,
+        locale: null,
+      }),
+    ).toEqual({ projectPath: '/work/app' });
   });
 
   test.each([
@@ -52,13 +70,24 @@ describe('parseHireRequest', () => {
   });
 
   test('accepts the largest allowed prompt and desk index', () => {
-    const request = parseHireRequest({ projectPath: '/a', prompt: 'x'.repeat(HIRE_MAX_PROMPT), deskIndex: HIRE_MAX_DESK_INDEX });
+    const request = parseHireRequest({
+      projectPath: '/a',
+      prompt: 'x'.repeat(HIRE_MAX_PROMPT),
+      deskIndex: HIRE_MAX_DESK_INDEX,
+    });
 
     expect(request.prompt).toHaveLength(HIRE_MAX_PROMPT);
     expect(request.deskIndex).toBe(HIRE_MAX_DESK_INDEX);
   });
 
   test('ignores unknown fields instead of passing them on', () => {
-    expect(parseHireRequest({ projectPath: '/a', claudePath: '/bin/evil', args: ['--dangerously-skip-permissions'], env: { A: '1' } })).toEqual({ projectPath: '/a' });
+    expect(
+      parseHireRequest({
+        projectPath: '/a',
+        claudePath: '/bin/evil',
+        args: ['--dangerously-skip-permissions'],
+        env: { A: '1' },
+      }),
+    ).toEqual({ projectPath: '/a' });
   });
 });

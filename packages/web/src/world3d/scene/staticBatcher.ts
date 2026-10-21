@@ -40,14 +40,17 @@ export class StaticBatcher {
   step(areas: readonly Batchable[]): boolean {
     if (!this.pending) {
       const byMaterial = new Map<string, Material>();
-      for (const a of areas) for (const mesh of a.staticMeshes()) byMaterial.set((mesh.material as Material).uuid, mesh.material as Material);
+      for (const a of areas)
+        for (const mesh of a.staticMeshes())
+          byMaterial.set((mesh.material as Material).uuid, mesh.material as Material);
       this.pending = [...byMaterial.values()];
       this.active = true;
     }
     const material = this.pending.shift();
     if (!material) return false;
     const members: Mesh[] = [];
-    for (const a of areas) for (const mesh of a.staticMeshes()) if (mesh.material === material && mesh.visible) members.push(mesh);
+    for (const a of areas)
+      for (const mesh of a.staticMeshes()) if (mesh.material === material && mesh.visible) members.push(mesh);
     if (members.length > 1) {
       const collector = new PartCollector();
       for (const mesh of members) collector.add(mesh.geometry, material);

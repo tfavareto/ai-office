@@ -36,22 +36,36 @@ export function solidRanges(from: number, to: number, gaps: readonly Gap[]): [nu
 export function northGaps(area: AreaLayout): Gap[] {
   const gaps: Gap[] = [];
   for (const item of area.wallItems) {
-    if (item.side === 'north' && item.kind === 'elevator') gaps.push({ a: item.x * T, b: (item.x + item.w) * T, kind: 'elevator', item });
+    if (item.side === 'north' && item.kind === 'elevator')
+      gaps.push({ a: item.x * T, b: (item.x + item.w) * T, kind: 'elevator', item });
   }
-  if (area.row === 'south') for (const d of area.doors) gaps.push({ a: d.rect.x * T, b: (d.rect.x + d.rect.w) * T, kind: 'door', door: d });
+  if (area.row === 'south')
+    for (const d of area.doors) gaps.push({ a: d.rect.x * T, b: (d.rect.x + d.rect.w) * T, kind: 'door', door: d });
   return gaps;
 }
 
 export function westGaps(area: AreaLayout): Gap[] {
-  return area.wallItems.filter((w) => w.side === 'west' && w.kind === 'glassDoor').map((item) => ({ a: item.x * T, b: (item.x + item.w) * T, kind: 'glassDoor' as const, item }));
+  return area.wallItems
+    .filter((w) => w.side === 'west' && w.kind === 'glassDoor')
+    .map((item) => ({ a: item.x * T, b: (item.x + item.w) * T, kind: 'glassDoor' as const, item }));
 }
 
 export function ledgeGaps(area: AreaLayout): Gap[] {
-  return area.row === 'north' ? area.doors.map((d) => ({ a: d.rect.x * T, b: (d.rect.x + d.rect.w) * T, kind: 'door' as const, door: d })) : [];
+  return area.row === 'north'
+    ? area.doors.map((d) => ({ a: d.rect.x * T, b: (d.rect.x + d.rect.w) * T, kind: 'door' as const, door: d }))
+    : [];
 }
 
 /** Door frame: two posts and a header, no leaf. */
-function doorFrame(c: PartCollector, m: Materials, a: number, b: number, z: number, alongX: boolean, height = 2.25): void {
+function doorFrame(
+  c: PartCollector,
+  m: Materials,
+  a: number,
+  b: number,
+  z: number,
+  alongX: boolean,
+  height = 2.25,
+): void {
   const mid = (a + b) / 2;
   const w = b - a;
   if (alongX) {
@@ -93,16 +107,28 @@ interface WallLook {
 
 function lookOf(area: AreaLayout): WallLook {
   switch (area.kind) {
-    case 'reception': return { main: 'marble', slats: false };
-    case 'copa': case 'bathrooms': return { main: 'tile', slats: false };
-    case 'lounge': return { main: 'warm', slats: true };
-    case 'meeting': return { main: 'plaster', slats: true };
-    default: return { main: 'plaster', slats: true };
+    case 'reception':
+      return { main: 'marble', slats: false };
+    case 'copa':
+    case 'bathrooms':
+      return { main: 'tile', slats: false };
+    case 'lounge':
+      return { main: 'warm', slats: true };
+    case 'meeting':
+      return { main: 'plaster', slats: true };
+    default:
+      return { main: 'plaster', slats: true };
   }
 }
 
 function wallMaterial(m: Materials, look: WallLook) {
-  return look.main === 'marble' ? m.marbleWall : look.main === 'tile' ? m.tileWhite : look.main === 'warm' ? m.plasterWarm : m.plaster;
+  return look.main === 'marble'
+    ? m.marbleWall
+    : look.main === 'tile'
+      ? m.tileWhite
+      : look.main === 'warm'
+        ? m.plasterWarm
+        : m.plaster;
 }
 
 /** The back wall (north) of an area, with openings for elevators / doors. */
@@ -155,7 +181,16 @@ function buildAccent(c: PartCollector, area: AreaLayout, m: Materials): void {
 }
 
 /** Glass partition along x (a wall running east-west) with gaps for doors. */
-function glassAlongX(c: PartCollector, m: Materials, z: number, x0: number, x1: number, gaps: readonly Gap[], solidBase: number, frostLive = false): void {
+function glassAlongX(
+  c: PartCollector,
+  m: Materials,
+  z: number,
+  x0: number,
+  x1: number,
+  gaps: readonly Gap[],
+  solidBase: number,
+  frostLive = false,
+): void {
   const runs = solidRanges(x0, x1, gaps);
   for (const [a, b] of runs) {
     const w = b - a;
@@ -167,7 +202,8 @@ function glassAlongX(c: PartCollector, m: Materials, z: number, x0: number, x1: 
     if (frostLive) c.boxOn(m.frostLive, mid, solidBase, z, w, GLASS_TOP - solidBase, 0.03);
     c.boxOn(m.steel, mid, GLASS_TOP, z, w, 0.05, 0.12);
     const posts = Math.max(1, Math.round(w / 1.5));
-    for (let i = 0; i <= posts; i++) c.boxOn(m.steel, a + (w * i) / posts, solidBase, z, MULLION, GLASS_TOP - solidBase, 0.09);
+    for (let i = 0; i <= posts; i++)
+      c.boxOn(m.steel, a + (w * i) / posts, solidBase, z, MULLION, GLASS_TOP - solidBase, 0.09);
   }
   for (const g of gaps) {
     c.boxOn(m.glass, (g.a + g.b) / 2, 2.25, z, g.b - g.a, GLASS_TOP - 2.25, 0.02);
@@ -177,7 +213,16 @@ function glassAlongX(c: PartCollector, m: Materials, z: number, x0: number, x1: 
 }
 
 /** Glass partition along z (a north-south wall) with gaps. */
-function glassAlongZ(c: PartCollector, m: Materials, x: number, z0: number, z1: number, gaps: readonly Gap[], solidBase: number, frost = true): void {
+function glassAlongZ(
+  c: PartCollector,
+  m: Materials,
+  x: number,
+  z0: number,
+  z1: number,
+  gaps: readonly Gap[],
+  solidBase: number,
+  frost = true,
+): void {
   for (const [a, b] of solidRanges(z0, z1, gaps)) {
     const w = b - a;
     const mid = (a + b) / 2;
@@ -187,7 +232,8 @@ function glassAlongZ(c: PartCollector, m: Materials, x: number, z0: number, z1: 
     if (frost) c.boxOn(m.frost, x, 1.15, mid, 0.026, 0.3, w);
     c.boxOn(m.steel, x, GLASS_TOP, mid, 0.12, 0.05, w);
     const posts = Math.max(1, Math.round(w / 1.5));
-    for (let i = 0; i <= posts; i++) c.boxOn(m.steel, x, solidBase, a + (w * i) / posts, 0.09, GLASS_TOP - solidBase, MULLION);
+    for (let i = 0; i <= posts; i++)
+      c.boxOn(m.steel, x, solidBase, a + (w * i) / posts, 0.09, GLASS_TOP - solidBase, MULLION);
   }
   for (const g of gaps) {
     c.boxOn(m.glass, x, 2.25, (g.a + g.b) / 2, 0.02, GLASS_TOP - 2.25, g.b - g.a);
@@ -257,5 +303,8 @@ export function buildOuterFacades(c: PartCollector, building: BuildingLayout, m:
   const eastX = (building.width - 1) * T + 0.375;
   glassAlongZ(c, m, eastX, 0, building.height * T, [], 0, false);
   c.add(groundQuad(0, z0, T, z1, FLOOR_Y, 1.6), m.floor('stone'));
-  c.add(groundQuad((building.width - 1) * T, 0, building.width * T, building.height * T, FLOOR_Y, 1.6), m.floor('stone'));
+  c.add(
+    groundQuad((building.width - 1) * T, 0, building.width * T, building.height * T, FLOOR_Y, 1.6),
+    m.floor('stone'),
+  );
 }

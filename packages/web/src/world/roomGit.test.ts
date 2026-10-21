@@ -2,9 +2,24 @@ import { describe, expect, test } from 'vitest';
 import type { ProjectGit } from '@ai-office/shared';
 import { fitBranch, pillBranch, plaqueTone, roomGit, roomGitKey } from './roomGit';
 
-const base: ProjectGit = { branch: 'main', staged: 0, unstaged: 0, untracked: 0, conflicted: 0, insertions: 0, deletions: 0, stash: 0 };
+const base: ProjectGit = {
+  branch: 'main',
+  staged: 0,
+  unstaged: 0,
+  untracked: 0,
+  conflicted: 0,
+  insertions: 0,
+  deletions: 0,
+  stash: 0,
+};
 const pr = (ci: 'success' | 'failure', state: 'open' | 'merged' = 'open'): ProjectGit['pr'] => ({
-  number: 1, title: 't', state, url: 'https://x.test/1', draft: false, ci, checks: { total: 1, passed: 1, failed: 0, pending: 0 },
+  number: 1,
+  title: 't',
+  state,
+  url: 'https://x.test/1',
+  draft: false,
+  ci,
+  checks: { total: 1, passed: 1, failed: 0, pending: 0 },
 });
 
 describe('roomGit', () => {
@@ -15,15 +30,35 @@ describe('roomGit', () => {
 
   test('summarizes what the plaque needs', () => {
     // Arrange
-    const git: ProjectGit = { ...base, branch: 'feat/x', unstaged: 2, ahead: 3, behind: 1, op: 'rebase', pr: pr('failure') };
+    const git: ProjectGit = {
+      ...base,
+      branch: 'feat/x',
+      unstaged: 2,
+      ahead: 3,
+      behind: 1,
+      op: 'rebase',
+      pr: pr('failure'),
+    };
     // Act
     const info = roomGit(git);
     // Assert
-    expect(info).toEqual({ ref: 'feat/x', detached: false, dirty: true, conflicted: false, ahead: 3, behind: 1, op: 'rebase', ci: 'failure' });
+    expect(info).toEqual({
+      ref: 'feat/x',
+      detached: false,
+      dirty: true,
+      conflicted: false,
+      ahead: 3,
+      behind: 1,
+      op: 'rebase',
+      ci: 'failure',
+    });
   });
 
   test('uses the commit on a detached HEAD', () => {
-    expect(roomGit({ ...base, branch: undefined, head: 'a1b2c3d', detached: true })).toMatchObject({ ref: 'a1b2c3d', detached: true });
+    expect(roomGit({ ...base, branch: undefined, head: 'a1b2c3d', detached: true })).toMatchObject({
+      ref: 'a1b2c3d',
+      detached: true,
+    });
   });
 
   test('only an open pull request gives a light', () => {

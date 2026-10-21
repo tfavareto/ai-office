@@ -30,12 +30,15 @@ describe('GitSettingsStore', () => {
     expect(((await stat(join(dir, GIT_SETTINGS_FILE))).mode & 0o777).toString(8)).toBe('600');
   });
 
-  test.each(['not json', '{"version":2,"pullRequests":true}', '{"version":1,"pullRequests":"yes"}', '[]'])('falls back to off for %s', async (content) => {
-    await writeFile(join(dir, GIT_SETTINGS_FILE), content);
-    const store = new GitSettingsStore(dir, silentLogger);
-    await store.load();
-    expect(store.pullRequests).toBe(false);
-  });
+  test.each(['not json', '{"version":2,"pullRequests":true}', '{"version":1,"pullRequests":"yes"}', '[]'])(
+    'falls back to off for %s',
+    async (content) => {
+      await writeFile(join(dir, GIT_SETTINGS_FILE), content);
+      const store = new GitSettingsStore(dir, silentLogger);
+      await store.load();
+      expect(store.pullRequests).toBe(false);
+    },
+  );
 
   test('keeps the previous value when the disk refuses', async () => {
     // Arrange: the state folder is a file, so nothing can be written under it
@@ -54,6 +57,9 @@ describe('GitSettingsStore', () => {
     await chmod(dir, 0o700);
     const store = new GitSettingsStore(dir, silentLogger);
     await store.setPullRequests(true);
-    expect(JSON.parse(await readFile(join(dir, GIT_SETTINGS_FILE), 'utf8'))).toEqual({ version: 1, pullRequests: true });
+    expect(JSON.parse(await readFile(join(dir, GIT_SETTINGS_FILE), 'utf8'))).toEqual({
+      version: 1,
+      pullRequests: true,
+    });
   });
 });

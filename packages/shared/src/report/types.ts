@@ -9,9 +9,22 @@ export const REPORT_BUCKETS = 48;
 export const REPORT_BUCKET_MS = 30 * 60_000;
 
 /** Tool calls are grouped by the kind the office already uses for activities. */
-export type ReportToolKind = 'read' | 'search' | 'edit' | 'write' | 'bash' | 'web' | 'task' | 'subagent' | 'mcp' | 'question' | 'other';
+export type ReportToolKind =
+  'read' | 'search' | 'edit' | 'write' | 'bash' | 'web' | 'task' | 'subagent' | 'mcp' | 'question' | 'other';
 
-export const REPORT_TOOL_KINDS: readonly ReportToolKind[] = ['read', 'search', 'edit', 'write', 'bash', 'web', 'task', 'subagent', 'mcp', 'question', 'other'];
+export const REPORT_TOOL_KINDS: readonly ReportToolKind[] = [
+  'read',
+  'search',
+  'edit',
+  'write',
+  'bash',
+  'web',
+  'task',
+  'subagent',
+  'mcp',
+  'question',
+  'other',
+];
 
 export interface ReportFileChange {
   /** Relative to the project folder when inside it, absolute otherwise. */

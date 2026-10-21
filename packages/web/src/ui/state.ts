@@ -77,11 +77,17 @@ export class UiState extends Observable<UiData> {
 
   toggleRoom(roomId: string): void {
     const collapsed = this.value.collapsedRooms;
-    this.set({ collapsedRooms: collapsed.includes(roomId) ? collapsed.filter((id) => id !== roomId) : [...collapsed, roomId] });
+    this.set({
+      collapsedRooms: collapsed.includes(roomId) ? collapsed.filter((id) => id !== roomId) : [...collapsed, roomId],
+    });
   }
 
   toggleAccount(accountId: string): void {
     const selected = this.value.accountFilter;
-    this.set({ accountFilter: selected.includes(accountId) ? selected.filter((id) => id !== accountId) : [...selected, accountId] });
+    this.set({
+      accountFilter: selected.includes(accountId)
+        ? selected.filter((id) => id !== accountId)
+        : [...selected, accountId],
+    });
   }
 }

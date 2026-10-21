@@ -1,7 +1,14 @@
 // Loads the MakeHuman glTF models once and builds agent instances from them (skinned clones sharing geometry, with a
 // per-outfit tinted suit material). Same-origin files only.
 import {
-  CanvasTexture, Color, MeshStandardMaterial, SRGBColorSpace, type Material, type Mesh, type Object3D, type Texture,
+  CanvasTexture,
+  Color,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  type Material,
+  type Mesh,
+  type Object3D,
+  type Texture,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -102,7 +109,8 @@ export class HumanLibrary {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       const mat = mesh.material as Material;
-      if (mat.name.includes('elegantsuit')) mesh.material = this.suitMaterial(modelName, mat as MeshStandardMaterial, outfit);
+      if (mat.name.includes('elegantsuit'))
+        mesh.material = this.suitMaterial(modelName, mat as MeshStandardMaterial, outfit);
       if (DETAIL_MESHES.has(mesh.name)) detail.push(mesh);
     });
     return { root, detail, meshes };

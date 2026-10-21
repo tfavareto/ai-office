@@ -1,6 +1,13 @@
 // State of the task board panel that must survive closing it and the rebuild after a language change: filters,
 // grouping, the messages still waiting to show up in a snapshot, and the task the drawer should highlight.
-import { NO_FILTER, sameFilter, type BoardCard, type BoardFilter, type BoardGrouping, type BoardView } from './model/board';
+import {
+  NO_FILTER,
+  sameFilter,
+  type BoardCard,
+  type BoardFilter,
+  type BoardGrouping,
+  type BoardView,
+} from './model/board';
 import { reconcileSent, type SentMark } from './model/board-moves';
 import { Observable } from './observable';
 
@@ -31,7 +38,11 @@ export class BoardStore extends Observable<BoardState> {
   /** Changing the room clears the agent choice (the agent may not be in the new room). */
   setFilter(patch: Partial<BoardFilter>): void {
     const current = this.value.filter;
-    const next: BoardFilter = { ...current, ...patch, ...('roomId' in patch && !('agentId' in patch) ? { agentId: null } : {}) };
+    const next: BoardFilter = {
+      ...current,
+      ...patch,
+      ...('roomId' in patch && !('agentId' in patch) ? { agentId: null } : {}),
+    };
     if (!sameFilter(current, next)) this.replace({ ...this.value, filter: next });
   }
 

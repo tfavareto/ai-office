@@ -17,10 +17,15 @@ function run(lines: string[], role: FileRole = 'main', startedInDay = true) {
   return acc.result();
 }
 
-const call = (id: string, name: string, input: Record<string, unknown>, at: number): string => assistantLine([toolUse(id, name, input)], at);
+const call = (id: string, name: string, input: Record<string, unknown>, at: number): string =>
+  assistantLine([toolUse(id, name, input)], at);
 const bash = (id: string, command: string, at: number): string => call(id, 'Bash', { command }, at);
 const patch = (added: number, removed: number): Record<string, unknown> => ({
-  toolUseResult: { structuredPatch: [{ lines: [...Array.from({ length: added }, () => '+x'), ...Array.from({ length: removed }, () => '-y'), ' ctx'] }] },
+  toolUseResult: {
+    structuredPatch: [
+      { lines: [...Array.from({ length: added }, () => '+x'), ...Array.from({ length: removed }, () => '-y'), ' ctx'] },
+    ],
+  },
 });
 
 describe('prompts and privacy', () => {
@@ -54,7 +59,18 @@ describe('file changes', () => {
     const day = run([
       call('w1', 'Write', { file_path: '/work/proj/new.ts', content: 'a\nb\nc' }, 0),
       toolResultLine('w1', 'created', 1000),
-      call('m1', 'MultiEdit', { file_path: '/work/proj/m.ts', edits: [{ old_string: 'x', new_string: 'y\nz' }, { old_string: 'p\nq', new_string: 'r' }] }, 2000),
+      call(
+        'm1',
+        'MultiEdit',
+        {
+          file_path: '/work/proj/m.ts',
+          edits: [
+            { old_string: 'x', new_string: 'y\nz' },
+            { old_string: 'p\nq', new_string: 'r' },
+          ],
+        },
+        2000,
+      ),
       toolResultLine('m1', 'ok', 3000),
       call('n1', 'NotebookEdit', { notebook_path: '/work/proj/n.ipynb', new_source: 'print(1)' }, 4000),
       toolResultLine('n1', 'ok', 5000),
@@ -78,7 +94,11 @@ describe('file changes', () => {
 
 describe('commands, tests and commits', () => {
   test('deduplicates commands, masks secrets and counts runs', () => {
-    const day = run([bash('b1', 'npm run build', 0), bash('b2', 'npm run build', 1000), bash('b3', 'deploy --token abc123', 2000)]);
+    const day = run([
+      bash('b1', 'npm run build', 0),
+      bash('b2', 'npm run build', 1000),
+      bash('b3', 'deploy --token abc123', 2000),
+    ]);
     expect(day.commands).toEqual([
       { command: 'npm run build', runs: 2 },
       { command: 'deploy --token ***', runs: 1 },
@@ -110,15 +130,26 @@ describe('commands, tests and commits', () => {
       bash('c3', 'git commit --amend --no-edit', 4000),
       toolResultLine('c3', '[main abc1234] feat: carrinho', 5000),
     ]);
-    expect(day.commits).toEqual([{ hash: 'abc1234', subject: 'feat: carrinho', branch: 'main', at: T0 + 1000, source: 'transcript' }]);
+    expect(day.commits).toEqual([
+      { hash: 'abc1234', subject: 'feat: carrinho', branch: 'main', at: T0 + 1000, source: 'transcript' },
+    ]);
   });
 });
 
 describe('tasks and subagents', () => {
-  const todo = (status: string): Record<string, unknown> => ({ todos: [{ content: 'Criar rota', status, activeForm: 'Criando rota' }, { content: 'Testar', status: 'pending', activeForm: 'Testando' }] });
+  const todo = (status: string): Record<string, unknown> => ({
+    todos: [
+      { content: 'Criar rota', status, activeForm: 'Criando rota' },
+      { content: 'Testar', status: 'pending', activeForm: 'Testando' },
+    ],
+  });
 
   test('counts a task when it turns completed during the day, once', () => {
-    const day = run([call('t1', 'TodoWrite', todo('in_progress'), 0), call('t2', 'TodoWrite', todo('completed'), MIN), call('t3', 'TodoWrite', todo('completed'), 2 * MIN)]);
+    const day = run([
+      call('t1', 'TodoWrite', todo('in_progress'), 0),
+      call('t2', 'TodoWrite', todo('completed'), MIN),
+      call('t3', 'TodoWrite', todo('completed'), 2 * MIN),
+    ]);
     expect(day.tasks).toEqual([{ title: 'Criar rota', at: T0 + MIN }]);
   });
 
@@ -137,7 +168,11 @@ describe('tasks and subagents', () => {
   });
 
   test('lists the subagents delegated to', () => {
-    const day = run([call('a1', 'Agent', { description: 'Explorar', subagent_type: 'Explore' }, 0), call('a2', 'Task', { description: 'x', subagent_type: 'Explore' }, 1000), call('a3', 'Task', { description: 'y' }, 2000)]);
+    const day = run([
+      call('a1', 'Agent', { description: 'Explorar', subagent_type: 'Explore' }, 0),
+      call('a2', 'Task', { description: 'x', subagent_type: 'Explore' }, 1000),
+      call('a3', 'Task', { description: 'y' }, 2000),
+    ]);
     expect(day).toMatchObject({ subagentCount: 3, subagentTypes: ['Explore', 'general-purpose'] });
     expect(day.toolCalls.subagent).toBe(3);
   });
@@ -153,7 +188,12 @@ describe('time and window', () => {
   });
 
   test('counts short gaps as work and long pauses as rest, bucketed by half hour', () => {
-    const day = run([userLine('a', 0), assistantLine([text('x')], 5 * MIN), assistantLine([text('y')], 5 * MIN + 30 * MIN), userLine('b', 3 * HOUR)]);
+    const day = run([
+      userLine('a', 0),
+      assistantLine([text('x')], 5 * MIN),
+      assistantLine([text('y')], 5 * MIN + 30 * MIN),
+      userLine('b', 3 * HOUR),
+    ]);
     expect(day.activity).toHaveLength(REPORT_BUCKETS);
     expect(day.activity.reduce((sum, ms) => sum + ms, 0)).toBe(5 * MIN);
   });

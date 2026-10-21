@@ -1,6 +1,27 @@
 // Request/response side of the server API (everything except the SSE stream).
 import { t } from '../i18n';
-import type { Activity, AutoDecision, BossMessage, DayReport, DayStats, GitSettings, HireCheckResponse, HireRequest, PendingHire, PermissionDecision, PermissionRequest, RecentSession, Rule, RuleDraft, RuleErrorBody, RulePreview, Timelapse, TranscriptPage, UsageDetail, UsagePeriod } from '@ai-office/shared';
+import type {
+  Activity,
+  AutoDecision,
+  BossMessage,
+  DayReport,
+  DayStats,
+  GitSettings,
+  HireCheckResponse,
+  HireRequest,
+  PendingHire,
+  PermissionDecision,
+  PermissionRequest,
+  RecentSession,
+  Rule,
+  RuleDraft,
+  RuleErrorBody,
+  RulePreview,
+  Timelapse,
+  TranscriptPage,
+  UsageDetail,
+  UsagePeriod,
+} from '@ai-office/shared';
 
 export interface TranscriptQuery {
   sessionId: string;
@@ -96,6 +117,7 @@ export function describeError(error: unknown): string {
     if (error.status >= 500) return t('error.server');
     return error.message || t('error.generic');
   }
-  if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) return t('error.timeout');
+  if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError'))
+    return t('error.timeout');
   return t('error.generic');
 }

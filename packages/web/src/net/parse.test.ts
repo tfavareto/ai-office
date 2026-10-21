@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { agent, snapshot } from '../test/fixtures';
-import { parseActivities, parseDay, parseFeed, parseMessages, parseNotice, parseSessions, parseSnapshot, parseTranscriptPage } from './parse';
+import {
+  parseActivities,
+  parseDay,
+  parseFeed,
+  parseMessages,
+  parseNotice,
+  parseSessions,
+  parseSnapshot,
+  parseTranscriptPage,
+} from './parse';
 
 describe('parseSnapshot', () => {
   it('accepts a valid snapshot', () => {
@@ -30,7 +39,25 @@ describe('parseSnapshot', () => {
   });
 
   it('normalizes permission suggestions', () => {
-    const raw = JSON.parse(JSON.stringify(snapshot({ agents: [agent({ permission: { id: 'p', agentId: 'ag1', toolName: 'Bash', summary: 'ls', suggestions: [], createdAt: 0, expiresAt: 1 } })] })));
+    const raw = JSON.parse(
+      JSON.stringify(
+        snapshot({
+          agents: [
+            agent({
+              permission: {
+                id: 'p',
+                agentId: 'ag1',
+                toolName: 'Bash',
+                summary: 'ls',
+                suggestions: [],
+                createdAt: 0,
+                expiresAt: 1,
+              },
+            }),
+          ],
+        }),
+      ),
+    );
     raw.agents[0].permission.suggestions = ['ok', 3, null];
     expect(parseSnapshot(raw)?.agents[0].permission?.suggestions).toEqual(['ok']);
   });
@@ -43,15 +70,24 @@ describe('list parsers', () => {
     expect(parseActivities('nope')).toEqual([]);
     const message = { id: 'm', agentId: 'a', text: 'oi', createdAt: 1, status: 'queued' };
     expect(parseMessages({ messages: [message, { ...message, status: 'weird' }] })).toHaveLength(1);
-    expect(parseFeed([{ id: 'f', agentId: 'a', agentName: 'A', projectId: 'p', activity }, { id: 'g' }])).toHaveLength(1);
+    expect(parseFeed([{ id: 'f', agentId: 'a', agentName: 'A', projectId: 'p', activity }, { id: 'g' }])).toHaveLength(
+      1,
+    );
     expect(parseNotice({ id: 'n', at: 1, level: 'alert', text: 'x' })?.level).toBe('alert');
     expect(parseNotice({ id: 'n', at: 1, level: 'bogus', text: 'x' })).toBeNull();
-    expect(parseSessions({ sessions: [{ sessionId: 's', accountId: 'a', lastAt: 1, projectName: 'p' }, {}] })).toHaveLength(1);
+    expect(
+      parseSessions({ sessions: [{ sessionId: 's', accountId: 'a', lastAt: 1, projectName: 'p' }, {}] }),
+    ).toHaveLength(1);
   });
 
   it('parses transcript pages defensively', () => {
     const page = parseTranscriptPage({
-      entries: [{ kind: 'user', at: 1, text: 'oi' }, { kind: 'tool', at: 2, id: 't', name: 'Bash', summary: 's' }, { kind: 'tool', at: 3 }, { kind: 'zzz' }],
+      entries: [
+        { kind: 'user', at: 1, text: 'oi' },
+        { kind: 'tool', at: 2, id: 't', name: 'Bash', summary: 's' },
+        { kind: 'tool', at: 3 },
+        { kind: 'zzz' },
+      ],
       next: 2,
       open: false,
     });
@@ -62,7 +98,10 @@ describe('list parsers', () => {
   });
 
   it('parses day stats', () => {
-    const day = parseDay({ date: '2026-10-19', agents: [{ agentId: 'a', name: 'A', projectId: 'p', ms: { working: 1 } }, { agentId: 5 }] });
+    const day = parseDay({
+      date: '2026-10-19',
+      agents: [{ agentId: 'a', name: 'A', projectId: 'p', ms: { working: 1 } }, { agentId: 5 }],
+    });
     expect(day.agents).toHaveLength(1);
     expect(() => parseDay('x')).toThrow();
   });

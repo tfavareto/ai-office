@@ -24,7 +24,11 @@ function scopePath(path: string): string {
 }
 
 export function scopeMatches(scope: RuleScope, request: Pick<RuleRequest, 'projectPath' | 'accountId'>): boolean {
-  if (scope.projectPath !== undefined && (request.projectPath === undefined || scopePath(scope.projectPath) !== scopePath(request.projectPath))) return false;
+  if (
+    scope.projectPath !== undefined &&
+    (request.projectPath === undefined || scopePath(scope.projectPath) !== scopePath(request.projectPath))
+  )
+    return false;
   return scope.accountId === undefined || scope.accountId === request.accountId;
 }
 
@@ -39,7 +43,8 @@ function hostMatches(pattern: string, url: string): boolean {
 
 function exactMatches(value: string, request: RuleRequest, strict: boolean): boolean {
   const command = commandOfRequest(request);
-  if (command !== undefined) return foldCommand(command) === foldCommand(value) && (!strict || isSimpleCommand(command));
+  if (command !== undefined)
+    return foldCommand(command) === foldCommand(value) && (!strict || isSimpleCommand(command));
   const path = pathOfRequest(request);
   if (path !== undefined) return path === resolvePath(value, request.projectPath);
   const url = urlOfRequest(request);
@@ -73,7 +78,11 @@ export function matcherMatches(matcher: RuleMatcher, request: RuleRequest, stric
 
 /** Whether the rule would answer the request (ignoring `enabled` and the safety net). */
 export function ruleApplies(rule: Pick<Rule, 'effect' | 'tool' | 'matcher' | 'scope'>, request: RuleRequest): boolean {
-  return toolMatches(rule.tool, request.toolName) && scopeMatches(rule.scope, request) && matcherMatches(rule.matcher, request, rule.effect === 'allow');
+  return (
+    toolMatches(rule.tool, request.toolName) &&
+    scopeMatches(rule.scope, request) &&
+    matcherMatches(rule.matcher, request, rule.effect === 'allow')
+  );
 }
 
 /** Why an allow rule must not answer this request, if anything: it is risky, or it runs inline code. */

@@ -105,7 +105,8 @@ export class UsageIndexer {
   progress(): UsageProgress {
     const job = this.job;
     if (!this.ready && job === undefined) return { state: 'indexing', percent: 0, filesDone: 0, filesTotal: 0 };
-    if (job === undefined || !job.initial) return { state: 'ready', percent: 100, filesDone: job?.filesDone ?? 0, filesTotal: job?.filesTotal ?? 0 };
+    if (job === undefined || !job.initial)
+      return { state: 'ready', percent: 100, filesDone: job?.filesDone ?? 0, filesTotal: job?.filesTotal ?? 0 };
     const percent = job.bytesTotal <= 0 ? 100 : Math.min(99, Math.floor((job.bytesDone / job.bytesTotal) * 100));
     return { state: 'indexing', percent, filesDone: job.filesDone, filesTotal: job.filesTotal };
   }
@@ -182,7 +183,8 @@ export class UsageIndexer {
       const { files } = await discoverTranscripts(account.id, account.dir);
       for (const file of files) {
         const state = this.files.get(fileKey(file.account, file.rel));
-        if (state === undefined ? file.mtimeMs >= since : file.size !== state.offset || file.ino !== state.ino) result.push({ file, state });
+        if (state === undefined ? file.mtimeMs >= since : file.size !== state.offset || file.ino !== state.ino)
+          result.push({ file, state });
       }
     }
     return result;
@@ -198,7 +200,20 @@ export class UsageIndexer {
       const path = join(account.dir, state.rel);
       try {
         const info = await stat(path);
-        if (info.size !== state.offset || info.ino !== state.ino) result.push({ file: { account: state.account, path, rel: state.rel, session: state.session, agent: state.agent, size: info.size, mtimeMs: info.mtimeMs, ino: info.ino }, state });
+        if (info.size !== state.offset || info.ino !== state.ino)
+          result.push({
+            file: {
+              account: state.account,
+              path,
+              rel: state.rel,
+              session: state.session,
+              agent: state.agent,
+              size: info.size,
+              mtimeMs: info.mtimeMs,
+              ino: info.ino,
+            },
+            state,
+          });
       } catch {
         // The transcript is gone; the saved state stays until it ages out.
       }
@@ -212,7 +227,13 @@ export class UsageIndexer {
       return;
     }
     candidates.sort((a, b) => b.file.mtimeMs - a.file.mtimeMs);
-    const job: Job = { initial, filesTotal: candidates.length, filesDone: 0, bytesTotal: candidates.reduce((sum, c) => sum + Math.max(0, c.file.size - (c.state?.offset ?? 0)), 0), bytesDone: 0 };
+    const job: Job = {
+      initial,
+      filesTotal: candidates.length,
+      filesDone: 0,
+      bytesTotal: candidates.reduce((sum, c) => sum + Math.max(0, c.file.size - (c.state?.offset ?? 0)), 0),
+      bytesDone: 0,
+    };
     this.job = job;
     const context = this.context(now);
     for (const { file, state } of candidates) {
@@ -295,7 +316,11 @@ export class UsageIndexer {
         months: written,
         emptyMonths: empty,
         rowCounts: counts,
-        files: [...this.files.values()].map((file) => (now - file.mtimeMs > PERSIST_RECENT_MS ? { ...file, recent: [] } : { ...file, recent: file.recent.slice(-RECENT_PERSISTED) })),
+        files: [...this.files.values()].map((file) =>
+          now - file.mtimeMs > PERSIST_RECENT_MS
+            ? { ...file, recent: [] }
+            : { ...file, recent: file.recent.slice(-RECENT_PERSISTED) },
+        ),
       });
       this.generation++;
       this.filesDirty = false;

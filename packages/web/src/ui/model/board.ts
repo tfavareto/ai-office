@@ -157,7 +157,11 @@ function mergeColumns(lanes: readonly BoardLane[]): BoardColumn[] {
   return BOARD_COLUMNS.map((id, position) => {
     const parts = lanes.map((lane) => lane.columns[position] as BoardColumn);
     const cards = parts.flatMap((part) => part.cards);
-    return makeColumn(id, id === 'completed' ? [...cards].sort(byRecency) : cards, parts.reduce((sum, part) => sum + part.hidden, 0));
+    return makeColumn(
+      id,
+      id === 'completed' ? [...cards].sort(byRecency) : cards,
+      parts.reduce((sum, part) => sum + part.hidden, 0),
+    );
   });
 }
 
@@ -165,11 +169,28 @@ function mergeColumns(lanes: readonly BoardLane[]): BoardColumn[] {
  * The board for a snapshot. `sent` marks decorate the cards they are about (and add ghost cards for requested tasks
  * that do not exist yet). Columns count what passes the filter; completed cards beyond the last few per room fold away.
  */
-export function buildBoard(snapshot: OfficeSnapshot | null, filter: BoardFilter, view: BoardView, sent: readonly SentMark[] = []): BoardModel {
-  if (!snapshot) return { grouping: view.grouping, columns: roomColumns([], true), lanes: [], total: 0, hiddenDone: 0, taskless: [] };
+export function buildBoard(
+  snapshot: OfficeSnapshot | null,
+  filter: BoardFilter,
+  view: BoardView,
+  sent: readonly SentMark[] = [],
+): BoardModel {
+  if (!snapshot)
+    return {
+      grouping: view.grouping,
+      columns: roomColumns([], true),
+      lanes: [],
+      total: 0,
+      hiddenDone: 0,
+      taskless: [],
+    };
   const agents = new Map(snapshot.agents.map((agent) => [agent.id, agent]));
-  const passing = new Set(snapshot.agents.filter((agent) => isBoardAgent(agent) && agentPasses(agent, filter)).map((agent) => agent.id));
-  const marks = new Map(sent.filter((mark) => mark.cardKey !== undefined).map((mark) => [mark.cardKey as string, mark]));
+  const passing = new Set(
+    snapshot.agents.filter((agent) => isBoardAgent(agent) && agentPasses(agent, filter)).map((agent) => agent.id),
+  );
+  const marks = new Map(
+    sent.filter((mark) => mark.cardKey !== undefined).map((mark) => [mark.cardKey as string, mark]),
+  );
   const cards = buildCards(snapshot)
     .filter((card) => passing.has(card.agentId))
     .map((card) => (marks.has(card.key) ? { ...card, sent: marks.get(card.key) } : card));
@@ -178,7 +199,9 @@ export function buildBoard(snapshot: OfficeSnapshot | null, filter: BoardFilter,
     return agent && passing.has(agent.id) ? [ghostCard(mark, agent)] : [];
   });
 
-  const mains = snapshot.agents.filter((agent) => agent.kind === 'main' && passing.has(agent.id)).sort(compareBoardAgents(snapshot.projects));
+  const mains = snapshot.agents
+    .filter((agent) => agent.kind === 'main' && passing.has(agent.id))
+    .sort(compareBoardAgents(snapshot.projects));
   const withTasks = new Set(cards.map((card) => mainOf(agents.get(card.agentId) as Agent)));
   const lanes = [...snapshot.projects]
     .sort((a, b) => a.order - b.order)
@@ -212,7 +235,9 @@ export function boardOptions(snapshot: OfficeSnapshot | null, filter: BoardFilte
   const present = snapshot.agents.filter(isBoardAgent);
   const roomIds = new Set(present.map((agent) => agent.projectId));
   const accountIds = new Set(present.map((agent) => agent.accountId));
-  const mains = present.filter((agent) => agent.kind === 'main' && (filter.roomId === null || agent.projectId === filter.roomId));
+  const mains = present.filter(
+    (agent) => agent.kind === 'main' && (filter.roomId === null || agent.projectId === filter.roomId),
+  );
   return {
     rooms: snapshot.projects.filter((project) => roomIds.has(project.id)).sort((a, b) => a.order - b.order),
     accounts: snapshot.accounts.map((account) => account.id).filter((id) => accountIds.has(id)),
@@ -236,5 +261,7 @@ export function sanitizeFilter(filter: BoardFilter, snapshot: OfficeSnapshot | n
 }
 
 export function sameFilter(a: BoardFilter, b: BoardFilter): boolean {
-  return a.roomId === b.roomId && a.accountId === b.accountId && a.agentId === b.agentId && a.onlyActive === b.onlyActive;
+  return (
+    a.roomId === b.roomId && a.accountId === b.accountId && a.agentId === b.agentId && a.onlyActive === b.onlyActive
+  );
 }

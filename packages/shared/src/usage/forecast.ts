@@ -95,9 +95,14 @@ function positive(value: number | undefined): value is number {
 }
 
 /** The limit a scope is compared with: the configured one, else the highest completed block or week. */
-export function referenceLimit(scope: ForecastScope, usage: AccountUsage, limits: AccountLimits | undefined): { value: number; unit: LimitUnit; source: LimitSource } | undefined {
+export function referenceLimit(
+  scope: ForecastScope,
+  usage: AccountUsage,
+  limits: AccountLimits | undefined,
+): { value: number; unit: LimitUnit; source: LimitSource } | undefined {
   const configured = limits?.[scope];
-  if (limits !== undefined && positive(configured)) return { value: configured, unit: limits.unit, source: 'configured' };
+  if (limits !== undefined && positive(configured))
+    return { value: configured, unit: limits.unit, source: 'configured' };
   const peak = usage.peaks?.[scope];
   if (peak === undefined || peak.samples < MIN_ESTIMATE_SAMPLES) return undefined;
   const unit = limits?.unit ?? 'usd';
@@ -114,7 +119,12 @@ function statusOf(used: number, projected: number, rate: number, limit: number |
 }
 
 /** Forecast of one scope (the open 5 h window or the week) at `now`. */
-export function forecastScope(scope: ForecastScope, usage: AccountUsage, limits: AccountLimits | undefined, now: number): Forecast {
+export function forecastScope(
+  scope: ForecastScope,
+  usage: AccountUsage,
+  limits: AccountLimits | undefined,
+  now: number,
+): Forecast {
   const reference = referenceLimit(scope, usage, limits);
   const unit = reference?.unit ?? limits?.unit ?? 'usd';
   const window = scope === 'window5h' ? usage.window5h : usage.week;
@@ -125,7 +135,10 @@ export function forecastScope(scope: ForecastScope, usage: AccountUsage, limits:
   const remainingHours = Math.max(0, window.resetsAt - now) / HOUR_MS;
   const projected = used + ratePerHour * remainingHours;
   const status = statusOf(used, projected, ratePerHour, reference?.value);
-  const hitsAt = status === 'will-hit' && reference !== undefined ? now + ((reference.value - used) / ratePerHour) * HOUR_MS : undefined;
+  const hitsAt =
+    status === 'will-hit' && reference !== undefined
+      ? now + ((reference.value - used) / ratePerHour) * HOUR_MS
+      : undefined;
   return {
     scope,
     unit,
@@ -145,7 +158,9 @@ export function forecastAccount(usage: AccountUsage, limits: AccountLimits | und
 
 /** The forecast whose hit is soonest and closer than `FORECAST_ALERT_MS`, if any. */
 export function imminentHit(forecast: AccountForecast, now: number): Forecast | undefined {
-  const soon = [forecast.window5h, forecast.week].filter((item) => item.status === 'will-hit' && item.hitsAt !== undefined && item.hitsAt - now < FORECAST_ALERT_MS);
+  const soon = [forecast.window5h, forecast.week].filter(
+    (item) => item.status === 'will-hit' && item.hitsAt !== undefined && item.hitsAt - now < FORECAST_ALERT_MS,
+  );
   return soon.sort((a, b) => (a.hitsAt as number) - (b.hitsAt as number))[0];
 }
 

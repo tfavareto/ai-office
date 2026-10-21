@@ -44,7 +44,10 @@ export class HoverTip implements Component {
     } else if (agent) {
       setText(this.title, agent.name);
       setText(this.line, `${agentKindLabel(agent)} · ${statusLabel(displayStatus(agent))}`);
-      setText(this.extra, agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : (agentTitle(agent) ?? ''));
+      setText(
+        this.extra,
+        agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : (agentTitle(agent) ?? ''),
+      );
     } else if (project) {
       const agents = agentsOfProject(this.ctx.snapshot, project.id);
       setText(this.title, project.name);

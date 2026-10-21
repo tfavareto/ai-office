@@ -19,9 +19,12 @@ describe('normalizeFolderInput', () => {
     expect(normalizeFolderInput('~other/app', home)).toBeUndefined();
   });
 
-  test.each(['', '   ', 'relative/path', './app', '../app', '/work/a\0b', '/work/a\nb', `/${'x'.repeat(1100)}`])('rejects %j', (input) => {
-    expect(normalizeFolderInput(input, home)).toBeUndefined();
-  });
+  test.each(['', '   ', 'relative/path', './app', '../app', '/work/a\0b', '/work/a\nb', `/${'x'.repeat(1100)}`])(
+    'rejects %j',
+    (input) => {
+      expect(normalizeFolderInput(input, home)).toBeUndefined();
+    },
+  );
 });
 
 describe('checkFolder', () => {

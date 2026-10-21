@@ -7,7 +7,12 @@ import { rowEnds, slotPosition } from './slots';
 import type { BuildingLayout, FurnitureItem, Rect, RoomSpec } from './types';
 
 function rooms(count: number, seedBase = 1000): RoomSpec[] {
-  return Array.from({ length: count }, (_, i) => ({ id: `p${i}`, seed: seedBase + i * 7919, name: `proj-${i}`, slot: i }));
+  return Array.from({ length: count }, (_, i) => ({
+    id: `p${i}`,
+    seed: seedBase + i * 7919,
+    name: `proj-${i}`,
+    slot: i,
+  }));
 }
 
 function overlaps(a: Rect, b: Rect): boolean {
@@ -21,7 +26,12 @@ function reachable(building: BuildingLayout): Set<number> {
   const queue = [start];
   while (queue.length) {
     const cur = queue.pop()!;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
       const x = cur.x + dx;
       const y = cur.y + dy;
       const key = y * grid.width + x;

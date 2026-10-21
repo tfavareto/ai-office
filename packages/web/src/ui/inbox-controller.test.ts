@@ -16,12 +16,23 @@ class MemoryStorage {
 }
 
 const request = (id: string) =>
-  agent({ id, status: 'waiting', statusSince: 2_000, permission: permission({ id: `perm-${id}`, agentId: id, createdAt: 2_000 + id.charCodeAt(0), expiresAt: 600_000 }) });
-const finished = (id: string, statusSince: number) => agent({ id, status: 'idle', statusSince, stats: { ...agent().stats, toolCalls: 4 } });
+  agent({
+    id,
+    status: 'waiting',
+    statusSince: 2_000,
+    permission: permission({ id: `perm-${id}`, agentId: id, createdAt: 2_000 + id.charCodeAt(0), expiresAt: 600_000 }),
+  });
+const finished = (id: string, statusSince: number) =>
+  agent({ id, status: 'idle', statusSince, stats: { ...agent().stats, toolCalls: 4 } });
 
 function setup(agents: Agent[], storage: MemoryStorage | null = new MemoryStorage()) {
   let current: OfficeSnapshot = snapshot({ agents, serverTime: 1_000 });
-  const controller = new InboxController({ snapshot: () => current, notifications: () => [], now: () => current.serverTime + 5_000, storage });
+  const controller = new InboxController({
+    snapshot: () => current,
+    notifications: () => [],
+    now: () => current.serverTime + 5_000,
+    storage,
+  });
   const publish = (next: Agent[], serverTime = current.serverTime): void => {
     current = snapshot({ agents: next, serverTime });
     controller.sync(current);

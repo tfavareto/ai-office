@@ -4,7 +4,11 @@ import type { Activity, Agent, OfficeSnapshot } from '@ai-office/shared';
 export const MAX_TIMELINE = 300;
 
 /** Newest first, deduplicated by id. */
-export function mergeTimeline(recent: readonly Activity[], history: readonly Activity[], max = MAX_TIMELINE): Activity[] {
+export function mergeTimeline(
+  recent: readonly Activity[],
+  history: readonly Activity[],
+  max = MAX_TIMELINE,
+): Activity[] {
   const byId = new Map<string, Activity>();
   for (const activity of history) byId.set(activity.id, activity);
   for (const activity of recent) byId.set(activity.id, activity);

@@ -4,7 +4,17 @@ import { basename } from '../format';
 import { HOUR_MS, addDays, periodRange } from './periods';
 import { modelFamily } from './pricing';
 import { rowTokens } from './types';
-import type { UsageDetail, UsageModelRow, UsagePeriod, UsageProgress, UsageProjectRow, UsageRow, UsageSeriesPoint, UsageSessionRow, UsageTotals } from './types';
+import type {
+  UsageDetail,
+  UsageModelRow,
+  UsagePeriod,
+  UsageProgress,
+  UsageProjectRow,
+  UsageRow,
+  UsageSeriesPoint,
+  UsageSessionRow,
+  UsageTotals,
+} from './types';
 import { type HourMap, windowInfo } from './windows';
 
 export const DEFAULT_SESSION_LIMIT = 12;
@@ -45,7 +55,14 @@ function accumulate(acc: Acc, row: UsageRow): void {
 const byBiggest = (a: Acc, b: Acc): number => b.tokens - a.tokens || b.costUSD - a.costUSD;
 
 function totalsOf(acc: Acc): UsageTotals {
-  return { input: acc.input, output: acc.output, cacheWrite: acc.cacheWrite, cacheRead: acc.cacheRead, tokens: acc.tokens, costUSD: acc.costUSD };
+  return {
+    input: acc.input,
+    output: acc.output,
+    cacheWrite: acc.cacheWrite,
+    cacheRead: acc.cacheRead,
+    tokens: acc.tokens,
+    costUSD: acc.costUSD,
+  };
 }
 
 /** Start times of the buckets of the series: hours for "today", local days for "week" and "month". */
@@ -107,7 +124,12 @@ const IDLE_PROGRESS: UsageProgress = { state: 'ready', percent: 100, filesDone: 
  * Totals, series and breakdowns of `period` for the queried accounts, the comparable slice of the previous period and
  * the open 5 h window of each account. `hoursOf` supplies the per-hour totals of one account (all of its history).
  */
-export function buildUsageDetail(rows: Iterable<UsageRow>, query: UsageQuery, hoursOf: (account: string) => HourMap, progress: UsageProgress = IDLE_PROGRESS): UsageDetail {
+export function buildUsageDetail(
+  rows: Iterable<UsageRow>,
+  query: UsageQuery,
+  hoursOf: (account: string) => HourMap,
+  progress: UsageProgress = IDLE_PROGRESS,
+): UsageDetail {
   const accounts = new Set(query.accounts);
   const range = periodRange(query.period, query.now);
   const bounds = seriesBoundaries(query.period, range.start, range.end);
@@ -131,7 +153,14 @@ export function buildUsageDetail(rows: Iterable<UsageRow>, query: UsageQuery, ho
     const key = `${row.account}\u0000${row.session}\u0000${row.agent}`;
     let session = sessions.get(key);
     if (session === undefined) {
-      session = { ...newAcc(), account: row.account, session: row.session, agent: row.agent, project: row.project, lastAt: 0 };
+      session = {
+        ...newAcc(),
+        account: row.account,
+        session: row.session,
+        agent: row.agent,
+        project: row.project,
+        lastAt: 0,
+      };
       sessions.set(key, session);
     }
     accumulate(session, row);
@@ -147,8 +176,14 @@ export function buildUsageDetail(rows: Iterable<UsageRow>, query: UsageQuery, ho
     granularity: query.period === 'today' ? 'hour' : 'day',
     totals: totalsOf(total),
     previous: totalsOf(previous),
-    series: bounds.map((start, index): UsageSeriesPoint => ({ start, end: bounds[index + 1] ?? range.end, ...totalsOf(series[index] as Acc) })),
-    byModel: [...models.values()].sort(byBiggest).map((acc): UsageModelRow => ({ model: acc.key, family: modelFamily(acc.key), ...totalsOf(acc) })),
+    series: bounds.map((start, index): UsageSeriesPoint => ({
+      start,
+      end: bounds[index + 1] ?? range.end,
+      ...totalsOf(series[index] as Acc),
+    })),
+    byModel: [...models.values()]
+      .sort(byBiggest)
+      .map((acc): UsageModelRow => ({ model: acc.key, family: modelFamily(acc.key), ...totalsOf(acc) })),
     byProject: [...projects.values()]
       .sort(byBiggest)
       .slice(0, query.projectLimit ?? DEFAULT_PROJECT_LIMIT)
@@ -156,17 +191,15 @@ export function buildUsageDetail(rows: Iterable<UsageRow>, query: UsageQuery, ho
     bySession: [...sessions.values()]
       .sort(byBiggest)
       .slice(0, query.sessionLimit ?? DEFAULT_SESSION_LIMIT)
-      .map(
-        (acc): UsageSessionRow => ({
-          account: acc.account,
-          session: acc.session,
-          ...(acc.agent !== '' ? { agent: acc.agent } : {}),
-          project: acc.project,
-          projectName: usageProjectName(acc.project),
-          lastAt: acc.lastAt,
-          ...totalsOf(acc),
-        }),
-      ),
+      .map((acc): UsageSessionRow => ({
+        account: acc.account,
+        session: acc.session,
+        ...(acc.agent !== '' ? { agent: acc.agent } : {}),
+        project: acc.project,
+        projectName: usageProjectName(acc.project),
+        lastAt: acc.lastAt,
+        ...totalsOf(acc),
+      })),
     sessionCount: sessions.size,
     windows: query.accounts.map((account) => windowInfo(account, hoursOf(account), query.now)),
     progress,
@@ -174,7 +207,9 @@ export function buildUsageDetail(rows: Iterable<UsageRow>, query: UsageQuery, ho
 }
 
 /** Hourly totals per account from rows (tests and the demo history; the server index maintains its own). */
-export function hourMapsFromRows(rows: Iterable<UsageRow>): Map<string, Map<number, { tokens: number; costUSD: number }>> {
+export function hourMapsFromRows(
+  rows: Iterable<UsageRow>,
+): Map<string, Map<number, { tokens: number; costUSD: number }>> {
   const maps = new Map<string, Map<number, { tokens: number; costUSD: number }>>();
   for (const row of rows) {
     let hours = maps.get(row.account);
@@ -183,7 +218,10 @@ export function hourMapsFromRows(rows: Iterable<UsageRow>): Map<string, Map<numb
       maps.set(row.account, hours);
     }
     const found = hours.get(row.hour);
-    hours.set(row.hour, { tokens: (found?.tokens ?? 0) + rowTokens(row), costUSD: (found?.costUSD ?? 0) + row.costUSD });
+    hours.set(row.hour, {
+      tokens: (found?.tokens ?? 0) + rowTokens(row),
+      costUSD: (found?.costUSD ?? 0) + row.costUSD,
+    });
   }
   return maps;
 }

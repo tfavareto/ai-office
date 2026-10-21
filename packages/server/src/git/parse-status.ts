@@ -68,7 +68,10 @@ export function parseStatus(output: string): ParsedStatus {
 export function parseShortstat(output: string): { insertions: number; deletions: number } {
   const insertions = /(\d+) insertions?\(\+\)/.exec(output);
   const deletions = /(\d+) deletions?\(-\)/.exec(output);
-  return { insertions: insertions === null ? 0 : Number(insertions[1]), deletions: deletions === null ? 0 : Number(deletions[1]) };
+  return {
+    insertions: insertions === null ? 0 : Number(insertions[1]),
+    deletions: deletions === null ? 0 : Number(deletions[1]),
+  };
 }
 
 /** Parses `log -1 --format=%h%x09%ct%x09%s` (tab separated: hash, unix seconds, subject). */
@@ -80,7 +83,11 @@ export function parseLastCommit(output: string): GitCommit | undefined {
   const hash = line.slice(0, first);
   const seconds = Number(line.slice(first + 1, second));
   if (!/^[0-9a-f]{4,64}$/.test(hash) || !Number.isFinite(seconds) || seconds <= 0) return undefined;
-  const subject = line.slice(second + 1).replace(CONTROL, ' ').trim().slice(0, GIT_SUBJECT_MAX);
+  const subject = line
+    .slice(second + 1)
+    .replace(CONTROL, ' ')
+    .trim()
+    .slice(0, GIT_SUBJECT_MAX);
   return { hash: hash.slice(0, 12), subject, at: seconds * 1000 };
 }
 

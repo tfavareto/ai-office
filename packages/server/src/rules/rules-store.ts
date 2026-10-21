@@ -64,8 +64,12 @@ export class RulesStore {
         await this.setAside(RULES_FILE);
       } else {
         this.book.replaceRules(parsed.rules);
-        if (parsed.dropped > 0) this.log.warn(`Regras de aprovação: ${parsed.dropped} regra(s) ilegível(is) foram descartadas.`);
-        if (parsed.disabled > 0) this.log.warn(`Regras de aprovação: ${parsed.disabled} regra(s) de aprovar foram desativadas por não passarem na política de segurança.`);
+        if (parsed.dropped > 0)
+          this.log.warn(`Regras de aprovação: ${parsed.dropped} regra(s) ilegível(is) foram descartadas.`);
+        if (parsed.disabled > 0)
+          this.log.warn(
+            `Regras de aprovação: ${parsed.disabled} regra(s) de aprovar foram desativadas por não passarem na política de segurança.`,
+          );
         this.rulesDirty = parsed.status === 'migrated' || parsed.dropped > 0 || parsed.disabled > 0;
       }
     }
@@ -118,7 +122,9 @@ export class RulesStore {
     if (failed === undefined) return true;
     this.rulesDirty = this.rulesDirty || wroteRules;
     this.logDirty = this.logDirty || wroteLog;
-    this.log.warn(`Não foi possível salvar as regras de aprovação: ${String((failed as PromiseRejectedResult).reason)}`);
+    this.log.warn(
+      `Não foi possível salvar as regras de aprovação: ${String((failed as PromiseRejectedResult).reason)}`,
+    );
     return false;
   }
 }

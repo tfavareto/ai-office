@@ -10,7 +10,9 @@
   width: var(--drawer-w);
   overflow: hidden;
   border-radius: var(--radius);
-  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+  transition:
+    opacity var(--t-base) var(--ease),
+    transform var(--t-base) var(--ease);
 }
 
 .ao-drawer:not(.is-open) {
@@ -194,7 +196,10 @@
 }
 
 @keyframes ao-rise {
-  from { opacity: 0; transform: translateY(6px); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .ao-urgent-head {
@@ -567,7 +572,9 @@
 }
 
 @keyframes ao-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ao-task-group {
@@ -811,7 +818,9 @@
   font-size: 11.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .ao-quick-chip:hover {
@@ -859,9 +868,15 @@
   font-weight: 650;
 }
 
-.ao-msg-status.is-pending { color: var(--waiting); }
-.ao-msg-status.is-done { color: var(--working); }
-.ao-msg-status.is-expired { color: var(--error); }
+.ao-msg-status.is-pending {
+  color: var(--waiting);
+}
+.ao-msg-status.is-done {
+  color: var(--working);
+}
+.ao-msg-status.is-expired {
+  color: var(--error);
+}
 
 .ao-msg-text {
   overflow-wrap: anywhere;
@@ -883,9 +898,15 @@
   color: var(--muted);
 }
 
-.ao-msg-member-status.is-delivered { color: var(--working); }
-.ao-msg-member-status.is-queued { color: var(--waiting); }
-.ao-msg-member-status.is-expired { color: var(--error); }
+.ao-msg-member-status.is-delivered {
+  color: var(--working);
+}
+.ao-msg-member-status.is-queued {
+  color: var(--waiting);
+}
+.ao-msg-member-status.is-expired {
+  color: var(--error);
+}
 
 @media (max-width: 899px) {
   .ao-drawer {

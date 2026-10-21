@@ -1,7 +1,27 @@
 // Renderer, scene lighting, shadows, environment map and the night-only bloom composer.
 import {
-  ACESFilmicToneMapping, Box3, Color, DirectionalLight, FogExp2, HalfFloatType, HemisphereLight, PCFShadowMap, PMREMGenerator, PerspectiveCamera,
-  Material, Mesh, OrthographicCamera, PlaneGeometry, PointLight, Scene, Vector2, type Texture, Vector3, WebGLRenderer, WebGLRenderTarget, type Camera,
+  ACESFilmicToneMapping,
+  Box3,
+  Color,
+  DirectionalLight,
+  FogExp2,
+  HalfFloatType,
+  HemisphereLight,
+  PCFShadowMap,
+  PMREMGenerator,
+  PerspectiveCamera,
+  Material,
+  Mesh,
+  OrthographicCamera,
+  PlaneGeometry,
+  PointLight,
+  Scene,
+  Vector2,
+  type Texture,
+  Vector3,
+  WebGLRenderer,
+  WebGLRenderTarget,
+  type Camera,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -40,7 +60,11 @@ export class Stage {
   private shadowFlip = false;
   private bloomOn = false;
 
-  constructor(readonly canvas: HTMLCanvasElement, glcheck: boolean, antialias = true) {
+  constructor(
+    readonly canvas: HTMLCanvasElement,
+    glcheck: boolean,
+    antialias = true,
+  ) {
     this.renderer = new WebGLRenderer({ canvas, antialias, powerPreference: 'high-performance', alpha: false });
     this.renderer.debug.checkShaderErrors = glcheck;
     this.renderer.info.autoReset = false;
@@ -122,7 +146,10 @@ export class Stage {
     cam.updateMatrixWorld(true);
     cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
     const inView = new Box3();
-    for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) inView.expandByPoint(new Vector3(x, y, z).applyMatrix4(cam.matrixWorldInverse));
+    for (const x of [box.min.x, box.max.x])
+      for (const y of [box.min.y, box.max.y])
+        for (const z of [box.min.z, box.max.z])
+          inView.expandByPoint(new Vector3(x, y, z).applyMatrix4(cam.matrixWorldInverse));
     cam.left = inView.min.x - 1;
     cam.right = inView.max.x + 1;
     cam.bottom = inView.min.y - 1;
@@ -149,12 +176,20 @@ export class Stage {
 
   private ensureComposer(camera: Camera): EffectComposer {
     if (this.composer) return this.composer;
-    const target = new WebGLRenderTarget(this.width * this.pixelRatio, this.height * this.pixelRatio, { type: HalfFloatType, samples: 4 });
+    const target = new WebGLRenderTarget(this.width * this.pixelRatio, this.height * this.pixelRatio, {
+      type: HalfFloatType,
+      samples: 4,
+    });
     const composer = new EffectComposer(this.renderer, target);
     composer.setPixelRatio(this.pixelRatio);
     composer.setSize(this.width, this.height);
     composer.addPass(new RenderPass(this.scene, camera));
-    this.bloom = new UnrealBloomPass(new Vector2(this.width, this.height), daylight(this.night).bloomStrength, 0.55, 0.82);
+    this.bloom = new UnrealBloomPass(
+      new Vector2(this.width, this.height),
+      daylight(this.night).bloomStrength,
+      0.55,
+      0.82,
+    );
     composer.addPass(this.bloom);
     composer.addPass(new OutputPass());
     this.composer = composer;
@@ -182,7 +217,11 @@ export class Stage {
   async warmPrograms(camera: Camera): Promise<void> {
     const composer = this.ensureComposer(camera);
     const previous = this.renderer.getRenderTarget();
-    const variants: [boolean, boolean][] = [[false, false], [true, false], [true, true]];
+    const variants: [boolean, boolean][] = [
+      [false, false],
+      [true, false],
+      [true, true],
+    ];
     for (const [lights, toTarget] of variants) {
       for (const p of this.pool) p.light.visible = lights;
       this.renderer.setRenderTarget(toTarget ? composer.readBuffer : null);
@@ -217,7 +256,9 @@ export class Stage {
   async initPrograms(materials: Iterable<Material>): Promise<void> {
     let n = 0;
     for (const m of materials) {
-      const program = (this.renderer.properties.get(m) as { currentProgram?: { getUniforms(): unknown; getAttributes(): unknown } }).currentProgram;
+      const program = (
+        this.renderer.properties.get(m) as { currentProgram?: { getUniforms(): unknown; getAttributes(): unknown } }
+      ).currentProgram;
       if (!program) continue;
       program.getUniforms();
       program.getAttributes();

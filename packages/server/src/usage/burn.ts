@@ -32,5 +32,11 @@ function within(samples: readonly BurnSample[], from: number, to: number): { tok
 export function burnOf(samples: readonly BurnSample[], now: number, activeHoursWeek: number): UsageBurn {
   const half = within(samples, now - HALF_HOUR_MS, now);
   const hour = within(samples, now - HOUR_MS, now);
-  return { tokens30m: half.tokens, costUSD30m: half.costUSD, tokens60m: hour.tokens, costUSD60m: hour.costUSD, activeHoursWeek };
+  return {
+    tokens30m: half.tokens,
+    costUSD30m: half.costUSD,
+    tokens60m: hour.tokens,
+    costUSD60m: hour.costUSD,
+    activeHoursWeek,
+  };
 }

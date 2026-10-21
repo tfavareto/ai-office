@@ -4,7 +4,13 @@ import { dirname } from 'node:path';
 import type { Account } from '@ai-office/shared';
 import type { Logger } from '../log';
 import { type Office } from '../office/office';
-import { NO_REGISTRY_SESSION_MS, type SessionRecord, type SubRecord, resetTranscript, sessionKey } from '../office/records';
+import {
+  NO_REGISTRY_SESSION_MS,
+  type SessionRecord,
+  type SubRecord,
+  resetTranscript,
+  sessionKey,
+} from '../office/records';
 import { type DiscoverOptions, discoverAccounts } from './accounts';
 import { JsonlTailer } from './jsonl-tailer';
 import { type SubagentFile, findTranscript, listMainTranscripts, listSubagents, subagentsDir } from './paths';
@@ -104,7 +110,8 @@ export class Engine {
   sessionCounts(): Map<string, number> {
     const counts = new Map<string, number>();
     for (const item of this.tracked.values()) {
-      if (item.record.closedAt === undefined) counts.set(item.record.account.id, (counts.get(item.record.account.id) ?? 0) + 1);
+      if (item.record.closedAt === undefined)
+        counts.set(item.record.account.id, (counts.get(item.record.account.id) ?? 0) + 1);
     }
     return counts;
   }
@@ -124,7 +131,8 @@ export class Engine {
     if (this.accounts.length > 0 && now - this.accountsAt < ACCOUNT_REFRESH_MS) return;
     this.accountsAt = now;
     const found = await discoverAccounts(this.deps.discover);
-    const changed = found.length !== this.accounts.length || found.some((account, i) => account.dir !== this.accounts[i]?.dir);
+    const changed =
+      found.length !== this.accounts.length || found.some((account, i) => account.dir !== this.accounts[i]?.dir);
     this.accounts = found;
     this.deps.office.setAccounts(found);
     if (changed) this.deps.log.debug(`Contas: ${found.map((account) => account.dir).join(', ') || '(nenhuma)'}`);
@@ -240,13 +248,21 @@ export class Engine {
     }
   }
 
-  private feed(record: SessionRecord, sub: SubRecord | undefined, raw: string[], reset: boolean, initial: boolean, now: number): void {
+  private feed(
+    record: SessionRecord,
+    sub: SubRecord | undefined,
+    raw: string[],
+    reset: boolean,
+    initial: boolean,
+    now: number,
+  ): void {
     if (reset) resetTranscript(record, sub);
     const parsed: ParsedLine[] = [];
     for (const text of raw) {
       const line = parseLine(text);
       if (line !== undefined) parsed.push(line);
-      else if (text.trim().length > 0 && !text.trimStart().startsWith('{')) this.deps.log.debugOnce(`skip:${record.key}`, `Linha inválida ignorada em ${record.key}`);
+      else if (text.trim().length > 0 && !text.trimStart().startsWith('{'))
+        this.deps.log.debugOnce(`skip:${record.key}`, `Linha inválida ignorada em ${record.key}`);
     }
     if (parsed.length === 0) return;
     this.deps.office.ingest(record, sub, parsed, initial || reset ? now - REPLAY_GRACE_MS : 0);

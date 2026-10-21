@@ -89,5 +89,8 @@ export function shellStage(job: Pick<ShellJob, 'startedAt'>, now: number): Shell
 
 /** Longest running shell of an agent (the one worth showing as the headline). */
 export function primaryShell(agent: Agent): ShellJob | undefined {
-  return agent.shells.reduce<ShellJob | undefined>((best, shell) => (!best || shell.startedAt < best.startedAt ? shell : best), undefined);
+  return agent.shells.reduce<ShellJob | undefined>(
+    (best, shell) => (!best || shell.startedAt < best.startedAt ? shell : best),
+    undefined,
+  );
 }

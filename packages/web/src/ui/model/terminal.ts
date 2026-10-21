@@ -82,7 +82,8 @@ export function splitFences(text: string): TextBlock[] {
   let lang: string | undefined;
   const flush = (kind: 'text' | 'code'): void => {
     const body = current.join('\n');
-    if (body.length > 0 || kind === 'code') blocks.push(kind === 'code' ? { kind, text: body, lang } : { kind, text: body });
+    if (body.length > 0 || kind === 'code')
+      blocks.push(kind === 'code' ? { kind, text: body, lang } : { kind, text: body });
     current = [];
   };
   for (const line of lines) {

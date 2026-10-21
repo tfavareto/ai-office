@@ -12,7 +12,16 @@ const agents = createDemoSimulator({ seed: 3, now: () => NOW }).agents();
 function report(date: string, over: Partial<Parameters<typeof demoDayReport>[0]> = {}) {
   const range = dayRange(date);
   if (range === undefined) throw new Error('bad date');
-  return demoDayReport({ range, now: NOW, locale: 'pt-BR', agents, usageRows: [], account: 'all', includeRequests: false, ...over });
+  return demoDayReport({
+    range,
+    now: NOW,
+    locale: 'pt-BR',
+    agents,
+    usageRows: [],
+    account: 'all',
+    includeRequests: false,
+    ...over,
+  });
 }
 
 describe('demoDayReport', () => {
@@ -33,7 +42,15 @@ describe('demoDayReport', () => {
     const early = new Date(2026, 9, 21, 0, 40).getTime();
     const range = dayRange('2026-10-21');
     if (range === undefined) throw new Error('bad date');
-    const today = demoDayReport({ range, now: early, locale: 'en', agents, usageRows: [], account: 'all', includeRequests: false });
+    const today = demoDayReport({
+      range,
+      now: early,
+      locale: 'en',
+      agents,
+      usageRows: [],
+      account: 'all',
+      includeRequests: false,
+    });
     const people = today.projects.flatMap((project) => project.agents);
     expect(people.length).toBeGreaterThan(0);
     expect(people.every((agent) => agent.lastAt <= early && agent.firstAt >= range.start)).toBe(true);
@@ -46,7 +63,11 @@ describe('demoDayReport', () => {
   });
 
   test('commit subjects and task titles follow the language', () => {
-    const subjects = LOCALES.map((locale) => report('2026-10-20', { locale }).projects.flatMap((project) => project.agents).flatMap((agent) => agent.commits.map((commit) => commit.subject)));
+    const subjects = LOCALES.map((locale) =>
+      report('2026-10-20', { locale })
+        .projects.flatMap((project) => project.agents)
+        .flatMap((agent) => agent.commits.map((commit) => commit.subject)),
+    );
     expect(subjects[0]?.length).toBeGreaterThan(0);
     expect(subjects[0]).not.toEqual(subjects[1]);
     expect(subjects[1]).not.toEqual(subjects[2]);
@@ -64,9 +85,25 @@ describe('demoDayReport', () => {
     const first = agents.find((agent) => agent.kind === 'main');
     if (first === undefined) throw new Error('no agent');
     const only = report('2026-10-21', { account: first.accountId });
-    expect(only.projects.flatMap((project) => project.agents).every((agent) => agent.accountId === first.accountId)).toBe(true);
-    const row = { hour: new Date(2026, 9, 21, 10).getTime(), account: first.accountId, project: first.projectId, model: 'claude-sonnet-5-5', session: first.sessionId, agent: '', input: 1000, output: 500, cacheWrite: 0, cacheRead: 0, costUSD: 1.25 };
-    const withRows = report('2026-10-21', { usageRows: [row] }).projects.flatMap((project) => project.agents).find((agent) => agent.sessionId === first.sessionId);
+    expect(
+      only.projects.flatMap((project) => project.agents).every((agent) => agent.accountId === first.accountId),
+    ).toBe(true);
+    const row = {
+      hour: new Date(2026, 9, 21, 10).getTime(),
+      account: first.accountId,
+      project: first.projectId,
+      model: 'claude-sonnet-5-5',
+      session: first.sessionId,
+      agent: '',
+      input: 1000,
+      output: 500,
+      cacheWrite: 0,
+      cacheRead: 0,
+      costUSD: 1.25,
+    };
+    const withRows = report('2026-10-21', { usageRows: [row] })
+      .projects.flatMap((project) => project.agents)
+      .find((agent) => agent.sessionId === first.sessionId);
     if (withRows !== undefined) expect(withRows.usage).toEqual({ tokens: 1500, costUSD: 1.25 });
   });
 });

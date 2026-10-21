@@ -15,7 +15,13 @@ export function expandHome(input: string, home: string): string {
 /** Syntax only: an absolute path without control characters, within the size limit. Returns the normalized path. */
 export function normalizeFolderInput(input: string, home: string): string | undefined {
   const expanded = expandHome(input.trim(), home);
-  if (expanded.length === 0 || expanded.length > HIRE_MAX_PATH || hasControlCharacter(expanded) || !isAbsolute(expanded)) return undefined;
+  if (
+    expanded.length === 0 ||
+    expanded.length > HIRE_MAX_PATH ||
+    hasControlCharacter(expanded) ||
+    !isAbsolute(expanded)
+  )
+    return undefined;
   return resolve(expanded);
 }
 

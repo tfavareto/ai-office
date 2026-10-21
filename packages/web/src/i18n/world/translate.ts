@@ -1,7 +1,14 @@
 // Translator bound to an explicit locale, for the world renderers. The world receives its language through
 // `WorldOptions.locale` (it never reads prefs and does not depend on the page-wide `setLocale`), so every text it draws
 // goes through `worldText(locale)`. It resolves the same catalogs as `t()` in `i18n/index.ts`.
-import { createTranslator, mergeCatalogs, SHARED_CATALOGS, type Locale, type Msg, type MsgParam } from '@ai-office/shared';
+import {
+  createTranslator,
+  mergeCatalogs,
+  SHARED_CATALOGS,
+  type Locale,
+  type Msg,
+  type MsgParam,
+} from '@ai-office/shared';
 import { WORLD_CATALOGS, type WorldKey } from './index';
 
 export type WorldParams = Readonly<Record<string, MsgParam>>;

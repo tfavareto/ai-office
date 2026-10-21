@@ -72,7 +72,12 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
   const eastWalk: Rect = { x: w, y: 0, w: SIDEWALK + 4, h };
   const northStreet: Rect = { x: bounds.x, y: northWalk.y - STREET, w: bounds.w, h: STREET };
   const southStreet: Rect = { x: bounds.x, y: southWalk.y + SIDEWALK, w: bounds.w, h: STREET };
-  const westStreet: Rect = { x: -SIDEWALK - STREET, y: northStreet.y + STREET, w: STREET, h: southStreet.y - (northStreet.y + STREET) };
+  const westStreet: Rect = {
+    x: -SIDEWALK - STREET,
+    y: northStreet.y + STREET,
+    w: STREET,
+    h: southStreet.y - (northStreet.y + STREET),
+  };
   const sidewalks = [northWalk, southWalk, westWalk, eastWalk];
 
   // sidewalk on the far side of each street, so the frame reads as a city block
@@ -120,7 +125,10 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
       const x = cell * BLOCK_STRIDE + (hh % 3) + row * 7;
       if (x + width < bounds.x || x > bounds.x + bounds.w) continue;
       rooftops.push({ rect: { x, y: farNorth.y - BLOCK_H - lift, w: width, h: BLOCK_H }, variant: hh % 4 });
-      rooftops.push({ rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK + lift, w: width, h: BLOCK_H }, variant: (hh >>> 4) % 4 });
+      rooftops.push({
+        rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK + lift, w: width, h: BLOCK_H },
+        variant: (hh >>> 4) % 4,
+      });
     }
   }
   for (let col = 0; col < BLOCK_COLS; col++) {
@@ -132,6 +140,18 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
     }
   }
 
-  const grass: Rect[] = [{ x: w + SIDEWALK + 4, y: farWest.y, w: bounds.x + bounds.w - (w + SIDEWALK + 4), h: farWest.h }];
-  return { bounds, sidewalks, streets: [northStreet, southStreet, westStreet], crosswalks, lanes, trees, lamps: lampsFiltered, rooftops, grass };
+  const grass: Rect[] = [
+    { x: w + SIDEWALK + 4, y: farWest.y, w: bounds.x + bounds.w - (w + SIDEWALK + 4), h: farWest.h },
+  ];
+  return {
+    bounds,
+    sidewalks,
+    streets: [northStreet, southStreet, westStreet],
+    crosswalks,
+    lanes,
+    trees,
+    lamps: lampsFiltered,
+    rooftops,
+    grass,
+  };
 }

@@ -105,7 +105,13 @@ export class Office {
     return this.demo;
   }
 
-  trackSession(account: Account, sessionId: string, registry: RegistryEntry | undefined, registryMode: boolean, announce: boolean): SessionRecord {
+  trackSession(
+    account: Account,
+    sessionId: string,
+    registry: RegistryEntry | undefined,
+    registryMode: boolean,
+    announce: boolean,
+  ): SessionRecord {
     const key = sessionKey(account.id, sessionId);
     const existing = this.records.get(key);
     if (existing !== undefined && existing.closedAt === undefined) {
@@ -158,7 +164,13 @@ export class Office {
       if (!('at' in line) || line.at < replayBefore) continue;
       const person = this.personOf(record, sub);
       for (const activity of effects.activities) {
-        items.push({ id: activity.id, agentId, agentName: person.name, projectId: projectPathOf(record) ?? '', activity });
+        items.push({
+          id: activity.id,
+          agentId,
+          agentName: person.name,
+          projectId: projectPathOf(record) ?? '',
+          activity,
+        });
       }
       this.noticesFor(record, sub, person.name, effects, line.at);
       this.deps.events.onAgentEvent(agentId, effects, line.at);
@@ -174,7 +186,9 @@ export class Office {
     const state = target.sub === undefined ? target.record.main : target.sub.state;
     const activity = state.addExternal(draft, now);
     const person = this.personOf(target.record, target.sub);
-    this.publishFeed([{ id: activity.id, agentId, agentName: person.name, projectId: projectPathOf(target.record) ?? '', activity }]);
+    this.publishFeed([
+      { id: activity.id, agentId, agentName: person.name, projectId: projectPathOf(target.record) ?? '', activity },
+    ]);
     return activity;
   }
 
@@ -203,7 +217,12 @@ export class Office {
 
   /** Finds the agent a hook refers to: raw session id plus the optional raw subagent id. */
   findAgent(sessionId: string, rawAgentId?: string): Agent | undefined {
-    const wantedSub = rawAgentId === undefined ? undefined : this.computed.agents.find((a) => a.kind === 'sub' && a.sessionId === sessionId && a.id.endsWith(`:${rawAgentId}`));
+    const wantedSub =
+      rawAgentId === undefined
+        ? undefined
+        : this.computed.agents.find(
+            (a) => a.kind === 'sub' && a.sessionId === sessionId && a.id.endsWith(`:${rawAgentId}`),
+          );
     if (wantedSub !== undefined) return wantedSub;
     return this.computed.agents.find((agent) => agent.kind === 'main' && agent.sessionId === sessionId);
   }
@@ -211,7 +230,8 @@ export class Office {
   /** Long activity history of an agent (real or demo). */
   history(agentId: string): Activity[] | undefined {
     const target = this.locate(agentId);
-    if (target !== undefined) return (target.sub === undefined ? target.record.main : target.sub.state).activityHistory();
+    if (target !== undefined)
+      return (target.sub === undefined ? target.record.main : target.sub.state).activityHistory();
     return this.demo?.agents().find((agent) => agent.id === agentId)?.recent;
   }
 
@@ -231,7 +251,13 @@ export class Office {
   /** Recomputes agents and projects; fires `onChange` when anything visible changed. */
   refresh(now: number): void {
     this.computed = this.compute(now);
-    const fingerprint = JSON.stringify([this.computed.agents, this.computed.projects, this.computed.accounts, this.computed.demoUsage, this.computed.demoHires]);
+    const fingerprint = JSON.stringify([
+      this.computed.agents,
+      this.computed.projects,
+      this.computed.accounts,
+      this.computed.demoUsage,
+      this.computed.demoHires,
+    ]);
     if (fingerprint === this.lastFingerprint) return;
     this.lastFingerprint = fingerprint;
     this.deps.events.onChange();
@@ -250,7 +276,8 @@ export class Office {
     const memoIds = new Set<string>();
     const agents = real.map((agent) => this.withStatusSince(agent, now, memoIds));
     for (const id of this.memo.keys()) if (!memoIds.has(id)) this.memo.delete(id);
-    if (this.demo === undefined) return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [], demoHires: [] };
+    if (this.demo === undefined)
+      return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [], demoHires: [] };
     // One snapshot: it advances the simulator first, so agents, projects and usage describe the same instant.
     const demo = this.demo.snapshot(now);
     const nextOrder = realProjects.reduce((max, project) => Math.max(max, project.order + 1), 0);
@@ -274,11 +301,19 @@ export class Office {
     const mainId = mainAgentId(record);
     const person = this.personOf(record, undefined);
     out.push(buildMainAgent(record, projectId, person, overlayFor(mainId), now));
-    if (this.announce.delete(record.key)) this.notice('info', msg('notice.arrived', { name: person.name, project: projectId.split('/').pop() ?? projectId }), mainId, projectId);
+    if (this.announce.delete(record.key))
+      this.notice(
+        'info',
+        msg('notice.arrived', { name: person.name, project: projectId.split('/').pop() ?? projectId }),
+        mainId,
+        projectId,
+      );
     for (const sub of record.subs.values()) {
       if (!sub.state.sawAny || !subVisible(record, sub, now)) continue;
       const subPerson = this.personOf(record, sub);
-      out.push(buildSubAgent(record, sub, projectId, mainId, subPerson, overlayFor(subAgentId(record, sub.agentId)), now));
+      out.push(
+        buildSubAgent(record, sub, projectId, mainId, subPerson, overlayFor(subAgentId(record, sub.agentId)), now),
+      );
     }
   }
 
@@ -294,7 +329,13 @@ export class Office {
       this.projectOrders.set(id, order);
     }
     return [...present]
-      .map((id): Project => ({ id, name: id.split('/').filter(Boolean).pop() ?? id, path: id, seed: fnv1a(id), order: this.projectOrders.get(id) ?? 0 }))
+      .map((id): Project => ({
+        id,
+        name: id.split('/').filter(Boolean).pop() ?? id,
+        path: id,
+        seed: fnv1a(id),
+        order: this.projectOrders.get(id) ?? 0,
+      }))
       .sort((a, b) => a.order - b.order);
   }
 
@@ -314,8 +355,14 @@ export class Office {
   }
 
   private alertWaiting(agent: Agent): void {
-    const detail = agent.permission !== undefined ? (agent.permission.summaryMsg ?? agent.permission.summary) : (agent.waitingForMsg ?? agent.waitingFor);
-    const message = detail === undefined ? msg('notice.needs', { name: agent.name }) : msg('notice.needs.detail', { name: agent.name, detail });
+    const detail =
+      agent.permission !== undefined
+        ? (agent.permission.summaryMsg ?? agent.permission.summary)
+        : (agent.waitingForMsg ?? agent.waitingFor);
+    const message =
+      detail === undefined
+        ? msg('notice.needs', { name: agent.name })
+        : msg('notice.needs.detail', { name: agent.name, detail });
     this.notice('alert', message, agent.id, agent.projectId, `alert:${agent.id}:${this.deps.now()}`);
   }
 
@@ -340,11 +387,22 @@ export class Office {
     return person;
   }
 
-  private noticesFor(record: SessionRecord, sub: SubRecord | undefined, name: string, effects: ApplyEffects, at: number): void {
+  private noticesFor(
+    record: SessionRecord,
+    sub: SubRecord | undefined,
+    name: string,
+    effects: ApplyEffects,
+    at: number,
+  ): void {
     const agentId = sub === undefined ? mainAgentId(record) : subAgentId(record, sub.agentId);
     const projectId = projectPathOf(record);
     if (effects.turnCompleted !== undefined) {
-      this.notice('success', msg('notice.done', { name, duration: durationMsg(effects.turnCompleted.durationMs) }), agentId, projectId);
+      this.notice(
+        'success',
+        msg('notice.done', { name, duration: durationMsg(effects.turnCompleted.durationMs) }),
+        agentId,
+        projectId,
+      );
     }
     if (effects.error !== undefined) {
       const last = this.lastErrorNotice.get(agentId) ?? 0;

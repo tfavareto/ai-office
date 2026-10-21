@@ -2,15 +2,34 @@
 // a finger curl per hand. Pure data, so blending and the solvers are testable without a skeleton.
 
 export const BONES = [
-  'pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'head',
-  'clavicle_l', 'upperarm_l', 'lowerarm_l', 'hand_l',
-  'clavicle_r', 'upperarm_r', 'lowerarm_r', 'hand_r',
-  'thigh_l', 'calf_l', 'foot_l', 'thigh_r', 'calf_r', 'foot_r',
+  'pelvis',
+  'spine_01',
+  'spine_02',
+  'spine_03',
+  'neck_01',
+  'head',
+  'clavicle_l',
+  'upperarm_l',
+  'lowerarm_l',
+  'hand_l',
+  'clavicle_r',
+  'upperarm_r',
+  'lowerarm_r',
+  'hand_r',
+  'thigh_l',
+  'calf_l',
+  'foot_l',
+  'thigh_r',
+  'calf_r',
+  'foot_r',
 ] as const;
 
 export type BoneName = (typeof BONES)[number];
 
-export const BONE_INDEX: Readonly<Record<BoneName, number>> = Object.fromEntries(BONES.map((b, i) => [b, i])) as Record<BoneName, number>;
+export const BONE_INDEX: Readonly<Record<BoneName, number>> = Object.fromEntries(BONES.map((b, i) => [b, i])) as Record<
+  BoneName,
+  number
+>;
 
 const PELVIS_OFFSET = BONES.length * 3;
 const CURL_OFFSET = PELVIS_OFFSET + 3;

@@ -1,7 +1,14 @@
 // Account and project colors (pure, deterministic).
 
 export const ACCOUNT_COLORS: readonly string[] = [
-  '#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444', '#84cc16',
+  '#3b82f6',
+  '#f59e0b',
+  '#10b981',
+  '#ec4899',
+  '#8b5cf6',
+  '#06b6d4',
+  '#ef4444',
+  '#84cc16',
 ];
 
 /** Color of the n-th account (wraps around the palette). */

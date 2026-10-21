@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { resolveInboxKey, type InboxKeyEvent } from './inbox-keys';
 
-const key = (name: string, over: Partial<InboxKeyEvent> = {}): InboxKeyEvent => ({ key: name, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...over });
+const key = (name: string, over: Partial<InboxKeyEvent> = {}): InboxKeyEvent => ({
+  key: name,
+  ctrlKey: false,
+  metaKey: false,
+  altKey: false,
+  shiftKey: false,
+  ...over,
+});
 const FREE = { editing: false, onControl: false };
 
 describe('resolveInboxKey', () => {

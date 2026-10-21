@@ -38,7 +38,18 @@ export interface ScanResult {
 }
 
 export function newFileState(file: TranscriptFile): FileState {
-  return { account: file.account, rel: file.rel, session: file.session, agent: file.agent, project: '', offset: 0, mtimeMs: file.mtimeMs, ino: file.ino, head: 0, recent: [] };
+  return {
+    account: file.account,
+    rel: file.rel,
+    session: file.session,
+    agent: file.agent,
+    project: '',
+    offset: 0,
+    mtimeMs: file.mtimeMs,
+    ino: file.ino,
+    head: 0,
+    recent: [],
+  };
 }
 
 export async function headHash(path: string): Promise<number> {
@@ -53,10 +64,25 @@ export async function headHash(path: string): Promise<number> {
   }
 }
 
-const usageOf = (message: RecentMessage): UsageInfo => ({ input: message.input, output: message.output, cacheWrite5m: message.cacheWrite5m, cacheWrite1h: message.cacheWrite1h, cacheRead: message.cacheRead });
+const usageOf = (message: RecentMessage): UsageInfo => ({
+  input: message.input,
+  output: message.output,
+  cacheWrite5m: message.cacheWrite5m,
+  cacheWrite1h: message.cacheWrite1h,
+  cacheRead: message.cacheRead,
+});
 
 function recentOf(id: string, hour: number, model: string, usage: UsageInfo): RecentMessage {
-  return { id, hour, model, input: usage.input, output: usage.output, cacheWrite5m: usage.cacheWrite5m, cacheWrite1h: usage.cacheWrite1h, cacheRead: usage.cacheRead };
+  return {
+    id,
+    hour,
+    model,
+    input: usage.input,
+    output: usage.output,
+    cacheWrite5m: usage.cacheWrite5m,
+    cacheWrite1h: usage.cacheWrite1h,
+    cacheRead: usage.cacheRead,
+  };
 }
 
 interface Counted {
@@ -65,10 +91,17 @@ interface Counted {
 }
 
 /** Row delta of a sample (the whole message, or the growth of one already seen) and the message to remember. */
-function countSample(state: FileState, sample: UsageSample, previous: RecentMessage | undefined): { counted: Counted; remember: RecentMessage | undefined } {
+function countSample(
+  state: FileState,
+  sample: UsageSample,
+  previous: RecentMessage | undefined,
+): { counted: Counted; remember: RecentMessage | undefined } {
   const model = previous?.model ?? sample.model;
   const hour = previous?.hour ?? Math.floor(sample.at / HOUR_MS) * HOUR_MS;
-  const before: UsageInfo = previous === undefined ? { input: 0, output: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0 } : usageOf(previous);
+  const before: UsageInfo =
+    previous === undefined
+      ? { input: 0, output: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0 }
+      : usageOf(previous);
   const after = previous === undefined ? sample.usage : mergeUsage(before, sample.usage);
   const cost = (usageCostUSD(model, after) ?? 0) - (previous === undefined ? 0 : (usageCostUSD(model, before) ?? 0));
   const writes = after.cacheWrite5m + after.cacheWrite1h - (before.cacheWrite5m + before.cacheWrite1h);
@@ -85,10 +118,18 @@ function countSample(state: FileState, sample: UsageSample, previous: RecentMess
     cacheRead: after.cacheRead - before.cacheRead,
     costUSD: cost,
   };
-  return { counted: { row, tokens: row.input + row.output + row.cacheWrite }, remember: sample.messageId === undefined ? undefined : recentOf(sample.messageId, hour, model, after) };
+  return {
+    counted: { row, tokens: row.input + row.output + row.cacheWrite },
+    remember: sample.messageId === undefined ? undefined : recentOf(sample.messageId, hour, model, after),
+  };
 }
 
-function applySample(state: FileState, sample: UsageSample, memory: Map<string, RecentMessage>, context: ScanContext): void {
+function applySample(
+  state: FileState,
+  sample: UsageSample,
+  memory: Map<string, RecentMessage>,
+  context: ScanContext,
+): void {
   if (state.project === '' && sample.cwd !== undefined) state.project = sample.cwd;
   const previous = sample.messageId === undefined ? undefined : memory.get(sample.messageId);
   const { counted, remember } = countSample(state, sample, previous);
@@ -104,11 +145,23 @@ function applySample(state: FileState, sample: UsageSample, memory: Map<string, 
  * Indexes the lines written since `previous.offset`. A file whose inode, size or first bytes no longer match what the
  * index remembers has been replaced: nothing is counted and `replaced` is true.
  */
-export async function scanTranscript(file: TranscriptFile, previous: FileState | undefined, context: ScanContext, verifyHead: boolean): Promise<ScanResult> {
+export async function scanTranscript(
+  file: TranscriptFile,
+  previous: FileState | undefined,
+  context: ScanContext,
+  verifyHead: boolean,
+): Promise<ScanResult> {
   const state: FileState = previous === undefined ? newFileState(file) : { ...previous, recent: [...previous.recent] };
-  const head = previous === undefined || verifyHead || previous.head === 0 ? await headHash(file.path).catch(() => undefined) : previous.head;
+  const head =
+    previous === undefined || verifyHead || previous.head === 0
+      ? await headHash(file.path).catch(() => undefined)
+      : previous.head;
   if (head === undefined) return { state, bytes: 0, replaced: false };
-  if (previous !== undefined && (file.ino !== previous.ino || file.size < previous.offset || (previous.head !== 0 && head !== previous.head))) return { state, bytes: 0, replaced: true };
+  if (
+    previous !== undefined &&
+    (file.ino !== previous.ino || file.size < previous.offset || (previous.head !== 0 && head !== previous.head))
+  )
+    return { state, bytes: 0, replaced: true };
   state.head = head;
   const tailer = new JsonlTailer(file.path, { startOffset: state.offset, maxBytesPerRead: READ_BYTES });
   const memory = new Map(state.recent.map((message) => [message.id, message]));

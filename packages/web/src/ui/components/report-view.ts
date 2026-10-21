@@ -24,10 +24,21 @@ export class ReportView {
   private readonly picker = h('div', { class: 'ao-report-days', role: 'group', 'aria-label': t('report.days') });
   private readonly notices = h('div', { class: 'ao-report-notices' });
   private readonly content = h('div', { class: 'ao-report-content' });
-  private readonly groupSegment = createSegmented<ReportGroupBy>(t('report.group'), [{ value: 'project', label: t('report.group.project') }, { value: 'agent', label: t('report.group.agent') }], (value) => this.setGroup(value));
+  private readonly groupSegment = createSegmented<ReportGroupBy>(
+    t('report.group'),
+    [
+      { value: 'project', label: t('report.group.project') },
+      { value: 'agent', label: t('report.group.agent') },
+    ],
+    (value) => this.setGroup(value),
+  );
   private readonly requestsSwitch = createSwitch(t('report.requests'), (on) => this.setRequests(on));
   private readonly copyBtn = button({ label: t('report.copy'), icon: 'copy', onClick: () => this.copyMarkdown() });
-  private readonly downloadBtn = button({ label: t('report.download'), icon: 'arrowDown', onClick: () => this.download() });
+  private readonly downloadBtn = button({
+    label: t('report.download'),
+    icon: 'arrowDown',
+    onClick: () => this.download(),
+  });
   private date = '';
   private groupBy: ReportGroupBy = 'project';
   private includeRequests = false;
@@ -42,12 +53,25 @@ export class ReportView {
 
   constructor(private readonly ctx: AppContext) {
     this.requestsSwitch.el.title = t('report.requests.hint');
-    const requests = h('label', { class: 'ao-switch-row', title: t('report.requests.hint') }, h('span', null, t('report.requests')), this.requestsSwitch.el);
+    const requests = h(
+      'label',
+      { class: 'ao-switch-row', title: t('report.requests.hint') },
+      h('span', null, t('report.requests')),
+      this.requestsSwitch.el,
+    );
     const toolbar = h(
       'div',
       { class: 'ao-report-toolbar' },
       this.picker,
-      h('div', { class: 'ao-report-options' }, this.groupSegment.el, requests, h('span', { class: 'ao-report-spacer' }), this.copyBtn, this.downloadBtn),
+      h(
+        'div',
+        { class: 'ao-report-options' },
+        this.groupSegment.el,
+        requests,
+        h('span', { class: 'ao-report-spacer' }),
+        this.copyBtn,
+        this.downloadBtn,
+      ),
     );
     this.el = h('div', { class: 'ao-report' }, toolbar, this.notices, this.content);
   }
@@ -97,7 +121,11 @@ export class ReportView {
     this.signature = '';
     this.ctx.refresh();
     try {
-      const report = await this.ctx.store.backend.dayReport({ date: this.date, account: this.account(), includeRequests: this.includeRequests });
+      const report = await this.ctx.store.backend.dayReport({
+        date: this.date,
+        account: this.account(),
+        includeRequests: this.includeRequests,
+      });
       if (token !== this.token) return;
       this.report = report;
       this.state = 'ready';
@@ -119,7 +147,10 @@ export class ReportView {
   private markdown(): string | null {
     if (this.report === null || this.state !== 'ready') return null;
     const account = this.report.account === 'all' ? undefined : this.ctx.account(this.report.account);
-    return renderReportMarkdown(this.report, { groupBy: this.groupBy, ...(account !== undefined ? { accountLabel: accountLabel(account) } : {}) });
+    return renderReportMarkdown(this.report, {
+      groupBy: this.groupBy,
+      ...(account !== undefined ? { accountLabel: accountLabel(account) } : {}),
+    });
   }
 
   private copyMarkdown(): void {
@@ -145,7 +176,10 @@ export class ReportView {
   update(): void {
     this.syncControls();
     const key = this.key();
-    const stale = this.state === 'ready' && this.date === toDateKey(this.ctx.store.now()) && this.ctx.store.now() - this.loadedAt >= REFRESH_MS;
+    const stale =
+      this.state === 'ready' &&
+      this.date === toDateKey(this.ctx.store.now()) &&
+      this.ctx.store.now() - this.loadedAt >= REFRESH_MS;
     if (this.state !== 'loading' && (key !== this.loadedKey || stale)) void this.load(key === this.loadedKey);
     const signature = `${this.state}|${this.report?.generatedAt ?? 0}|${this.groupBy}|${this.report?.includeRequests ?? false}`;
     if (signature === this.signature) return;
@@ -161,7 +195,17 @@ export class ReportView {
       this.picker.replaceChildren(
         ...dates.map((date, index) => {
           const on = date === this.date;
-          return h('button', { type: 'button', class: `ao-chip${on ? ' is-on' : ''}`, 'aria-pressed': String(on), title: formatDateKey(date), onclick: () => this.setDate(date) }, h('span', null, pickerLabel(date, index)));
+          return h(
+            'button',
+            {
+              type: 'button',
+              class: `ao-chip${on ? ' is-on' : ''}`,
+              'aria-pressed': String(on),
+              title: formatDateKey(date),
+              onclick: () => this.setDate(date),
+            },
+            h('span', null, pickerLabel(date, index)),
+          );
         }),
       );
     }
@@ -177,11 +221,28 @@ export class ReportView {
   private renderContent(): void {
     const report = this.report;
     this.notices.replaceChildren();
-    if (this.state === 'loading' && report === null) return this.content.replaceChildren(emptyNote(t('report.loading')));
-    if (this.state === 'error') return this.content.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load(false) }, t('common.retry')));
+    if (this.state === 'loading' && report === null)
+      return this.content.replaceChildren(emptyNote(t('report.loading')));
+    if (this.state === 'error')
+      return this.content.replaceChildren(
+        h('p', { class: 'ao-error' }, this.error),
+        h(
+          'button',
+          { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load(false) },
+          t('common.retry'),
+        ),
+      );
     if (report === null) return;
-    const notices = [report.demo === true ? t('report.notice.demo') : null, report.usageIndexing === true ? t('report.notice.indexing') : null, report.truncated === true ? t('report.notice.truncated') : null];
-    this.notices.replaceChildren(...notices.filter((text): text is string => text !== null).map((text) => h('p', { class: 'ao-report-notice' }, text)));
+    const notices = [
+      report.demo === true ? t('report.notice.demo') : null,
+      report.usageIndexing === true ? t('report.notice.indexing') : null,
+      report.truncated === true ? t('report.notice.truncated') : null,
+    ];
+    this.notices.replaceChildren(
+      ...notices
+        .filter((text): text is string => text !== null)
+        .map((text) => h('p', { class: 'ao-report-notice' }, text)),
+    );
     if (!hasActivity(report)) return this.content.replaceChildren(emptyNote(t('report.empty')));
     const start = dayRange(report.date)?.start ?? this.ctx.store.now();
     this.content.replaceChildren(...reportBody(report, start, this.groupBy, reportHighlights(report)));

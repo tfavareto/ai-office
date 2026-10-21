@@ -1,5 +1,22 @@
 import { describe, expect, test } from 'vitest';
-import { BIG_SKIP_MS, DEFAULT_SPEED, MAX_FRAME_MS, SKIP_MS, SPEEDS, advance, atEnd, isSpeed, pause, progress, seek, setSpeed, skip, startClock, timeAt, togglePlay } from './clock';
+import {
+  BIG_SKIP_MS,
+  DEFAULT_SPEED,
+  MAX_FRAME_MS,
+  SKIP_MS,
+  SPEEDS,
+  advance,
+  atEnd,
+  isSpeed,
+  pause,
+  progress,
+  seek,
+  setSpeed,
+  skip,
+  startClock,
+  timeAt,
+  togglePlay,
+} from './clock';
 
 const FROM = 1_000_000;
 const TO = FROM + 8 * 3_600_000;

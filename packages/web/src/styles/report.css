@@ -121,8 +121,12 @@
   overflow-wrap: anywhere;
 }
 
-.ao-report-tile.is-good .ao-report-tile-hint { color: var(--working); }
-.ao-report-tile.is-bad .ao-report-tile-hint { color: var(--error); }
+.ao-report-tile.is-good .ao-report-tile-hint {
+  color: var(--working);
+}
+.ao-report-tile.is-bad .ao-report-tile-hint {
+  color: var(--error);
+}
 
 /* Activity strip: one cell per half hour. */
 .ao-report-timeline {
@@ -267,8 +271,12 @@
   font-size: 11.5px;
 }
 
-.ao-report-chip.is-good { color: var(--working); }
-.ao-report-chip.is-bad { color: var(--error); }
+.ao-report-chip.is-good {
+  color: var(--working);
+}
+.ao-report-chip.is-bad {
+  color: var(--error);
+}
 
 .ao-report-details summary {
   color: var(--accent);

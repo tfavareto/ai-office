@@ -29,10 +29,14 @@ export function tasksFromTodoWrite(input: Record<string, unknown>): TaskItem[] {
 
 /** TaskCreate appends a pending task. `id` is provisional until the tool result reveals the real one. */
 export function appendTask(tasks: readonly TaskItem[], input: Record<string, unknown>, id: string): TaskItem[] {
-  const title = asString(input.subject) ?? asString(input.title) ?? asString(input.content) ?? asString(input.description);
+  const title =
+    asString(input.subject) ?? asString(input.title) ?? asString(input.content) ?? asString(input.description);
   if (title === undefined || title.trim().length === 0) return [...tasks];
   const activeForm = asString(input.activeForm);
-  return [...tasks, { id, title: title.trim(), ...(activeForm !== undefined ? { activeForm } : {}), status: 'pending' }];
+  return [
+    ...tasks,
+    { id, title: title.trim(), ...(activeForm !== undefined ? { activeForm } : {}), status: 'pending' },
+  ];
 }
 
 /** TaskUpdate changes status/title of an existing task (status "deleted" removes it). */

@@ -71,7 +71,12 @@ function replayKey(event: KeyLike): ShortcutAction | null {
  * themselves when they have something to cancel); Ctrl/Cmd+F is claimed only while the terminal is open. While a
  * time-lapse is on and no dialog or popover is open (`replay`), Space and the arrows drive it.
  */
-export function resolveShortcut(event: KeyLike, editing: boolean, terminalOpen: boolean, replay = false): ShortcutAction | null {
+export function resolveShortcut(
+  event: KeyLike,
+  editing: boolean,
+  terminalOpen: boolean,
+  replay = false,
+): ShortcutAction | null {
   if (event.key === 'Escape') return 'escape';
   const modifier = event.ctrlKey || event.metaKey;
   if (modifier && !event.altKey && event.key.toLowerCase() === 'f') return terminalOpen ? 'find' : null;

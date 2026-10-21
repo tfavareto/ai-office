@@ -6,7 +6,17 @@ import type { HireCheckResponse, HireResponse } from '@ai-office/shared';
 import { type App, createApp } from '../app';
 import { loadConfig } from '../config';
 import { silentLogger } from '../log';
-import { assistantLine, freePort, jsonl, makeFakeClaude, makeTempDir, removeDir, text, userLine, type FakeClaudeDir } from '../test-helpers';
+import {
+  assistantLine,
+  freePort,
+  jsonl,
+  makeFakeClaude,
+  makeTempDir,
+  removeDir,
+  text,
+  userLine,
+  type FakeClaudeDir,
+} from '../test-helpers';
 import type { TerminalLauncher } from '../hire/terminals';
 
 let fake: FakeClaudeDir;
@@ -27,8 +37,16 @@ async function boot(extraEnv: NodeJS.ProcessEnv = {}, claude: string | null = '/
       return 'Fake';
     },
   };
-  const config = loadConfig({ HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web, ...extraEnv }, [], web);
-  app = createApp(config, silentLogger, { pidAlive: () => true, version: '9.9.9', hire: { launcher, resolveClaude: () => claude ?? undefined, tmpDir: tmp } });
+  const config = loadConfig(
+    { HOME: fake.home, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_WEB_DIR: web, ...extraEnv },
+    [],
+    web,
+  );
+  app = createApp(config, silentLogger, {
+    pidAlive: () => true,
+    version: '9.9.9',
+    hire: { launcher, resolveClaude: () => claude ?? undefined, tmpDir: tmp },
+  });
   await app.start();
   base = `http://127.0.0.1:${port}`;
 }
@@ -46,8 +64,20 @@ afterEach(async () => {
   for (const dir of [fake.home, state, join(web, '..'), tmp, project]) await removeDir(dir);
 });
 
-const apiFetch = (path: string, init: RequestInit = {}): Promise<Response> => fetch(`${base}${path}`, { ...init, headers: { authorization: `Bearer ${app.context.auth.value}`, ...(init.headers as Record<string, string> | undefined) } });
-const hire = (body: unknown): Promise<Response> => apiFetch('/api/agents/hire', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const apiFetch = (path: string, init: RequestInit = {}): Promise<Response> =>
+  fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      authorization: `Bearer ${app.context.auth.value}`,
+      ...(init.headers as Record<string, string> | undefined),
+    },
+  });
+const hire = (body: unknown): Promise<Response> =>
+  apiFetch('/api/agents/hire', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 const until = async (check: () => boolean, ms = 10_000): Promise<void> => {
   const deadline = Date.now() + ms;
   while (!check()) {
@@ -98,7 +128,10 @@ describe('POST /api/agents/hire', () => {
       [{ projectPath: 'relative' }, 'invalid-projectPath'],
     ] as const) {
       const response = await hire(body);
-      expect([response.status, ((await response.json()) as { error: string }).error], JSON.stringify(body)).toEqual([400, error]);
+      expect([response.status, ((await response.json()) as { error: string }).error], JSON.stringify(body)).toEqual([
+        400,
+        error,
+      ]);
     }
     expect(scripts).toHaveLength(0);
   });
@@ -136,9 +169,27 @@ describe('POST /api/agents/hire', () => {
     await boot();
     const body = JSON.stringify({ projectPath: project });
 
-    expect((await fetch(`${base}/api/agents/hire`, { method: 'POST', headers: { 'content-type': 'application/json' }, body })).status).toBe(401);
-    expect((await apiFetch('/api/agents/hire', { method: 'POST', headers: { 'content-type': 'text/plain' }, body })).status).toBe(415);
-    expect((await apiFetch('/api/agents/hire', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body })).status).toBe(403);
+    expect(
+      (
+        await fetch(`${base}/api/agents/hire`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body,
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (await apiFetch('/api/agents/hire', { method: 'POST', headers: { 'content-type': 'text/plain' }, body })).status,
+    ).toBe(415);
+    expect(
+      (
+        await apiFetch('/api/agents/hire', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+          body,
+        })
+      ).status,
+    ).toBe(403);
     expect((await apiFetch('/api/agents/hire', { method: 'GET' })).status).toBe(404);
     expect(scripts).toHaveLength(0);
   });
@@ -147,10 +198,23 @@ describe('POST /api/agents/hire', () => {
     await boot({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_ALLOW_REMOTE: '1' });
 
     const status = await new Promise<number>((resolve, reject) => {
-      const req = request({ host: '127.0.0.1', port, path: '/api/agents/hire', method: 'POST', headers: { host: `192.168.1.20:${port}`, 'content-type': 'application/json', authorization: `Bearer ${app.context.auth.value}` } }, (res) => {
-        res.resume();
-        resolve(res.statusCode ?? 0);
-      });
+      const req = request(
+        {
+          host: '127.0.0.1',
+          port,
+          path: '/api/agents/hire',
+          method: 'POST',
+          headers: {
+            host: `192.168.1.20:${port}`,
+            'content-type': 'application/json',
+            authorization: `Bearer ${app.context.auth.value}`,
+          },
+        },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+        },
+      );
       req.on('error', reject);
       req.end(JSON.stringify({ projectPath: project }));
     });
@@ -163,18 +227,27 @@ describe('POST /api/agents/hire', () => {
     await boot();
     app.context.setDemo(true);
 
-    const response = await hire({ projectPath: '/Users/demo/projetos/loja-online', accountId: 'demo-trabalho', prompt: 'Revisar' });
+    const response = await hire({
+      projectPath: '/Users/demo/projetos/loja-online',
+      accountId: 'demo-trabalho',
+      prompt: 'Revisar',
+    });
 
     expect(response.status).toBe(202);
     expect(scripts).toHaveLength(0);
-    expect(app.context.snapshots.build().hires?.[0]).toMatchObject({ demo: true, projectId: '/Users/demo/projetos/loja-online', accountId: 'demo-trabalho' });
+    expect(app.context.snapshots.build().hires?.[0]).toMatchObject({
+      demo: true,
+      projectId: '/Users/demo/projetos/loja-online',
+      accountId: 'demo-trabalho',
+    });
   });
 });
 
 describe('GET /api/agents/hire/check', () => {
   test('tells whether a folder can host an agent', async () => {
     await boot();
-    const check = async (path: string): Promise<HireCheckResponse> => (await (await apiFetch(`/api/agents/hire/check?path=${encodeURIComponent(path)}`)).json()) as HireCheckResponse;
+    const check = async (path: string): Promise<HireCheckResponse> =>
+      (await (await apiFetch(`/api/agents/hire/check?path=${encodeURIComponent(path)}`)).json()) as HireCheckResponse;
 
     expect(await check(project)).toEqual({ ok: true });
     expect(await check(join(project, 'nope'))).toEqual({ ok: false, reason: 'not-found' });

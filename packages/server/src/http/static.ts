@@ -74,7 +74,12 @@ export class StaticServer {
   }
 
   /** `indexHeaders` are added to responses that serve index.html (the session cookie). */
-  async handle(req: IncomingMessage, res: ServerResponse, pathname: string, indexHeaders: Record<string, string> = {}): Promise<void> {
+  async handle(
+    req: IncomingMessage,
+    res: ServerResponse,
+    pathname: string,
+    indexHeaders: Record<string, string> = {},
+  ): Promise<void> {
     const head = req.method === 'HEAD';
     const target = resolveInside(this.root, pathname === '/' ? '/index.html' : pathname);
     if (target === undefined) return this.reply(res, 400, 'text/plain; charset=utf-8', 'Caminho inválido', head);
@@ -94,7 +99,9 @@ export class StaticServer {
       res.end();
       return;
     }
-    createReadStream(file.path).on('error', () => res.destroy()).pipe(res);
+    createReadStream(file.path)
+      .on('error', () => res.destroy())
+      .pipe(res);
   }
 
   private async findFile(target: string, pathname: string): Promise<{ path: string; size: number } | undefined> {
@@ -116,12 +123,17 @@ export class StaticServer {
 
   private cacheControl(path: string): string {
     if (path.endsWith('index.html')) return 'no-cache';
-    if (path.includes(`${sep}assets${sep}`) && /-[A-Za-z0-9_-]{6,}\./.test(path)) return 'public, max-age=31536000, immutable';
+    if (path.includes(`${sep}assets${sep}`) && /-[A-Za-z0-9_-]{6,}\./.test(path))
+      return 'public, max-age=31536000, immutable';
     return 'public, max-age=3600';
   }
 
   private reply(res: ServerResponse, status: number, type: string, body: string, head: boolean): void {
-    res.writeHead(status, { 'Content-Type': type, 'Content-Length': Buffer.byteLength(body), 'Cache-Control': 'no-cache' });
+    res.writeHead(status, {
+      'Content-Type': type,
+      'Content-Length': Buffer.byteLength(body),
+      'Cache-Control': 'no-cache',
+    });
     res.end(head ? undefined : body);
   }
 }

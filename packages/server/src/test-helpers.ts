@@ -34,10 +34,25 @@ export async function freePort(): Promise<number> {
 const BASE = { userType: 'external', entrypoint: 'cli', version: '2.1.0' };
 
 export function userLine(text: string, offsetMs: number, extra: Record<string, unknown> = {}): string {
-  return JSON.stringify({ ...BASE, type: 'user', timestamp: iso(offsetMs), cwd: '/work/proj', gitBranch: 'main', permissionMode: 'default', message: { role: 'user', content: text }, ...extra });
+  return JSON.stringify({
+    ...BASE,
+    type: 'user',
+    timestamp: iso(offsetMs),
+    cwd: '/work/proj',
+    gitBranch: 'main',
+    permissionMode: 'default',
+    message: { role: 'user', content: text },
+    ...extra,
+  });
 }
 
-export function toolResultLine(toolUseId: string, content: string, offsetMs: number, extra: Record<string, unknown> = {}, isError = false): string {
+export function toolResultLine(
+  toolUseId: string,
+  content: string,
+  offsetMs: number,
+  extra: Record<string, unknown> = {},
+  isError = false,
+): string {
   return JSON.stringify({
     ...BASE,
     type: 'user',
@@ -68,7 +83,12 @@ export function assistantLine(blocks: unknown[], offsetMs: number, options: Assi
       model: options.model ?? 'claude-sonnet-5-5',
       content: blocks,
       stop_reason: options.stopReason ?? null,
-      usage: options.usage ?? { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 100, cache_read_input_tokens: 1000 },
+      usage: options.usage ?? {
+        input_tokens: 10,
+        output_tokens: 5,
+        cache_creation_input_tokens: 100,
+        cache_read_input_tokens: 1000,
+      },
     },
     ...options.extra,
   });
@@ -76,7 +96,12 @@ export function assistantLine(blocks: unknown[], offsetMs: number, options: Assi
 
 export const text = (value: string): unknown => ({ type: 'text', text: value });
 export const thinking = (value = ''): unknown => ({ type: 'thinking', thinking: value });
-export const toolUse = (id: string, name: string, input: Record<string, unknown>): unknown => ({ type: 'tool_use', id, name, input });
+export const toolUse = (id: string, name: string, input: Record<string, unknown>): unknown => ({
+  type: 'tool_use',
+  id,
+  name,
+  input,
+});
 
 export function jsonl(...lines: string[]): string {
   return `${lines.join('\n')}\n`;
@@ -89,7 +114,13 @@ export interface FakeClaudeDir {
   writeRegistry(pid: number, entry: Record<string, unknown>): Promise<void>;
   writeTranscript(sessionId: string, content: string, cwd?: string): Promise<string>;
   appendTranscript(sessionId: string, content: string, cwd?: string): Promise<void>;
-  writeSubagent(sessionId: string, agentId: string, content: string, meta?: Record<string, unknown>, cwd?: string): Promise<void>;
+  writeSubagent(
+    sessionId: string,
+    agentId: string,
+    content: string,
+    meta?: Record<string, unknown>,
+    cwd?: string,
+  ): Promise<void>;
   cleanup(): Promise<void>;
 }
 
@@ -106,7 +137,10 @@ export async function makeFakeClaude(): Promise<FakeClaudeDir> {
     home,
     transcriptPath,
     async writeRegistry(pid, entry) {
-      await writeFile(join(dir, 'sessions', `${pid}.json`), JSON.stringify({ pid, cwd: '/work/proj', startedAt: T0 - 60_000, kind: 'interactive', ...entry }));
+      await writeFile(
+        join(dir, 'sessions', `${pid}.json`),
+        JSON.stringify({ pid, cwd: '/work/proj', startedAt: T0 - 60_000, kind: 'interactive', ...entry }),
+      );
     },
     async writeTranscript(sessionId, content, cwd = '/work/proj') {
       await mkdir(folder(cwd), { recursive: true });

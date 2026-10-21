@@ -37,7 +37,12 @@ describe('axisTicks', () => {
   });
 
   test('coarser for a long span and never more than seven labels', () => {
-    for (const [from, to] of [[at(0), at(23, 59)], [at(1), at(20)], [at(9), at(9, 20)]] as const) expect(axisTicks(from, to).length).toBeLessThanOrEqual(7);
+    for (const [from, to] of [
+      [at(0), at(23, 59)],
+      [at(1), at(20)],
+      [at(9), at(9, 20)],
+    ] as const)
+      expect(axisTicks(from, to).length).toBeLessThanOrEqual(7);
   });
 
   test('nothing for an empty span', () => {
@@ -65,7 +70,11 @@ describe('markerStep', () => {
 
 describe('liveAttention', () => {
   test('counts the people of the live office who are waiting for the user', () => {
-    const snapshot = makeSnapshot(1, [makeAgent('ana', 0, 'waiting'), makeAgent('bia', 0, 'working'), makeAgent('caio', 0, 'waiting')]);
+    const snapshot = makeSnapshot(1, [
+      makeAgent('ana', 0, 'waiting'),
+      makeAgent('bia', 0, 'working'),
+      makeAgent('caio', 0, 'waiting'),
+    ]);
 
     expect(liveAttention(snapshot)).toBe(2);
     expect(liveAttention(null)).toBe(0);

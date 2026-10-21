@@ -18,7 +18,13 @@ export interface TagItem {
   bubble: { text: string; icon: string; sticky: boolean } | null;
 }
 
-const STATUS_COLOR: Record<AgentStatus, string> = { working: '#3ecf8e', waiting: '#ffbe3c', idle: '#8d99ad', done: '#6ea2ff', offline: '#5a6372' };
+const STATUS_COLOR: Record<AgentStatus, string> = {
+  working: '#3ecf8e',
+  waiting: '#ffbe3c',
+  idle: '#8d99ad',
+  done: '#6ea2ff',
+  offline: '#5a6372',
+};
 const FONT = '"Inter", "SF Pro Text", system-ui, sans-serif';
 
 interface Sprite {
@@ -92,33 +98,38 @@ export class LabelOverlay {
     const subLabel = this.text.t('overlay.sub');
     const w = textW + 28 + (item.sub ? 30 : 0);
     const h = 20;
-    return this.sprite(`tag|${item.name}|${item.accent}|${item.status}|${item.sub}|${item.emphasis}|${this.text.locale}`, w, h, (ctx) => {
-      roundRect(ctx, 0.5, 0.5, w - 1, h - 1, 10);
-      ctx.fillStyle = item.emphasis ? 'rgba(20,28,44,0.94)' : 'rgba(14,19,30,0.74)';
-      ctx.fill();
-      ctx.strokeStyle = item.emphasis ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.14)';
-      ctx.stroke();
-      ctx.fillStyle = item.accent;
-      ctx.beginPath();
-      ctx.arc(10, h / 2, 3.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = STATUS_COLOR[item.status];
-      ctx.beginPath();
-      ctx.arc(w - 9, h / 2, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.font = font;
-      ctx.fillStyle = '#f2f5fa';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.name, 18, h / 2 + 0.5);
-      if (item.sub) {
-        ctx.fillStyle = '#7a5cc7';
-        roundRect(ctx, w - 40, 4, 26, 12, 6);
+    return this.sprite(
+      `tag|${item.name}|${item.accent}|${item.status}|${item.sub}|${item.emphasis}|${this.text.locale}`,
+      w,
+      h,
+      (ctx) => {
+        roundRect(ctx, 0.5, 0.5, w - 1, h - 1, 10);
+        ctx.fillStyle = item.emphasis ? 'rgba(20,28,44,0.94)' : 'rgba(14,19,30,0.74)';
         ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = `700 8px ${FONT}`;
-        ctx.fillText(subLabel, w - 36, h / 2 + 0.5);
-      }
-    });
+        ctx.strokeStyle = item.emphasis ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.14)';
+        ctx.stroke();
+        ctx.fillStyle = item.accent;
+        ctx.beginPath();
+        ctx.arc(10, h / 2, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = STATUS_COLOR[item.status];
+        ctx.beginPath();
+        ctx.arc(w - 9, h / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = font;
+        ctx.fillStyle = '#f2f5fa';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.name, 18, h / 2 + 0.5);
+        if (item.sub) {
+          ctx.fillStyle = '#7a5cc7';
+          roundRect(ctx, w - 40, 4, 26, 12, 6);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = `700 8px ${FONT}`;
+          ctx.fillText(subLabel, w - 36, h / 2 + 0.5);
+        }
+      },
+    );
   }
 
   private bubble(b: NonNullable<TagItem['bubble']>): Sprite {
@@ -158,15 +169,33 @@ export class LabelOverlay {
       let y = item.sy - 6;
       if (showNames || item.emphasis || item.arriving) {
         const t = this.tag(item);
-        ctx.drawImage(t.canvas, Math.round((item.sx - t.w / 2) * dpr), Math.round((y - t.h) * dpr), t.canvas.width, t.canvas.height);
+        ctx.drawImage(
+          t.canvas,
+          Math.round((item.sx - t.w / 2) * dpr),
+          Math.round((y - t.h) * dpr),
+          t.canvas.width,
+          t.canvas.height,
+        );
         y -= t.h + 3;
       }
       if (item.bubble) {
         const b = this.bubble(item.bubble);
-        ctx.drawImage(b.canvas, Math.round((item.sx - b.w / 2) * dpr), Math.round((y - b.h) * dpr), b.canvas.width, b.canvas.height);
+        ctx.drawImage(
+          b.canvas,
+          Math.round((item.sx - b.w / 2) * dpr),
+          Math.round((y - b.h) * dpr),
+          b.canvas.width,
+          b.canvas.height,
+        );
       } else if (item.alert) {
         const b = this.bubble({ text: '!', icon: '', sticky: true });
-        ctx.drawImage(b.canvas, Math.round((item.sx - b.w / 2) * dpr), Math.round((y - b.h) * dpr), b.canvas.width, b.canvas.height);
+        ctx.drawImage(
+          b.canvas,
+          Math.round((item.sx - b.w / 2) * dpr),
+          Math.round((y - b.h) * dpr),
+          b.canvas.width,
+          b.canvas.height,
+        );
       }
     }
     if (hint) this.drawHint(hint);

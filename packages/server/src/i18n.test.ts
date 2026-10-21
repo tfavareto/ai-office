@@ -23,32 +23,66 @@ describe('permission texts', () => {
     expect(describePermission('Outra', null)).toEqual({ summary: 'Outra' });
     const edit = describePermission('Edit', { file_path: 'src/app.ts' });
     expect(edit.summary).toBe('Editar src/app.ts');
-    expect([pt(edit.summaryMsg), en(edit.summaryMsg), es(edit.summaryMsg)]).toEqual(['Editar src/app.ts', 'Edit src/app.ts', 'Editar src/app.ts']);
+    expect([pt(edit.summaryMsg), en(edit.summaryMsg), es(edit.summaryMsg)]).toEqual([
+      'Editar src/app.ts',
+      'Edit src/app.ts',
+      'Editar src/app.ts',
+    ]);
     const write = describePermission('Write', {});
-    expect([write.summary, en(write.summaryMsg), es(write.summaryMsg)]).toEqual(['Escrever um arquivo', 'Write a file', 'Escribir un archivo']);
+    expect([write.summary, en(write.summaryMsg), es(write.summaryMsg)]).toEqual([
+      'Escrever um arquivo',
+      'Write a file',
+      'Escribir un archivo',
+    ]);
     const fetch = describePermission('WebFetch', { url: 'https://docs.exemplo.com/x' });
-    expect([fetch.summary, en(fetch.summaryMsg), es(fetch.summaryMsg)]).toEqual(['Acessar docs.exemplo.com', 'Access docs.exemplo.com', 'Acceder a docs.exemplo.com']);
+    expect([fetch.summary, en(fetch.summaryMsg), es(fetch.summaryMsg)]).toEqual([
+      'Acessar docs.exemplo.com',
+      'Access docs.exemplo.com',
+      'Acceder a docs.exemplo.com',
+    ]);
     const search = describePermission('WebSearch', { query: 'vitest' });
-    expect([search.summary, en(search.summaryMsg), es(search.summaryMsg)]).toEqual(['Pesquisar “vitest”', 'Search “vitest”', 'Buscar “vitest”']);
+    expect([search.summary, en(search.summaryMsg), es(search.summaryMsg)]).toEqual([
+      'Pesquisar “vitest”',
+      'Search “vitest”',
+      'Buscar “vitest”',
+    ]);
     const bare = describePermission('Bash', {});
     expect([bare.summary, en(bare.summaryMsg)]).toEqual(['Executar um comando', 'Run a command']);
   });
 
   test('suggestion labels keep the pt-BR text and localize the scope', () => {
-    const rule = describeSuggestion({ type: 'addRules', behavior: 'allow', destination: 'localSettings', rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }] });
+    const rule = describeSuggestion({
+      type: 'addRules',
+      behavior: 'allow',
+      destination: 'localSettings',
+      rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }],
+    });
     expect([rule.label, en(rule.msg), es(rule.msg)]).toEqual([
       'Sempre permitir Bash(npm test:*) neste projeto',
       'Always allow Bash(npm test:*) for this project',
       'Permitir siempre Bash(npm test:*) en este proyecto',
     ]);
-    const deny = describeSuggestion({ type: 'addRules', behavior: 'deny', destination: 'userSettings', rules: [{ toolName: 'Read' }] });
+    const deny = describeSuggestion({
+      type: 'addRules',
+      behavior: 'deny',
+      destination: 'userSettings',
+      rules: [{ toolName: 'Read' }],
+    });
     expect([deny.label, en(deny.msg)]).toEqual(['Sempre recusar Read sempre', 'Always deny Read always']);
     const mode = describeSuggestion({ type: 'setMode', mode: 'acceptEdits', destination: 'session' });
-    expect([mode.label, en(mode.msg), es(mode.msg)]).toEqual(['Mudar para o modo acceptEdits nesta sessão', 'Switch to acceptEdits mode for this session', 'Cambiar al modo acceptEdits en esta sesión']);
+    expect([mode.label, en(mode.msg), es(mode.msg)]).toEqual([
+      'Mudar para o modo acceptEdits nesta sessão',
+      'Switch to acceptEdits mode for this session',
+      'Cambiar al modo acceptEdits en esta sesión',
+    ]);
     const dirs = describeSuggestion({ type: 'addDirectories', directories: ['/a', '/b'] });
     expect([dirs.label, en(dirs.msg)]).toEqual(['Permitir acesso a /a, /b', 'Allow access to /a, /b']);
     const fallback = describeSuggestion(42);
-    expect([fallback.label, en(fallback.msg), es(fallback.msg)]).toEqual(['Lembrar esta decisão', 'Remember this decision', 'Recordar esta decisión']);
+    expect([fallback.label, en(fallback.msg), es(fallback.msg)]).toEqual([
+      'Lembrar esta decisão',
+      'Remember this decision',
+      'Recordar esta decisión',
+    ]);
     expect(en(describeSuggestion({ type: 'setMode' }).msg)).toBe('Switch to new mode');
   });
 });
@@ -57,11 +91,31 @@ describe('status reasons', () => {
   const base = { now: 1_000_000, turn: 'idle' as const, lastEventAt: 999_000, permissionPending: false };
 
   test('generated waiting reasons carry a message; attention without one stays plain', () => {
-    expect(deriveStatus({ ...base, attentionMessage: 'Precisa de você', attentionMsg: NEEDS_YOU_MSG })).toEqual({ status: 'waiting', waitingFor: 'Precisa de você', waitingForMsg: { key: 'waiting.needsYou' } });
-    expect(deriveStatus({ ...base, registryStatus: 'waiting', turn: 'working' })).toMatchObject({ status: 'waiting', waitingFor: 'Precisa de você', waitingForMsg: { key: 'waiting.needsYou' } });
-    const approve = deriveStatus({ ...base, registryStatus: 'waiting', turn: 'working', blockingTool: { name: 'Bash', at: 0 } });
-    expect([approve.waitingFor, en(approve.waitingForMsg), es(approve.waitingForMsg)]).toEqual(['Aprovar Bash', 'Approve Bash', 'Aprobar Bash']);
-    expect(deriveStatus({ ...base, attentionMessage: 'texto livre' })).toEqual({ status: 'waiting', waitingFor: 'texto livre' });
+    expect(deriveStatus({ ...base, attentionMessage: 'Precisa de você', attentionMsg: NEEDS_YOU_MSG })).toEqual({
+      status: 'waiting',
+      waitingFor: 'Precisa de você',
+      waitingForMsg: { key: 'waiting.needsYou' },
+    });
+    expect(deriveStatus({ ...base, registryStatus: 'waiting', turn: 'working' })).toMatchObject({
+      status: 'waiting',
+      waitingFor: 'Precisa de você',
+      waitingForMsg: { key: 'waiting.needsYou' },
+    });
+    const approve = deriveStatus({
+      ...base,
+      registryStatus: 'waiting',
+      turn: 'working',
+      blockingTool: { name: 'Bash', at: 0 },
+    });
+    expect([approve.waitingFor, en(approve.waitingForMsg), es(approve.waitingForMsg)]).toEqual([
+      'Aprovar Bash',
+      'Approve Bash',
+      'Aprobar Bash',
+    ]);
+    expect(deriveStatus({ ...base, attentionMessage: 'texto livre' })).toEqual({
+      status: 'waiting',
+      waitingFor: 'texto livre',
+    });
   });
 });
 
@@ -147,7 +201,13 @@ describe('office model messages', () => {
         onAgentEvent: () => undefined,
       },
     });
-    engine = new Engine({ discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined }, office, log: silentLogger, now: () => clock, pidAlive: () => true });
+    engine = new Engine({
+      discover: { homeDir: fake.home, explicitDirs: undefined, envDir: undefined },
+      office,
+      log: silentLogger,
+      now: () => clock,
+      pidAlive: () => true,
+    });
   }
 
   beforeEach(async () => {
@@ -161,12 +221,26 @@ describe('office model messages', () => {
 
   test('agents and activities carry the messages next to their pt-BR texts', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('t1', 'Edit', { file_path: '/work/proj/src/a.ts' })], 58_500)));
-    await fake.writeSubagent('s1', 'ag2', jsonl(assistantLine([toolUse('r', 'Grep', { pattern: 'foo' })], 59_000, { extra: { agentId: 'ag2' } })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('go', 58_000),
+        assistantLine([toolUse('t1', 'Edit', { file_path: '/work/proj/src/a.ts' })], 58_500),
+      ),
+    );
+    await fake.writeSubagent(
+      's1',
+      'ag2',
+      jsonl(assistantLine([toolUse('r', 'Grep', { pattern: 'foo' })], 59_000, { extra: { agentId: 'ag2' } })),
+    );
     build();
     await engine.scan();
     const main = office.state().agents.find((agent) => agent.kind === 'main');
-    expect(main).toMatchObject({ role: 'Principal', roleMsg: { key: 'agent.role.main' }, activity: { text: 'Editando a.ts', msg: { key: 'activity.edit', params: { file: 'a.ts' } } } });
+    expect(main).toMatchObject({
+      role: 'Principal',
+      roleMsg: { key: 'agent.role.main' },
+      activity: { text: 'Editando a.ts', msg: { key: 'activity.edit', params: { file: 'a.ts' } } },
+    });
     expect(en(main?.activity?.msg)).toBe('Editing a.ts');
     expect(es(main?.roleMsg)).toBe('Principal');
     expect(en(main?.roleMsg)).toBe('Main');
@@ -178,17 +252,26 @@ describe('office model messages', () => {
 
   test('a pending question and its alert are localizable', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('q', 'AskUserQuestion', { questions: [] })], 58_500)));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('go', 58_000), assistantLine([toolUse('q', 'AskUserQuestion', { questions: [] })], 58_500)),
+    );
     build();
     await engine.scan();
     const agent = office.state().agents[0];
     expect(agent).toMatchObject({ status: 'waiting', waitingFor: 'Responder uma pergunta' });
-    expect([en(agent?.waitingForMsg), es(agent?.waitingForMsg)]).toEqual(['Answer a question', 'Responder una pregunta']);
+    expect([en(agent?.waitingForMsg), es(agent?.waitingForMsg)]).toEqual([
+      'Answer a question',
+      'Responder una pregunta',
+    ]);
   });
 
   test('a stuck tool raises an alert notice built from nested messages', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 1000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 58_000), assistantLine([toolUse('b', 'Bash', { command: 'rm -rf x' })], 58_500)));
+    await fake.writeTranscript(
+      's1',
+      jsonl(userLine('go', 58_000), assistantLine([toolUse('b', 'Bash', { command: 'rm -rf x' })], 58_500)),
+    );
     build();
     await engine.scan();
     await fake.writeRegistry(100, { sessionId: 's1', status: 'idle', statusUpdatedAt: T0 + 59_000 });
@@ -204,7 +287,13 @@ describe('office model messages', () => {
 
   test('turn completion and leaving notices carry messages, with the duration nested', async () => {
     await fake.writeRegistry(100, { sessionId: 's1', status: 'busy', statusUpdatedAt: T0 + 59_000 });
-    await fake.writeTranscript('s1', jsonl(userLine('go', 10_000), assistantLine([{ type: 'text', text: 'pronto' }], 82_000, { stopReason: 'end_turn' })));
+    await fake.writeTranscript(
+      's1',
+      jsonl(
+        userLine('go', 10_000),
+        assistantLine([{ type: 'text', text: 'pronto' }], 82_000, { stopReason: 'end_turn' }),
+      ),
+    );
     build();
     await engine.scan();
     await engine.scan();

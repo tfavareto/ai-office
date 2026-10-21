@@ -157,7 +157,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'usage.kind.cacheRead': 'Cache reads',
   'usage.tip.total': '{n} tokens',
   'usage.tip.cost': '{cost} estimated',
-  'usage.bar.label': '{when}: {total} tokens, {cost}. Input {input}, output {output}, cache writes {cacheWrite}, cache reads {cacheRead}.',
+  'usage.bar.label':
+    '{when}: {total} tokens, {cost}. Input {input}, output {output}, cache writes {cacheWrite}, cache reads {cacheRead}.',
   'usage.window.used': '{tokens} tokens · {cost}',
   'usage.window.idle': 'No window open: the next one starts with your next message.',
   'usage.gauge.time': 'Window time',
@@ -166,7 +167,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'usage.gauge.usage': 'Share of the reference',
   'usage.gauge.noReference': 'no reference',
   'usage.forecast.title': 'Limit forecast',
-  'usage.forecast.estimate': 'An estimate: your plan does not show its limits on this computer. The reference is the limit you enter or, without one, your highest recent block.',
+  'usage.forecast.estimate':
+    'An estimate: your plan does not show its limits on this computer. The reference is the limit you enter or, without one, your highest recent block.',
   'usage.forecast.scope.window5h': '5 h window',
   'usage.forecast.scope.week': 'Week',
   'usage.forecast.window.pace': 'At the current pace you reach {amount} by {time} (end of the window).',
@@ -176,12 +178,14 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'usage.forecast.idle.week': 'No usage in the last half hour: the week ends at {amount}.',
   'usage.forecast.over.configured': 'You have already used {used}, above your limit of {limit}.',
   'usage.forecast.over.estimate': 'You have already used {used}, above your highest recent block ({limit}).',
-  'usage.forecast.none': 'No reference yet: enter your limit under "Limits" or use a few more 5 h blocks to get an estimate.',
+  'usage.forecast.none':
+    'No reference yet: enter your limit under "Limits" or use a few more 5 h blocks to get an estimate.',
   'usage.forecast.ref.configured': 'Reference: {limit} (your limit)',
   'usage.forecast.ref.estimate': 'Reference: {limit} (your highest recent block, estimated)',
   'usage.amount.tokens': '{n} tokens',
   'usage.limits.title': 'Limits (optional)',
-  'usage.limits.hint': 'Enter what your plan allows per 5 h window and per week for the forecast to use. Saved in this browser only.',
+  'usage.limits.hint':
+    'Enter what your plan allows per 5 h window and per week for the forecast to use. Saved in this browser only.',
   'usage.limits.unit': 'Unit',
   'usage.limits.unit.usd': 'US$ (estimated cost)',
   'usage.limits.unit.tokens': 'Millions of tokens',
@@ -207,7 +211,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'usage.session.fallbackSub': 'Subagent {id}',
   'usage.session.select': 'Show {name} in the office',
   'usage.sessions.more': 'and {n, plural, one {# more session} other {# more sessions}}',
-  'usage.footer': 'Values are estimated with public API prices; your plan may bill differently. The history comes from the conversations stored on this computer.',
+  'usage.footer':
+    'Values are estimated with public API prices; your plan may bill differently. The history comes from the conversations stored on this computer.',
   'usage.alert.hit': 'Account {account}: at the current pace you are likely to reach the limit around {time}.',
   // Sidebar
   'sidebar.label': 'Rooms and agents',
@@ -324,10 +329,10 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'permission.deny.confirm': 'Confirm denial',
   'permission.deny.placeholder': 'Reason for denying (optional): the agent will read this.',
   'permission.deny.reason': 'Reason for denying',
-  'permission.deny.interrupt': 'Interrupt the agent\'s turn',
+  'permission.deny.interrupt': "Interrupt the agent's turn",
   'permission.terminal': 'Answer in the terminal',
   'permission.terminal.hint': 'Lets the terminal dialog decide; the first answer wins.',
-  'permission.remember': 'Approve and don\'t ask again',
+  'permission.remember': "Approve and don't ask again",
   'permission.remember.title': 'Approves and remembers the rule: {rule}',
   'permission.localOnly': 'Only available when AI Office is opened on this computer.',
   'permission.sending': 'Sending answer…',
@@ -363,7 +368,7 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'inbox.risk.disk': 'Touches disks or devices',
   'inbox.risk.data': 'Deletes database data',
   'inbox.risk.sensitive-file': 'Changes secrets or system files',
-  'inbox.risk.useButton': 'Risky command: use the item\'s Approve button.',
+  'inbox.risk.useButton': "Risky command: use the item's Approve button.",
   'inbox.similar.title': 'Similar requests',
   'inbox.similar.group': '{label} · {n, plural, =1 {# request} other {# requests}}',
   'inbox.similar.approve': 'Approve all similar',
@@ -390,7 +395,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'inbox.result.sent': '{n, plural, =1 {# answer sent} other {# answers sent}}.',
   'inbox.result.failed': '{n, plural, =1 {# answer was not sent} other {# answers were not sent}}. Try again.',
   'waiting.title': 'Needs you',
-  'waiting.default': 'The agent stopped and is waiting for your answer. Reply in the terminal where the session is running.',
+  'waiting.default':
+    'The agent stopped and is waiting for your answer. Reply in the terminal where the session is running.',
   // Notifications, toasts, feed
   'notifications.dnd': 'Do not disturb',
   'notifications.dnd.hint': 'With "Do not disturb" only alerts become toasts, sounds and browser notifications.',
@@ -460,7 +466,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'board.menu.toAgent': 'Hand over to {name}',
   'board.menu.none': 'No destination available.',
   'board.confirm.title': 'Send a request to {name}',
-  'board.confirm.hint': 'The board does not change the list by itself: it sends this request to the agent, which updates its own tasks. You can edit the text.',
+  'board.confirm.hint':
+    'The board does not change the list by itself: it sends this request to the agent, which updates its own tasks. You can edit the text.',
   'board.confirm.label': 'Message',
   'board.confirm.send': 'Send request',
   'board.add.title': 'Ask for a new task',
@@ -542,17 +549,23 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'report.tool.mcp': 'MCP',
   'report.tool.question': 'Questions',
   'report.tool.other': 'Other',
-  'report.tests.runner': '{runner}: {passed, plural, =1 {# run passed} other {# runs passed}}, {failed, plural, =0 {none failed} other {# failed}}',
+  'report.tests.runner':
+    '{runner}: {passed, plural, =1 {# run passed} other {# runs passed}}, {failed, plural, =0 {none failed} other {# failed}}',
   'report.more': 'and {n} more',
   'report.unknownProject': 'Unknown project',
-  'report.highlight.tasksCommits': '{name} closed {tasks, plural, =1 {# task} other {# tasks}} and made {commits, plural, =1 {# commit} other {# commits}} in {project}',
+  'report.highlight.tasksCommits':
+    '{name} closed {tasks, plural, =1 {# task} other {# tasks}} and made {commits, plural, =1 {# commit} other {# commits}} in {project}',
   'report.highlight.tasks': '{name} closed {tasks, plural, =1 {# task} other {# tasks}} in {project}',
   'report.highlight.commits': '{name} made {commits, plural, =1 {# commit} other {# commits}} in {project}',
-  'report.highlight.testsPassed': '{name} ran the tests {runs, plural, =1 {once} other {# times}} in {project} and everything passed',
-  'report.highlight.testsMixed': '{name} ran the tests {runs, plural, =1 {once} other {# times}} in {project}; {failed} failed',
-  'report.highlight.files': '{name} changed {files, plural, =1 {# file} other {# files}} in {project} (+{added} −{removed})',
-  'report.highlight.spend': '{name} accounted for {share} of the day\'s cost ({cost})',
-  'report.highlight.testsFailed': 'Heads up: {runs, plural, =1 {# test run failed} other {# test runs failed}} in {project}',
+  'report.highlight.testsPassed':
+    '{name} ran the tests {runs, plural, =1 {once} other {# times}} in {project} and everything passed',
+  'report.highlight.testsMixed':
+    '{name} ran the tests {runs, plural, =1 {once} other {# times}} in {project}; {failed} failed',
+  'report.highlight.files':
+    '{name} changed {files, plural, =1 {# file} other {# files}} in {project} (+{added} −{removed})',
+  'report.highlight.spend': "{name} accounted for {share} of the day's cost ({cost})",
+  'report.highlight.testsFailed':
+    'Heads up: {runs, plural, =1 {# test run failed} other {# test runs failed}} in {project}',
   'report.md.title': 'Day report — {date}',
   'report.md.meta': '{scope}. Generated by AI Office at {time}.',
   'report.md.scopeAll': 'All accounts',
@@ -584,7 +597,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   // Splash, banner, empty state
   'splash.connecting': 'Connecting to the office…',
   'splash.slow': 'Still trying to connect…',
-  'splash.hint': 'Check that the AI Office server is running (npm run dev or npm start). We will try again automatically.',
+  'splash.hint':
+    'Check that the AI Office server is running (npm run dev or npm start). We will try again automatically.',
   'banner.lost': 'Connection to AI Office lost. The data on screen may be out of date.',
   'banner.retry': 'Retry now',
   'banner.retryIn': 'Retrying in {time}',
@@ -657,7 +671,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'hire.mode.hint.default': 'Asks before editing files or running commands.',
   'hire.mode.hint.acceptEdits': 'Edits files without asking; commands still ask for permission.',
   'hire.mode.hint.plan': 'Only analyzes and proposes a plan; nothing changes until you approve.',
-  'hire.note': 'Opens a new terminal window running Claude Code. The person arrives in the office when the session starts.',
+  'hire.note':
+    'Opens a new terminal window running Claude Code. The person arrives in the office when the session starts.',
   'hire.submit': 'Hire',
   'hire.submitting': 'Opening the terminal…',
   'hire.toast.opened': 'Terminal opened in {project}. The agent arrives when the session starts.',
@@ -668,9 +683,12 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'hire.error.projectNotFound': 'The project folder does not exist.',
   'hire.error.projectNotDirectory': 'The path you entered is not a folder.',
   'hire.error.projectNotReadable': 'No permission to open the project folder.',
-  'hire.error.claudeNotFound': 'Claude Code was not found on this computer. Install it and check that the claude command works in a terminal.',
-  'hire.error.noTerminal': 'No terminal app was found to open. Install one (such as gnome-terminal or xterm) and try again.',
-  'hire.error.terminalFailed': 'Could not open the terminal. On macOS, allow AI Office to control Terminal in System Settings > Privacy & Security > Automation.',
+  'hire.error.claudeNotFound':
+    'Claude Code was not found on this computer. Install it and check that the claude command works in a terminal.',
+  'hire.error.noTerminal':
+    'No terminal app was found to open. Install one (such as gnome-terminal or xterm) and try again.',
+  'hire.error.terminalFailed':
+    'Could not open the terminal. On macOS, allow AI Office to control Terminal in System Settings > Privacy & Security > Automation.',
   'hire.error.unsupportedPlatform': 'Opening the terminal only works on macOS and Linux.',
   'hover.desk.title': 'Free desk',
   'hover.desk.hint': 'Click to hire an agent here.',
@@ -679,11 +697,12 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   // Help
   'help.title': 'Help',
   'help.status.title': 'People status',
-  'help.status.note': 'Each open project is a room; each Claude Code session is a person. Subagents arrive, work and leave.',
+  'help.status.note':
+    'Each open project is a room; each Claude Code session is a person. Subagents arrive, work and leave.',
   'help.icons.title': 'Icons',
   'help.icon.fit': 'Overview: frames the whole office',
   'help.icon.bell': 'Notifications and "Do not disturb"',
-  'help.icon.calendar': 'My day: each agent\'s time by status',
+  'help.icon.calendar': "My day: each agent's time by status",
   'help.icon.board': 'Task board of every agent',
   'help.icon.history': 'Session history for the last 7 days',
   'help.icon.feed': 'Activity across the whole office',
@@ -693,7 +712,7 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'help.shortcuts.title': 'Shortcuts',
   'help.shortcut.search': 'Search agent, project or account',
   'help.shortcut.follow': 'Follow the selected agent',
-  'help.shortcut.terminal': 'Open or close the agent\'s terminal',
+  'help.shortcut.terminal': "Open or close the agent's terminal",
   'help.shortcut.message': 'Send a message to the agent or the room team',
   'help.shortcut.permission': 'Go to the next permission request',
   'help.shortcut.inbox': 'Open or close the inbox of what needs you',
@@ -712,13 +731,15 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'help.shortcut.inbox.move': 'In the inbox: move between items',
   'help.shortcut.inbox.select': 'In the inbox: select the item (Shift + click selects a range)',
   'help.shortcut.inbox.approve': 'In the inbox: approve the request',
-  'help.shortcut.inbox.remember': 'In the inbox: approve and don\'t ask again',
+  'help.shortcut.inbox.remember': "In the inbox: approve and don't ask again",
   'help.shortcut.inbox.deny': 'In the inbox: deny (Enter confirms, reason optional)',
   'help.shortcut.inbox.open': 'In the inbox: open the agent',
   'help.shortcut.inbox.seen': 'In the inbox: mark as seen',
   'help.install.title': 'Install the Claude Code plugin',
-  'help.install.intro': 'The plugin lets you answer permissions and send messages from the office. In the AI Office folder, run:',
-  'help.install.outro': 'It installs on every detected account. To check, use npm run plugin:status; to remove it, npm run plugin:uninstall. Restart your open Claude Code sessions afterwards.',
+  'help.install.intro':
+    'The plugin lets you answer permissions and send messages from the office. In the AI Office folder, run:',
+  'help.install.outro':
+    'It installs on every detected account. To check, use npm run plugin:status; to remove it, npm run plugin:uninstall. Restart your open Claude Code sessions afterwards.',
   'help.install.copy': 'Copy command',
   'help.install.copied': 'Command copied.',
   // Announcements (screen readers)
@@ -751,7 +772,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'rules.new': 'New rule',
   'rules.loading': 'Loading the rules…',
   'rules.empty.title': 'No rules yet',
-  'rules.empty.text': 'A rule answers repeated permission requests on its own, approving or denying by command, folder or website, and every answer is kept in the log.',
+  'rules.empty.text':
+    'A rule answers repeated permission requests on its own, approving or denying by command, folder or website, and every answer is kept in the log.',
   'rules.empty.action': 'Create a rule',
   'rules.list': 'Approval rules',
   'rules.effect.allow': 'Approves',
@@ -808,9 +830,11 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'rules.placeholder.exact': 'npm test',
   'rules.placeholder.path-glob': 'src/**',
   'rules.placeholder.host': 'docs.stripe.com',
-  'rules.hint.command-prefix': 'Whole words at the start of the command: “npm test” covers “npm test -- --watch”, not “npm testx”. Commands with ; && | > or $( never match an approve rule.',
+  'rules.hint.command-prefix':
+    'Whole words at the start of the command: “npm test” covers “npm test -- --watch”, not “npm testx”. Commands with ; && | > or $( never match an approve rule.',
   'rules.hint.exact': 'The whole command, file, address or query, with no variations.',
-  'rules.hint.path-glob': '* stays inside a folder and ** crosses folders; files that start with a dot (.env) never match. Relative paths start at the project.',
+  'rules.hint.path-glob':
+    '* stays inside a folder and ** crosses folders; files that start with a dot (.env) never match. Relative paths start at the project.',
   'rules.hint.host': 'The website address, or *.example.com for every subdomain.',
   'rules.hint.any': 'Covers every request of this tool.',
   'rules.editor.scope': 'Where it applies',
@@ -821,9 +845,11 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'rules.editor.enabled': 'Rule on',
   'rules.editor.save': 'Save rule',
   'rules.editor.saving': 'Saving…',
-  'rules.editor.safety': 'Dangerous requests (deleting files, sudo, force push…) are never approved by a rule: they still reach you.',
+  'rules.editor.safety':
+    'Dangerous requests (deleting files, sudo, force push…) are never approved by a rule: they still reach you.',
   'rules.preview.loading': 'Calculating…',
-  'rules.preview.result': 'This rule would have answered {matches} of today’s {total} {total, plural, =1 {request} other {requests}}.',
+  'rules.preview.result':
+    'This rule would have answered {matches} of today’s {total} {total, plural, =1 {request} other {requests}}.',
   'rules.preview.none': 'There have been no requests today to compare with.',
   'rules.preview.failed': 'Could not calculate right now.',
   'rules.error.invalid': 'This rule has an invalid field.',
@@ -837,7 +863,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'rules.error.broadTool': 'Wildcards only work for a whole MCP server (mcp__server__*).',
   'rules.error.broadPath': 'This path is too broad: use a folder of the project, like src/**.',
   'rules.error.broadHost': 'This domain is too broad: use docs.example.com or *.example.com.',
-  'rules.error.dangerous': 'This pattern would also approve dangerous requests ({reason}). Use a more specific pattern or create a deny rule.',
+  'rules.error.dangerous':
+    'This pattern would also approve dangerous requests ({reason}). Use a more specific pattern or create a deny rule.',
   'rules.error.duplicate': 'An identical rule already exists.',
   'rules.error.tooMany': 'Limit of 200 rules reached: delete one before creating another.',
   'rules.error.notFound': 'The rule no longer exists.',
@@ -888,13 +915,15 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'git.checks.failing': 'Failing: {names}',
   'git.checks.more': 'and {n} more failing',
   'git.checks.pending': '{n, plural, one {# check running} other {# checks running}}',
-  'git.pr.off': 'To see the pull request and CI of this branch, turn on “Look up pull requests with gh” in the settings.',
+  'git.pr.off':
+    'To see the pull request and CI of this branch, turn on “Look up pull requests with gh” in the settings.',
   'sidebar.room.branch': 'Branch {branch}',
   'sidebar.room.branchDirty': 'Branch {branch}: uncommitted changes',
   'hover.room.branch': 'Branch {branch}',
   'settings.git': 'Show Git status',
   'settings.gitPr': 'Look up pull requests with gh (uses the internet)',
-  'settings.gitPr.hint': 'This is the only part of AI Office that uses the internet, and only through your own gh while it is on.',
+  'settings.gitPr.hint':
+    'This is the only part of AI Office that uses the internet, and only through your own gh while it is on.',
   'settings.gitPr.missing': 'gh was not found on this computer.',
   'settings.gitPr.unauthenticated': 'gh is not signed in. Run “gh auth login” in a terminal.',
   // Time-lapse

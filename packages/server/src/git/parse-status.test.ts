@@ -6,11 +6,24 @@ const OID = '0123456789abcdef0123456789abcdef01234567';
 describe('parseStatus', () => {
   test('reads the branch, the upstream and ahead/behind', () => {
     // Arrange
-    const output = [`# branch.oid ${OID}`, '# branch.head feat/cupom', '# branch.upstream origin/feat/cupom', '# branch.ab +2 -5', ''].join('\n');
+    const output = [
+      `# branch.oid ${OID}`,
+      '# branch.head feat/cupom',
+      '# branch.upstream origin/feat/cupom',
+      '# branch.ab +2 -5',
+      '',
+    ].join('\n');
     // Act
     const status = parseStatus(output);
     // Assert
-    expect(status).toMatchObject({ branch: 'feat/cupom', head: '0123456', detached: false, upstream: 'origin/feat/cupom', ahead: 2, behind: 5 });
+    expect(status).toMatchObject({
+      branch: 'feat/cupom',
+      head: '0123456',
+      detached: false,
+      upstream: 'origin/feat/cupom',
+      ahead: 2,
+      behind: 5,
+    });
   });
 
   test('has no ahead/behind when the branch tracks nothing', () => {
@@ -76,7 +89,11 @@ describe('parseShortstat', () => {
 
 describe('parseLastCommit', () => {
   test('reads hash, time and subject', () => {
-    expect(parseLastCommit('a41c9e2\t1760000000\tfeat: apply coupon\n')).toEqual({ hash: 'a41c9e2', at: 1_760_000_000_000, subject: 'feat: apply coupon' });
+    expect(parseLastCommit('a41c9e2\t1760000000\tfeat: apply coupon\n')).toEqual({
+      hash: 'a41c9e2',
+      at: 1_760_000_000_000,
+      subject: 'feat: apply coupon',
+    });
   });
 
   test('keeps tabs that belong to the subject and cuts it', () => {
@@ -85,9 +102,12 @@ describe('parseLastCommit', () => {
     expect(commit?.subject).toHaveLength(120);
   });
 
-  test.each(['', 'not a commit', 'zz\t1\tsubject', 'abc1234\tNaN\tsubject', 'abc1234\t0\tsubject'])('rejects %j', (output) => {
-    expect(parseLastCommit(output)).toBeUndefined();
-  });
+  test.each(['', 'not a commit', 'zz\t1\tsubject', 'abc1234\tNaN\tsubject', 'abc1234\t0\tsubject'])(
+    'rejects %j',
+    (output) => {
+      expect(parseLastCommit(output)).toBeUndefined();
+    },
+  );
 });
 
 describe('countStash', () => {

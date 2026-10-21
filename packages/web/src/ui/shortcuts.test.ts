@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { resolveShortcut } from './shortcuts';
 
-const key = (name: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {}) => ({ key: name, ctrlKey: false, metaKey: false, altKey: false, ...modifiers });
+const key = (name: string, modifiers: { ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean } = {}) => ({
+  key: name,
+  ctrlKey: false,
+  metaKey: false,
+  altKey: false,
+  ...modifiers,
+});
 
 describe('resolveShortcut', () => {
   it('maps H to hiring an agent, in either case', () => {
@@ -36,7 +42,8 @@ describe('resolveShortcut', () => {
 });
 
 describe('resolveShortcut during a time-lapse', () => {
-  const press = (name: string, shiftKey = false, replay = true, editing = false) => resolveShortcut({ ...key(name), shiftKey }, editing, false, replay);
+  const press = (name: string, shiftKey = false, replay = true, editing = false) =>
+    resolveShortcut({ ...key(name), shiftKey }, editing, false, replay);
 
   it('drives the playback with Space and the arrows, Shift for the big skip', () => {
     expect(press(' ')).toBe('replayPlay');

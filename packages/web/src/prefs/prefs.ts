@@ -66,7 +66,9 @@ const MAX_ACCOUNT_ID_LENGTH = 80;
 const MAX_LIMIT_VALUE = 1e12;
 
 function limitValue(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= MAX_LIMIT_VALUE ? value : undefined;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= MAX_LIMIT_VALUE
+    ? value
+    : undefined;
 }
 
 /** Limits per account: only well-formed entries survive. An account with no value and the default unit has no entry. */
@@ -74,13 +76,23 @@ export function parseUsageLimits(raw: unknown): Record<string, AccountLimits> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
   const result: Record<string, AccountLimits> = {};
   for (const [accountId, entry] of Object.entries(raw).slice(0, MAX_LIMIT_ACCOUNTS)) {
-    if (accountId.length === 0 || accountId.length > MAX_ACCOUNT_ID_LENGTH || typeof entry !== 'object' || entry === null) continue;
+    if (
+      accountId.length === 0 ||
+      accountId.length > MAX_ACCOUNT_ID_LENGTH ||
+      typeof entry !== 'object' ||
+      entry === null
+    )
+      continue;
     const data = entry as Record<string, unknown>;
     const window5h = limitValue(data.window5h);
     const week = limitValue(data.week);
     const unit = data.unit === 'tokens' ? 'tokens' : 'usd';
     if (window5h === undefined && week === undefined && unit === 'usd') continue;
-    result[accountId] = { unit, ...(window5h !== undefined ? { window5h } : {}), ...(week !== undefined ? { week } : {}) };
+    result[accountId] = {
+      unit,
+      ...(window5h !== undefined ? { window5h } : {}),
+      ...(week !== undefined ? { week } : {}),
+    };
   }
   return result;
 }
@@ -186,7 +198,9 @@ export class PrefsStore {
   }
 
   set(patch: Partial<Prefs>): void {
-    const changed = (Object.keys(patch) as (keyof Prefs)[]).filter((key) => patch[key] !== undefined && patch[key] !== this.current[key]);
+    const changed = (Object.keys(patch) as (keyof Prefs)[]).filter(
+      (key) => patch[key] !== undefined && patch[key] !== this.current[key],
+    );
     if (changed.length === 0) return;
     this.current = parsePrefs({ ...this.current, ...patch });
     savePrefs(this.current, this.storage);

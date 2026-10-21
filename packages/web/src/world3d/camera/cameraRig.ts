@@ -4,7 +4,19 @@ import { OrthographicCamera, PerspectiveCamera, Raycaster, Vector2, Vector3, typ
 import type { CameraMode, ViewInsets } from '../../world/api';
 import { EYE_H } from '../units';
 import {
-  approachState, boxCorners, fitPoints, frustumFor, isoBasis, panBy, zoomAt, MAX_ZOOM, MIN_ZOOM, type Basis, type Box3Like, type IsoState, type View,
+  approachState,
+  boxCorners,
+  fitPoints,
+  frustumFor,
+  isoBasis,
+  panBy,
+  zoomAt,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  type Basis,
+  type Box3Like,
+  type IsoState,
+  type View,
 } from './isoCamera';
 import { clampPitch, type WalkerState } from './walker';
 
@@ -109,7 +121,11 @@ export class CameraRig {
     cam.right = f.right;
     cam.top = f.top;
     cam.bottom = f.bottom;
-    cam.position.set(target.x + this.basis.back[0] * ISO_DISTANCE, this.basis.back[1] * ISO_DISTANCE, target.z + this.basis.back[2] * ISO_DISTANCE);
+    cam.position.set(
+      target.x + this.basis.back[0] * ISO_DISTANCE,
+      this.basis.back[1] * ISO_DISTANCE,
+      target.z + this.basis.back[2] * ISO_DISTANCE,
+    );
     cam.lookAt(target.x, 0, target.z);
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld(true);
@@ -141,7 +157,11 @@ export class CameraRig {
   shoulderFor(x: number, z: number, yaw: number, out: { position: Vector3; look: Vector3 }): void {
     const a = yaw + this.shoulderYaw;
     const back = SHOULDER_BACK * this.shoulderDistance;
-    out.position.set(x - Math.sin(a) * back + Math.cos(a) * SHOULDER_SIDE, SHOULDER_UP, z - Math.cos(a) * back - Math.sin(a) * SHOULDER_SIDE);
+    out.position.set(
+      x - Math.sin(a) * back + Math.cos(a) * SHOULDER_SIDE,
+      SHOULDER_UP,
+      z - Math.cos(a) * back - Math.sin(a) * SHOULDER_SIDE,
+    );
     out.look.set(x + Math.sin(a) * 1.4, 1.35, z + Math.cos(a) * 1.4);
   }
 

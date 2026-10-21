@@ -1,7 +1,16 @@
 // The 3D content of one layout area (room, core area, corridor or terrace): merged static shell and props, plus the few
 // dynamic objects (screens, elevator doors) that are updated per frame. Rooms animate in and out via group transforms.
 import {
-  Box3, BufferGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, SRGBColorSpace, Vector3, type Object3D, type Texture,
+  Box3,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  SRGBColorSpace,
+  Vector3,
+  type Object3D,
+  type Texture,
 } from 'three';
 import { type WorldText, worldText } from '../../i18n/world/translate';
 import type { AreaLayout, BuildingLayout } from '../../layout/types';
@@ -12,9 +21,7 @@ import { buildFurniture, type ScreenQuad } from './furniture';
 import { shadowOf, type Materials } from './materials';
 import type { Models } from './models';
 import { buildAreaShell } from './shell';
-import {
-  paintBoard, paintLoungeTv, paintMeetingTv, WorkstationAtlas, type BoardInfo, type DeskState,
-} from './screens';
+import { paintBoard, paintLoungeTv, paintMeetingTv, WorkstationAtlas, type BoardInfo, type DeskState } from './screens';
 import { roomInfoKey } from '../../world2d/runtime/boards';
 import { taskBoardKey, type TaskBoardSummary } from '../../world/taskBoard';
 import { paintTaskBoard } from './taskBoardScreen';
@@ -49,7 +56,10 @@ export interface AreaFrame {
 function screenQuadGeometry(w: number, h: number, uv: [number, number, number, number]): BufferGeometry {
   const [u0, vt0, u1, vt1] = uv;
   const g = new BufferGeometry();
-  g.setAttribute('position', new Float32BufferAttribute([-w / 2, -h / 2, 0, w / 2, -h / 2, 0, w / 2, h / 2, 0, -w / 2, h / 2, 0], 3));
+  g.setAttribute(
+    'position',
+    new Float32BufferAttribute([-w / 2, -h / 2, 0, w / 2, -h / 2, 0, w / 2, h / 2, 0, -w / 2, h / 2, 0], 3),
+  );
   g.setAttribute('normal', new Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
   g.setAttribute('uv', new Float32BufferAttribute([u0, 1 - vt1, u1, 1 - vt1, u1, 1 - vt0, u0, 1 - vt0], 2));
   g.setIndex([0, 1, 2, 0, 2, 3]);
@@ -75,7 +85,12 @@ export class AreaScene {
 
   private text: WorldText;
 
-  constructor(readonly area: AreaLayout, building: BuildingLayout, private readonly deps: SceneDeps, text: WorldText = worldText('pt-BR')) {
+  constructor(
+    readonly area: AreaLayout,
+    building: BuildingLayout,
+    private readonly deps: SceneDeps,
+    text: WorldText = worldText('pt-BR'),
+  ) {
     this.text = text;
     const { m, models } = deps;
     const shellParts = new PartCollector();
@@ -121,7 +136,9 @@ export class AreaScene {
     if (this.plaqueMesh === null || screens.plaque === undefined) return;
     this.plaqueMesh.visible = git !== undefined;
     if (git === undefined) return;
-    screens.plaque.draw(`${this.text.locale}|${roomGitKey(git)}`, (ctx, w, h) => paintPlaque(ctx, w, h, git, this.text));
+    screens.plaque.draw(`${this.text.locale}|${roomGitKey(git)}`, (ctx, w, h) =>
+      paintPlaque(ctx, w, h, git, this.text),
+    );
   }
 
   private addMonitors(parts: PartCollector, quads: readonly ScreenQuad[]): void {
@@ -135,8 +152,13 @@ export class AreaScene {
     if (area.kind === 'terrace') return;
     const r = area.rect;
     const mat = new MeshBasicMaterial({
-      map: this.deps.m.glow.map as Texture, transparent: true, depthWrite: false, blending: this.deps.m.glow.blending, toneMapped: false,
-      color: '#ffb866', opacity: 0,
+      map: this.deps.m.glow.map as Texture,
+      transparent: true,
+      depthWrite: false,
+      blending: this.deps.m.glow.blending,
+      toneMapped: false,
+      color: '#ffb866',
+      opacity: 0,
     });
     mat.map!.colorSpace = SRGBColorSpace;
     const geo = groundQuad(r.x * T, (r.y + 2) * T, (r.x + r.w) * T, (r.y + r.h) * T, 0.03, 1);
@@ -170,7 +192,8 @@ export class AreaScene {
   /** Merged static meshes (shell + props); they sit in world space with an identity transform. */
   staticMeshes(): Mesh[] {
     const out: Mesh[] = [];
-    for (const group of [this.shell, this.props]) for (const child of group.children) if ((child as Mesh).isMesh) out.push(child as Mesh);
+    for (const group of [this.shell, this.props])
+      for (const child of group.children) if ((child as Mesh).isMesh) out.push(child as Mesh);
     return out;
   }
 
@@ -192,7 +215,9 @@ export class AreaScene {
       const key = `${this.text.locale}|${roomInfoKey(f.info)}`;
       if (key !== this.lastInfoKey) {
         this.lastInfoKey = key;
-        screens.board.draw(key, (ctx, w, h) => paintBoard(ctx, w, h, this.area.label, f.info, this.area.theme.accent, this.text));
+        screens.board.draw(key, (ctx, w, h) =>
+          paintBoard(ctx, w, h, this.area.label, f.info, this.area.theme.accent, this.text),
+        );
       }
     }
     if (screens.meetingTv) {

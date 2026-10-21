@@ -27,8 +27,24 @@ export interface Bubble extends BubbleCandidate {
 }
 
 const IMPORTANCE: Record<ActivityKind, number> = {
-  permission: 90, question: 90, error: 70, done: 60, message: 55, subagent: 40, task: 35, edit: 30, write: 30, bash: 28,
-  web: 25, mcp: 22, reply: 20, prompt: 20, search: 18, read: 15, think: 12, other: 10,
+  permission: 90,
+  question: 90,
+  error: 70,
+  done: 60,
+  message: 55,
+  subagent: 40,
+  task: 35,
+  edit: 30,
+  write: 30,
+  bash: 28,
+  web: 25,
+  mcp: 22,
+  reply: 20,
+  prompt: 20,
+  search: 18,
+  read: 15,
+  think: 12,
+  other: 10,
 };
 
 export const IMPORTANT_THRESHOLD = 55;
@@ -49,7 +65,10 @@ export function clipText(text: string, max = MAX_TEXT): string {
 }
 
 /** The text a bubble shows in the language of `translate` (`tm` of a world translator): `msg` rendered, clipped to the bubble size. */
-export function bubbleText(bubble: Pick<BubbleCandidate, 'text' | 'msg'>, translate: (msg: Msg | undefined, fallback: string) => string): string {
+export function bubbleText(
+  bubble: Pick<BubbleCandidate, 'text' | 'msg'>,
+  translate: (msg: Msg | undefined, fallback: string) => string,
+): string {
   return bubble.msg ? clipText(translate(bubble.msg, bubble.text)) : bubble.text;
 }
 
@@ -108,7 +127,8 @@ export class BubbleManager {
       .filter((c) => {
         const last = this.lastShown.get(c.agentId) ?? -Infinity;
         const showing = this.visible.get(c.agentId);
-        const blocked = showing && !showing.sticky && showing.importance >= c.importance && now - showing.shownAt < showing.ttl * 0.5;
+        const blocked =
+          showing && !showing.sticky && showing.importance >= c.importance && now - showing.shownAt < showing.ttl * 0.5;
         return roomOf(c.agentId) !== null && !blocked && (c.sticky || now - last >= AGENT_COOLDOWN);
       })
       .sort((a, b) => b.importance - a.importance || b.offeredAt - a.offeredAt);

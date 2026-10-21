@@ -4,7 +4,10 @@ import { summarizePermission, suggestionLabel, trimInput } from './permission-te
 
 let clock = 1_000_000;
 let changes = 0;
-const known = new Map<string, string>([['sess1', 'agent-main'], ['sess1/sub9', 'agent-sub']]);
+const known = new Map<string, string>([
+  ['sess1', 'agent-main'],
+  ['sess1/sub9', 'agent-sub'],
+]);
 
 function registry(): PermissionRegistry {
   return new PermissionRegistry({
@@ -29,10 +32,26 @@ describe('PermissionRegistry', () => {
   test('creates a pending request for a known session and skips unknown ones', () => {
     const permissions = registry();
     expect(permissions.create({ ...request, session_id: 'nope' })).toEqual({ skip: 'unknown-session' });
-    const created = permissions.create({ ...request, permission_suggestions: [{ type: 'addRules', rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }], behavior: 'allow', destination: 'localSettings' }] });
+    const created = permissions.create({
+      ...request,
+      permission_suggestions: [
+        {
+          type: 'addRules',
+          rules: [{ toolName: 'Bash', ruleContent: 'npm test:*' }],
+          behavior: 'allow',
+          destination: 'localSettings',
+        },
+      ],
+    });
     expect('id' in created).toBe(true);
     const id = (created as { id: string }).id;
-    expect(permissions.get(id)).toMatchObject({ agentId: 'agent-main', toolName: 'Bash', summary: 'npm test', suggestions: ['Sempre permitir Bash(npm test:*) neste projeto'], expiresAt: clock + PERMISSION_TTL_MS });
+    expect(permissions.get(id)).toMatchObject({
+      agentId: 'agent-main',
+      toolName: 'Bash',
+      summary: 'npm test',
+      suggestions: ['Sempre permitir Bash(npm test:*) neste projeto'],
+      expiresAt: clock + PERMISSION_TTL_MS,
+    });
     expect(permissions.pendingFor('agent-main')).toMatchObject({ id });
     expect(permissions.pendingFor('agent-main')).not.toHaveProperty('input');
     expect(changes).toBeGreaterThan(0);
@@ -120,14 +139,22 @@ describe('permission text', () => {
   });
 
   test('suggestion labels', () => {
-    expect(suggestionLabel({ type: 'setMode', mode: 'acceptEdits', destination: 'session' })).toBe('Mudar para o modo acceptEdits nesta sessão');
+    expect(suggestionLabel({ type: 'setMode', mode: 'acceptEdits', destination: 'session' })).toBe(
+      'Mudar para o modo acceptEdits nesta sessão',
+    );
     expect(suggestionLabel({ type: 'addDirectories', directories: ['/a', '/b'] })).toBe('Permitir acesso a /a, /b');
-    expect(suggestionLabel({ type: 'addRules', behavior: 'allow', rules: [{ toolName: 'Read' }] })).toBe('Sempre permitir Read');
+    expect(suggestionLabel({ type: 'addRules', behavior: 'allow', rules: [{ toolName: 'Read' }] })).toBe(
+      'Sempre permitir Read',
+    );
     expect(suggestionLabel(42)).toBe('Lembrar esta decisão');
   });
 
   test('trimInput cuts long strings, wide arrays and deep objects', () => {
-    const trimmed = trimInput({ text: 'x'.repeat(5000), list: Array.from({ length: 100 }, (_, i) => i), deep: { a: { b: { c: { d: { e: { f: 1 } } } } } } }) as Record<string, unknown>;
+    const trimmed = trimInput({
+      text: 'x'.repeat(5000),
+      list: Array.from({ length: 100 }, (_, i) => i),
+      deep: { a: { b: { c: { d: { e: { f: 1 } } } } } },
+    }) as Record<string, unknown>;
     expect((trimmed.text as string).length).toBe(2001);
     expect(trimmed.list as unknown[]).toHaveLength(50);
     expect(JSON.stringify(trimmed.deep)).toContain('…');
@@ -153,4 +180,3 @@ describe('PermissionRegistry.createDecided', () => {
     expect(permissions.get(id)).toBeUndefined();
   });
 });
-

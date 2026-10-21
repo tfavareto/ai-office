@@ -29,7 +29,9 @@ export const DEFAULT_LOCALE = 'pt-BR';
  * @returns {'pt-BR' | 'en' | 'es'}
  */
 export function normalizeLocale(value) {
-  return typeof value === 'string' && LOCALES.includes(value) ? /** @type {'pt-BR' | 'en' | 'es'} */ (value) : DEFAULT_LOCALE;
+  return typeof value === 'string' && LOCALES.includes(value)
+    ? /** @type {'pt-BR' | 'en' | 'es'} */ (value)
+    : DEFAULT_LOCALE;
 }
 
 /** Same default as `DEFAULT_PORT` in @ai-office/shared (the plugin cannot import it at runtime). */
@@ -88,7 +90,10 @@ export function resolvePort(env) {
  */
 export function resolveTokenPath(env) {
   const home = env.HOME || homedir();
-  const dir = typeof env.AI_OFFICE_STATE_DIR === 'string' && env.AI_OFFICE_STATE_DIR !== '' ? env.AI_OFFICE_STATE_DIR : join(home, '.ai-office');
+  const dir =
+    typeof env.AI_OFFICE_STATE_DIR === 'string' && env.AI_OFFICE_STATE_DIR !== ''
+      ? env.AI_OFFICE_STATE_DIR
+      : join(home, '.ai-office');
   const expanded = dir === '~' ? home : dir.startsWith('~/') ? join(home, dir.slice(2)) : dir;
   return join(expanded, TOKEN_FILE_NAME);
 }
@@ -224,11 +229,16 @@ export function verifyServer(ctx) {
     const token = /** @type {string} */ (ctx.token);
     try {
       const nonce = randomBytes(16).toString('hex');
-      const response = await fetch(`${ctx.baseUrl}/api/health?challenge=${nonce}`, { signal: AbortSignal.timeout(QUICK_REQUEST_TIMEOUT_MS) });
+      const response = await fetch(`${ctx.baseUrl}/api/health?challenge=${nonce}`, {
+        signal: AbortSignal.timeout(QUICK_REQUEST_TIMEOUT_MS),
+      });
       /** @type {any} */
       const json = response.ok ? await response.json() : null;
-      const expected = createHmac('sha256', token).update(HEALTH_PROOF_PREFIX + nonce).digest();
-      const proof = typeof json?.proof === 'string' && /^[0-9a-f]{64}$/.test(json.proof) ? Buffer.from(json.proof, 'hex') : null;
+      const expected = createHmac('sha256', token)
+        .update(HEALTH_PROOF_PREFIX + nonce)
+        .digest();
+      const proof =
+        typeof json?.proof === 'string' && /^[0-9a-f]{64}$/.test(json.proof) ? Buffer.from(json.proof, 'hex') : null;
       const verified = proof !== null && timingSafeEqual(proof, expected);
       if (!verified) ctx.debug('server did not prove it knows the token, treating AI Office as offline');
       return verified;

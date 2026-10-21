@@ -13,7 +13,9 @@ export function filterSessions(sessions: readonly RecentSession[], query: string
   const q = normalizeQuery(query);
   if (!q) return [...sessions];
   return sessions.filter((session) => {
-    const haystack = normalizeQuery([session.projectName, session.projectPath, session.title].filter(Boolean).join(' '));
+    const haystack = normalizeQuery(
+      [session.projectName, session.projectPath, session.title].filter(Boolean).join(' '),
+    );
     return q.split(/\s+/).every((term) => haystack.includes(term));
   });
 }
@@ -29,5 +31,9 @@ export function groupSessionsByDay(sessions: readonly RecentSession[], now: numb
   }
   return [...groups.entries()]
     .sort((a, b) => b[0] - a[0])
-    .map(([key, list]) => ({ key, label: formatDayLabel(key, now), sessions: list.sort((a, b) => b.lastAt - a.lastAt) }));
+    .map(([key, list]) => ({
+      key,
+      label: formatDayLabel(key, now),
+      sessions: list.sort((a, b) => b.lastAt - a.lastAt),
+    }));
 }

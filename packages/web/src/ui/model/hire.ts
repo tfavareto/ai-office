@@ -36,7 +36,11 @@ export const RECENT_FOLDER_LIMIT = 6;
 const DEMO_ACCOUNT_IDS: ReadonlySet<string> = new Set(DEMO_ACCOUNTS.map((account) => account.id));
 
 /** Folders to suggest for a new project: the ones sessions ran in lately, newest first, without the folders that already are rooms. */
-export function recentFolders(sessions: readonly RecentSession[], roomPaths: readonly string[], limit = RECENT_FOLDER_LIMIT): { path: string; name: string }[] {
+export function recentFolders(
+  sessions: readonly RecentSession[],
+  roomPaths: readonly string[],
+  limit = RECENT_FOLDER_LIMIT,
+): { path: string; name: string }[] {
   const skip = new Set(roomPaths);
   const newestFirst = [...sessions].sort((a, b) => b.lastAt - a.lastAt);
   const seen = new Set<string>();
@@ -69,9 +73,15 @@ export function hireAccounts(snapshot: OfficeSnapshot | null, simulated: boolean
 }
 
 /** The account to preselect: the one that worked most recently in the room, else the default account, else the first. */
-export function defaultAccountId(snapshot: OfficeSnapshot | null, projectPath: string | undefined, accounts: readonly Account[]): string {
+export function defaultAccountId(
+  snapshot: OfficeSnapshot | null,
+  projectPath: string | undefined,
+  accounts: readonly Account[],
+): string {
   const offered = new Set(accounts.map((account) => account.id));
-  const here = (snapshot?.agents ?? []).filter((agent) => agent.projectId === projectPath && agent.kind === 'main' && offered.has(agent.accountId)).sort((a, b) => b.startedAt - a.startedAt)[0];
+  const here = (snapshot?.agents ?? [])
+    .filter((agent) => agent.projectId === projectPath && agent.kind === 'main' && offered.has(agent.accountId))
+    .sort((a, b) => b.startedAt - a.startedAt)[0];
   return here?.accountId ?? accounts.find((account) => account.isDefault === true)?.id ?? accounts[0]?.id ?? '';
 }
 
@@ -99,7 +109,9 @@ export function buildHireRequest(form: HireForm): HireRequest {
 }
 
 /** Cmd+Enter on macOS, Ctrl+Enter elsewhere. */
-export function isSubmitShortcut(event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>): boolean {
+export function isSubmitShortcut(
+  event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>,
+): boolean {
   return event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey;
 }
 

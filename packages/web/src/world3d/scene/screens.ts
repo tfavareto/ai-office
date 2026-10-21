@@ -10,7 +10,8 @@ import { fitFont } from './textFit';
 import { canvas2d } from './textures';
 
 export const FONT = '600 {s}px "Inter", "SF Pro Text", system-ui, sans-serif';
-export const font = (size: number, weight = 600): string => `${weight} ${size}px "Inter", "SF Pro Text", system-ui, sans-serif`;
+export const font = (size: number, weight = 600): string =>
+  `${weight} ${size}px "Inter", "SF Pro Text", system-ui, sans-serif`;
 
 export function fitText(ctx: CanvasRenderingContext2D, text: string, maxPx: number): string {
   if (ctx.measureText(text).width <= maxPx) return text;
@@ -51,13 +52,23 @@ function makeStrips(): HTMLCanvasElement[] {
     const bg = ['#0c1118', '#141a24', '#e9edf2', '#0e1620'][kind];
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, CELL_W, STRIP_H);
-    const palette = [['#6fe0a0', '#3fb27a', '#9ad8ff'], ['#e0795a', '#ffd479', '#8fb7ff', '#b7e48a'], ['#c3cad6', '#aab4c4', '#2f6fed'], ['#58d68d', '#ff6b6b', '#8fb7ff']][kind];
+    const palette = [
+      ['#6fe0a0', '#3fb27a', '#9ad8ff'],
+      ['#e0795a', '#ffd479', '#8fb7ff', '#b7e48a'],
+      ['#c3cad6', '#aab4c4', '#2f6fed'],
+      ['#58d68d', '#ff6b6b', '#8fb7ff'],
+    ][kind];
     let y = 8;
     while (y < STRIP_H - 10) {
       if (kind === 2) {
         const h = (rng.int(3) === 0 ? 34 : 7) * K;
         ctx.fillStyle = h > 10 * K ? '#cfd6e2' : palette[rng.int(palette.length)];
-        ctx.fillRect((14 + (h > 10 * K ? 0 : rng.int(10))) * K, y, (h > 10 * K ? 80 + rng.int(120) : 120 + rng.int(100)) * K, h);
+        ctx.fillRect(
+          (14 + (h > 10 * K ? 0 : rng.int(10))) * K,
+          y,
+          (h > 10 * K ? 80 + rng.int(120) : 120 + rng.int(100)) * K,
+          h,
+        );
         y += h + 8 * K;
         continue;
       }
@@ -94,7 +105,8 @@ export class WorkstationAtlas {
     this.texture = new CanvasTexture(canvas);
     this.material = screenMaterial(this.texture);
     WorkstationAtlas.strips ??= makeStrips();
-    for (let d = 0; d < ROWS; d++) for (let s = 0; s < COLS; s++) this.drawCell(d, s, { status: 'empty', seed: 0 }, 0, 1);
+    for (let d = 0; d < ROWS; d++)
+      for (let s = 0; s < COLS; s++) this.drawCell(d, s, { status: 'empty', seed: 0 }, 0, 1);
     this.texture.needsUpdate = true;
   }
 
@@ -106,7 +118,12 @@ export class WorkstationAtlas {
   /** UV rectangle of a cell: [u0, v0, u1, v1] (canvas row 0 is at the top; textures here are not flipped). */
   static uv(desk: number, slot: number): [number, number, number, number] {
     const inset = 0.004;
-    return [(slot * CELL_W) / ATLAS_W + inset, (desk * CELL_H) / ATLAS_H + inset, ((slot + 1) * CELL_W) / ATLAS_W - inset, ((desk + 1) * CELL_H) / ATLAS_H - inset];
+    return [
+      (slot * CELL_W) / ATLAS_W + inset,
+      (desk * CELL_H) / ATLAS_H + inset,
+      ((slot + 1) * CELL_W) / ATLAS_W - inset,
+      ((desk + 1) * CELL_H) / ATLAS_H - inset,
+    ];
   }
 
   update(time: number, desks: readonly DeskState[], brightness: number): void {
@@ -147,7 +164,10 @@ export class WorkstationAtlas {
         ctx.fillStyle = `rgba(255,190,60,${pulse})`;
         ctx.fillRect(x + 12, y + 30, CELL_W - 24, 38);
         ctx.fillStyle = '#2a1a00';
-        ctx.font = font(fitFont(ctx, this.waitingLabel, (size) => font(size, 800), CELL_W - 40, 21, 12), 800);
+        ctx.font = font(
+          fitFont(ctx, this.waitingLabel, (size) => font(size, 800), CELL_W - 40, 21, 12),
+          800,
+        );
         ctx.textAlign = 'center';
         ctx.fillText(this.waitingLabel, x + CELL_W / 2, y + 57);
       }
@@ -172,7 +192,10 @@ export class CanvasScreen {
   readonly ctx: CanvasRenderingContext2D;
   private key = '';
 
-  constructor(readonly width: number, readonly height: number) {
+  constructor(
+    readonly width: number,
+    readonly height: number,
+  ) {
     const { canvas, ctx } = canvas2d(width, height);
     this.ctx = ctx;
     this.texture = new CanvasTexture(canvas);
@@ -206,7 +229,13 @@ export interface BoardInfo {
 }
 
 export function paintBoard(
-  ctx: CanvasRenderingContext2D, w: number, h: number, name: string, info: BoardInfo, accent: string, text: WorldText = worldText('pt-BR'),
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  name: string,
+  info: BoardInfo,
+  accent: string,
+  text: WorldText = worldText('pt-BR'),
 ): void {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, '#0d1830');
@@ -244,17 +273,29 @@ export function paintBoard(
   ctx.fillRect(34, h - 62, ((w - 68) * info.tasksDone) / total, 14);
   ctx.fillStyle = '#9fb0cc';
   ctx.font = font(20, 500);
-  const tasks = info.tasksTotal ? text.t('board.tasks', { done: info.tasksDone, total: info.tasksTotal }) : text.t('board.noTasks');
+  const tasks = info.tasksTotal
+    ? text.t('board.tasks', { done: info.tasksDone, total: info.tasksTotal })
+    : text.t('board.noTasks');
   ctx.fillText(tasks, 34, h - 28);
   if (info.waiting) {
     const tasksW = ctx.measureText(tasks).width;
     ctx.fillStyle = '#ffbe3c';
     ctx.textAlign = 'right';
-    ctx.fillText(fitText(ctx, text.t('count.needsYou', { n: info.waiting }), w - 34 - 24 - tasksW - 24), w - 24, h - 28);
+    ctx.fillText(
+      fitText(ctx, text.t('count.needsYou', { n: info.waiting }), w - 34 - 24 - tasksW - 24),
+      w - 24,
+      h - 28,
+    );
   }
 }
 
-export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: number, names: readonly string[], text: WorldText = worldText('pt-BR')): void {
+export function paintMeetingTv(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  names: readonly string[],
+  text: WorldText = worldText('pt-BR'),
+): void {
   ctx.fillStyle = '#0a1424';
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = '#1d3a63';
@@ -263,7 +304,9 @@ export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: numb
   ctx.textAlign = 'left';
   ctx.fillStyle = '#e8f1ff';
   ctx.font = font(34, 700);
-  const title = (names.length ? text.t('meeting.inRoom3d', { n: names.length }) : text.t('meeting.free')).toLocaleUpperCase(text.locale);
+  const title = (
+    names.length ? text.t('meeting.inRoom3d', { n: names.length }) : text.t('meeting.free')
+  ).toLocaleUpperCase(text.locale);
   ctx.fillText(fitText(ctx, title, w - 56), 28, 33);
   ctx.fillStyle = '#38b6c2';
   ctx.fillRect(0, 64, w, 4);
@@ -282,9 +325,18 @@ export function paintMeetingTv(ctx: CanvasRenderingContext2D, w: number, h: numb
   });
 }
 
-export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, text: WorldText = worldText('pt-BR')): void {
+export function paintMenu(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  text: WorldText = worldText('pt-BR'),
+): void {
   const items: [Parameters<WorldText['t']>[0], number][] = [
-    ['menu3d.espresso', 4], ['menu3d.cappuccino', 8], ['menu3d.cheeseBread', 6], ['menu3d.orangeJuice', 7], ['menu3d.sparkling', 3],
+    ['menu3d.espresso', 4],
+    ['menu3d.cappuccino', 8],
+    ['menu3d.cheeseBread', 6],
+    ['menu3d.orangeJuice', 7],
+    ['menu3d.sparkling', 3],
   ];
   const layout = menuLayout(w, h, items.length);
   ctx.fillStyle = '#22262b';
@@ -298,7 +350,10 @@ export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, t
   ctx.textAlign = 'center';
   const title = text.t('menu3d.title').toLocaleUpperCase(text.locale);
   const titleMax = w - 2 * layout.left;
-  ctx.font = font(fitFont(ctx, title, (size) => font(size, 700), titleMax, layout.titleSize, Math.round(layout.titleSize * 0.6)), 700);
+  ctx.font = font(
+    fitFont(ctx, title, (size) => font(size, 700), titleMax, layout.titleSize, Math.round(layout.titleSize * 0.6)),
+    700,
+  );
   ctx.fillText(fitText(ctx, title, titleMax), w / 2, layout.titleY);
   ctx.fillStyle = 'rgba(201,164,86,0.55)';
   ctx.fillRect(layout.left, layout.titleRuleY, layout.right - layout.left, 1.5);
@@ -312,7 +367,10 @@ export function paintMenu(ctx: CanvasRenderingContext2D, w: number, h: number, t
     ctx.fillStyle = '#e0b86a';
     ctx.fillText(cost, layout.right, y);
     const nameMax = layout.right - layout.left - costW - layout.rowSize;
-    ctx.font = font(fitFont(ctx, name, (size) => font(size, 500), nameMax, layout.rowSize, layout.rowMinSize), 500);
+    ctx.font = font(
+      fitFont(ctx, name, (size) => font(size, 500), nameMax, layout.rowSize, layout.rowMinSize),
+      500,
+    );
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f2ead8';
     ctx.fillText(fitText(ctx, name, nameMax), layout.left, y);
@@ -338,7 +396,14 @@ export function paintLoungeTv(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.fillText(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`, w / 2, h / 2);
 }
 
-export function paintSign(ctx: CanvasRenderingContext2D, w: number, h: number, text: string, accent: string, dark: boolean): void {
+export function paintSign(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  text: string,
+  accent: string,
+  dark: boolean,
+): void {
   ctx.fillStyle = dark ? '#14161a' : '#d9c28a';
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = accent;
@@ -396,7 +461,10 @@ export class TickerStrip {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffb347';
     const msg = text.toUpperCase();
-    ctx.font = font(fitFont(ctx, msg, (size) => font(size, 700), TICKER_MAX_TEXT_PX, TICKER_FONT, TICKER_MIN_FONT), 700);
+    ctx.font = font(
+      fitFont(ctx, msg, (size) => font(size, 700), TICKER_MAX_TEXT_PX, TICKER_FONT, TICKER_MIN_FONT),
+      700,
+    );
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     ctx.fillText(msg, TICKER_PAD, 34);

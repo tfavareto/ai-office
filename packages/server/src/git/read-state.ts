@@ -76,7 +76,10 @@ export async function readGitState(run: Runner, projectPath: string): Promise<Pr
   const unstagedStat = status.unstaged + status.conflicted > 0 ? await attempt(() => git(...DIFF_ARGS)) : undefined;
   const stagedStat = status.staged > 0 ? await attempt(() => git(...DIFF_ARGS, '--cached')) : undefined;
   const lines = [parseShortstat(unstagedStat ?? ''), parseShortstat(stagedStat ?? '')];
-  const commit = status.head === undefined ? undefined : await attempt(() => git('log', '-1', '--no-show-signature', '--format=%h%x09%ct%x09%s'));
+  const commit =
+    status.head === undefined
+      ? undefined
+      : await attempt(() => git('log', '-1', '--no-show-signature', '--format=%h%x09%ct%x09%s'));
   const stash = await attempt(() => git('stash', 'list'));
   const gitDir = await findGitDir(projectPath);
   const op = gitDir === undefined ? undefined : await detectOperation(gitDir);
@@ -93,7 +96,9 @@ export async function readGitState(run: Runner, projectPath: string): Promise<Pr
     insertions: lines[0].insertions + lines[1].insertions,
     deletions: lines[0].deletions + lines[1].deletions,
     ...(status.upstream !== undefined ? { upstream: status.upstream } : {}),
-    ...(status.ahead !== undefined && status.behind !== undefined ? { ahead: status.ahead, behind: status.behind } : {}),
+    ...(status.ahead !== undefined && status.behind !== undefined
+      ? { ahead: status.ahead, behind: status.behind }
+      : {}),
     ...(lastCommit !== undefined ? { lastCommit } : {}),
     stash: stash === undefined ? 0 : countStash(stash),
     ...(op !== undefined ? { op } : {}),

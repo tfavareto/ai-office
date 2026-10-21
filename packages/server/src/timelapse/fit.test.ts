@@ -2,7 +2,15 @@ import { describe, expect, test } from 'vitest';
 import { type TimelapseEvent } from '@ai-office/shared';
 import { fitEvents } from './fit';
 
-const activity = (agent: number, at: number, kind: 'read' | 'edit' | 'prompt' | 'done' = 'read'): TimelapseEvent => ({ at, type: 'activity', agent, kind, icon: '📖', text: 't', msg: { key: 'activity.read' } });
+const activity = (agent: number, at: number, kind: 'read' | 'edit' | 'prompt' | 'done' = 'read'): TimelapseEvent => ({
+  at,
+  type: 'activity',
+  agent,
+  kind,
+  icon: '📖',
+  text: 't',
+  msg: { key: 'activity.read' },
+});
 const status = (agent: number, at: number): TimelapseEvent => ({ at, type: 'status', agent, status: 'working' });
 
 describe('fitEvents', () => {

@@ -94,7 +94,17 @@ function encodeMonth(month: string, generation: number, rows: readonly UsageRow[
     row.cacheRead,
     row.costUSD,
   ]);
-  return { v: INDEX_VERSION, gen: generation, month, a: accounts.items, p: projects.items, m: models.items, s: sessions.items, g: agents.items, rows: encoded };
+  return {
+    v: INDEX_VERSION,
+    gen: generation,
+    month,
+    a: accounts.items,
+    p: projects.items,
+    m: models.items,
+    s: sessions.items,
+    g: agents.items,
+    rows: encoded,
+  };
 }
 
 function lookup(items: readonly unknown[], index: unknown): string | undefined {
@@ -110,9 +120,30 @@ function decodeRow(raw: unknown, tables: Record<'a' | 'p' | 'm' | 's' | 'g', unk
   const session = lookup(tables.s, cells[4]);
   const agent = lookup(tables.g, cells[5]);
   const numbers = [6, 7, 8, 9, 10].map((i) => asNumber(cells[i]));
-  if (hours === undefined || account === undefined || project === undefined || model === undefined || session === undefined || agent === undefined || numbers.some((n) => n === undefined)) return undefined;
+  if (
+    hours === undefined ||
+    account === undefined ||
+    project === undefined ||
+    model === undefined ||
+    session === undefined ||
+    agent === undefined ||
+    numbers.some((n) => n === undefined)
+  )
+    return undefined;
   const [input, output, cacheWrite, cacheRead, costUSD] = numbers as number[];
-  return { hour: hours * HOUR_MS, account, project, model, session, agent, input: input as number, output: output as number, cacheWrite: cacheWrite as number, cacheRead: cacheRead as number, costUSD: costUSD as number };
+  return {
+    hour: hours * HOUR_MS,
+    account,
+    project,
+    model,
+    session,
+    agent,
+    input: input as number,
+    output: output as number,
+    cacheWrite: cacheWrite as number,
+    cacheRead: cacheRead as number,
+    costUSD: costUSD as number,
+  };
 }
 
 interface DecodedMonth {
@@ -125,7 +156,13 @@ function decodeMonth(value: unknown): DecodedMonth | undefined {
   const shard = asRecord(value);
   const generation = asNumber(shard.gen);
   if (shard.v !== INDEX_VERSION || generation === undefined) return undefined;
-  const tables = { a: asArray(shard.a), p: asArray(shard.p), m: asArray(shard.m), s: asArray(shard.s), g: asArray(shard.g) };
+  const tables = {
+    a: asArray(shard.a),
+    p: asArray(shard.p),
+    m: asArray(shard.m),
+    s: asArray(shard.s),
+    g: asArray(shard.g),
+  };
   const rows: UsageRow[] = [];
   for (const raw of asArray(shard.rows)) {
     const row = decodeRow(raw, tables);
@@ -146,7 +183,16 @@ function encodeFile(file: FileState): unknown {
     m: file.mtimeMs,
     i: file.ino,
     h: file.head,
-    d: file.recent.map((m) => [m.id, m.hour / HOUR_MS, m.model, m.input, m.output, m.cacheWrite5m, m.cacheWrite1h, m.cacheRead]),
+    d: file.recent.map((m) => [
+      m.id,
+      m.hour / HOUR_MS,
+      m.model,
+      m.input,
+      m.output,
+      m.cacheWrite5m,
+      m.cacheWrite1h,
+      m.cacheRead,
+    ]),
   };
 }
 
@@ -156,9 +202,19 @@ function decodeRecent(raw: unknown): RecentMessage | undefined {
   const hours = asNumber(cells[1]);
   const model = asString(cells[2]);
   const numbers = [3, 4, 5, 6, 7].map((i) => asNumber(cells[i]));
-  if (id === undefined || hours === undefined || model === undefined || numbers.some((n) => n === undefined)) return undefined;
+  if (id === undefined || hours === undefined || model === undefined || numbers.some((n) => n === undefined))
+    return undefined;
   const [input, output, cacheWrite5m, cacheWrite1h, cacheRead] = numbers as number[];
-  return { id, hour: hours * HOUR_MS, model, input: input as number, output: output as number, cacheWrite5m: cacheWrite5m as number, cacheWrite1h: cacheWrite1h as number, cacheRead: cacheRead as number };
+  return {
+    id,
+    hour: hours * HOUR_MS,
+    model,
+    input: input as number,
+    output: output as number,
+    cacheWrite5m: cacheWrite5m as number,
+    cacheWrite1h: cacheWrite1h as number,
+    cacheRead: cacheRead as number,
+  };
 }
 
 function decodeFile(value: unknown): FileState | undefined {
@@ -172,7 +228,14 @@ function decodeFile(value: unknown): FileState | undefined {
   const mtimeMs = asNumber(file.m);
   const ino = asNumber(file.i);
   const head = asNumber(file.h);
-  if (account === undefined || rel === undefined || session === undefined || agent === undefined || project === undefined) return undefined;
+  if (
+    account === undefined ||
+    rel === undefined ||
+    session === undefined ||
+    agent === undefined ||
+    project === undefined
+  )
+    return undefined;
   if (offset === undefined || mtimeMs === undefined || ino === undefined || head === undefined) return undefined;
   const recent = asArray(file.d).flatMap((raw) => decodeRecent(raw) ?? []);
   return { account, rel, session, agent, project, offset, mtimeMs, ino, head, recent };
@@ -209,7 +272,13 @@ export async function loadIndex(stateDir: string): Promise<LoadedIndex | undefin
       const expected = asNumber(months[match[1]]);
       const decoded = decodeMonth(await readShard(join(dir, name)));
       // A shard that meta does not list, that is newer than meta, or that lost rows means a write was interrupted.
-      if (expected === undefined || decoded === undefined || decoded.generation > generation || decoded.rows.length !== expected) return undefined;
+      if (
+        expected === undefined ||
+        decoded === undefined ||
+        decoded.generation > generation ||
+        decoded.rows.length !== expected
+      )
+        return undefined;
       rows.push(...decoded.rows);
     }
   } catch {
@@ -223,9 +292,15 @@ export async function loadIndex(stateDir: string): Promise<LoadedIndex | undefin
 export async function saveIndex(stateDir: string, snapshot: IndexSnapshot): Promise<void> {
   const dir = join(stateDir, INDEX_DIR_NAME);
   await mkdir(dir, { recursive: true, mode: 0o700 });
-  for (const [month, rows] of snapshot.months) await writeJsonAtomic(join(dir, `${month}.json`), encodeMonth(month, snapshot.generation, rows));
+  for (const [month, rows] of snapshot.months)
+    await writeJsonAtomic(join(dir, `${month}.json`), encodeMonth(month, snapshot.generation, rows));
   const months: Record<string, number> = {};
   for (const [month, count] of snapshot.rowCounts) months[month] = count;
-  await writeJsonAtomic(join(dir, META_FILE), { v: INDEX_VERSION, gen: snapshot.generation, months, files: snapshot.files.map(encodeFile) });
+  await writeJsonAtomic(join(dir, META_FILE), {
+    v: INDEX_VERSION,
+    gen: snapshot.generation,
+    months,
+    files: snapshot.files.map(encodeFile),
+  });
   for (const month of snapshot.emptyMonths) await unlink(join(dir, `${month}.json`)).catch(() => undefined);
 }

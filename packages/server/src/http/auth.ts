@@ -79,7 +79,9 @@ export class TokenAuth {
 
   /** True when the request carries the token as a Bearer header or as the session cookie. */
   authorize(req: IncomingMessage): boolean {
-    return this.matches(bearerToken(req.headers.authorization)) || this.matches(cookieValue(req.headers.cookie, AUTH_COOKIE));
+    return (
+      this.matches(bearerToken(req.headers.authorization)) || this.matches(cookieValue(req.headers.cookie, AUTH_COOKIE))
+    );
   }
 
   /** `Set-Cookie` value for the page. Not `Secure`: the server speaks plain HTTP on loopback. */
@@ -89,7 +91,16 @@ export class TokenAuth {
 
   /** Proof that this server knows the token, for a hook-chosen nonce (so the hook can check it before sending the token). */
   proof(nonce: string | null): string | undefined {
-    if (this.token === undefined || nonce === null || nonce.length === 0 || nonce.length > MAX_NONCE_LENGTH || !NONCE_PATTERN.test(nonce)) return undefined;
-    return createHmac('sha256', this.token).update(HEALTH_PROOF_PREFIX + nonce).digest('hex');
+    if (
+      this.token === undefined ||
+      nonce === null ||
+      nonce.length === 0 ||
+      nonce.length > MAX_NONCE_LENGTH ||
+      !NONCE_PATTERN.test(nonce)
+    )
+      return undefined;
+    return createHmac('sha256', this.token)
+      .update(HEALTH_PROOF_PREFIX + nonce)
+      .digest('hex');
   }
 }

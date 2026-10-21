@@ -22,21 +22,31 @@ export class MoveMenu {
   open(anchor: HTMLElement, container: HTMLElement, title: string, options: readonly MenuOption[]): void {
     this.returnTo = anchor;
     const items = options.map((option) => {
-      const item = h('button', { type: 'button', role: 'menuitem', class: `ao-board-menu-item is-${option.group}` }, option.label);
+      const item = h(
+        'button',
+        { type: 'button', role: 'menuitem', class: `ao-board-menu-item is-${option.group}` },
+        option.label,
+      );
       item.addEventListener('click', () => {
         this.close(false);
         option.run();
       });
       return item;
     });
-    this.el.replaceChildren(h('div', { class: 'ao-board-menu-title' }, title), ...(items.length > 0 ? items : [h('p', { class: 'ao-note' }, t('board.menu.none'))]));
+    this.el.replaceChildren(
+      h('div', { class: 'ao-board-menu-title' }, title),
+      ...(items.length > 0 ? items : [h('p', { class: 'ao-note' }, t('board.menu.none'))]),
+    );
     this.el.hidden = false;
     const box = container.getBoundingClientRect();
     const rect = anchor.getBoundingClientRect();
     const width = this.el.offsetWidth;
     const left = Math.max(8, Math.min(rect.left - box.left, box.width - width - 8));
     const below = rect.bottom - box.top + MENU_GAP;
-    const top = below + this.el.offsetHeight > box.height - 8 ? Math.max(8, rect.top - box.top - this.el.offsetHeight - MENU_GAP) : below;
+    const top =
+      below + this.el.offsetHeight > box.height - 8
+        ? Math.max(8, rect.top - box.top - this.el.offsetHeight - MENU_GAP)
+        : below;
     this.el.style.left = `${left}px`;
     this.el.style.top = `${top}px`;
     items[0]?.focus({ preventScroll: true });

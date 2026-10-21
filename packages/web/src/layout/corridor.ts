@@ -19,7 +19,14 @@ export function layoutCorridor(endX: number, doors: readonly Door[]): AreaLayout
   const doorBlocks = (x: number, w: number, y: number): boolean =>
     doors.some((d) => d.outside.y === y && x < d.rect.x + d.rect.w + 1 && x + w > d.rect.x - 1);
 
-  const put = (kind: FurnitureKind, x: number, y: number, w: number, facing: Dir, opts: { walk?: boolean; variant?: number } = {}): FurnitureItem | null => {
+  const put = (
+    kind: FurnitureKind,
+    x: number,
+    y: number,
+    w: number,
+    facing: Dir,
+    opts: { walk?: boolean; variant?: number } = {},
+  ): FurnitureItem | null => {
     if (x < rect.x + 1 || x + w > rect.x + rect.w - 1) return null;
     if (!opts.walk && doorBlocks(x, w, y)) return null;
     const item: FurnitureItem = {
@@ -39,8 +46,25 @@ export function layoutCorridor(endX: number, doors: readonly Door[]): AreaLayout
     return item;
   };
 
-  const spot = (kind: SpotKind, x: number, y: number, dir: Dir, approach: { x: number; y: number }, opts: Partial<Spot> = {}): void => {
-    spots.push({ id: `corridor:${kind}${counter++}`, kind, areaId: 'corridor', x, y, dir, seat: false, approach, ...opts });
+  const spot = (
+    kind: SpotKind,
+    x: number,
+    y: number,
+    dir: Dir,
+    approach: { x: number; y: number },
+    opts: Partial<Spot> = {},
+  ): void => {
+    spots.push({
+      id: `corridor:${kind}${counter++}`,
+      kind,
+      areaId: 'corridor',
+      x,
+      y,
+      dir,
+      seat: false,
+      approach,
+      ...opts,
+    });
   };
 
   const segments = Math.floor(rect.w / SEGMENT) + 1;
@@ -50,7 +74,14 @@ export function layoutCorridor(endX: number, doors: readonly Door[]): AreaLayout
     const benchN = put('bench', base + 4, NORTH_ROW, 2, 's');
     if (benchN) {
       for (let i = 0; i < 2; i++) {
-        spot('bench', base + 4 + i + 0.5, NORTH_ROW + 0.6, 's', { x: base + 4 + i, y: NORTH_ROW + 1 }, { seat: true, itemId: benchN.id });
+        spot(
+          'bench',
+          base + 4 + i + 0.5,
+          NORTH_ROW + 0.6,
+          's',
+          { x: base + 4 + i, y: NORTH_ROW + 1 },
+          { seat: true, itemId: benchN.id },
+        );
       }
     }
     const cooler = put('waterCooler', base + 11, NORTH_ROW, 1, 's');
@@ -60,7 +91,14 @@ export function layoutCorridor(endX: number, doors: readonly Door[]): AreaLayout
     const benchS = put('bench', base + 7, SOUTH_ROW, 2, 'n');
     if (benchS) {
       for (let i = 0; i < 2; i++) {
-        spot('bench', base + 7 + i + 0.5, SOUTH_ROW + 0.6, 'n', { x: base + 7 + i, y: SOUTH_ROW - 1 }, { seat: true, itemId: benchS.id });
+        spot(
+          'bench',
+          base + 7 + i + 0.5,
+          SOUTH_ROW + 0.6,
+          'n',
+          { x: base + 7 + i, y: SOUTH_ROW - 1 },
+          { seat: true, itemId: benchS.id },
+        );
       }
     }
     const tx = base + 6;

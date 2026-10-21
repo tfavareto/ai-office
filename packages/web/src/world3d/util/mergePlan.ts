@@ -36,4 +36,5 @@ export function planMerge(items: readonly MergeItem[], maxVertices = MAX_BATCH_V
 }
 
 /** Draw calls saved by merging: parts minus batches. */
-export const savedDrawCalls = (items: readonly MergeItem[], batches: readonly MergeBatch[]): number => items.length - batches.length;
+export const savedDrawCalls = (items: readonly MergeItem[], batches: readonly MergeBatch[]): number =>
+  items.length - batches.length;

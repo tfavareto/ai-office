@@ -22,7 +22,9 @@ export class HireBook {
 
   /** Hires still waiting for their session. */
   unresolved(now: number): PendingHire[] {
-    return [...this.entries.values()].filter((entry) => entry.resolvedAt === undefined && entry.hire.expiresAt > now).map((entry) => entry.hire);
+    return [...this.entries.values()]
+      .filter((entry) => entry.resolvedAt === undefined && entry.hire.expiresAt > now)
+      .map((entry) => entry.hire);
   }
 
   /** Marks a hire as taken over by `agentId`. Returns false when it is unknown or already resolved. */
@@ -36,7 +38,9 @@ export class HireBook {
   /** What snapshots carry: waiting hires, and taken-over ones until the handover period ends. */
   list(now: number): PendingHire[] {
     return [...this.entries.values()]
-      .filter((entry) => (entry.resolvedAt === undefined ? entry.hire.expiresAt > now : now - entry.resolvedAt < HIRE_HANDOVER_MS))
+      .filter((entry) =>
+        entry.resolvedAt === undefined ? entry.hire.expiresAt > now : now - entry.resolvedAt < HIRE_HANDOVER_MS,
+      )
       .map((entry) => entry.hire);
   }
 

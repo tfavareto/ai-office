@@ -42,8 +42,19 @@ function flatten(scene: import('three').Object3D): Model {
   });
   const box = new Box3().setFromObject(scene);
   const size = box.getSize(new Vector3());
-  const recenter = new Matrix4().makeTranslation(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
-  return { size, parts: raw.map((r) => ({ geometry: r.geometry, material: r.material, matrix: recenter.clone().multiply(r.matrix) })) };
+  const recenter = new Matrix4().makeTranslation(
+    -(box.min.x + box.max.x) / 2,
+    -box.min.y,
+    -(box.min.z + box.max.z) / 2,
+  );
+  return {
+    size,
+    parts: raw.map((r) => ({
+      geometry: r.geometry,
+      material: r.material,
+      matrix: recenter.clone().multiply(r.matrix),
+    })),
+  };
 }
 
 export async function loadModels(): Promise<Models> {

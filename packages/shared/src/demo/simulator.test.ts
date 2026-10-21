@@ -19,7 +19,14 @@ function run(seed: number, seconds: number, stepMs = 250) {
 }
 
 const strip = (agents: Agent[]) =>
-  agents.map((a) => ({ id: a.id, name: a.name, status: a.status, text: a.activity?.text, tasks: a.tasks.length, shells: a.shells.length }));
+  agents.map((a) => ({
+    id: a.id,
+    name: a.name,
+    status: a.status,
+    text: a.activity?.text,
+    tasks: a.tasks.length,
+    shells: a.shells.length,
+  }));
 
 describe('createDemoSimulator', () => {
   test('starts with 4 projects and 6 main agents with distinct names', () => {
@@ -60,7 +67,8 @@ describe('createDemoSimulator', () => {
   test('a longer run produces activities, notices, completions and subagents', () => {
     const { feed, notices } = run(3, 600);
     const kinds = new Set(feed.map((f) => f.activity.kind));
-    for (const kind of ['prompt', 'read', 'edit', 'bash', 'done', 'subagent']) expect(kinds.has(kind as never)).toBe(true);
+    for (const kind of ['prompt', 'read', 'edit', 'bash', 'done', 'subagent'])
+      expect(kinds.has(kind as never)).toBe(true);
     expect(notices.some((n) => n.level === 'success')).toBe(true);
     expect(notices.some((n) => n.level === 'alert')).toBe(true);
     expect(feed.every((f) => f.activity.text.length <= 60)).toBe(true);
@@ -241,7 +249,12 @@ describe('createDemoSimulator', () => {
 
   test('agents plan different jobs, not always the same first tasks', () => {
     const { sim } = run(5, 600, 1000);
-    const firstTitles = new Set(sim.agents().filter((a) => a.tasks.length > 0).map((a) => a.tasks[0]?.titleMsg?.key));
+    const firstTitles = new Set(
+      sim
+        .agents()
+        .filter((a) => a.tasks.length > 0)
+        .map((a) => a.tasks[0]?.titleMsg?.key),
+    );
     expect(firstTitles.size).toBeGreaterThan(1);
   });
 
@@ -261,7 +274,10 @@ describe('createDemoSimulator', () => {
 });
 
 describe('automatic answers (approval rules)', () => {
-  function runWith(autoDecide: (request: PermissionRequest, agent: Agent) => PermissionDecision | undefined, seconds = 300) {
+  function runWith(
+    autoDecide: (request: PermissionRequest, agent: Agent) => PermissionDecision | undefined,
+    seconds = 300,
+  ) {
     let clock = T0;
     const asked: PermissionRequest[] = [];
     const sim = createDemoSimulator({
@@ -298,4 +314,3 @@ describe('automatic answers (approval rules)', () => {
     expect(sim.agents().some((agent) => agent.permission !== undefined)).toBe(true);
   });
 });
-

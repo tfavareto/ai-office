@@ -65,7 +65,14 @@ function projectPath(index: number): string {
 }
 
 /** The sessions working during a given hour: the first is the main one, the others come and go. */
-function slotsFor(account: string, accountIndex: number, hour: number, dayStart: number, anchors: readonly DemoSessionAnchor[], rng: () => number): Slot[] {
+function slotsFor(
+  account: string,
+  accountIndex: number,
+  hour: number,
+  dayStart: number,
+  anchors: readonly DemoSessionAnchor[],
+  rng: () => number,
+): Slot[] {
   const dayIndex = Math.round(dayStart / DAY_MS);
   const count = 1 + (rng() < 0.45 ? 1 : 0) + (rng() < 0.15 ? 1 : 0);
   const models = [OPUS, SONNET, SONNET];
@@ -82,16 +89,49 @@ function slotsFor(account: string, accountIndex: number, hour: number, dayStart:
   return slots;
 }
 
-function makeRow(hour: number, account: string, slot: Slot, agent: string, model: string, billable: number, rng: () => number): UsageRow {
+function makeRow(
+  hour: number,
+  account: string,
+  slot: Slot,
+  agent: string,
+  model: string,
+  billable: number,
+  rng: () => number,
+): UsageRow {
   const input = Math.round(billable * 0.03);
   const output = Math.round(billable * 0.22);
   const cacheWrite = Math.round(billable * 0.75);
   const cacheRead = Math.round(billable * 14 * (0.8 + rng() * 0.4));
-  const costUSD = tokensCostUSD(model, { input, output, cacheWrite5m: Math.round(cacheWrite * 0.85), cacheWrite1h: Math.round(cacheWrite * 0.15), cacheRead }) ?? 0;
-  return { hour, account, project: slot.project, model, session: slot.session, agent, input, output, cacheWrite, cacheRead, costUSD };
+  const costUSD =
+    tokensCostUSD(model, {
+      input,
+      output,
+      cacheWrite5m: Math.round(cacheWrite * 0.85),
+      cacheWrite1h: Math.round(cacheWrite * 0.15),
+      cacheRead,
+    }) ?? 0;
+  return {
+    hour,
+    account,
+    project: slot.project,
+    model,
+    session: slot.session,
+    agent,
+    input,
+    output,
+    cacheWrite,
+    cacheRead,
+    costUSD,
+  };
 }
 
-function hourRows(account: string, accountIndex: number, hour: number, now: number, anchors: readonly DemoSessionAnchor[]): UsageRow[] {
+function hourRows(
+  account: string,
+  accountIndex: number,
+  hour: number,
+  now: number,
+  anchors: readonly DemoSessionAnchor[],
+): UsageRow[] {
   const profile = PROFILES[account] ?? (PROFILES['demo-pessoal'] as Profile);
   const rng = mulberry32(fnv1a(`${account}:${hour}`));
   const local = new Date(hour);
@@ -99,7 +139,11 @@ function hourRows(account: string, accountIndex: number, hour: number, now: numb
   const dayStart = startOfDay(hour);
   const dayMood = 0.55 + mulberry32(fnv1a(`${account}:day:${dayStart}`))() * 0.85;
   const forced = hour > floorToHour(now) - FORCED_ACTIVE_HOURS * HOUR_MS;
-  let intensity = dayCurve(local.getHours(), profile.evening) * (weekend ? profile.weekend : profile.weekday) * dayMood * (0.5 + rng());
+  let intensity =
+    dayCurve(local.getHours(), profile.evening) *
+    (weekend ? profile.weekend : profile.weekday) *
+    dayMood *
+    (0.5 + rng());
   if (forced) intensity = Math.max(intensity, 0.7 + rng() * 0.4);
   if (intensity < 0.05 || (!forced && rng() < 0.1)) return [];
   const elapsed = hour === floorToHour(now) ? Math.max(0.05, (now - hour) / HOUR_MS) : 1;
@@ -111,7 +155,18 @@ function hourRows(account: string, accountIndex: number, hour: number, now: numb
     const share = (billable * slot.weight) / total;
     const sub = index === 0 && rng() < 0.55 ? 0.14 : 0;
     rows.push(makeRow(hour, account, slot, '', slot.model, share * (1 - sub), rng));
-    if (sub > 0) rows.push(makeRow(hour, account, slot, `ag${Math.floor(hour / HOUR_MS) % 7}`, rng() < 0.6 ? HAIKU : SONNET, share * sub, rng));
+    if (sub > 0)
+      rows.push(
+        makeRow(
+          hour,
+          account,
+          slot,
+          `ag${Math.floor(hour / HOUR_MS) % 7}`,
+          rng() < 0.6 ? HAIKU : SONNET,
+          share * sub,
+          rng,
+        ),
+      );
   });
   return rows;
 }
@@ -142,7 +197,8 @@ export function demoUsageRows(at: number, anchors: readonly DemoSessionAnchor[] 
   const end = floorToHour(now);
   DEMO_ACCOUNTS.forEach((account, index) => {
     const mine = anchors.filter((anchor) => anchor.account === account.id);
-    for (let hour = Math.ceil(todayStart / HOUR_MS) * HOUR_MS; hour <= end; hour += HOUR_MS) rows.push(...hourRows(account.id, index, hour, now, mine));
+    for (let hour = Math.ceil(todayStart / HOUR_MS) * HOUR_MS; hour <= end; hour += HOUR_MS)
+      rows.push(...hourRows(account.id, index, hour, now, mine));
   });
   return rows;
 }
@@ -179,11 +235,18 @@ function demoBurn(rows: readonly UsageRow[], account: string, now: number, hours
 }
 
 /** Usage cards of the demo accounts, derived from the same history the detail view shows. */
-export function demoAccountUsage(at: number, rows: readonly UsageRow[], accounts: readonly Account[] = DEMO_ACCOUNTS): AccountUsage[] {
+export function demoAccountUsage(
+  at: number,
+  rows: readonly UsageRow[],
+  accounts: readonly Account[] = DEMO_ACCOUNTS,
+): AccountUsage[] {
   const now = quantize(at);
   const maps = demoHourMaps(rows);
   return accounts.map((account) => {
     const hours = maps.get(account.id) ?? new Map();
-    return computeAccountUsage(account.id, hours, now, { burn: demoBurn(rows, account.id, now, hours), peaks: computePeaks(hours, now) });
+    return computeAccountUsage(account.id, hours, now, {
+      burn: demoBurn(rows, account.id, now, hours),
+      peaks: computePeaks(hours, now),
+    });
   });
 }

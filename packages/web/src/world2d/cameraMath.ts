@@ -70,7 +70,8 @@ export function nearestLevel(levels: readonly number[], zoom: number): number {
 
 /** Next level in/out from any zoom (the overview zoom is usually between two levels). Stays put at the ends. */
 export function stepLevel(levels: readonly number[], zoom: number, direction: 1 | -1): number {
-  if (direction === 1) return levels.find((z) => z > zoom * MIN_STEP_RATIO) ?? Math.max(zoom, levels[levels.length - 1]);
+  if (direction === 1)
+    return levels.find((z) => z > zoom * MIN_STEP_RATIO) ?? Math.max(zoom, levels[levels.length - 1]);
   const below = levels.filter((z) => z < zoom / MIN_STEP_RATIO);
   return below.length ? below[below.length - 1] : Math.min(zoom, levels[0]);
 }
@@ -129,7 +130,12 @@ function clampAxis(value: number, half: number, lo: number, hi: number): number 
 }
 
 /** Moves the view centre (world px) so the visible rect stays inside `world`. No world means no limit. */
-export function clampCenter(center: Point, zoom: number, size: { width: number; height: number }, world: Bounds | null): Point {
+export function clampCenter(
+  center: Point,
+  zoom: number,
+  size: { width: number; height: number },
+  world: Bounds | null,
+): Point {
   if (!world) return center;
   return {
     x: clampAxis(center.x, size.width / zoom / 2, world.x + COVER_SLACK, world.x + world.w - COVER_SLACK),
@@ -152,7 +158,13 @@ export function pinnedCenter(p: Point, zoom: number, view: Viewport): Point {
 }
 
 /** World point under screen point (sx, sy) for a camera centred at `center`. */
-export function worldAt(center: Point, zoom: number, size: { width: number; height: number }, sx: number, sy: number): Point {
+export function worldAt(
+  center: Point,
+  zoom: number,
+  size: { width: number; height: number },
+  sx: number,
+  sy: number,
+): Point {
   return { x: (sx - size.width / 2) / zoom + center.x, y: (sy - size.height / 2) / zoom + center.y };
 }
 
@@ -206,8 +218,16 @@ export function fitContinuous(bounds: Bounds, view: Viewport, pad = 0): number {
  * (the zoom at which the world covers the window).
  */
 export function overviewZoom(building: { w: number; h: number }, view: Viewport, dpr: number, minZoom = 0): number {
-  const comfy = fitContinuous({ x: 0, y: 0, w: building.w + COMFY_MARGIN * 2, h: building.h + COMFY_MARGIN * 2 }, view, COMFY_PAD);
-  const tight = fitContinuous({ x: 0, y: 0, w: building.w + TIGHT_MARGIN * 2, h: building.h + TIGHT_MARGIN * 2 }, view, TIGHT_PAD);
+  const comfy = fitContinuous(
+    { x: 0, y: 0, w: building.w + COMFY_MARGIN * 2, h: building.h + COMFY_MARGIN * 2 },
+    view,
+    COMFY_PAD,
+  );
+  const tight = fitContinuous(
+    { x: 0, y: 0, w: building.w + TIGHT_MARGIN * 2, h: building.h + TIGHT_MARGIN * 2 },
+    view,
+    TIGHT_PAD,
+  );
   const crisp = Math.floor(tight * dpr + ZOOM_EPS) / dpr;
   const zoom = crisp * dpr >= 1 && crisp >= comfy * CRISP_MIN_SHARE ? Math.min(MAX_ZOOM, crisp) : comfy;
   return Math.max(zoom, minZoom);

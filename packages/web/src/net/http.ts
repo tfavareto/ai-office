@@ -1,11 +1,34 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
 import { API, type HireRequest, type PermissionDecision, type RuleDraft, type UsagePeriod } from '@ai-office/shared';
 import { locale, t } from '../i18n';
-import { BackendError, RuleRejectedError, type Backend, type DecisionResult, type ReportQuery, type TimelapseQuery, type TranscriptQuery } from './backend';
+import {
+  BackendError,
+  RuleRejectedError,
+  type Backend,
+  type DecisionResult,
+  type ReportQuery,
+  type TimelapseQuery,
+  type TranscriptQuery,
+} from './backend';
 import { parseDayReport } from './parse-report';
 import { parseTimelapse } from './parse-timelapse';
 import { parseUsageDetail } from './parse-usage';
-import { isRecord, parseActivities, parseDay, parseFolderCheck, parseHire, parseMessages, parsePermission, parseRule, parseRuleLog, parseRulePreview, parseRuleRejection, parseRules, parseSessions, parseTranscriptPage } from './parse';
+import {
+  isRecord,
+  parseActivities,
+  parseDay,
+  parseFolderCheck,
+  parseHire,
+  parseMessages,
+  parsePermission,
+  parseRule,
+  parseRuleLog,
+  parseRulePreview,
+  parseRuleRejection,
+  parseRules,
+  parseSessions,
+  parseTranscriptPage,
+} from './parse';
 import { parseGitSettings } from './parse-git';
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -27,7 +50,11 @@ export class HttpBackend implements Backend {
     return `${this.baseUrl}${path}${qs ? `?${qs}` : ''}`;
   }
 
-  private async request(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<{ status: number; body: unknown }> {
+  private async request(
+    url: string,
+    init: RequestInit,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+  ): Promise<{ status: number; body: unknown }> {
     let response: Response;
     try {
       response = await this.fetchImpl(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
@@ -39,8 +66,16 @@ export class HttpBackend implements Backend {
     return { status: response.status, body };
   }
 
-  private async get(path: string, params?: Record<string, string | number | undefined>, timeoutMs?: number): Promise<unknown> {
-    const { status, body } = await this.request(this.url(path, params), { method: 'GET', headers: { Accept: 'application/json' } }, timeoutMs);
+  private async get(
+    path: string,
+    params?: Record<string, string | number | undefined>,
+    timeoutMs?: number,
+  ): Promise<unknown> {
+    const { status, body } = await this.request(
+      this.url(path, params),
+      { method: 'GET', headers: { Accept: 'application/json' } },
+      timeoutMs,
+    );
     if (status < 200 || status >= 300) throw new BackendError(errorText(body), status);
     return body;
   }
@@ -62,7 +97,14 @@ export class HttpBackend implements Backend {
     const { status, body } = await this.request(this.url(path), {
       method,
       headers: { Accept: 'application/json', ...(hasBody ? { 'Content-Type': 'application/json' } : {}) },
-      ...(hasBody ? { body: JSON.stringify({ ...(isRecord(payload) ? payload : {}), ...(method === 'DELETE' ? {} : { locale: locale() }) }) } : {}),
+      ...(hasBody
+        ? {
+            body: JSON.stringify({
+              ...(isRecord(payload) ? payload : {}),
+              ...(method === 'DELETE' ? {} : { locale: locale() }),
+            }),
+          }
+        : {}),
     });
     if (status >= 200 && status < 300) return body;
     const rejection = parseRuleRejection(body);
@@ -80,7 +122,11 @@ export class HttpBackend implements Backend {
   }
 
   async decidePermission(requestId: string, decision: PermissionDecision): Promise<DecisionResult> {
-    const { status } = await this.post(`${API.permissions}/${encodeURIComponent(requestId)}/decision`, { ...decision, locale: locale() }, true);
+    const { status } = await this.post(
+      `${API.permissions}/${encodeURIComponent(requestId)}/decision`,
+      { ...decision, locale: locale() },
+      true,
+    );
     return status === 409 ? 'already-answered' : 'ok';
   }
 
@@ -94,7 +140,12 @@ export class HttpBackend implements Backend {
 
   async transcript(query: TranscriptQuery) {
     return parseTranscriptPage(
-      await this.get(API.transcript, { session: query.sessionId, account: query.accountId, agent: query.agentId, after: query.after }),
+      await this.get(API.transcript, {
+        session: query.sessionId,
+        account: query.accountId,
+        agent: query.agentId,
+        after: query.after,
+      }),
     );
   }
 
@@ -111,11 +162,20 @@ export class HttpBackend implements Backend {
   }
 
   async dayReport(query: ReportQuery) {
-    return parseDayReport(await this.get(API.report, { date: query.date, account: query.account, requests: query.includeRequests ? 1 : undefined, locale: locale() }));
+    return parseDayReport(
+      await this.get(API.report, {
+        date: query.date,
+        account: query.account,
+        requests: query.includeRequests ? 1 : undefined,
+        locale: locale(),
+      }),
+    );
   }
 
   async timelapse(query: TimelapseQuery) {
-    return parseTimelapse(await this.get(API.timelapse, { date: query.date, account: query.account, locale: locale() }, SCAN_TIMEOUT_MS));
+    return parseTimelapse(
+      await this.get(API.timelapse, { date: query.date, account: query.account, locale: locale() }, SCAN_TIMEOUT_MS),
+    );
   }
 
   async gitSettings() {

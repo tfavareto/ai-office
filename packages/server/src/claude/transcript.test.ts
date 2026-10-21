@@ -1,6 +1,16 @@
 import { appendFile } from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { type FakeClaudeDir, assistantLine, jsonl, makeFakeClaude, text, thinking, toolResultLine, toolUse, userLine } from '../test-helpers';
+import {
+  type FakeClaudeDir,
+  assistantLine,
+  jsonl,
+  makeFakeClaude,
+  text,
+  thinking,
+  toolResultLine,
+  toolUse,
+  userLine,
+} from '../test-helpers';
 import { MAX_TEXT, MAX_VIEW_BYTES, PAGE_SIZE, TranscriptCache, TranscriptView } from './transcript';
 import { scanRecentSessions } from './sessions-scan';
 
@@ -28,7 +38,13 @@ describe('TranscriptView', () => {
     expect(await view.update()).toBe(true);
     const { entries, next } = view.page(undefined);
     expect(entries.map((e) => e.kind)).toEqual(['user', 'thinking', 'assistant', 'tool', 'tool']);
-    expect(entries[3]).toMatchObject({ kind: 'tool', id: 't1', name: 'Read', summary: '📖 Lendo a.ts', result: 'conteúdo do arquivo' });
+    expect(entries[3]).toMatchObject({
+      kind: 'tool',
+      id: 't1',
+      name: 'Read',
+      summary: '📖 Lendo a.ts',
+      result: 'conteúdo do arquivo',
+    });
     expect(entries[4]).toMatchObject({ result: 'FAIL', error: true });
     expect(next).toBe(5);
   });
@@ -40,17 +56,28 @@ describe('TranscriptView', () => {
         userLine('oi', 0),
         assistantLine([thinking('')], 1),
         '{"type":"file-history-snapshot"}',
-        JSON.stringify({ type: 'system', subtype: 'compact_boundary', timestamp: new Date(1_800_000_000_000).toISOString() }),
+        JSON.stringify({
+          type: 'system',
+          subtype: 'compact_boundary',
+          timestamp: new Date(1_800_000_000_000).toISOString(),
+        }),
         userLine('[Request interrupted by user]', 5),
       ),
     );
     const view = new TranscriptView(path);
     await view.update();
-    expect(view.page(undefined).entries.map((e) => (e.kind === 'system' ? e.text : e.kind))).toEqual(['user', 'Conversa compactada', 'Interrompido pelo usuário']);
+    expect(view.page(undefined).entries.map((e) => (e.kind === 'system' ? e.text : e.kind))).toEqual([
+      'user',
+      'Conversa compactada',
+      'Interrompido pelo usuário',
+    ]);
   });
 
   test('pagination: `after` returns newer entries; `next` stays at tools still waiting for a result', async () => {
-    const path = await fake.writeTranscript('s1', jsonl(userLine('go', 0), assistantLine([toolUse('t1', 'Bash', { command: 'sleep 5' })], 10)));
+    const path = await fake.writeTranscript(
+      's1',
+      jsonl(userLine('go', 0), assistantLine([toolUse('t1', 'Bash', { command: 'sleep 5' })], 10)),
+    );
     const view = new TranscriptView(path);
     await view.update();
     const first = view.page(undefined);
@@ -78,7 +105,10 @@ describe('TranscriptView', () => {
       's1',
       jsonl(
         userLine('u'.repeat(50_000), 0),
-        assistantLine([text('a'.repeat(50_000)), thinking('t'.repeat(50_000)), toolUse('t1', 'Bash', { command: 'ls' })], 10),
+        assistantLine(
+          [text('a'.repeat(50_000)), thinking('t'.repeat(50_000)), toolUse('t1', 'Bash', { command: 'ls' })],
+          10,
+        ),
         toolResultLine('t1', 'r'.repeat(50_000), 20),
       ),
     );
@@ -88,13 +118,19 @@ describe('TranscriptView', () => {
     expect(entries).toHaveLength(4);
     expect(MAX_TEXT).toBe(4096);
     for (const entry of entries) {
-      if (entry.kind === 'user' || entry.kind === 'assistant' || entry.kind === 'thinking') expect(entry.text.length).toBeLessThanOrEqual(4096);
+      if (entry.kind === 'user' || entry.kind === 'assistant' || entry.kind === 'thinking')
+        expect(entry.text.length).toBeLessThanOrEqual(4096);
       if (entry.kind === 'tool') expect(entry.result?.length).toBe(4096);
     }
   });
 
   test('a view keeps its memory under the byte budget by dropping the oldest entries', async () => {
-    const chunk = (round: number): string => jsonl(...Array.from({ length: 200 }, (_, i) => assistantLine([text(`${round}:${i} ${'x'.repeat(10_000)}`)], round * 1000 + i, { id: `m${round}-${i}` })));
+    const chunk = (round: number): string =>
+      jsonl(
+        ...Array.from({ length: 200 }, (_, i) =>
+          assistantLine([text(`${round}:${i} ${'x'.repeat(10_000)}`)], round * 1000 + i, { id: `m${round}-${i}` }),
+        ),
+      );
     const path = await fake.writeTranscript('big', chunk(0));
     const view = new TranscriptView(path);
     await view.update();
@@ -136,7 +172,11 @@ describe('TranscriptView', () => {
   });
 
   test('a pending tool holds `next` back, but never more than a page, so paging cannot stall', async () => {
-    const lines = [userLine('go', 0), assistantLine([toolUse('t1', 'Bash', { command: 'sleep 9' })], 1), ...Array.from({ length: 700 }, (_, i) => assistantLine([text(`m${i}`)], 10 + i, { id: `a${i}` }))];
+    const lines = [
+      userLine('go', 0),
+      assistantLine([toolUse('t1', 'Bash', { command: 'sleep 9' })], 1),
+      ...Array.from({ length: 700 }, (_, i) => assistantLine([text(`m${i}`)], 10 + i, { id: `a${i}` })),
+    ];
     const view = new TranscriptView(await fake.writeTranscript('pending', jsonl(...lines)));
     await view.update();
     const newest = view.page(undefined); // entries 202..701
@@ -165,14 +205,33 @@ describe('TranscriptView', () => {
 
 describe('scanRecentSessions', () => {
   test('lists recent sessions with title, project, open flag and newest first', async () => {
-    await fake.writeTranscript('old', jsonl(userLine('Primeira tarefa antiga', -5000, { cwd: '/work/old' }), '{"type":"custom-title","customTitle":"Título antigo"}'), '/work/old');
+    await fake.writeTranscript(
+      'old',
+      jsonl(
+        userLine('Primeira tarefa antiga', -5000, { cwd: '/work/old' }),
+        '{"type":"custom-title","customTitle":"Título antigo"}',
+      ),
+      '/work/old',
+    );
     await fake.writeTranscript('new', jsonl(userLine('Tarefa nova', 0), assistantLine([text('ok')], 10)), '/work/proj');
     const { utimes } = await import('node:fs/promises');
-    await utimes(fake.transcriptPath('old', '/work/old'), new Date(Date.now() - 3_600_000), new Date(Date.now() - 3_600_000));
+    await utimes(
+      fake.transcriptPath('old', '/work/old'),
+      new Date(Date.now() - 3_600_000),
+      new Date(Date.now() - 3_600_000),
+    );
     const account = { id: 'claude', label: 'Pessoal', initial: 'P', color: '#fff', dir: fake.dir };
-    const sessions = await scanRecentSessions([account], Date.now(), (_, sessionId) => (sessionId === 'new' ? { agentId: 'claude:new', title: 'Nome do registro' } : undefined));
+    const sessions = await scanRecentSessions([account], Date.now(), (_, sessionId) =>
+      sessionId === 'new' ? { agentId: 'claude:new', title: 'Nome do registro' } : undefined,
+    );
     expect(sessions.map((s) => s.sessionId)).toEqual(['new', 'old']);
-    expect(sessions[0]).toMatchObject({ projectPath: '/work/proj', projectName: 'proj', title: 'Nome do registro', open: true, agentId: 'claude:new' });
+    expect(sessions[0]).toMatchObject({
+      projectPath: '/work/proj',
+      projectName: 'proj',
+      title: 'Nome do registro',
+      open: true,
+      agentId: 'claude:new',
+    });
     expect(sessions[1]).toMatchObject({ projectName: 'old', title: 'Título antigo', open: false });
     expect(sessions[1]?.firstAt).toBeGreaterThan(0);
   });

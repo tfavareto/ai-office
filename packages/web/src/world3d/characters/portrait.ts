@@ -1,6 +1,14 @@
 // Head-and-shoulders portraits for UI avatars: a standing copy of the agent's model rendered into a small target.
 import {
-  Color, DirectionalLight, HemisphereLight, OrthographicCamera, Scene, SRGBColorSpace, Vector3, WebGLRenderTarget, type WebGLRenderer,
+  Color,
+  DirectionalLight,
+  HemisphereLight,
+  OrthographicCamera,
+  Scene,
+  SRGBColorSpace,
+  Vector3,
+  WebGLRenderTarget,
+  type WebGLRenderer,
 } from 'three';
 import { Rig } from '../pose/rig';
 import { createPose } from '../pose/poseVec';
@@ -16,7 +24,10 @@ export class PortraitRenderer {
   private readonly scene = new Scene();
   private readonly camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 
-  constructor(private readonly renderer: WebGLRenderer, private readonly library: HumanLibrary) {
+  constructor(
+    private readonly renderer: WebGLRenderer,
+    private readonly library: HumanLibrary,
+  ) {
     this.scene.add(new HemisphereLight('#ffffff', '#b9a48c', 1.7));
     const key = new DirectionalLight('#fff1dc', 2.4);
     key.position.set(1.2, 1.6, 2.4);
@@ -47,7 +58,15 @@ export class PortraitRenderer {
     person.root.scale.setScalar(choice.scale);
     const rig = new Rig(person.root);
     const pose = createPose();
-    solvePose(pose, 'stand', { t: 0, walk: 0, phase: 0, pelvisRest: rig.pelvisRestY, seated: false, seatHeight: 0.47, shellStage: 0 });
+    solvePose(pose, 'stand', {
+      t: 0,
+      walk: 0,
+      phase: 0,
+      pelvisRest: rig.pelvisRestY,
+      seated: false,
+      seatHeight: 0.47,
+      shellStage: 0,
+    });
     pose[0] = 0;
     rig.apply(pose);
     person.root.updateMatrixWorld(true);

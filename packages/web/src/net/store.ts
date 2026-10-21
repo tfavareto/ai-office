@@ -2,14 +2,7 @@
 import type { FeedItem, Notice, OfficeSnapshot } from '@ai-office/shared';
 import type { Backend } from './backend';
 import { reconnectDelay } from './reconnect';
-import {
-  INITIAL_STORE_DATA,
-  applySnapshot,
-  markConnected,
-  markLost,
-  mergeFeed,
-  type StoreData,
-} from './reducers';
+import { INITIAL_STORE_DATA, applySnapshot, markConnected, markLost, mergeFeed, type StoreData } from './reducers';
 import type { Transport, TransportHandlers } from './transport';
 
 export type StoreEvent =

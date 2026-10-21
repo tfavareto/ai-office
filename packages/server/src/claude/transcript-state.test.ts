@@ -23,7 +23,11 @@ describe('TranscriptState turns and activities', () => {
 
   test('tool calls map to pt-BR activities and stay pending until the result', () => {
     const state = main();
-    feed(state, userLine('x', 0), assistantLine([toolUse('t1', 'Read', { file_path: '/p/App.tsx' })], 1000, { stopReason: 'tool_use' }));
+    feed(
+      state,
+      userLine('x', 0),
+      assistantLine([toolUse('t1', 'Read', { file_path: '/p/App.tsx' })], 1000, { stopReason: 'tool_use' }),
+    );
     expect(state.activity?.text).toBe('Lendo App.tsx');
     expect(state.pendingTools().map((t) => t.id)).toEqual(['t1']);
     const [effects] = feed(state, toolResultLine('t1', 'conteúdo', 2000));
@@ -57,16 +61,30 @@ describe('TranscriptState turns and activities', () => {
 
   test('interruptions end the turn and drop foreground tools', () => {
     const state = main();
-    feed(state, userLine('x', 0), assistantLine([toolUse('b1', 'Bash', { command: 'sleep 100' })], 100), userLine('[Request interrupted by user]', 500));
+    feed(
+      state,
+      userLine('x', 0),
+      assistantLine([toolUse('b1', 'Bash', { command: 'sleep 100' })], 100),
+      userLine('[Request interrupted by user]', 500),
+    );
     expect(state.turn).toBe('idle');
     expect(state.pendingTools()).toHaveLength(0);
   });
 
   test('records metadata: model, branch, cwd, permission mode, custom title wins', () => {
     const state = main();
-    feed(state, userLine('primeira', 0, { cwd: '/work/x', gitBranch: 'feat/a' }), assistantLine([text('oi')], 10, { extra: { cwd: '/work/x' } }));
+    feed(
+      state,
+      userLine('primeira', 0, { cwd: '/work/x', gitBranch: 'feat/a' }),
+      assistantLine([text('oi')], 10, { extra: { cwd: '/work/x' } }),
+    );
     feed(state, '{"type":"custom-title","customTitle":"Título"}');
-    expect(state).toMatchObject({ model: 'claude-sonnet-5-5', gitBranch: 'feat/a', cwd: '/work/x', permissionMode: 'default' });
+    expect(state).toMatchObject({
+      model: 'claude-sonnet-5-5',
+      gitBranch: 'feat/a',
+      cwd: '/work/x',
+      permissionMode: 'default',
+    });
     expect(state.title()).toBe('Título');
   });
 });
@@ -74,7 +92,21 @@ describe('TranscriptState turns and activities', () => {
 describe('TranscriptState tasks, shells and spawns', () => {
   test('TodoWrite replaces the task list', () => {
     const state = main();
-    feed(state, assistantLine([toolUse('t', 'TodoWrite', { todos: [{ content: 'A', status: 'completed', activeForm: 'Fazendo A' }, { content: 'B', status: 'in_progress' }, { content: '' }] })], 0));
+    feed(
+      state,
+      assistantLine(
+        [
+          toolUse('t', 'TodoWrite', {
+            todos: [
+              { content: 'A', status: 'completed', activeForm: 'Fazendo A' },
+              { content: 'B', status: 'in_progress' },
+              { content: '' },
+            ],
+          }),
+        ],
+        0,
+      ),
+    );
     expect(state.tasks).toEqual([
       { id: '1', title: 'A', activeForm: 'Fazendo A', status: 'completed', changedAt: T0 },
       { id: '2', title: 'B', status: 'in_progress', changedAt: T0 },
@@ -85,8 +117,28 @@ describe('TranscriptState tasks, shells and spawns', () => {
     const state = main();
     feed(
       state,
-      assistantLine([toolUse('t1', 'TodoWrite', { todos: [{ content: 'A', status: 'in_progress' }, { content: 'B', status: 'pending' }] })], 0),
-      assistantLine([toolUse('t2', 'TodoWrite', { todos: [{ content: 'A', status: 'completed' }, { content: 'B', status: 'pending' }] })], 5000),
+      assistantLine(
+        [
+          toolUse('t1', 'TodoWrite', {
+            todos: [
+              { content: 'A', status: 'in_progress' },
+              { content: 'B', status: 'pending' },
+            ],
+          }),
+        ],
+        0,
+      ),
+      assistantLine(
+        [
+          toolUse('t2', 'TodoWrite', {
+            todos: [
+              { content: 'A', status: 'completed' },
+              { content: 'B', status: 'pending' },
+            ],
+          }),
+        ],
+        5000,
+      ),
     );
     expect(state.tasks.map((task) => [task.title, task.status, task.changedAt])).toEqual([
       ['A', 'completed', T0 + 5000],
@@ -109,20 +161,42 @@ describe('TranscriptState tasks, shells and spawns', () => {
     const state = main();
     feed(
       state,
-      assistantLine([toolUse('bg', 'Bash', { command: 'npm run dev', description: 'Servidor', run_in_background: true })], 0),
+      assistantLine(
+        [toolUse('bg', 'Bash', { command: 'npm run dev', description: 'Servidor', run_in_background: true })],
+        0,
+      ),
       toolResultLine('bg', 'started', 10, { toolUseResult: { backgroundTaskId: 'task1' } }),
     );
-    expect(state.shellsAt(T0 + 20)).toMatchObject([{ id: 'bg', label: 'Servidor', command: 'npm run dev', background: true, kind: 'shell' }]);
-    feed(state, JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: new Date(T0 + 99).toISOString(), content: '<task-notification><tool-use-id>bg</tool-use-id><status>completed</status></task-notification>' }));
+    expect(state.shellsAt(T0 + 20)).toMatchObject([
+      { id: 'bg', label: 'Servidor', command: 'npm run dev', background: true, kind: 'shell' },
+    ]);
+    feed(
+      state,
+      JSON.stringify({
+        type: 'queue-operation',
+        operation: 'enqueue',
+        timestamp: new Date(T0 + 99).toISOString(),
+        content: '<task-notification><tool-use-id>bg</tool-use-id><status>completed</status></task-notification>',
+      }),
+    );
     expect(state.shellsAt(T0 + 100)).toHaveLength(0);
 
-    feed(state, assistantLine([toolUse('bg2', 'Bash', { command: 'tail -f x', run_in_background: true })], 200), toolResultLine('bg2', 'ok', 210, { toolUseResult: { backgroundTaskId: 'task2' } }), assistantLine([toolUse('k', 'KillShell', { shell_id: 'task2' })], 300));
+    feed(
+      state,
+      assistantLine([toolUse('bg2', 'Bash', { command: 'tail -f x', run_in_background: true })], 200),
+      toolResultLine('bg2', 'ok', 210, { toolUseResult: { backgroundTaskId: 'task2' } }),
+      assistantLine([toolUse('k', 'KillShell', { shell_id: 'task2' })], 300),
+    );
     expect(state.shellsAt(T0 + 400)).toHaveLength(0);
   });
 
   test('foreground Bash running over 10 s is reported as a shell; Monitor is a monitor job', () => {
     const state = main();
-    feed(state, assistantLine([toolUse('fg', 'Bash', { command: 'npm test' })], 0), assistantLine([toolUse('mon', 'Monitor', { description: 'logs' })], 5));
+    feed(
+      state,
+      assistantLine([toolUse('fg', 'Bash', { command: 'npm test' })], 0),
+      assistantLine([toolUse('mon', 'Monitor', { description: 'logs' })], 5),
+    );
     expect(state.shellsAt(T0 + 5000).map((s) => s.id)).toEqual(['mon']);
     const shells = state.shellsAt(T0 + 11_000);
     expect(shells.find((s) => s.id === 'fg')).toMatchObject({ background: false, kind: 'shell' });
@@ -131,12 +205,36 @@ describe('TranscriptState tasks, shells and spawns', () => {
 
   test('sync Agent spawn completes with its result; async spawn completes with the notification', () => {
     const state = main();
-    feed(state, assistantLine([toolUse('s1', 'Agent', { description: 'Explorar', subagent_type: 'Explore' }), toolUse('s2', 'Task', { description: 'Rodar em background', run_in_background: true })], 0));
-    expect(state.spawns().map((s) => [s.toolUseId, s.done, s.async])).toEqual([['s1', false, false], ['s2', false, true]]);
-    feed(state, toolResultLine('s1', 'feito', 100), toolResultLine('s2', 'launched', 110, { toolUseResult: { isAsync: true, agentId: 'zz' } }));
+    feed(
+      state,
+      assistantLine(
+        [
+          toolUse('s1', 'Agent', { description: 'Explorar', subagent_type: 'Explore' }),
+          toolUse('s2', 'Task', { description: 'Rodar em background', run_in_background: true }),
+        ],
+        0,
+      ),
+    );
+    expect(state.spawns().map((s) => [s.toolUseId, s.done, s.async])).toEqual([
+      ['s1', false, false],
+      ['s2', false, true],
+    ]);
+    feed(
+      state,
+      toolResultLine('s1', 'feito', 100),
+      toolResultLine('s2', 'launched', 110, { toolUseResult: { isAsync: true, agentId: 'zz' } }),
+    );
     expect(state.spawn('s1')?.done).toBe(true);
     expect(state.spawn('s2')?.done).toBe(false);
-    feed(state, JSON.stringify({ type: 'queue-operation', operation: 'enqueue', timestamp: new Date(T0 + 500).toISOString(), content: '<task-notification><task-id>zz</task-id><status>completed</status></task-notification>' }));
+    feed(
+      state,
+      JSON.stringify({
+        type: 'queue-operation',
+        operation: 'enqueue',
+        timestamp: new Date(T0 + 500).toISOString(),
+        content: '<task-notification><task-id>zz</task-id><status>completed</status></task-notification>',
+      }),
+    );
     expect(state.spawn('s2')).toMatchObject({ done: true, doneAt: T0 + 500 });
     expect(state.statsSnapshot().subagents).toBe(2);
   });
@@ -152,7 +250,10 @@ describe('TranscriptState tasks, shells and spawns', () => {
 
   test('oldestBlockingTool ignores delegation and background tools', () => {
     const state = main();
-    feed(state, assistantLine([toolUse('a', 'Agent', { description: 'x' }), toolUse('b', 'Bash', { command: 'ls' })], 0));
+    feed(
+      state,
+      assistantLine([toolUse('a', 'Agent', { description: 'x' }), toolUse('b', 'Bash', { command: 'ls' })], 0),
+    );
     expect(state.oldestBlockingTool()?.id).toBe('b');
   });
 });
@@ -160,7 +261,12 @@ describe('TranscriptState tasks, shells and spawns', () => {
 describe('TranscriptState stats', () => {
   test('counts tool calls, tokens deduplicated per message, lines and estimates cost', () => {
     const state = main();
-    const usage = { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 1000, cache_read_input_tokens: 5000 };
+    const usage = {
+      input_tokens: 100,
+      output_tokens: 50,
+      cache_creation_input_tokens: 1000,
+      cache_read_input_tokens: 5000,
+    };
     feed(
       state,
       assistantLine([thinking()], 0, { id: 'm1', usage }),
@@ -182,7 +288,11 @@ describe('TranscriptState stats', () => {
 
   test('subagent states do not emit prompt activities or turn completion', () => {
     const sub = new TranscriptState({ idPrefix: 'a:s:ag', isSub: true });
-    const effects = feed(sub, userLine('prompt da tarefa', 0), assistantLine([text('ok')], 10, { stopReason: 'end_turn' }));
+    const effects = feed(
+      sub,
+      userLine('prompt da tarefa', 0),
+      assistantLine([text('ok')], 10, { stopReason: 'end_turn' }),
+    );
     expect(sub.recent().map((a) => a.kind)).toEqual(['reply']);
     expect(effects[1]?.turnCompleted).toBeUndefined();
     expect(sub.turn).toBe('idle');
@@ -199,6 +309,9 @@ describe('TranscriptState stats', () => {
     const state = main();
     const activity = state.addExternal(messageDraft('oi'), T0);
     expect(state.activity).toEqual(activity);
-    expect(activity).toMatchObject({ text: 'Mensagem sua: oi', msg: { key: 'activity.message', params: { text: 'oi' } } });
+    expect(activity).toMatchObject({
+      text: 'Mensagem sua: oi',
+      msg: { key: 'activity.message', params: { text: 'oi' } },
+    });
   });
 });

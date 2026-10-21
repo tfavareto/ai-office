@@ -86,11 +86,16 @@ export function buildFurniture(c: PartCollector, area: AreaLayout, m: Materials,
     const toWorld = transform(cx, 0, cz, YAW[facing]);
     const local = new PartCollector();
     const ctx: FurnCtx = {
-      c: local, m, models, item, area,
+      c: local,
+      m,
+      models,
+      item,
+      area,
       w: (sideways ? item.h : item.w) * T,
       d: (sideways ? item.w : item.h) * T,
       toWorld,
-      screen: (desk, slot, matrix, w, h) => out.screens.push({ desk, slot, matrix: new Matrix4().multiplyMatrices(toWorld, matrix), w, h }),
+      screen: (desk, slot, matrix, w, h) =>
+        out.screens.push({ desk, slot, matrix: new Matrix4().multiplyMatrices(toWorld, matrix), w, h }),
       light: (x, y, z, warm) => out.glows.push({ position: new Vector3(x, y, z).applyMatrix4(toWorld), warm }),
     };
     if (builder) builder(ctx);

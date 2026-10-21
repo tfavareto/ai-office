@@ -126,13 +126,16 @@ export class TraceRecorder {
       title: this.state.customTitle,
       spans: this.spans,
       events: open === undefined ? this.events : [...this.events, open],
-      spawns: this.state.spawns().slice(0, MAX_SPAWNS).map((spawn) => ({
-        toolUseId: spawn.toolUseId,
-        at: spawn.at,
-        description: spawn.description,
-        ...(spawn.doneAt !== undefined ? { doneAt: spawn.doneAt } : {}),
-        ...(spawn.subagentType !== undefined ? { subagentType: spawn.subagentType } : {}),
-      })),
+      spawns: this.state
+        .spawns()
+        .slice(0, MAX_SPAWNS)
+        .map((spawn) => ({
+          toolUseId: spawn.toolUseId,
+          at: spawn.at,
+          description: spawn.description,
+          ...(spawn.doneAt !== undefined ? { doneAt: spawn.doneAt } : {}),
+          ...(spawn.subagentType !== undefined ? { subagentType: spawn.subagentType } : {}),
+        })),
       thinned: this.thinned,
     };
   }
@@ -169,7 +172,10 @@ export class TraceRecorder {
 
   private statusNow(at: number): StatusNow {
     const userTool = this.state.pendingUserTool();
-    const instant = this.state.pendingTools().filter((tool) => INSTANT_TOOLS.has(tool.name)).sort((a, b) => a.at - b.at)[0];
+    const instant = this.state
+      .pendingTools()
+      .filter((tool) => INSTANT_TOOLS.has(tool.name))
+      .sort((a, b) => a.at - b.at)[0];
     const blocked = instant !== undefined && at - instant.at > PENDING_TOOL_WAIT_MS;
     const derived = deriveStatus({
       now: at,
@@ -177,7 +183,9 @@ export class TraceRecorder {
       lastEventAt: this.state.lastEventAt,
       permissionPending: false,
       ...(blocked ? { registryStatus: 'idle', blockingTool: { name: instant.name, at: instant.at } } : {}),
-      ...(userTool !== undefined ? { pendingUserTool: userTool.waitingFor, pendingUserToolMsg: userTool.waitingForMsg } : {}),
+      ...(userTool !== undefined
+        ? { pendingUserTool: userTool.waitingFor, pendingUserToolMsg: userTool.waitingForMsg }
+        : {}),
     });
     const tool = userTool?.tool.name ?? (blocked ? instant.name : undefined);
     return {
@@ -211,7 +219,8 @@ export class TraceRecorder {
   private closeWait(at: number): void {
     const wait = this.waiting;
     this.waiting = undefined;
-    if (wait !== undefined && at - wait.since >= WAIT_MARK_MIN_MS) this.events.push({ at: wait.since, t: 'permission', tool: wait.tool, durationMs: at - wait.since });
+    if (wait !== undefined && at - wait.since >= WAIT_MARK_MIN_MS)
+      this.events.push({ at: wait.since, t: 'permission', tool: wait.tool, durationMs: at - wait.since });
   }
 
   /** A wait still going at the last line, so far. */
@@ -240,7 +249,11 @@ export class TraceRecorder {
 
   private activityGap(): number {
     const size = this.events.length;
-    return size >= this.maxEvents * 0.75 ? ACTIVITY_GAP_MS * 6 : size >= this.maxEvents * 0.5 ? ACTIVITY_GAP_MS * 3 : ACTIVITY_GAP_MS;
+    return size >= this.maxEvents * 0.75
+      ? ACTIVITY_GAP_MS * 6
+      : size >= this.maxEvents * 0.5
+        ? ACTIVITY_GAP_MS * 3
+        : ACTIVITY_GAP_MS;
   }
 
   private recordActivity(activity: Activity): void {

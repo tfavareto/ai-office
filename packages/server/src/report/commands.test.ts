@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { COMMAND_MAX, detectTestRunner, displayCommand, isGitCommit, maskSecrets, parseCommits, parseTestOutcome } from './commands';
+import {
+  COMMAND_MAX,
+  detectTestRunner,
+  displayCommand,
+  isGitCommit,
+  maskSecrets,
+  parseCommits,
+  parseTestOutcome,
+} from './commands';
 
 describe('maskSecrets', () => {
   test.each([
@@ -44,7 +52,13 @@ describe('detectTestRunner', () => {
     expect(detectTestRunner(command)).toBe(runner);
   });
 
-  test.each(['grep -r vitest package.json', 'echo npm test', 'npm install vitest', 'git log --grep=jest', 'npm run build'])('%s is not a test run', (command) => {
+  test.each([
+    'grep -r vitest package.json',
+    'echo npm test',
+    'npm install vitest',
+    'git log --grep=jest',
+    'npm run build',
+  ])('%s is not a test run', (command) => {
     expect(detectTestRunner(command)).toBeUndefined();
   });
 });
@@ -56,11 +70,19 @@ describe('parseTestOutcome', () => {
   });
 
   test('a failing vitest run reports both counts', () => {
-    expect(parseTestOutcome('Tests  2 failed | 39 passed (41)', false)).toEqual({ outcome: 'failed', passed: 39, failed: 2 });
+    expect(parseTestOutcome('Tests  2 failed | 39 passed (41)', false)).toEqual({
+      outcome: 'failed',
+      passed: 39,
+      failed: 2,
+    });
   });
 
   test('pytest summary', () => {
-    expect(parseTestOutcome('=== 1 failed, 9 passed in 1.20s ===', true)).toEqual({ outcome: 'failed', passed: 9, failed: 1 });
+    expect(parseTestOutcome('=== 1 failed, 9 passed in 1.20s ===', true)).toEqual({
+      outcome: 'failed',
+      passed: 9,
+      failed: 1,
+    });
   });
 
   test('go test without counts', () => {
@@ -69,7 +91,11 @@ describe('parseTestOutcome', () => {
   });
 
   test('cargo test result', () => {
-    expect(parseTestOutcome('test result: ok. 12 passed; 0 failed; 0 ignored', false)).toEqual({ outcome: 'passed', passed: 12, failed: 0 });
+    expect(parseTestOutcome('test result: ok. 12 passed; 0 failed; 0 ignored', false)).toEqual({
+      outcome: 'passed',
+      passed: 12,
+      failed: 0,
+    });
   });
 
   test('a tool error is a failure even without markers', () => {
@@ -99,7 +125,8 @@ describe('commits', () => {
   });
 
   test('parses the commit lines of the output', () => {
-    const output = '[main abc1234] feat: add cart\n 2 files changed, 10 insertions(+)\n[feature/x (root-commit) 0f0f0f0] chore: init';
+    const output =
+      '[main abc1234] feat: add cart\n 2 files changed, 10 insertions(+)\n[feature/x (root-commit) 0f0f0f0] chore: init';
     expect(parseCommits(output)).toEqual([
       { hash: 'abc1234', subject: 'feat: add cart', branch: 'main' },
       { hash: '0f0f0f0', subject: 'chore: init', branch: 'feature/x' },

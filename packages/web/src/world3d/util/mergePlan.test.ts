@@ -4,7 +4,11 @@ import { planMerge, savedDrawCalls } from './mergePlan';
 describe('planMerge', () => {
   it('groups parts by material key keeping input order', () => {
     const items = [
-      { key: 'wood', vertices: 24 }, { key: 'glass', vertices: 4 }, { key: 'wood', vertices: 24 }, { key: 'brass', vertices: 8 }, { key: 'glass', vertices: 4 },
+      { key: 'wood', vertices: 24 },
+      { key: 'glass', vertices: 4 },
+      { key: 'wood', vertices: 24 },
+      { key: 'brass', vertices: 8 },
+      { key: 'glass', vertices: 4 },
     ];
     const batches = planMerge(items);
     expect(batches).toHaveLength(3);
@@ -22,7 +26,9 @@ describe('planMerge', () => {
 
   it('keeps every item exactly once', () => {
     const items = Array.from({ length: 50 }, (_, i) => ({ key: `k${i % 7}`, vertices: 10 + (i % 5) }));
-    const seen = planMerge(items, 60).flatMap((b) => b.items).sort((a, b) => a - b);
+    const seen = planMerge(items, 60)
+      .flatMap((b) => b.items)
+      .sort((a, b) => a - b);
     expect(seen).toEqual(items.map((_, i) => i));
   });
 

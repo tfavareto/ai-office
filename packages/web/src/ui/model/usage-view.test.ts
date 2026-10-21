@@ -3,7 +3,15 @@ import type { UsageTotals } from '@ai-office/shared';
 import { TOKEN_FIELD_SCALE, limitToInput, parseLimitInput, withLimit, withUnit, withoutLimits } from './usage-limits';
 import { kpisOf, pickerAccounts, relativeChange, resolveAccount, sessionLabel, shareOf } from './usage-view';
 
-const totals = (over: Partial<UsageTotals> = {}): UsageTotals => ({ input: 0, output: 0, cacheWrite: 0, cacheRead: 0, tokens: 0, costUSD: 0, ...over });
+const totals = (over: Partial<UsageTotals> = {}): UsageTotals => ({
+  input: 0,
+  output: 0,
+  cacheWrite: 0,
+  cacheRead: 0,
+  tokens: 0,
+  costUSD: 0,
+  ...over,
+});
 
 describe('relativeChange and kpisOf', () => {
   it('compares with the previous period and has nothing to compare with an empty one', () => {
@@ -24,7 +32,11 @@ describe('relativeChange and kpisOf', () => {
   });
 
   it('knows when there is no data', () => {
-    expect(kpisOf({ totals: totals(), previous: totals() })).toMatchObject({ hasData: false, tokensChange: undefined, cacheHit: 0 });
+    expect(kpisOf({ totals: totals(), previous: totals() })).toMatchObject({
+      hasData: false,
+      tokensChange: undefined,
+      cacheHit: 0,
+    });
   });
 });
 
@@ -36,8 +48,16 @@ describe('shares and labels', () => {
   });
 
   it('labels a session by its title or a short id', () => {
-    expect(sessionLabel({ session: 'abcdef123456', title: undefined }, '  Corrigir o bug ')).toEqual({ title: 'Corrigir o bug', shortId: 'abcdef12', isSub: false });
-    expect(sessionLabel({ session: 'abcdef123456', agent: 'ag7', title: undefined }, undefined)).toEqual({ title: undefined, shortId: 'ag7', isSub: true });
+    expect(sessionLabel({ session: 'abcdef123456', title: undefined }, '  Corrigir o bug ')).toEqual({
+      title: 'Corrigir o bug',
+      shortId: 'abcdef12',
+      isSub: false,
+    });
+    expect(sessionLabel({ session: 'abcdef123456', agent: 'ag7', title: undefined }, undefined)).toEqual({
+      title: undefined,
+      shortId: 'ag7',
+      isSub: true,
+    });
     expect(sessionLabel({ session: 's', title: 'Pt' }, undefined).title).toBe('Pt');
   });
 

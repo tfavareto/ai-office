@@ -19,11 +19,20 @@ export class Crowd {
   readonly group = new Group();
   private readonly people = new Map<string, Character3D>();
   private rings: InstancedMesh;
-  private readonly ringMaterial = new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false });
+  private readonly ringMaterial = new MeshBasicMaterial({
+    color: '#ffffff',
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    toneMapped: false,
+  });
   private readonly tmpColor = new Color();
   private readonly tmpMatrix = new Matrix4();
 
-  constructor(private readonly library: HumanLibrary, private readonly sim: OfficeSim) {
+  constructor(
+    private readonly library: HumanLibrary,
+    private readonly sim: OfficeSim,
+  ) {
     this.rings = this.makeRings(64);
     this.group.add(this.rings);
   }

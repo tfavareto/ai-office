@@ -45,7 +45,10 @@ export function plaqueTone(info: RoomGit): PlaqueTone {
   return info.dirty ? 'dirty' : 'clean';
 }
 
-export const PLAQUE_COLORS = { clean: '#3ecf8e', dirty: '#f5b544', alert: '#ef6b6b' } as const satisfies Record<PlaqueTone, string>;
+export const PLAQUE_COLORS = { clean: '#3ecf8e', dirty: '#f5b544', alert: '#ef6b6b' } as const satisfies Record<
+  PlaqueTone,
+  string
+>;
 export const CI_COLORS = { success: '#3ecf8e', failure: '#ef6b6b', pending: '#f5b544' } as const;
 
 const PILL_BRANCH_MAX = 24;

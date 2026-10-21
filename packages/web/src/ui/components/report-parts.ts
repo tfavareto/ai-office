@@ -8,23 +8,46 @@ import { formatWorkTime, intensity } from '../model/report';
 const AXIS_HOURS = [0, 6, 12, 18, 24] as const;
 
 /** One bar per half hour; the brighter, the busier. Decorative for assistive technology but summarized in its label. */
-export function activityStrip(activity: readonly number[], dayStart: number, options: { axis: boolean; label: string }): HTMLElement {
+export function activityStrip(
+  activity: readonly number[],
+  dayStart: number,
+  options: { axis: boolean; label: string },
+): HTMLElement {
   const cells = Array.from({ length: REPORT_BUCKETS }, (_, i) => {
     const ms = activity[i] ?? 0;
     const from = dayStart + i * REPORT_BUCKET_MS;
     return h('span', {
       class: 'ao-report-cell',
       style: `--v:${intensity(ms).toFixed(2)}`,
-      ...(ms > 0 ? { title: t('report.timeline.cell', { from: formatClock(from), to: formatClock(from + REPORT_BUCKET_MS), time: formatDuration(ms) }) } : {}),
+      ...(ms > 0
+        ? {
+            title: t('report.timeline.cell', {
+              from: formatClock(from),
+              to: formatClock(from + REPORT_BUCKET_MS),
+              time: formatDuration(ms),
+            }),
+          }
+        : {}),
     });
   });
   const busy = activity.filter((ms) => ms > 0).length;
-  const strip = h('div', { class: 'ao-report-strip', role: 'img', 'aria-label': `${options.label}: ${formatDuration(activity.reduce((sum, ms) => sum + ms, 0))}`, 'data-busy': String(busy) }, ...cells);
+  const strip = h(
+    'div',
+    {
+      class: 'ao-report-strip',
+      role: 'img',
+      'aria-label': `${options.label}: ${formatDuration(activity.reduce((sum, ms) => sum + ms, 0))}`,
+      'data-busy': String(busy),
+    },
+    ...cells,
+  );
   if (!options.axis) return strip;
   const axis = h(
     'div',
     { class: 'ao-report-axis', 'aria-hidden': 'true' },
-    ...AXIS_HOURS.map((hour) => h('span', { style: `left:${(hour / 24) * 100}%` }, formatHourLabel(dayStart + hour * 3_600_000))),
+    ...AXIS_HOURS.map((hour) =>
+      h('span', { style: `left:${(hour / 24) * 100}%` }, formatHourLabel(dayStart + hour * 3_600_000)),
+    ),
   );
   return h('div', { class: 'ao-report-timeline' }, strip, axis);
 }
@@ -41,11 +64,31 @@ export function tilesOf(totals: ReportTotals): Tile[] {
   return [
     { label: t('report.stat.agents'), value: String(totals.agents) },
     { label: t('report.stat.time'), value: formatWorkTime(totals.activeMs) },
-    { label: t('report.stat.files'), value: String(totals.files), hint: totals.files > 0 ? t('report.stat.lines', { added: totals.linesAdded, removed: totals.linesRemoved }) : undefined },
+    {
+      label: t('report.stat.files'),
+      value: String(totals.files),
+      hint:
+        totals.files > 0
+          ? t('report.stat.lines', { added: totals.linesAdded, removed: totals.linesRemoved })
+          : undefined,
+    },
     { label: t('report.stat.commits'), value: String(totals.commits) },
-    { label: t('report.stat.tests'), value: String(tests), ...(tests > 0 ? { hint: t('report.stat.testsValue', { passed: totals.testsPassed, failed: totals.testsFailed }), tone: totals.testsFailed > 0 ? ('bad' as const) : ('good' as const) } : {}) },
+    {
+      label: t('report.stat.tests'),
+      value: String(tests),
+      ...(tests > 0
+        ? {
+            hint: t('report.stat.testsValue', { passed: totals.testsPassed, failed: totals.testsFailed }),
+            tone: totals.testsFailed > 0 ? ('bad' as const) : ('good' as const),
+          }
+        : {}),
+    },
     { label: t('report.stat.tasks'), value: String(totals.tasks) },
-    { label: t('report.stat.cost'), value: totals.costUSD > 0 ? formatCost(totals.costUSD) : '—', hint: totals.tokens > 0 ? `${formatTokens(totals.tokens)} ${t('report.stat.tokens').toLowerCase()}` : undefined },
+    {
+      label: t('report.stat.cost'),
+      value: totals.costUSD > 0 ? formatCost(totals.costUSD) : '—',
+      hint: totals.tokens > 0 ? `${formatTokens(totals.tokens)} ${t('report.stat.tokens').toLowerCase()}` : undefined,
+    },
   ];
 }
 

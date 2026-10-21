@@ -65,8 +65,24 @@ export class TerminalPanel implements Component {
   private wasOpen = false;
 
   constructor(private readonly ctx: AppContext) {
-    this.toEnd = h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small ao-terminal-end', hidden: true, onclick: () => this.scrollToEnd() }, icon('arrowDown', 14), h('span', null, t('terminal.toEnd')));
-    this.searchInput = h('input', { type: 'search', class: 'ao-input', placeholder: t('terminal.search'), 'aria-label': t('terminal.search'), autocomplete: 'off' });
+    this.toEnd = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-btn ao-btn--soft ao-btn--small ao-terminal-end',
+        hidden: true,
+        onclick: () => this.scrollToEnd(),
+      },
+      icon('arrowDown', 14),
+      h('span', null, t('terminal.toEnd')),
+    );
+    this.searchInput = h('input', {
+      type: 'search',
+      class: 'ao-input',
+      placeholder: t('terminal.search'),
+      'aria-label': t('terminal.search'),
+      autocomplete: 'off',
+    });
     this.searchInput.addEventListener('input', () => this.setQuery(this.searchInput.value));
     this.searchInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -84,7 +100,15 @@ export class TerminalPanel implements Component {
     this.expandBtn = this.iconBtn('layers', t('terminal.expand'), () => this.toggleExpandAll());
     const searchBtn = this.iconBtn('search', t('terminal.search.open'), () => this.openSearch());
     this.el.append(
-      h('header', { class: 'ao-terminal-head' }, h('div', { class: 'ao-terminal-heading' }, this.title, this.subtitle), this.badge, searchBtn, this.expandBtn, closeButton(t('terminal.close'), () => ctx.closeTerminal())),
+      h(
+        'header',
+        { class: 'ao-terminal-head' },
+        h('div', { class: 'ao-terminal-heading' }, this.title, this.subtitle),
+        this.badge,
+        searchBtn,
+        this.expandBtn,
+        closeButton(t('terminal.close'), () => ctx.closeTerminal()),
+      ),
       this.searchBar,
       this.body,
       this.toEnd,
@@ -94,7 +118,11 @@ export class TerminalPanel implements Component {
   }
 
   private iconBtn(name: Parameters<typeof icon>[0], label: string, onClick: () => void): HTMLButtonElement {
-    return h('button', { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': label, title: label, onclick: onClick }, icon(name, 16));
+    return h(
+      'button',
+      { type: 'button', class: 'ao-iconbtn ao-iconbtn--small', 'aria-label': label, title: label, onclick: onClick },
+      icon(name, 16),
+    );
   }
 
   // --- search --------------------------------------------------------------------------------------------------------
@@ -147,7 +175,14 @@ export class TerminalPanel implements Component {
   private revealActive = false;
 
   private updateCount(): void {
-    setText(this.searchCount, !this.query ? '' : this.matches.length === 0 ? t('terminal.search.none') : t('terminal.search.count', { current: this.active + 1, total: this.matches.length }));
+    setText(
+      this.searchCount,
+      !this.query
+        ? ''
+        : this.matches.length === 0
+          ? t('terminal.search.none')
+          : t('terminal.search.count', { current: this.active + 1, total: this.matches.length }),
+    );
   }
 
   private toggleExpandAll(): void {
@@ -214,7 +249,12 @@ export class TerminalPanel implements Component {
   private async fetch(target: TerminalTarget, after: number): Promise<void> {
     const token = this.token;
     try {
-      const page = await this.ctx.store.backend.transcript({ sessionId: target.sessionId, accountId: target.accountId, agentId: target.agentId, after });
+      const page = await this.ctx.store.backend.transcript({
+        sessionId: target.sessionId,
+        accountId: target.accountId,
+        agentId: target.agentId,
+        after,
+      });
       if (token !== this.token) return;
       const previous = this.state;
       this.state = mergeTranscript(this.state, page, after);
@@ -254,7 +294,9 @@ export class TerminalPanel implements Component {
   private subtitleOf(target: TerminalTarget): string {
     const agent = target.officeAgentId ? this.ctx.agent(target.officeAgentId) : undefined;
     if (!agent) return target.subtitle ?? '';
-    return [this.ctx.project(agent.projectId)?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)].filter(Boolean).join(' · ');
+    return [this.ctx.project(agent.projectId)?.name, agent.kind === 'sub' ? agentRole(agent) : agentTitle(agent)]
+      .filter(Boolean)
+      .join(' · ');
   }
 
   private renderHeader(target: TerminalTarget): void {
@@ -288,7 +330,18 @@ export class TerminalPanel implements Component {
     if (this.status === 'loading') {
       this.body.replaceChildren(h('p', { class: 'ao-note' }, t('terminal.loading')));
     } else if (this.status === 'error') {
-      this.body.replaceChildren(...compact(h('p', { class: 'ao-error' }, this.errorText), this.ctx.isLocal ? h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => this.retry() }, t('common.retry')) : null));
+      this.body.replaceChildren(
+        ...compact(
+          h('p', { class: 'ao-error' }, this.errorText),
+          this.ctx.isLocal
+            ? h(
+                'button',
+                { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => this.retry() },
+                t('common.retry'),
+              )
+            : null,
+        ),
+      );
     }
     this.renderedUntil = 0;
     this.needsFullRender = true;
@@ -297,11 +350,20 @@ export class TerminalPanel implements Component {
   private renderAll(): void {
     const entries = this.state.entries;
     this.needsFullRender = false;
-    this.startIndex = Math.max(this.startIndex === 0 && entries.length > RENDER_WINDOW ? entries.length - RENDER_WINDOW : this.startIndex, 0);
+    this.startIndex = Math.max(
+      this.startIndex === 0 && entries.length > RENDER_WINDOW ? entries.length - RENDER_WINDOW : this.startIndex,
+      0,
+    );
     if (this.startIndex > entries.length) this.startIndex = 0;
     const frag = document.createDocumentFragment();
     if (this.startIndex > 0) {
-      frag.appendChild(h('button', { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.loadEarlier() }, t('terminal.earlier', { n: this.startIndex })));
+      frag.appendChild(
+        h(
+          'button',
+          { type: 'button', class: 'ao-btn ao-btn--ghost ao-more', onclick: () => this.loadEarlier() },
+          t('terminal.earlier', { n: this.startIndex }),
+        ),
+      );
     }
     for (let i = this.startIndex; i < entries.length; i++) frag.appendChild(this.entryEl(entries[i], i));
     this.body.replaceChildren(frag);
@@ -387,17 +449,30 @@ export class TerminalPanel implements Component {
   private userEl(entry: Extract<TranscriptEntry, { kind: 'user' }>, hl: Highlighter): HTMLElement {
     const text = h('div', { class: 'ao-term-text' });
     hl.append(text, entry.text);
-    return h('div', { class: 'ao-term-entry ao-term-user' }, h('span', { class: 'ao-term-prompt', 'aria-hidden': 'true' }, '❯'), text, h('time', { class: 'ao-term-time' }, formatClock(entry.at)));
+    return h(
+      'div',
+      { class: 'ao-term-entry ao-term-user' },
+      h('span', { class: 'ao-term-prompt', 'aria-hidden': 'true' }, '❯'),
+      text,
+      h('time', { class: 'ao-term-time' }, formatClock(entry.at)),
+    );
   }
 
   private assistantEl(entry: Extract<TranscriptEntry, { kind: 'assistant' }>, hl: Highlighter): HTMLElement {
     const text = h('div', { class: 'ao-term-text' });
     for (const block of splitFences(entry.text)) {
-      const el = h(block.kind === 'code' ? 'pre' : 'p', { class: block.kind === 'code' ? 'ao-term-code' : 'ao-term-para' });
+      const el = h(block.kind === 'code' ? 'pre' : 'p', {
+        class: block.kind === 'code' ? 'ao-term-code' : 'ao-term-para',
+      });
       hl.append(el, block.text);
       text.appendChild(el);
     }
-    return h('div', { class: 'ao-term-entry ao-term-assistant' }, h('span', { class: 'ao-term-bullet', 'aria-hidden': 'true' }, '●'), text);
+    return h(
+      'div',
+      { class: 'ao-term-entry ao-term-assistant' },
+      h('span', { class: 'ao-term-bullet', 'aria-hidden': 'true' }, '●'),
+      text,
+    );
   }
 
   private toggleEntry(index: number): void {
@@ -408,9 +483,23 @@ export class TerminalPanel implements Component {
     this.ctx.refresh();
   }
 
-  private thinkingEl(entry: Extract<TranscriptEntry, { kind: 'thinking' }>, index: number, hl: Highlighter): HTMLElement {
+  private thinkingEl(
+    entry: Extract<TranscriptEntry, { kind: 'thinking' }>,
+    index: number,
+    hl: Highlighter,
+  ): HTMLElement {
     const open = this.isExpanded(index, entry);
-    const toggle = h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronDown' : 'chevronRight', 12), h('span', null, t('terminal.thinking')));
+    const toggle = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-term-toggle',
+        'aria-expanded': String(open),
+        onclick: () => this.toggleEntry(index),
+      },
+      icon(open ? 'chevronDown' : 'chevronRight', 12),
+      h('span', null, t('terminal.thinking')),
+    );
     const el = h('div', { class: `ao-term-entry ao-term-thinking ${open ? 'is-open' : ''}`.trim() }, toggle);
     if (open) {
       const text = h('div', { class: 'ao-term-text' });
@@ -426,8 +515,18 @@ export class TerminalPanel implements Component {
     hl.append(name, entry.name);
     const summary = h('span', { class: 'ao-term-tool-summary' });
     hl.append(summary, toolSummary(entry));
-    const head = h('div', { class: 'ao-term-tool-head' }, h('span', { class: `ao-term-bullet ${entry.error ? 'is-error' : ''}`.trim(), 'aria-hidden': 'true' }, '●'), name, summary);
-    const el = h('div', { class: `ao-term-entry ao-term-tool ${entry.error ? 'is-error' : ''} ${open ? 'is-open' : ''}`.trim() }, head);
+    const head = h(
+      'div',
+      { class: 'ao-term-tool-head' },
+      h('span', { class: `ao-term-bullet ${entry.error ? 'is-error' : ''}`.trim(), 'aria-hidden': 'true' }, '●'),
+      name,
+      summary,
+    );
+    const el = h(
+      'div',
+      { class: `ao-term-entry ao-term-tool ${entry.error ? 'is-error' : ''} ${open ? 'is-open' : ''}`.trim() },
+      head,
+    );
     if (entry.result) {
       const { preview, hiddenLines } = toolPreview(entry.result);
       const result = h('pre', { class: 'ao-term-result' });
@@ -435,7 +534,19 @@ export class TerminalPanel implements Component {
       else result.textContent = preview;
       el.appendChild(result);
       if (hiddenLines > 0 || open) {
-        el.appendChild(h('button', { type: 'button', class: 'ao-term-toggle', 'aria-expanded': String(open), onclick: () => this.toggleEntry(index) }, icon(open ? 'chevronUp' : 'chevronDown', 12), h('span', null, open ? t('terminal.collapse') : t('terminal.moreLines', { n: hiddenLines }))));
+        el.appendChild(
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'ao-term-toggle',
+              'aria-expanded': String(open),
+              onclick: () => this.toggleEntry(index),
+            },
+            icon(open ? 'chevronUp' : 'chevronDown', 12),
+            h('span', null, open ? t('terminal.collapse') : t('terminal.moreLines', { n: hiddenLines })),
+          ),
+        );
       }
     }
     return el;

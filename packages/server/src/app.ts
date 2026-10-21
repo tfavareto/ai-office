@@ -92,7 +92,12 @@ export async function readVersion(): Promise<string> {
 
 /** A permission request is stale once the session moved on after it was created. */
 function movedOn(effects: ApplyEffects, toolName: string): boolean {
-  return effects.promptSeen || effects.interrupted || effects.newAssistantMessage || effects.toolResults.some((result) => result.name === toolName);
+  return (
+    effects.promptSeen ||
+    effects.interrupted ||
+    effects.newAssistantMessage ||
+    effects.toolResults.some((result) => result.name === toolName)
+  );
 }
 
 export function createApp(config: ServerConfig, log: Logger, options: AppOptions = {}): App {
@@ -127,8 +132,17 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     newId: () => `hire-${newId(6)}`,
     onChange: () => snapshots.markDirty(),
     onExpired: (hire) => {
-      const message = msg('notice.hire.timeout', { project: hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId });
-      hub.broadcastNotice({ id: `n-${newId(6)}`, at: now(), level: 'warn', text: sourceText(message), msg: message, projectId: hire.projectId });
+      const message = msg('notice.hire.timeout', {
+        project: hire.projectId.split('/').filter(Boolean).pop() ?? hire.projectId,
+      });
+      hub.broadcastNotice({
+        id: `n-${newId(6)}`,
+        at: now(),
+        level: 'warn',
+        text: sourceText(message),
+        msg: message,
+        projectId: hire.projectId,
+      });
     },
   });
   const hub: SseHub = new SseHub({ snapshot: () => snapshots.build(), backlog: () => office.recentFeed() });
@@ -149,7 +163,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
           if (projectId !== undefined) git.touch(projectId);
         }
         const pending = permissions.pendingFor(agentId);
-        if (pending !== undefined && at > pending.createdAt && movedOn(effects, pending.toolName)) permissions.cancelFor(agentId);
+        if (pending !== undefined && at > pending.createdAt && movedOn(effects, pending.toolName))
+          permissions.cancelFor(agentId);
       },
     },
   });
@@ -157,13 +172,22 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     office,
     usage: indexer,
     now,
-    meta: () => ({ version, startedAt, demo: demoOn, ...(build !== undefined ? { build } : {}), ...(gitSettings.pullRequests ? { gitPullRequests: true } : {}) }),
+    meta: () => ({
+      version,
+      startedAt,
+      demo: demoOn,
+      ...(build !== undefined ? { build } : {}),
+      ...(gitSettings.pullRequests ? { gitPullRequests: true } : {}),
+    }),
     hires: (time) => hireRegistry.list(time),
     git: (projectId) => git.get(projectId),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
   });
   // One cap for every program started on the user's repositories, whoever asks (the watcher or the day report).
-  const runGit = limitRunner(options.gitRunners?.git ?? createGitRunner(options.env ?? process.env), MAX_CONCURRENT_READS);
+  const runGit = limitRunner(
+    options.gitRunners?.git ?? createGitRunner(options.env ?? process.env),
+    MAX_CONCURRENT_READS,
+  );
   const git = new GitWatcher({
     runGit,
     runGh: options.gitRunners?.gh ?? createGhRunner(options.env ?? process.env),
@@ -171,7 +195,11 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     log,
     projects: () => {
       const state = office.state();
-      return watchedRooms(state.projects, state.agents, new Set((office.demoSimulator?.projects() ?? []).map((project) => project.id)));
+      return watchedRooms(
+        state.projects,
+        state.agents,
+        new Set((office.demoSimulator?.projects() ?? []).map((project) => project.id)),
+      );
     },
     pullRequestsEnabled: () => gitSettings.pullRequests,
     onChange: () => snapshots.markDirty(),
@@ -218,7 +246,10 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     accounts: () => engine.accountList(),
     realProjectIds: () => {
       const simulated = new Set((office.demoSimulator?.projects() ?? []).map((project) => project.id));
-      return office.state().projects.filter((project) => !simulated.has(project.id)).map((project) => project.id);
+      return office
+        .state()
+        .projects.filter((project) => !simulated.has(project.id))
+        .map((project) => project.id);
     },
     demo: () => office.demoSimulator,
     registry: hireRegistry,
@@ -277,7 +308,12 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     git.tick();
     if (time - lastDayRecord >= RECORD_INTERVAL_MS) {
       lastDayRecord = time;
-      void day.record(office.state().agents.filter((agent) => agent.demo !== true), time).catch((error: unknown) => log.debug(`Meu dia: ${String(error)}`));
+      void day
+        .record(
+          office.state().agents.filter((agent) => agent.demo !== true),
+          time,
+        )
+        .catch((error: unknown) => log.debug(`Meu dia: ${String(error)}`));
     }
   };
 
@@ -305,7 +341,11 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await refreshBuild();
       await new Promise<void>((resolveListen, rejectListen) => {
         http.server.once('error', (error: NodeJS.ErrnoException) => {
-          rejectListen(error.code === 'EADDRINUSE' ? new Error(`A porta ${config.port} já está em uso. Use AI_OFFICE_PORT ou --port.`) : error);
+          rejectListen(
+            error.code === 'EADDRINUSE'
+              ? new Error(`A porta ${config.port} já está em uso. Use AI_OFFICE_PORT ou --port.`)
+              : error,
+          );
         });
         http.server.listen(config.port, config.host, resolveListen);
       });

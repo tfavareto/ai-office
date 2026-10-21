@@ -2,7 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { LOCALES } from '@ai-office/shared';
 import { setLocale } from '../../i18n';
 import type { BoardCard, BoardColumnId } from './board';
-import { buildAddIntent, buildMoveIntent, markFromIntent, reconcileSent, SENT_TTL_MS, type SentMark } from './board-moves';
+import {
+  buildAddIntent,
+  buildMoveIntent,
+  markFromIntent,
+  reconcileSent,
+  SENT_TTL_MS,
+  type SentMark,
+} from './board-moves';
 
 const card = (status: BoardColumnId, patch: Partial<BoardCard> = {}): BoardCard => ({
   key: 'ana:1',
@@ -31,7 +38,15 @@ describe('buildMoveIntent between columns', () => {
   ] as const)('%s to %s asks the owner to %s', (from, to, kind, text) => {
     const intent = buildMoveIntent(card(from), { column: to }, nameOf);
 
-    expect(intent).toMatchObject({ kind, recipientId: 'ana', text, column: to, cardKey: 'ana:1', baseStatus: from, title: 'Write the tests' });
+    expect(intent).toMatchObject({
+      kind,
+      recipientId: 'ana',
+      text,
+      column: to,
+      cardKey: 'ana:1',
+      baseStatus: from,
+      title: 'Write the tests',
+    });
   });
 
   it('does nothing when the card stays where it is', () => {
@@ -57,7 +72,12 @@ describe('buildMoveIntent to another agent', () => {
   it('hands a pending task over and says where it came from', () => {
     const intent = buildMoveIntent(card('pending'), { agentId: 'bia' }, nameOf);
 
-    expect(intent).toMatchObject({ kind: 'reassign', recipientId: 'bia', column: 'pending', text: 'Assuma a tarefa: Write the tests (veio de Ana)' });
+    expect(intent).toMatchObject({
+      kind: 'reassign',
+      recipientId: 'bia',
+      column: 'pending',
+      text: 'Assuma a tarefa: Write the tests (veio de Ana)',
+    });
   });
 
   it('asks to prioritize when the task was in progress', () => {
@@ -75,9 +95,19 @@ describe('buildMoveIntent to another agent', () => {
 
 describe('buildAddIntent', () => {
   it('asks the agent to add the task, with wording that follows the column', () => {
-    expect(buildAddIntent('ana', 'pending', '  Write docs  ')).toMatchObject({ kind: 'add', recipientId: 'ana', title: 'Write docs', column: 'pending', text: 'Adicione à sua lista de tarefas: Write docs' });
-    expect(buildAddIntent('ana', 'in_progress', 'Write docs')?.text).toBe('Adicione à sua lista de tarefas e comece agora: Write docs');
-    expect(buildAddIntent('ana', 'completed', 'Write docs')?.text).toBe('Registre na sua lista de tarefas, já como concluída: Write docs');
+    expect(buildAddIntent('ana', 'pending', '  Write docs  ')).toMatchObject({
+      kind: 'add',
+      recipientId: 'ana',
+      title: 'Write docs',
+      column: 'pending',
+      text: 'Adicione à sua lista de tarefas: Write docs',
+    });
+    expect(buildAddIntent('ana', 'in_progress', 'Write docs')?.text).toBe(
+      'Adicione à sua lista de tarefas e comece agora: Write docs',
+    );
+    expect(buildAddIntent('ana', 'completed', 'Write docs')?.text).toBe(
+      'Registre na sua lista de tarefas, já como concluída: Write docs',
+    );
   });
 
   it('ignores an empty title', () => {
@@ -108,7 +138,17 @@ describe('messages in every language', () => {
 
 describe('reconcileSent', () => {
   const NOW = 1_000_000;
-  const mark = (patch: Partial<SentMark>): SentMark => ({ id: 'm1', kind: 'start', agentId: 'ana', cardKey: 'ana:1', baseStatus: 'pending', title: 'Write the tests', column: 'in_progress', sentAt: NOW - 1000, ...patch });
+  const mark = (patch: Partial<SentMark>): SentMark => ({
+    id: 'm1',
+    kind: 'start',
+    agentId: 'ana',
+    cardKey: 'ana:1',
+    baseStatus: 'pending',
+    title: 'Write the tests',
+    column: 'in_progress',
+    sentAt: NOW - 1000,
+    ...patch,
+  });
 
   it('keeps a mark while the card still has the status it had when the message was sent', () => {
     const marks = [mark({})];
@@ -131,7 +171,9 @@ describe('reconcileSent', () => {
   it('drops a hand-over once the new owner lists the task, even if the old card is still there', () => {
     const handOver = mark({ kind: 'reassign', agentId: 'bia' });
 
-    expect(reconcileSent([handOver], [card('pending'), card('pending', { key: 'bia:9', agentId: 'bia' })], NOW)).toEqual([]);
+    expect(
+      reconcileSent([handOver], [card('pending'), card('pending', { key: 'bia:9', agentId: 'bia' })], NOW),
+    ).toEqual([]);
     expect(reconcileSent([handOver], [card('pending')], NOW)).toEqual([handOver]);
   });
 
@@ -146,6 +188,15 @@ describe('markFromIntent', () => {
   it('keeps what is needed to follow the request', () => {
     const intent = buildMoveIntent(card('pending'), { column: 'in_progress' }, nameOf);
 
-    expect(markFromIntent(intent!, 'm9', 5)).toEqual({ id: 'm9', kind: 'start', agentId: 'ana', title: 'Write the tests', column: 'in_progress', cardKey: 'ana:1', baseStatus: 'pending', sentAt: 5 });
+    expect(markFromIntent(intent!, 'm9', 5)).toEqual({
+      id: 'm9',
+      kind: 'start',
+      agentId: 'ana',
+      title: 'Write the tests',
+      column: 'in_progress',
+      cardKey: 'ana:1',
+      baseStatus: 'pending',
+      sentAt: 5,
+    });
   });
 });

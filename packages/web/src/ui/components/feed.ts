@@ -26,14 +26,23 @@ export class Feed implements Component {
   constructor(private readonly ctx: AppContext) {
     this.toggle = h(
       'button',
-      { type: 'button', class: 'ao-feed-bar', 'aria-expanded': 'false', onclick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }) },
+      {
+        type: 'button',
+        class: 'ao-feed-bar',
+        'aria-expanded': 'false',
+        onclick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }),
+      },
       h('strong', null, t('feed.title')),
       this.count,
       this.latest,
       this.chevron,
     );
     this.el.append(this.toggle, h('div', { class: 'ao-feed-body' }, this.list, this.empty));
-    this.items = new KeyedList(this.list, (item) => item.id, (item) => this.createItem(item));
+    this.items = new KeyedList(
+      this.list,
+      (item) => item.id,
+      (item) => this.createItem(item),
+    );
   }
 
   render(): void {
@@ -63,7 +72,11 @@ export class Feed implements Component {
     const time = h('span', { class: 'ao-feed-time' });
     const who = h('strong', { class: 'ao-feed-who' });
     const what = h('span', { class: 'ao-feed-what' });
-    const el = h('li', { class: 'ao-feed-item' }, h('button', { type: 'button', class: 'ao-feed-row' }, time, avatar.el, who, what));
+    const el = h(
+      'li',
+      { class: 'ao-feed-item' },
+      h('button', { type: 'button', class: 'ao-feed-row' }, time, avatar.el, who, what),
+    );
     let agentId = initial.agentId;
     el.querySelector('button')?.addEventListener('click', () => {
       if (this.ctx.agent(agentId)) this.ctx.selectAgent(agentId, { focus: true });
@@ -73,7 +86,10 @@ export class Feed implements Component {
       update: (item) => {
         agentId = item.agentId;
         const agent = this.ctx.agent(item.agentId);
-        avatar.update(agent ?? { id: item.agentId, name: item.agentName, seed: 0 }, agent ? this.ctx.world.portrait(agent.id, AVATAR_SIZE * 2) : null);
+        avatar.update(
+          agent ?? { id: item.agentId, name: item.agentName, seed: 0 },
+          agent ? this.ctx.world.portrait(agent.id, AVATAR_SIZE * 2) : null,
+        );
         setText(time, formatClockSeconds(item.activity.at));
         setText(who, item.agentName);
         setText(what, `${item.activity.icon} ${activityText(item.activity)}`);

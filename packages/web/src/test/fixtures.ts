@@ -29,7 +29,17 @@ export function agent(over: Partial<Agent> = {}): Agent {
 }
 
 export function permission(over: Partial<PermissionRequest> = {}): PermissionRequest {
-  return { id: 'perm1', agentId: 'ag1', toolName: 'Bash', summary: 'npm test', input: { command: 'npm test' }, suggestions: [], createdAt: 1_000, expiresAt: 61_000, ...over };
+  return {
+    id: 'perm1',
+    agentId: 'ag1',
+    toolName: 'Bash',
+    summary: 'npm test',
+    input: { command: 'npm test' },
+    suggestions: [],
+    createdAt: 1_000,
+    expiresAt: 61_000,
+    ...over,
+  };
 }
 
 export function project(over: Partial<Project> = {}): Project {

@@ -24,7 +24,13 @@ const RETRY_MS = 5000;
 const ALL = 'all';
 
 function tile(className: string, label: string, value: Child, ...rest: Child[]): HTMLElement {
-  return h('div', { class: `ao-usage-kpi ${className}`.trim() }, h('span', { class: 'ao-usage-kpi-label' }, label), h('strong', { class: 'ao-usage-kpi-value' }, value), ...rest);
+  return h(
+    'div',
+    { class: `ao-usage-kpi ${className}`.trim() },
+    h('span', { class: 'ao-usage-kpi-label' }, label),
+    h('strong', { class: 'ao-usage-kpi-value' }, value),
+    ...rest,
+  );
 }
 
 function changeValue(change: number | undefined): Child[] {
@@ -35,8 +41,18 @@ function changeValue(change: number | undefined): Child[] {
 function kpiTiles(kpis: Kpis, detail: UsageDetail): HTMLElement[] {
   const compared = kpis.tokensChange !== undefined || kpis.costChange !== undefined;
   return [
-    tile('', t('usage.kpi.tokens'), formatTokens(kpis.tokens), h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.tokens.hint'))),
-    tile('', t('usage.kpi.cost'), formatCost(kpis.costUSD), h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.cost.hint'))),
+    tile(
+      '',
+      t('usage.kpi.tokens'),
+      formatTokens(kpis.tokens),
+      h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.tokens.hint')),
+    ),
+    tile(
+      '',
+      t('usage.kpi.cost'),
+      formatCost(kpis.costUSD),
+      h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.cost.hint')),
+    ),
     tile(
       'ao-usage-kpi--change',
       t('usage.kpi.change'),
@@ -44,11 +60,18 @@ function kpiTiles(kpis: Kpis, detail: UsageDetail): HTMLElement[] {
       h(
         'span',
         { class: 'ao-usage-kpi-hint' },
-        compared ? t('usage.kpi.change.cost', { change: kpis.costChange === undefined ? '—' : formatChange(kpis.costChange) }) : t('usage.kpi.change.none'),
+        compared
+          ? t('usage.kpi.change.cost', { change: kpis.costChange === undefined ? '—' : formatChange(kpis.costChange) })
+          : t('usage.kpi.change.none'),
       ),
       compared ? h('span', { class: 'ao-usage-kpi-hint' }, t(`usage.kpi.change.basis.${detail.period}`)) : null,
     ),
-    tile('', t('usage.kpi.cache'), formatShare(kpis.cacheHit), h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.cache.hint'))),
+    tile(
+      '',
+      t('usage.kpi.cache'),
+      formatShare(kpis.cacheHit),
+      h('span', { class: 'ao-usage-kpi-hint' }, t('usage.kpi.cache.hint')),
+    ),
   ];
 }
 
@@ -61,7 +84,11 @@ export class UsageDialog extends Dialog {
   private readonly chartLegendHost = h('div', { class: 'ao-usage-legend-host' });
   private readonly chart = new UsageChart();
   private readonly chartNote = h('p', { class: 'ao-usage-chart-hint' }, t('usage.chart.hint'));
-  private readonly cacheToggle = h('input', { type: 'checkbox', id: 'ao-usage-cache-toggle', onchange: () => this.toggleCache() });
+  private readonly cacheToggle = h('input', {
+    type: 'checkbox',
+    id: 'ao-usage-cache-toggle',
+    onchange: () => this.toggleCache(),
+  });
   private readonly forecast: UsageForecastPanel;
   private readonly tables = h('div', { class: 'ao-usage-tables' });
   private readonly sessions = h('div', { class: 'ao-usage-sessions' });
@@ -95,14 +122,34 @@ export class UsageDialog extends Dialog {
     const chartCard = h(
       'section',
       { class: 'ao-usage-card-block ao-usage-chartcard', 'aria-labelledby': 'ao-usage-chart-h' },
-      h('div', { class: 'ao-usage-chartcard-head' }, this.chartTitle, h('label', { class: 'ao-check', for: 'ao-usage-cache-toggle' }, this.cacheToggle, h('span', null, t('usage.chart.cacheToggle')))),
+      h(
+        'div',
+        { class: 'ao-usage-chartcard-head' },
+        this.chartTitle,
+        h(
+          'label',
+          { class: 'ao-check', for: 'ao-usage-cache-toggle' },
+          this.cacheToggle,
+          h('span', null, t('usage.chart.cacheToggle')),
+        ),
+      ),
       this.chartLegendHost,
       this.chart.el,
       this.chartNote,
     );
     this.body.append(this.status, this.kpis, chartCard, this.forecast.el, this.tables, this.sessions, this.footer);
     this.panel.append(
-      h('header', { class: 'ao-dialog-head' }, h('div', { class: 'ao-usage-heading' }, h('h2', { id: 'ao-usage-title' }, t('usage.dialog.title')), h('p', null, t('usage.dialog.subtitle'))), closeButton(t('common.close'), () => ctx.closeDialog())),
+      h(
+        'header',
+        { class: 'ao-dialog-head' },
+        h(
+          'div',
+          { class: 'ao-usage-heading' },
+          h('h2', { id: 'ao-usage-title' }, t('usage.dialog.title')),
+          h('p', null, t('usage.dialog.subtitle')),
+        ),
+        closeButton(t('common.close'), () => ctx.closeDialog()),
+      ),
       this.toolbar,
       this.body,
     );
@@ -207,7 +254,13 @@ export class UsageDialog extends Dialog {
 
   /** Which sessions and projects of the tables are open in the office (they are links only then). */
   private linksSignature(detail: UsageDetail): string {
-    return [...detail.bySession.map((row) => (row.officeId !== undefined && this.ctx.agent(row.officeId) !== undefined ? 1 : 0)), ...detail.bySession.map((row) => (this.ctx.project(row.project) !== undefined ? 1 : 0)), ...detail.byProject.map((row) => (this.ctx.project(row.project) !== undefined ? 1 : 0))].join('');
+    return [
+      ...detail.bySession.map((row) =>
+        row.officeId !== undefined && this.ctx.agent(row.officeId) !== undefined ? 1 : 0,
+      ),
+      ...detail.bySession.map((row) => (this.ctx.project(row.project) !== undefined ? 1 : 0)),
+      ...detail.byProject.map((row) => (this.ctx.project(row.project) !== undefined ? 1 : 0)),
+    ].join('');
   }
 
   private syncToolbar(): void {
@@ -218,7 +271,10 @@ export class UsageDialog extends Dialog {
       this.pickerSignature = signature;
       this.account = resolveAccount(this.account, ids);
       const labels = new Map(accounts.map((account) => [account.id, accountLabel(account)]));
-      const options = pickerAccounts(ids).map((value) => ({ value, label: value === ALL ? t('usage.account.all') : (labels.get(value) ?? value) }));
+      const options = pickerAccounts(ids).map((value) => ({
+        value,
+        label: value === ALL ? t('usage.account.all') : (labels.get(value) ?? value),
+      }));
       const picker = createSegmented<string>(t('usage.account.label'), options, (value) => this.setAccount(value));
       this.accountPicker = picker;
       (this.toolbar.firstElementChild as HTMLElement).replaceChildren(picker.el);
@@ -235,7 +291,14 @@ export class UsageDialog extends Dialog {
     this.sessions.replaceChildren();
     this.chartLegendHost.replaceChildren();
     if (this.state === 'error') {
-      this.status.replaceChildren(h('p', { class: 'ao-error' }, this.error), h('button', { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() }, t('common.retry')));
+      this.status.replaceChildren(
+        h('p', { class: 'ao-error' }, this.error),
+        h(
+          'button',
+          { type: 'button', class: 'ao-btn ao-btn--soft', onclick: () => void this.load() },
+          t('common.retry'),
+        ),
+      );
     } else {
       this.status.replaceChildren(emptyNote(t('usage.loading')));
     }
@@ -252,7 +315,18 @@ export class UsageDialog extends Dialog {
         'div',
         { class: 'ao-usage-progress' },
         h('strong', null, t('usage.indexing', { percent })),
-        h('div', { class: 'ao-usage-meter-track', role: 'progressbar', 'aria-label': t('usage.indexing', { percent }), 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': percent }, h('span', { style: `width:${percent}%` })),
+        h(
+          'div',
+          {
+            class: 'ao-usage-meter-track',
+            role: 'progressbar',
+            'aria-label': t('usage.indexing', { percent }),
+            'aria-valuemin': 0,
+            'aria-valuemax': 100,
+            'aria-valuenow': percent,
+          },
+          h('span', { style: `width:${percent}%` }),
+        ),
         h('span', { class: 'ao-usage-kpi-hint' }, t('usage.indexing.hint')),
       ),
     );
@@ -263,7 +337,9 @@ export class UsageDialog extends Dialog {
     this.kpis.replaceChildren(...kpiTiles(kpis, detail));
     this.chartTitle.textContent = t(detail.granularity === 'hour' ? 'usage.chart.title.hour' : 'usage.chart.title.day');
     this.cacheToggle.checked = this.includeCache;
-    this.chartLegendHost.replaceChildren(chartLegend(this.includeCache ? STACK_ORDER : STACK_ORDER.filter((kind) => kind !== 'cacheRead')));
+    this.chartLegendHost.replaceChildren(
+      chartLegend(this.includeCache ? STACK_ORDER : STACK_ORDER.filter((kind) => kind !== 'cacheRead')),
+    );
     this.chart.set(detail, this.includeCache, this.ctx.now());
     if (kpis.hasData) {
       this.tables.replaceChildren(modelsTable(detail), projectsTable(this.ctx, detail));

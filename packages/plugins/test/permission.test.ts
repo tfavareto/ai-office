@@ -109,7 +109,10 @@ describe('denials by an approval rule', () => {
     ['en', 'Denied by an AI Office rule: Bash: git push'],
     ['es', 'Rechazado por una regla de AI Office: Bash: git push'],
   ])('words a refusal with locale %s as a rule refusal', (locale, message) => {
-    const output = buildDecisionOutput({ behavior: 'deny', auto: 'rule', message: 'Bash: git push', ...(locale !== undefined ? { locale } : {}) }, []) as any;
+    const output = buildDecisionOutput(
+      { behavior: 'deny', auto: 'rule', message: 'Bash: git push', ...(locale !== undefined ? { locale } : {}) },
+      [],
+    ) as any;
     expect(output.hookSpecificOutput.decision).toEqual({ behavior: 'deny', message, interrupt: false });
   });
 

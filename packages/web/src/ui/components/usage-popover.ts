@@ -22,6 +22,8 @@ export class UsagePopover extends Popover {
     const signature = usageSignature(this.ctx);
     if (signature === this.signature) return;
     this.signature = signature;
-    this.list.replaceChildren(...usageEntries(this.ctx).map(({ accountId, usage }) => usageCard(this.ctx, accountId, usage, true)));
+    this.list.replaceChildren(
+      ...usageEntries(this.ctx).map(({ accountId, usage }) => usageCard(this.ctx, accountId, usage, true)),
+    );
   }
 }

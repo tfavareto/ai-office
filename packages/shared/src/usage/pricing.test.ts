@@ -11,7 +11,13 @@ describe('price table', () => {
   });
 
   test('prices the five counters of a message', () => {
-    const tokens = { input: 1_000_000, output: 1_000_000, cacheWrite5m: 0, cacheWrite1h: 1_000_000, cacheRead: 1_000_000 };
+    const tokens = {
+      input: 1_000_000,
+      output: 1_000_000,
+      cacheWrite5m: 0,
+      cacheWrite1h: 1_000_000,
+      cacheRead: 1_000_000,
+    };
     expect(tokensCostUSD('claude-sonnet-5-5', tokens)).toBeCloseTo(3 + 15 + 6 + 0.3, 6);
     expect(tokensCostUSD('mystery', tokens)).toBeUndefined();
   });

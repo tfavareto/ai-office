@@ -157,7 +157,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'usage.kind.cacheRead': 'Lectura de caché',
   'usage.tip.total': '{n} tokens',
   'usage.tip.cost': '{cost} estimado',
-  'usage.bar.label': '{when}: {total} tokens, {cost}. Entrada {input}, salida {output}, escritura de caché {cacheWrite}, lectura de caché {cacheRead}.',
+  'usage.bar.label':
+    '{when}: {total} tokens, {cost}. Entrada {input}, salida {output}, escritura de caché {cacheWrite}, lectura de caché {cacheRead}.',
   'usage.window.used': '{tokens} tokens · {cost}',
   'usage.window.idle': 'Sin ventana abierta: la siguiente empieza con tu próximo mensaje.',
   'usage.gauge.time': 'Tiempo de la ventana',
@@ -166,7 +167,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'usage.gauge.usage': 'Uso de la referencia',
   'usage.gauge.noReference': 'sin referencia',
   'usage.forecast.title': 'Previsión de límite',
-  'usage.forecast.estimate': 'Una estimación: tu plan no muestra sus límites en este equipo. La referencia es el límite que indiques o, si no hay, tu bloque reciente más alto.',
+  'usage.forecast.estimate':
+    'Una estimación: tu plan no muestra sus límites en este equipo. La referencia es el límite que indiques o, si no hay, tu bloque reciente más alto.',
   'usage.forecast.scope.window5h': 'Ventana de 5 h',
   'usage.forecast.scope.week': 'Semana',
   'usage.forecast.window.pace': 'Al ritmo actual llegas a {amount} al final de la ventana ({time}).',
@@ -176,12 +178,14 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'usage.forecast.idle.week': 'Sin consumo en la última media hora: la semana termina en {amount}.',
   'usage.forecast.over.configured': 'Ya usaste {used}, por encima de tu límite de {limit}.',
   'usage.forecast.over.estimate': 'Ya usaste {used}, por encima de tu bloque reciente más alto ({limit}).',
-  'usage.forecast.none': 'Aún sin referencia: indica tu límite en "Límites" o usa unos bloques de 5 h más para estimar.',
+  'usage.forecast.none':
+    'Aún sin referencia: indica tu límite en "Límites" o usa unos bloques de 5 h más para estimar.',
   'usage.forecast.ref.configured': 'Referencia: {limit} (tu límite)',
   'usage.forecast.ref.estimate': 'Referencia: {limit} (tu bloque reciente más alto, estimación)',
   'usage.amount.tokens': '{n} tokens',
   'usage.limits.title': 'Límites (opcional)',
-  'usage.limits.hint': 'Indica cuánto permite tu plan por ventana de 5 h y por semana para que la previsión lo use. Se guarda solo en este navegador.',
+  'usage.limits.hint':
+    'Indica cuánto permite tu plan por ventana de 5 h y por semana para que la previsión lo use. Se guarda solo en este navegador.',
   'usage.limits.unit': 'Unidad',
   'usage.limits.unit.usd': 'US$ (costo estimado)',
   'usage.limits.unit.tokens': 'Millones de tokens',
@@ -207,7 +211,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'usage.session.fallbackSub': 'Subagente {id}',
   'usage.session.select': 'Ver {name} en la oficina',
   'usage.sessions.more': 'y {n, plural, one {# sesión más} other {# sesiones más}}',
-  'usage.footer': 'Valores estimados con los precios públicos de la API; tu plan puede cobrar de otra forma. El historial viene de las conversaciones guardadas en este equipo.',
+  'usage.footer':
+    'Valores estimados con los precios públicos de la API; tu plan puede cobrar de otra forma. El historial viene de las conversaciones guardadas en este equipo.',
   'usage.alert.hit': 'Cuenta {account}: al ritmo actual es probable que alcances el límite hacia {time}.',
   // Sidebar
   'sidebar.label': 'Salas y agentes',
@@ -251,7 +256,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'task.pending': 'pendiente',
   'tab.messages.send': 'Enviar una orden',
   'tab.messages.history': 'Historial',
-  'tab.messages.placeholder': 'Mensaje para {name}. Llega en la próxima llamada a una herramienta o al final del turno.',
+  'tab.messages.placeholder':
+    'Mensaje para {name}. Llega en la próxima llamada a una herramienta o al final del turno.',
   'tab.activity.shells': 'Shells',
   'tab.activity.noShells': 'Ningún shell en ejecución.',
   'tab.activity.timeline': 'Línea de tiempo',
@@ -337,7 +343,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'inbox.close': 'Cerrar la bandeja',
   'inbox.count': '{n, plural, =1 {# elemento} other {# elementos}}',
   'inbox.empty.title': 'Nada te necesita ahora',
-  'inbox.empty.text': 'Las solicitudes de permiso, preguntas, errores y trabajos terminados aparecen aquí en cuanto surgen.',
+  'inbox.empty.text':
+    'Las solicitudes de permiso, preguntas, errores y trabajos terminados aparecen aquí en cuanto surgen.',
   'inbox.list': 'Elementos que te necesitan',
   'inbox.kind.permission': 'Permisos',
   'inbox.kind.attention': 'Preguntas y avisos',
@@ -388,12 +395,14 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'inbox.confirm.empty': 'Nada que decidir aquí.',
   'inbox.hint': 'J/K mover · Espacio seleccionar · A aprobar · D rechazar · Enter abrir · E visto',
   'inbox.result.sent': '{n, plural, =1 {# respuesta enviada} other {# respuestas enviadas}}.',
-  'inbox.result.failed': '{n, plural, =1 {# respuesta no se envió} other {# respuestas no se enviaron}}. Inténtalo de nuevo.',
+  'inbox.result.failed':
+    '{n, plural, =1 {# respuesta no se envió} other {# respuestas no se enviaron}}. Inténtalo de nuevo.',
   'waiting.title': 'Te necesita',
   'waiting.default': 'El agente se detuvo y espera tu respuesta. Responde en el terminal donde se ejecuta la sesión.',
   // Notifications, toasts, feed
   'notifications.dnd': 'No molestar',
-  'notifications.dnd.hint': 'Con "No molestar" solo las alertas se convierten en aviso, sonido y notificación del navegador.',
+  'notifications.dnd.hint':
+    'Con "No molestar" solo las alertas se convierten en aviso, sonido y notificación del navegador.',
   'notifications.clear': 'Borrar',
   'notifications.filter': 'Filtro',
   'notifications.filter.all': 'Todo',
@@ -441,7 +450,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'board.group.column': 'Por columna',
   'board.group.room': 'Por sala',
   'board.empty.title': 'No hay tareas en el tablero',
-  'board.empty.body': 'Las tareas aparecen cuando los agentes escriben una lista de tareas. Usa + para pedirle una a un agente.',
+  'board.empty.body':
+    'Las tareas aparecen cuando los agentes escriben una lista de tareas. Usa + para pedirle una a un agente.',
   'board.empty.filtered': 'Ninguna tarea coincide con estos filtros.',
   'board.column.empty': 'Nada por aquí.',
   'board.lane.agents': '{n, plural, one {# agente} other {# agentes}}',
@@ -460,7 +470,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'board.menu.toAgent': 'Pasar a {name}',
   'board.menu.none': 'No hay destinos disponibles.',
   'board.confirm.title': 'Enviar pedido a {name}',
-  'board.confirm.hint': 'El tablero no cambia la lista por sí solo: envía este pedido al agente, que actualiza sus propias tareas. Puedes editar el texto.',
+  'board.confirm.hint':
+    'El tablero no cambia la lista por sí solo: envía este pedido al agente, que actualiza sus propias tareas. Puedes editar el texto.',
   'board.confirm.label': 'Mensaje',
   'board.confirm.send': 'Enviar pedido',
   'board.add.title': 'Pedir una nueva tarea',
@@ -505,7 +516,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'report.loading': 'Preparando el informe…',
   'report.empty': 'Sin actividad de agentes este día.',
   'report.notice.indexing': 'Los tokens y el costo aún se están calculando; los valores pueden estar incompletos.',
-  'report.notice.truncated': 'El informe llegó a un límite de tamaño o de tiempo; algunos números pueden estar incompletos.',
+  'report.notice.truncated':
+    'El informe llegó a un límite de tamaño o de tiempo; algunos números pueden estar incompletos.',
   'report.notice.demo': 'Datos de demostración.',
   'report.stat.agents': 'Agentes',
   'report.stat.time': 'Tiempo activo',
@@ -542,17 +554,23 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'report.tool.mcp': 'MCP',
   'report.tool.question': 'Preguntas',
   'report.tool.other': 'Otras',
-  'report.tests.runner': '{runner}: {passed, plural, =1 {# ejecución pasó} other {# ejecuciones pasaron}}, {failed, plural, =0 {ninguna falló} =1 {# falló} other {# fallaron}}',
+  'report.tests.runner':
+    '{runner}: {passed, plural, =1 {# ejecución pasó} other {# ejecuciones pasaron}}, {failed, plural, =0 {ninguna falló} =1 {# falló} other {# fallaron}}',
   'report.more': 'y {n} más',
   'report.unknownProject': 'Proyecto desconocido',
-  'report.highlight.tasksCommits': '{name} cerró {tasks, plural, =1 {# tarea} other {# tareas}} e hizo {commits, plural, =1 {# commit} other {# commits}} en {project}',
+  'report.highlight.tasksCommits':
+    '{name} cerró {tasks, plural, =1 {# tarea} other {# tareas}} e hizo {commits, plural, =1 {# commit} other {# commits}} en {project}',
   'report.highlight.tasks': '{name} cerró {tasks, plural, =1 {# tarea} other {# tareas}} en {project}',
   'report.highlight.commits': '{name} hizo {commits, plural, =1 {# commit} other {# commits}} en {project}',
-  'report.highlight.testsPassed': '{name} ejecutó las pruebas {runs, plural, =1 {una vez} other {# veces}} en {project} y todo pasó',
-  'report.highlight.testsMixed': '{name} ejecutó las pruebas {runs, plural, =1 {una vez} other {# veces}} en {project}; {failed, plural, =1 {# falló} other {# fallaron}}',
-  'report.highlight.files': '{name} modificó {files, plural, =1 {# archivo} other {# archivos}} en {project} (+{added} −{removed})',
+  'report.highlight.testsPassed':
+    '{name} ejecutó las pruebas {runs, plural, =1 {una vez} other {# veces}} en {project} y todo pasó',
+  'report.highlight.testsMixed':
+    '{name} ejecutó las pruebas {runs, plural, =1 {una vez} other {# veces}} en {project}; {failed, plural, =1 {# falló} other {# fallaron}}',
+  'report.highlight.files':
+    '{name} modificó {files, plural, =1 {# archivo} other {# archivos}} en {project} (+{added} −{removed})',
   'report.highlight.spend': '{name} concentró {share} del costo del día ({cost})',
-  'report.highlight.testsFailed': 'Atención: {runs, plural, =1 {# ejecución de pruebas falló} other {# ejecuciones de pruebas fallaron}} en {project}',
+  'report.highlight.testsFailed':
+    'Atención: {runs, plural, =1 {# ejecución de pruebas falló} other {# ejecuciones de pruebas fallaron}} en {project}',
   'report.md.title': 'Informe del día — {date}',
   'report.md.meta': '{scope}. Generado por AI Office a las {time}.',
   'report.md.scopeAll': 'Todas las cuentas',
@@ -584,12 +602,14 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   // Splash, banner, empty state
   'splash.connecting': 'Conectando con la oficina…',
   'splash.slow': 'Todavía intentando conectar…',
-  'splash.hint': 'Comprueba que el servidor de AI Office esté en ejecución (npm run dev o npm start). Lo intentaremos de nuevo automáticamente.',
+  'splash.hint':
+    'Comprueba que el servidor de AI Office esté en ejecución (npm run dev o npm start). Lo intentaremos de nuevo automáticamente.',
   'banner.lost': 'Se perdió la conexión con AI Office. Los datos en pantalla pueden estar desactualizados.',
   'banner.retry': 'Reintentar ahora',
   'banner.retryIn': 'Nuevo intento en {time}',
   'empty.title': 'Ninguna sesión abierta',
-  'empty.intro': 'Cada proyecto abierto en Claude Code se convierte en una sala, y cada sesión en una persona que trabaja en ella.',
+  'empty.intro':
+    'Cada proyecto abierto en Claude Code se convierte en una sala, y cada sesión en una persona que trabaja en ella.',
   'empty.step1': 'Abre un terminal en la carpeta de un proyecto.',
   'empty.step2.before': 'Ejecuta ',
   'empty.step2.after': ' y pídele algo al agente.',
@@ -616,7 +636,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'settings.sounds': 'Sonidos',
   'settings.volume': 'Volumen de los sonidos',
   'settings.browser': 'Notificaciones del navegador',
-  'settings.browser.blocked': 'El navegador bloqueó las notificaciones de este sitio. Permítelas en la configuración del navegador.',
+  'settings.browser.blocked':
+    'El navegador bloqueó las notificaciones de este sitio. Permítelas en la configuración del navegador.',
   'settings.browser.unsupported': 'Este navegador no ofrece notificaciones.',
   'settings.demo': 'Modo demostración',
   'settings.demo.mock': 'Estás en la demostración local (?mock=1): todo se simula en el navegador.',
@@ -657,7 +678,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'hire.mode.hint.default': 'Pregunta antes de editar archivos o ejecutar comandos.',
   'hire.mode.hint.acceptEdits': 'Edita archivos sin preguntar; los comandos siguen pidiendo permiso.',
   'hire.mode.hint.plan': 'Solo analiza y propone un plan; nada cambia hasta que lo apruebes.',
-  'hire.note': 'Abre una ventana nueva de la terminal con Claude Code. La persona llega a la oficina cuando empieza la sesión.',
+  'hire.note':
+    'Abre una ventana nueva de la terminal con Claude Code. La persona llega a la oficina cuando empieza la sesión.',
   'hire.submit': 'Contratar',
   'hire.submitting': 'Abriendo la terminal…',
   'hire.toast.opened': 'Terminal abierta en {project}. El agente llega cuando empiece la sesión.',
@@ -668,9 +690,12 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'hire.error.projectNotFound': 'La carpeta del proyecto no existe.',
   'hire.error.projectNotDirectory': 'La ruta indicada no es una carpeta.',
   'hire.error.projectNotReadable': 'No hay permiso para abrir la carpeta del proyecto.',
-  'hire.error.claudeNotFound': 'No encontré Claude Code en este equipo. Instálalo y comprueba que el comando claude funciona en la terminal.',
-  'hire.error.noTerminal': 'No encontré una aplicación de terminal para abrir. Instala una (como gnome-terminal o xterm) e inténtalo de nuevo.',
-  'hire.error.terminalFailed': 'No se pudo abrir la terminal. En macOS, permite que AI Office controle Terminal en Ajustes del Sistema > Privacidad y seguridad > Automatización.',
+  'hire.error.claudeNotFound':
+    'No encontré Claude Code en este equipo. Instálalo y comprueba que el comando claude funciona en la terminal.',
+  'hire.error.noTerminal':
+    'No encontré una aplicación de terminal para abrir. Instala una (como gnome-terminal o xterm) e inténtalo de nuevo.',
+  'hire.error.terminalFailed':
+    'No se pudo abrir la terminal. En macOS, permite que AI Office controle Terminal en Ajustes del Sistema > Privacidad y seguridad > Automatización.',
   'hire.error.unsupportedPlatform': 'Abrir la terminal solo funciona en macOS y Linux.',
   'hover.desk.title': 'Escritorio libre',
   'hover.desk.hint': 'Haz clic para contratar un agente aquí.',
@@ -679,7 +704,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   // Help
   'help.title': 'Ayuda',
   'help.status.title': 'Estado de las personas',
-  'help.status.note': 'Cada proyecto abierto es una sala; cada sesión de Claude Code es una persona. Los subagentes llegan, trabajan y se van.',
+  'help.status.note':
+    'Cada proyecto abierto es una sala; cada sesión de Claude Code es una persona. Los subagentes llegan, trabajan y se van.',
   'help.icons.title': 'Iconos',
   'help.icon.fit': 'Vista general: encuadra toda la oficina',
   'help.icon.bell': 'Notificaciones y "No molestar"',
@@ -717,8 +743,10 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'help.shortcut.inbox.open': 'En la bandeja: abrir el agente',
   'help.shortcut.inbox.seen': 'En la bandeja: marcar como visto',
   'help.install.title': 'Instalar el plugin de Claude Code',
-  'help.install.intro': 'El plugin te permite responder permisos y enviar mensajes desde la oficina. En la carpeta de AI Office, ejecuta:',
-  'help.install.outro': 'Se instala en todas las cuentas detectadas. Para comprobarlo usa npm run plugin:status; para quitarlo, npm run plugin:uninstall. Después reinicia las sesiones abiertas de Claude Code.',
+  'help.install.intro':
+    'El plugin te permite responder permisos y enviar mensajes desde la oficina. En la carpeta de AI Office, ejecuta:',
+  'help.install.outro':
+    'Se instala en todas las cuentas detectadas. Para comprobarlo usa npm run plugin:status; para quitarlo, npm run plugin:uninstall. Después reinicia las sesiones abiertas de Claude Code.',
   'help.install.copy': 'Copiar comando',
   'help.install.copied': 'Comando copiado.',
   // Announcements (screen readers)
@@ -751,7 +779,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'rules.new': 'Nueva regla',
   'rules.loading': 'Cargando las reglas…',
   'rules.empty.title': 'Aún no hay reglas',
-  'rules.empty.text': 'Una regla responde sola a las solicitudes de permiso que se repiten, aprobando o rechazando por comando, carpeta o sitio, y cada respuesta queda en el registro.',
+  'rules.empty.text':
+    'Una regla responde sola a las solicitudes de permiso que se repiten, aprobando o rechazando por comando, carpeta o sitio, y cada respuesta queda en el registro.',
   'rules.empty.action': 'Crear una regla',
   'rules.list': 'Reglas de aprobación',
   'rules.effect.allow': 'Aprueba',
@@ -808,9 +837,11 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'rules.placeholder.exact': 'npm test',
   'rules.placeholder.path-glob': 'src/**',
   'rules.placeholder.host': 'docs.stripe.com',
-  'rules.hint.command-prefix': 'Palabras completas al inicio del comando: “npm test” cubre “npm test -- --watch”, no “npm testx”. Los comandos con ; && | > o $( nunca coinciden con una regla de aprobar.',
+  'rules.hint.command-prefix':
+    'Palabras completas al inicio del comando: “npm test” cubre “npm test -- --watch”, no “npm testx”. Los comandos con ; && | > o $( nunca coinciden con una regla de aprobar.',
   'rules.hint.exact': 'El comando, archivo, dirección o búsqueda completos, sin variaciones.',
-  'rules.hint.path-glob': '* se queda dentro de una carpeta y ** atraviesa carpetas; los archivos que empiezan con punto (.env) nunca coinciden. Las rutas relativas parten del proyecto.',
+  'rules.hint.path-glob':
+    '* se queda dentro de una carpeta y ** atraviesa carpetas; los archivos que empiezan con punto (.env) nunca coinciden. Las rutas relativas parten del proyecto.',
   'rules.hint.host': 'La dirección del sitio, o *.ejemplo.com para todos los subdominios.',
   'rules.hint.any': 'Vale para toda solicitud de esta herramienta.',
   'rules.editor.scope': 'Dónde se aplica',
@@ -821,9 +852,11 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'rules.editor.enabled': 'Regla activa',
   'rules.editor.save': 'Guardar regla',
   'rules.editor.saving': 'Guardando…',
-  'rules.editor.safety': 'Las solicitudes peligrosas (borrar archivos, sudo, push forzado…) nunca se aprueban por regla: te siguen llegando.',
+  'rules.editor.safety':
+    'Las solicitudes peligrosas (borrar archivos, sudo, push forzado…) nunca se aprueban por regla: te siguen llegando.',
   'rules.preview.loading': 'Calculando…',
-  'rules.preview.result': 'Esta regla habría respondido {matches} de {total} {total, plural, =1 {solicitud} other {solicitudes}} de hoy.',
+  'rules.preview.result':
+    'Esta regla habría respondido {matches} de {total} {total, plural, =1 {solicitud} other {solicitudes}} de hoy.',
   'rules.preview.none': 'Hoy aún no hubo solicitudes para comparar.',
   'rules.preview.failed': 'No se pudo calcular ahora.',
   'rules.error.invalid': 'Esta regla tiene un campo no válido.',
@@ -833,11 +866,13 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'rules.error.invalidNote': 'La nota supera los 200 caracteres.',
   'rules.error.unsupported': 'Esta herramienta no acepta ese tipo de regla.',
   'rules.error.compound': 'Los comandos compuestos (con ; && | > o $( ) nunca pueden aprobarse por una regla.',
-  'rules.error.broadAny': 'Aprobar cualquier solicitud de esta herramienta es demasiado amplio: elige un comando, una carpeta o un sitio.',
+  'rules.error.broadAny':
+    'Aprobar cualquier solicitud de esta herramienta es demasiado amplio: elige un comando, una carpeta o un sitio.',
   'rules.error.broadTool': 'Los comodines solo valen para un servidor MCP completo (mcp__servidor__*).',
   'rules.error.broadPath': 'Esta ruta es demasiado amplia: usa una carpeta del proyecto, como src/**.',
   'rules.error.broadHost': 'Este dominio es demasiado amplio: usa docs.ejemplo.com o *.ejemplo.com.',
-  'rules.error.dangerous': 'Este patrón también aprobaría solicitudes peligrosas ({reason}). Usa un patrón más específico o crea una regla de rechazar.',
+  'rules.error.dangerous':
+    'Este patrón también aprobaría solicitudes peligrosas ({reason}). Usa un patrón más específico o crea una regla de rechazar.',
   'rules.error.duplicate': 'Ya existe una regla igual.',
   'rules.error.tooMany': 'Límite de 200 reglas alcanzado: elimina alguna antes de crear otra.',
   'rules.error.notFound': 'La regla ya no existe.',
@@ -855,7 +890,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'git.detached': 'HEAD suelto, sin rama',
   'git.clean': 'Nada que confirmar.',
   'git.changes.conflicted': '{n, plural, one {# archivo con conflictos} other {# archivos con conflictos}}',
-  'git.changes.staged': '{n, plural, one {# archivo en el área de preparación} other {# archivos en el área de preparación}}',
+  'git.changes.staged':
+    '{n, plural, one {# archivo en el área de preparación} other {# archivos en el área de preparación}}',
   'git.changes.unstaged': '{n, plural, one {# archivo modificado} other {# archivos modificados}}',
   'git.changes.untracked': '{n, plural, one {# archivo nuevo} other {# archivos nuevos}}',
   'git.lines': '+{added} −{removed} líneas',
@@ -888,13 +924,15 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'git.checks.failing': 'Fallan: {names}',
   'git.checks.more': 'y {n} más fallando',
   'git.checks.pending': '{n, plural, one {# check en curso} other {# checks en curso}}',
-  'git.pr.off': 'Para ver el pull request y el CI de esta rama, activa «Consultar pull requests con gh» en los ajustes.',
+  'git.pr.off':
+    'Para ver el pull request y el CI de esta rama, activa «Consultar pull requests con gh» en los ajustes.',
   'sidebar.room.branch': 'Rama {branch}',
   'sidebar.room.branchDirty': 'Rama {branch}: cambios sin confirmar',
   'hover.room.branch': 'Rama {branch}',
   'settings.git': 'Mostrar el estado de Git',
   'settings.gitPr': 'Consultar pull requests con gh (usa internet)',
-  'settings.gitPr.hint': 'Es la única parte de AI Office que usa internet, y solo a través de tu propio gh mientras esté activada.',
+  'settings.gitPr.hint':
+    'Es la única parte de AI Office que usa internet, y solo a través de tu propio gh mientras esté activada.',
   'settings.gitPr.missing': 'No se encontró gh en este equipo.',
   'settings.gitPr.unauthenticated': 'gh no ha iniciado sesión. Ejecuta «gh auth login» en una terminal.',
   // Time-lapse

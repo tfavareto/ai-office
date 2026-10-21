@@ -14,7 +14,16 @@ import {
 import type { TextKey } from '../../i18n';
 
 /** Tools offered in the editor's list (any other name can be typed, e.g. an MCP tool). */
-export const COMMON_TOOLS: readonly string[] = ['Bash', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Read', 'WebFetch', 'WebSearch'];
+export const COMMON_TOOLS: readonly string[] = [
+  'Bash',
+  'Edit',
+  'Write',
+  'MultiEdit',
+  'NotebookEdit',
+  'Read',
+  'WebFetch',
+  'WebSearch',
+];
 
 export interface RuleForm {
   effect: RuleEffect;
@@ -79,7 +88,17 @@ export function isFormComplete(form: RuleForm): boolean {
   return form.tool.trim().length > 0 && (form.kind === 'any' || form.value.trim().length > 0);
 }
 
-const RISK_DETAILS: readonly string[] = ['delete', 'sudo', 'force-push', 'reset', 'permissions', 'pipe-shell', 'disk', 'data', 'sensitive-file'];
+const RISK_DETAILS: readonly string[] = [
+  'delete',
+  'sudo',
+  'force-push',
+  'reset',
+  'permissions',
+  'pipe-shell',
+  'disk',
+  'data',
+  'sensitive-file',
+];
 
 /** What made a matcher dangerous, as a text key (`inbox.risk.*` for the risks the inbox already names). */
 function dangerKey(detail: string | undefined): TextKey {
@@ -106,7 +125,16 @@ export function rejectionMessage(error: RuleErrorBody): { key: TextKey; reasonKe
     case 'matcher-compound':
       return { key: 'rules.error.compound' };
     case 'matcher-too-broad':
-      return { key: error.detail === 'tool-wildcard' ? 'rules.error.broadTool' : error.detail === 'path' ? 'rules.error.broadPath' : error.detail === 'host' ? 'rules.error.broadHost' : 'rules.error.broadAny' };
+      return {
+        key:
+          error.detail === 'tool-wildcard'
+            ? 'rules.error.broadTool'
+            : error.detail === 'path'
+              ? 'rules.error.broadPath'
+              : error.detail === 'host'
+                ? 'rules.error.broadHost'
+                : 'rules.error.broadAny',
+      };
     case 'matcher-dangerous':
       return { key: 'rules.error.dangerous', reasonKey: dangerKey(error.detail) };
     case 'duplicate-rule':
@@ -122,7 +150,9 @@ export function rejectionMessage(error: RuleErrorBody): { key: TextKey; reasonKe
 
 /** The field a refusal is about, so the editor can focus it. */
 export function rejectionField(error: RuleErrorBody): 'tool' | 'matcher' | 'scope' | 'note' | null {
-  return error.field === 'tool' || error.field === 'matcher' || error.field === 'scope' || error.field === 'note' ? error.field : null;
+  return error.field === 'tool' || error.field === 'matcher' || error.field === 'scope' || error.field === 'note'
+    ? error.field
+    : null;
 }
 
 export type OutcomeFilter = 'all' | AutoDecisionOutcome;

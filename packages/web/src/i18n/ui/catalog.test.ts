@@ -6,7 +6,11 @@ import { UI_CATALOGS, type UiKey } from '.';
 import { uiPtBR } from './pt-BR';
 
 /** Source of every non-test module of the app (catalogs excluded), to look for the keys in use. */
-const SOURCES = import.meta.glob(['/src/**/*.ts', '!/src/**/*.test.ts', '!/src/i18n/ui/**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const SOURCES = import.meta.glob(['/src/**/*.ts', '!/src/**/*.test.ts', '!/src/i18n/ui/**'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
 const keys = Object.keys(uiPtBR) as UiKey[];
 
 /** Names used by `{name}`, `{name, plural, …}` and `{name, select, …}` in a template. */
@@ -37,7 +41,8 @@ describe('ui catalogs', () => {
   it('uses the same placeholders in every language', () => {
     for (const key of keys) {
       const expected = placeholders(uiPtBR[key]);
-      for (const locale of ['en', 'es'] as const) expect(placeholders(UI_CATALOGS[locale][key] ?? ''), `${locale} ${key}`).toEqual(expected);
+      for (const locale of ['en', 'es'] as const)
+        expect(placeholders(UI_CATALOGS[locale][key] ?? ''), `${locale} ${key}`).toEqual(expected);
     }
   });
 
@@ -56,7 +61,10 @@ describe('ui catalogs', () => {
   it('does not shadow the shared or world catalogs', () => {
     for (const locale of LOCALES as readonly Locale[]) {
       const others = new Set([...Object.keys(SHARED_CATALOGS[locale]), ...Object.keys(WORLD_CATALOGS[locale])]);
-      expect(keys.filter((key) => others.has(key)), locale).toEqual([]);
+      expect(
+        keys.filter((key) => others.has(key)),
+        locale,
+      ).toEqual([]);
     }
   });
 
@@ -64,7 +72,9 @@ describe('ui catalogs', () => {
     const source = Object.values(SOURCES).join('\n');
     expect(source.length).toBeGreaterThan(0);
     const dynamicPrefixes = [...source.matchAll(/`([a-z][A-Za-z0-9.]*\.)\$\{/g)].map((match) => match[1] as string);
-    const unused = keys.filter((key) => !source.includes(`'${key}'`) && !dynamicPrefixes.some((prefix) => key.startsWith(prefix)));
+    const unused = keys.filter(
+      (key) => !source.includes(`'${key}'`) && !dynamicPrefixes.some((prefix) => key.startsWith(prefix)),
+    );
     expect(unused).toEqual([]);
   });
 

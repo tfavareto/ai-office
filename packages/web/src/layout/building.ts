@@ -7,11 +7,27 @@ import { layoutProjectRoom } from './project';
 import { rowEnds } from './slots';
 import type { AreaLayout, AreaTheme, BuildingLayout, Door, Elevator, FurnitureItem, RoomSpec, Spot } from './types';
 
-const TERRACE_THEME: AreaTheme = { floor: 'deck', hue: 30, accent: '#c8a45a', carpet: '#8a6a45', carpetAlt: '#745638', pattern: 0, wood: 0 };
+const TERRACE_THEME: AreaTheme = {
+  floor: 'deck',
+  hue: 30,
+  accent: '#c8a45a',
+  carpet: '#8a6a45',
+  carpetAlt: '#745638',
+  pattern: 0,
+  wood: 0,
+};
 
 /** Outdoor deck closing the shorter row at the east end of the building. */
 function layoutTerrace(row: 'north' | 'south', x: number, width: number): AreaLayout {
-  const b = new AreaBuilder({ id: `terrace:${row}`, kind: 'terrace', label: 'Terraço', row, x, width, theme: TERRACE_THEME });
+  const b = new AreaBuilder({
+    id: `terrace:${row}`,
+    kind: 'terrace',
+    label: 'Terraço',
+    row,
+    x,
+    width,
+    theme: TERRACE_THEME,
+  });
   const fw = b.floorWidth;
   const tableFx = (fw - 2) >> 1;
   b.put('deckTable', tableFx, 3, 2, 2);
@@ -75,7 +91,17 @@ export function computeBuilding(rooms: readonly RoomSpec[]): BuildingLayout {
   for (const item of corridor.furniture) for (const block of item.blocks) fillRect(grid, block, 0);
   for (const area of areas) markArea(grid, area);
 
-  return { width, height: BUILDING_H, endNorth: ends.north, endSouth: ends.south, areas, corridor, terraces, elevators: elevatorsOf(core[0]), grid };
+  return {
+    width,
+    height: BUILDING_H,
+    endNorth: ends.north,
+    endSouth: ends.south,
+    areas,
+    corridor,
+    terraces,
+    elevators: elevatorsOf(core[0]),
+    grid,
+  };
 }
 
 export function allSpots(building: BuildingLayout): Spot[] {
@@ -89,4 +115,3 @@ export function allFurniture(building: BuildingLayout): FurnitureItem[] {
 export function areaById(building: BuildingLayout, id: string): AreaLayout | undefined {
   return building.areas.find((a) => a.id === id) ?? (id === 'corridor' ? building.corridor : undefined);
 }
-

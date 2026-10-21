@@ -11,9 +11,18 @@ function recordingContext() {
     measureText: (text: string) => ({ width: text.length * size() * 0.5 }),
     fillText: (text: string) => void texts.push(text),
     createLinearGradient: () => ({ addColorStop: () => undefined }),
-    save: () => undefined, restore: () => undefined, beginPath: () => undefined, rect: () => undefined, clip: () => undefined,
-    clearRect: () => undefined, translate: () => undefined, fillRect: () => undefined, strokeRect: () => undefined,
-    arc: () => undefined, fill: () => undefined, drawImage: () => undefined,
+    save: () => undefined,
+    restore: () => undefined,
+    beginPath: () => undefined,
+    rect: () => undefined,
+    clip: () => undefined,
+    clearRect: () => undefined,
+    translate: () => undefined,
+    fillRect: () => undefined,
+    strokeRect: () => undefined,
+    arc: () => undefined,
+    fill: () => undefined,
+    drawImage: () => undefined,
   };
   const ctx = new Proxy(base as unknown as CanvasRenderingContext2D, {
     get: (target, key) => (key === 'font' ? font : (target as never)[key]),
@@ -46,7 +55,11 @@ describe('fitFontSize', () => {
 describe('3D canvas texts', () => {
   it('paints the pantry menu in the language of the world', async () => {
     const { paintMenu } = await import('./screens');
-    for (const [locale, title, price] of [['pt-BR', 'CAFÉ DA COPA', 'R$ 4'], ['en', 'PANTRY CAFÉ', '$4'], ['es', 'CAFÉ DE LA COCINA', '$4']] as const) {
+    for (const [locale, title, price] of [
+      ['pt-BR', 'CAFÉ DA COPA', 'R$ 4'],
+      ['en', 'PANTRY CAFÉ', '$4'],
+      ['es', 'CAFÉ DE LA COCINA', '$4'],
+    ] as const) {
       const { ctx, texts } = recordingContext();
       paintMenu(ctx, 512, 256, worldText(locale));
       expect(texts).toContain(title);
@@ -59,7 +72,9 @@ describe('3D canvas texts', () => {
     const info = { agents: 3, working: 1, waiting: 2, tasksTotal: 4, tasksDone: 1, current: null };
     const board = recordingContext();
     paintBoard(board.ctx, 512, 287, 'loja', info, '#fff', worldText('en'));
-    expect(board.texts).toEqual(expect.arrayContaining(['3 agents', 'IN PROGRESS', 'Waiting for you', '1/4 tasks', '2 need you']));
+    expect(board.texts).toEqual(
+      expect.arrayContaining(['3 agents', 'IN PROGRESS', 'Waiting for you', '1/4 tasks', '2 need you']),
+    );
     const tv = recordingContext();
     paintMeetingTv(tv.ctx, 614, 346, ['Ana', 'Léo'], worldText('es'));
     expect(tv.texts).toContain('EN LA SALA · 2');
@@ -67,7 +82,12 @@ describe('3D canvas texts', () => {
 
   it('paints the whiteboard task board in the language of the world, with the demo titles translated', async () => {
     const { paintTaskBoard } = await import('./taskBoardScreen');
-    const summary = { pending: 2, active: 1, done: 7, top: [{ text: 'Implementando a mudança', msg: { key: 'demo.task.2.active' } }, { text: 'Escrito pelo usuário' }] };
+    const summary = {
+      pending: 2,
+      active: 1,
+      done: 7,
+      top: [{ text: 'Implementando a mudança', msg: { key: 'demo.task.2.active' } }, { text: 'Escrito pelo usuário' }],
+    };
     for (const [locale, labels, title] of [
       ['pt-BR', ['QUADRO DE TAREFAS', 'PENDENTE', 'EM ANDAMENTO', 'CONCLUÍDO'], 'Implementando a mudança'],
       ['en', ['TASK BOARD', 'PENDING', 'IN PROGRESS', 'COMPLETED'], 'Implementing the change'],

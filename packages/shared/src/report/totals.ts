@@ -53,14 +53,25 @@ export function projectCommits(project: ReportProject): ReportCommit[] {
 
 export function projectTotals(project: ReportProject): ReportTotals {
   const files = filePaths(project.agents);
-  let result: ReportTotals = { ...EMPTY_TOTALS, agents: project.agents.length, files: files.size, commits: projectCommits(project).length };
-  for (const stats of files.values()) result = { ...result, linesAdded: result.linesAdded + stats.added, linesRemoved: result.linesRemoved + stats.removed };
+  let result: ReportTotals = {
+    ...EMPTY_TOTALS,
+    agents: project.agents.length,
+    files: files.size,
+    commits: projectCommits(project).length,
+  };
+  for (const stats of files.values())
+    result = {
+      ...result,
+      linesAdded: result.linesAdded + stats.added,
+      linesRemoved: result.linesRemoved + stats.removed,
+    };
   for (const agent of project.agents) {
     result = {
       ...result,
       activeMs: result.activeMs + agent.activeMs,
       prompts: result.prompts + agent.prompts,
-      toolCalls: result.toolCalls + Object.values(agent.toolCalls).reduce<number>((sum, count) => sum + (count ?? 0), 0),
+      toolCalls:
+        result.toolCalls + Object.values(agent.toolCalls).reduce<number>((sum, count) => sum + (count ?? 0), 0),
       testsPassed: result.testsPassed + agent.tests.filter((run) => run.outcome === 'passed').length,
       testsFailed: result.testsFailed + agent.tests.filter((run) => run.outcome === 'failed').length,
       testsUnknown: result.testsUnknown + agent.tests.filter((run) => run.outcome === 'unknown').length,

@@ -3,7 +3,17 @@ import { worldText } from '../../i18n/world/translate';
 import type { RoomGit } from '../../world/roomGit';
 import { plaqueNote } from './plaqueScreen';
 
-const info = (patch: Partial<RoomGit> = {}): RoomGit => ({ ref: 'main', detached: false, dirty: false, conflicted: false, ahead: 0, behind: 0, op: null, ci: 'none', ...patch });
+const info = (patch: Partial<RoomGit> = {}): RoomGit => ({
+  ref: 'main',
+  detached: false,
+  dirty: false,
+  conflicted: false,
+  ahead: 0,
+  behind: 0,
+  op: null,
+  ci: 'none',
+  ...patch,
+});
 
 describe('plaqueNote', () => {
   it('says the operation in progress in the language of the viewer', () => {

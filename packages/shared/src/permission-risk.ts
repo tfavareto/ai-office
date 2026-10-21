@@ -36,7 +36,8 @@ const COMMAND_RULES: readonly CommandRule[] = [
 ];
 
 const WRITE_TOOLS: ReadonlySet<string> = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
-const SENSITIVE_FILE = /(^|\/)(\.env(\.[\w.-]+)?|id_[a-z0-9]+|authorized_keys|\.npmrc|\.netrc|\.zshrc|\.bashrc|\.zprofile|\.bash_profile)$|(^|\/)\.(ssh|aws|gnupg)\/|^\/(etc|usr|bin|sbin|System)\//;
+const SENSITIVE_FILE =
+  /(^|\/)(\.env(\.[\w.-]+)?|id_[a-z0-9]+|authorized_keys|\.npmrc|\.netrc|\.zshrc|\.bashrc|\.zprofile|\.bash_profile)$|(^|\/)\.(ssh|aws|gnupg)\/|^\/(etc|usr|bin|sbin|System)\//;
 
 /** True for paths of secrets, shell profiles and system folders. */
 export function isSensitivePath(path: string): boolean {
@@ -56,12 +57,19 @@ export function commandOf(permission: Pick<PermissionRequest, 'toolName' | 'inpu
 
 /** The file a file tool touches. */
 export function filePathOf(permission: Pick<PermissionRequest, 'toolName' | 'input'>): string | undefined {
-  return inputString(permission.input, 'file_path') ?? inputString(permission.input, 'notebook_path') ?? inputString(permission.input, 'path');
+  return (
+    inputString(permission.input, 'file_path') ??
+    inputString(permission.input, 'notebook_path') ??
+    inputString(permission.input, 'path')
+  );
 }
 
 /** Removes quoting that would hide a command from the patterns (`"rm" -rf`, `r\m`) and folds whitespace. */
 function flatten(command: string): string {
-  return command.replace(/["'`\\]/g, '').replace(/\s+/g, ' ').trim();
+  return command
+    .replace(/["'`\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function detectRisk(permission: RiskInput): RiskReason | null {

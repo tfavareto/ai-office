@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { type AccountUsage, HOUR_MS, startOfWeek } from '@ai-office/shared';
 import { setLocale, t } from '../../i18n';
-import { describeForecast, formatAmount, forecastLines, imminentForAccount, takeFreshAlerts, usageAlerts } from './usage-forecast';
+import {
+  describeForecast,
+  formatAmount,
+  forecastLines,
+  imminentForAccount,
+  takeFreshAlerts,
+  usageAlerts,
+} from './usage-forecast';
 
 const NOW = new Date(2026, 9, 21, 15, 0).getTime();
 
@@ -12,7 +19,10 @@ function usage(over: Partial<AccountUsage> = {}): AccountUsage {
     week: { tokens: 5_000_000, costUSD: 120, resetsAt: startOfWeek(NOW) + 7 * 24 * HOUR_MS },
     today: { tokens: 900_000, costUSD: 30 },
     burn: { tokens30m: 100_000, costUSD30m: 3, tokens60m: 160_000, costUSD60m: 5, activeHoursWeek: 20 },
-    peaks: { window5h: { tokens: 1_000_000, costUSD: 30, samples: 8 }, week: { tokens: 12_000_000, costUSD: 600, samples: 4 } },
+    peaks: {
+      window5h: { tokens: 1_000_000, costUSD: 30, samples: 8 },
+      week: { tokens: 12_000_000, costUSD: 600, samples: 4 },
+    },
     ...over,
   };
 }
@@ -25,7 +35,9 @@ describe('describeForecast', () => {
     expect(window?.tone).toBe('ok');
     expect(window?.sentences).toHaveLength(1);
     expect(window?.sentences[0]).toMatchObject({ key: 'usage.forecast.window.pace', params: { time: '17:00' } });
-    expect(t(window?.sentences[0]?.key ?? 'usage.forecast.window.pace', window?.sentences[0]?.params)).toContain('(fim da janela)');
+    expect(t(window?.sentences[0]?.key ?? 'usage.forecast.window.pace', window?.sentences[0]?.params)).toContain(
+      '(fim da janela)',
+    );
   });
 
   it('adds the hit time when the limit is crossed before the window ends', () => {
@@ -41,7 +53,10 @@ describe('describeForecast', () => {
   });
 
   it('is calm without a reference and without activity', () => {
-    const quiet = usage({ peaks: undefined, burn: { tokens30m: 0, costUSD30m: 0, tokens60m: 0, costUSD60m: 0, activeHoursWeek: 0 } });
+    const quiet = usage({
+      peaks: undefined,
+      burn: { tokens30m: 0, costUSD30m: 0, tokens60m: 0, costUSD60m: 0, activeHoursWeek: 0 },
+    });
     const [window] = forecastLines(quiet, undefined, NOW);
     expect(window?.tone).toBe('muted');
     expect(window?.sentences.map((s) => s.key)).toEqual(['usage.forecast.none']);
@@ -50,7 +65,13 @@ describe('describeForecast', () => {
   it('reports a limit already reached', () => {
     const [window] = forecastLines(usage(), { unit: 'usd', window5h: 10 }, NOW);
     expect(window?.sentences[0]?.key).toBe('usage.forecast.over.configured');
-    const [estimated] = forecastLines(usage({ peaks: { window5h: { tokens: 1, costUSD: 5, samples: 5 }, week: { tokens: 1, costUSD: 5, samples: 5 } } }), undefined, NOW);
+    const [estimated] = forecastLines(
+      usage({
+        peaks: { window5h: { tokens: 1, costUSD: 5, samples: 5 }, week: { tokens: 1, costUSD: 5, samples: 5 } },
+      }),
+      undefined,
+      NOW,
+    );
     expect(estimated?.sentences[0]?.key).toBe('usage.forecast.over.estimate');
   });
 
@@ -70,7 +91,8 @@ describe('describeForecast', () => {
     for (const locale of ['pt-BR', 'en', 'es'] as const) {
       setLocale(locale);
       for (const line of lines) {
-        for (const sentence of [...line.sentences, ...(line.reference ? [line.reference] : [])]) expect(t(sentence.key, sentence.params), `${locale} ${sentence.key}`).not.toMatch(/[{}]|^usage\./);
+        for (const sentence of [...line.sentences, ...(line.reference ? [line.reference] : [])])
+          expect(t(sentence.key, sentence.params), `${locale} ${sentence.key}`).not.toMatch(/[{}]|^usage\./);
       }
     }
   });

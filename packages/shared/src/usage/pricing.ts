@@ -22,7 +22,13 @@ const MILLION = 1_000_000;
 const round = (value: number): number => Math.round(value * 1e6) / 1e6;
 
 function price(input: number, output: number): ModelPrice {
-  return { input, output, cacheWrite5m: round(input * 1.25), cacheWrite1h: round(input * 2), cacheRead: round(input * 0.1) };
+  return {
+    input,
+    output,
+    cacheWrite5m: round(input * 1.25),
+    cacheWrite1h: round(input * 2),
+    cacheRead: round(input * 0.1),
+  };
 }
 
 const OPUS_LEGACY = price(15, 75);
@@ -71,7 +77,12 @@ export function modelFamily(model: string): ModelFamily {
   return 'other';
 }
 
-const FAMILY_NAMES: Record<Exclude<ModelFamily, 'other'>, string> = { opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku', fable: 'Fable' };
+const FAMILY_NAMES: Record<Exclude<ModelFamily, 'other'>, string> = {
+  opus: 'Opus',
+  sonnet: 'Sonnet',
+  haiku: 'Haiku',
+  fable: 'Fable',
+};
 const VERSION_PATTERN = /(\d+)(?:-(\d+))?/;
 
 /**
@@ -86,7 +97,9 @@ export function modelLabel(model: string): string {
     .replace(/\[[^\]]*\]$/, '')
     .replace(/-\d{8}$/, '');
   const at = id.indexOf(family);
-  const match = VERSION_PATTERN.exec(id.slice(at + family.length)) ?? VERSION_PATTERN.exec(id.slice(0, at).replace(/^claude-?/, ''));
+  const match =
+    VERSION_PATTERN.exec(id.slice(at + family.length)) ??
+    VERSION_PATTERN.exec(id.slice(0, at).replace(/^claude-?/, ''));
   const version = match === null ? '' : match[2] === undefined ? (match[1] as string) : `${match[1]}.${match[2]}`;
   return version === '' ? FAMILY_NAMES[family] : `${FAMILY_NAMES[family]} ${version}`;
 }

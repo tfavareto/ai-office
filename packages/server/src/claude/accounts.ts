@@ -24,7 +24,11 @@ async function homeCandidates(homeDir: string): Promise<string[]> {
 }
 
 function slug(name: string): string {
-  const cleaned = name.replace(/^\./, '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+  const cleaned = name
+    .replace(/^\./, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
   return cleaned.length > 0 ? cleaned : 'conta';
 }
 
@@ -46,14 +50,26 @@ export function accountsFromDirs(dirs: readonly string[], homeDir: string): Acco
     if (usedIds.has(id)) id = `${id}-${(fnv1a(dir) % 0xffff).toString(16)}`;
     usedIds.add(id);
     const label = labelFor(dir, homeDir);
-    return { id, label, initial: (label[0] ?? '?').toUpperCase(), color: accountColor(index), dir, ...(dir === defaultDir ? { isDefault: true } : {}) };
+    return {
+      id,
+      label,
+      initial: (label[0] ?? '?').toUpperCase(),
+      color: accountColor(index),
+      dir,
+      ...(dir === defaultDir ? { isDefault: true } : {}),
+    };
   });
 }
 
 export async function discoverAccounts(options: DiscoverOptions): Promise<Account[]> {
   // Configured directories that do not exist are not accounts (a typo, or an account removed since).
-  if (options.explicitDirs !== undefined) return accountsFromDirs(options.explicitDirs.filter((dir) => existsSync(dir)), options.homeDir);
+  if (options.explicitDirs !== undefined)
+    return accountsFromDirs(
+      options.explicitDirs.filter((dir) => existsSync(dir)),
+      options.homeDir,
+    );
   const dirs = await homeCandidates(options.homeDir);
-  if (options.envDir !== undefined && options.envDir.length > 0 && existsSync(options.envDir)) dirs.push(options.envDir);
+  if (options.envDir !== undefined && options.envDir.length > 0 && existsSync(options.envDir))
+    dirs.push(options.envDir);
   return accountsFromDirs(dirs, options.homeDir);
 }

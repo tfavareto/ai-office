@@ -11,12 +11,26 @@ export function registerReportRoutes(router: Router, app: AppContext): void {
     const now = app.now();
     const query = parseReportQuery(url.searchParams, now);
     const state = app.office.state();
-    if (query.account !== 'all' && !state.accounts.some((account) => account.id === query.account)) return sendError(res, 404, 'account-not-found');
-    const accounts = app.engine.accountList().filter((account) => query.account === 'all' || account.id === query.account);
+    if (query.account !== 'all' && !state.accounts.some((account) => account.id === query.account))
+      return sendError(res, 404, 'account-not-found');
+    const accounts = app.engine
+      .accountList()
+      .filter((account) => query.account === 'all' || account.id === query.account);
     const real: DayReport =
       accounts.length > 0
-        ? await app.report.report({ range: query.range, accounts, label: query.account, includeRequests: query.includeRequests })
-        : { date: query.range.date, generatedAt: now, account: query.account, includeRequests: query.includeRequests, projects: [] };
+        ? await app.report.report({
+            range: query.range,
+            accounts,
+            label: query.account,
+            includeRequests: query.includeRequests,
+          })
+        : {
+            date: query.range.date,
+            generatedAt: now,
+            account: query.account,
+            includeRequests: query.includeRequests,
+            projects: [],
+          };
     const simulator = app.isDemo() ? app.office.demoSimulator : undefined;
     if (simulator === undefined) return sendJson(res, 200, real);
     const demo = demoDayReport({

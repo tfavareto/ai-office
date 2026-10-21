@@ -4,7 +4,15 @@ import type { Backend } from '../net/backend';
 import { MESSAGE_POLL_MS, MessageCenter } from './message-center';
 import type { DeliverySummary } from './model/delivery';
 
-const msg = (id: string, agentId: string, over: Partial<BossMessage> = {}): BossMessage => ({ id, agentId, text: 'oi', createdAt: 1, status: 'queued', group: 'g', ...over });
+const msg = (id: string, agentId: string, over: Partial<BossMessage> = {}): BossMessage => ({
+  id,
+  agentId,
+  text: 'oi',
+  createdAt: 1,
+  status: 'queued',
+  group: 'g',
+  ...over,
+});
 
 describe('MessageCenter', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -15,7 +23,9 @@ describe('MessageCenter', () => {
       ['a', msg('a', '1')],
       ['b', msg('b', '2')],
     ]);
-    const backend = { messages: vi.fn(async (agentId: string) => [...server.values()].filter((m) => m.agentId === agentId)) } as unknown as Backend;
+    const backend = {
+      messages: vi.fn(async (agentId: string) => [...server.values()].filter((m) => m.agentId === agentId)),
+    } as unknown as Backend;
     const events: { text: string; final: boolean }[] = [];
     const center = new MessageCenter({
       backend,
@@ -41,7 +51,12 @@ describe('MessageCenter', () => {
 
   it('keeps watched agents fresh and stops when nobody watches', async () => {
     const backend = { messages: vi.fn(async () => [msg('a', '1', { group: undefined })]) } as unknown as Backend;
-    const center = new MessageCenter({ backend, nameOf: () => 'A', now: () => Date.now(), onDelivery: () => undefined });
+    const center = new MessageCenter({
+      backend,
+      nameOf: () => 'A',
+      now: () => Date.now(),
+      onDelivery: () => undefined,
+    });
     center.watch('view', ['1']);
     await vi.advanceTimersByTimeAsync(0);
     expect(center.messagesOf('1')).toHaveLength(1);

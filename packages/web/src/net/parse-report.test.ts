@@ -42,7 +42,13 @@ describe('parseDayReport', () => {
     });
     expect(report).toMatchObject({ date: '2026-10-21', account: 'claude', includeRequests: true, truncated: true });
     const agent = report.projects[0]?.agents[0];
-    expect(agent).toMatchObject({ name: 'Ana', toolCalls: { read: 3 }, requests: ['oi'], statusMs: { waiting: 2 }, commits: [{ source: 'git', branch: 'main' }] });
+    expect(agent).toMatchObject({
+      name: 'Ana',
+      toolCalls: { read: 3 },
+      requests: ['oi'],
+      statusMs: { waiting: 2 },
+      commits: [{ source: 'git', branch: 'main' }],
+    });
     expect(agent?.activity).toHaveLength(REPORT_BUCKETS);
     expect(agent?.activity.slice(0, 4)).toEqual([1, 2, 3, 0]);
   });
@@ -53,13 +59,34 @@ describe('parseDayReport', () => {
       projects: [
         'nope',
         { id: 5 },
-        { id: '/a', name: 'a', agents: [{ agentId: 'x' }, { agentId: 'y', name: 'Y', activeMs: -4, prompts: 'many', files: [{ path: 3 }, { path: 'ok.ts' }], tests: [{ outcome: 'weird' }], usage: 'free' }] },
+        {
+          id: '/a',
+          name: 'a',
+          agents: [
+            { agentId: 'x' },
+            {
+              agentId: 'y',
+              name: 'Y',
+              activeMs: -4,
+              prompts: 'many',
+              files: [{ path: 3 }, { path: 'ok.ts' }],
+              tests: [{ outcome: 'weird' }],
+              usage: 'free',
+            },
+          ],
+        },
       ],
     });
     expect(report.projects).toHaveLength(1);
     const agents = report.projects[0]?.agents ?? [];
     expect(agents).toHaveLength(1);
-    expect(agents[0]).toMatchObject({ activeMs: 0, prompts: 0, files: [{ path: 'ok.ts', edits: 0 }], tests: [], usage: { tokens: 0, costUSD: 0 } });
+    expect(agents[0]).toMatchObject({
+      activeMs: 0,
+      prompts: 0,
+      files: [{ path: 'ok.ts', edits: 0 }],
+      tests: [],
+      usage: { tokens: 0, costUSD: 0 },
+    });
     expect(agents[0]?.requests).toBeUndefined();
   });
 

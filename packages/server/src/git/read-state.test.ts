@@ -37,7 +37,15 @@ beforeEach(async () => {
 afterEach(() => removeDir(dir));
 
 describe('readGitState with a fake runner', () => {
-  const status = [`# branch.oid ${OID}`, '# branch.head feat/x', '# branch.upstream origin/feat/x', '# branch.ab +1 -2', '1 M. N... 1 1 1 a b staged.ts', '1 .M N... 1 1 1 a b dirty.ts', '? new.ts'].join('\n');
+  const status = [
+    `# branch.oid ${OID}`,
+    '# branch.head feat/x',
+    '# branch.upstream origin/feat/x',
+    '# branch.ab +1 -2',
+    '1 M. N... 1 1 1 a b staged.ts',
+    '1 .M N... 1 1 1 a b dirty.ts',
+    '? new.ts',
+  ].join('\n');
 
   test('combines status, line counts, last commit and stash', async () => {
     // Arrange
@@ -69,11 +77,18 @@ describe('readGitState with a fake runner', () => {
 
   test('every command is read-only, bounded and run without a shell in the project folder', async () => {
     // Arrange
-    const { run, calls } = fakeRunner({ status, diff: ' 1 file changed, 1 insertion(+)\n', 'diff --cached': ' 1 file changed, 1 insertion(+)\n', log: 'a41c9e2\t1760000000\tx\n' });
+    const { run, calls } = fakeRunner({
+      status,
+      diff: ' 1 file changed, 1 insertion(+)\n',
+      'diff --cached': ' 1 file changed, 1 insertion(+)\n',
+      log: 'a41c9e2\t1760000000\tx\n',
+    });
     // Act
     await readGitState(run, dir);
     // Assert
-    expect(calls.map((call) => call.args.find((arg) => !arg.startsWith('-') && arg !== 'core.fsmonitor=false'))).toEqual(['status', 'diff', 'diff', 'log', 'stash']);
+    expect(
+      calls.map((call) => call.args.find((arg) => !arg.startsWith('-') && arg !== 'core.fsmonitor=false')),
+    ).toEqual(['status', 'diff', 'diff', 'log', 'stash']);
     for (const call of calls) {
       expect(call.file).toBe('git');
       expect(call.cwd).toBe(dir);
@@ -81,14 +96,31 @@ describe('readGitState with a fake runner', () => {
       expect(call.args).toContain('--no-optional-locks');
       expect(call.args).toContain('core.fsmonitor=false');
     }
-    const writing = ['fetch', 'pull', 'push', 'commit', 'add', 'checkout', 'reset', 'merge', 'rebase', 'gc', 'prune', 'update-index'];
+    const writing = [
+      'fetch',
+      'pull',
+      'push',
+      'commit',
+      'add',
+      'checkout',
+      'reset',
+      'merge',
+      'rebase',
+      'gc',
+      'prune',
+      'update-index',
+    ];
     for (const call of calls) expect(call.args.some((arg) => writing.includes(arg))).toBe(false);
-    for (const call of calls.filter((entry) => entry.args.includes('diff'))) expect(call.args).toEqual(expect.arrayContaining(['--no-ext-diff', '--no-textconv']));
+    for (const call of calls.filter((entry) => entry.args.includes('diff')))
+      expect(call.args).toEqual(expect.arrayContaining(['--no-ext-diff', '--no-textconv']));
   });
 
   test('skips the line counts when nothing is changed in tracked files', async () => {
     // Arrange
-    const { run, calls } = fakeRunner({ status: `# branch.oid ${OID}\n# branch.head main\n? only-untracked.txt\n`, log: 'a41c9e2\t1760000000\tx\n' });
+    const { run, calls } = fakeRunner({
+      status: `# branch.oid ${OID}\n# branch.head main\n? only-untracked.txt\n`,
+      log: 'a41c9e2\t1760000000\tx\n',
+    });
     // Act
     const state = await readGitState(run, dir);
     // Assert
@@ -105,7 +137,9 @@ describe('readGitState with a fake runner', () => {
     // Arrange
     const boom = new RunError('boom', 1, '', false);
     const partial = fakeRunner({ status, diff: boom, 'diff --cached': boom, log: boom, stash: boom });
-    const broken = fakeRunner({ status: new RunError('not a git repository', 128, 'fatal: not a git repository', false) });
+    const broken = fakeRunner({
+      status: new RunError('not a git repository', 128, 'fatal: not a git repository', false),
+    });
     // Act + Assert
     expect(await readGitState(partial.run, dir)).toMatchObject({ branch: 'feat/x', insertions: 0, stash: 0 });
     await expect(readGitState(broken.run, dir)).rejects.toBeInstanceOf(RunError);
@@ -158,7 +192,8 @@ describe('findGitDir and detectOperation', () => {
 describe('readGitState on a real repository created by the test', () => {
   const identity = ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false'];
   const environment = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
-  const git = (cwd: string, ...args: string[]): string => execFileSync('git', [...identity, ...args], { cwd, env: environment, encoding: 'utf8' });
+  const git = (cwd: string, ...args: string[]): string =>
+    execFileSync('git', [...identity, ...args], { cwd, env: environment, encoding: 'utf8' });
   const hasGit = ((): boolean => {
     try {
       execFileSync('git', ['--version'], { stdio: 'ignore' });
@@ -181,7 +216,16 @@ describe('readGitState on a real repository created by the test', () => {
       const run: Runner = (file, args, options) => real(file, args, { ...options, timeoutMs: 60_000 });
       // Act + Assert: clean
       const clean = await readGitState(run, repo);
-      expect(clean).toMatchObject({ branch: 'main', staged: 0, unstaged: 0, untracked: 0, conflicted: 0, insertions: 0, deletions: 0, stash: 0 });
+      expect(clean).toMatchObject({
+        branch: 'main',
+        staged: 0,
+        unstaged: 0,
+        untracked: 0,
+        conflicted: 0,
+        insertions: 0,
+        deletions: 0,
+        stash: 0,
+      });
       expect(clean.lastCommit?.subject).toBe('first commit');
       expect(clean.upstream).toBeUndefined();
       // Act + Assert: one modified, one staged, one untracked

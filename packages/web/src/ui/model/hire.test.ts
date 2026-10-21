@@ -18,12 +18,34 @@ import {
 } from './hire';
 
 function session(projectPath: string, lastAt: number, projectName = projectPath.split('/').pop() ?? ''): RecentSession {
-  return { accountId: 'a1', sessionId: `s-${projectPath}-${lastAt}`, projectPath, projectName, firstAt: lastAt - 10, lastAt, open: false };
+  return {
+    accountId: 'a1',
+    sessionId: `s-${projectPath}-${lastAt}`,
+    projectPath,
+    projectName,
+    firstAt: lastAt - 10,
+    lastAt,
+    open: false,
+  };
 }
 
-const PERSONAL: Account = { id: 'personal', label: 'Pessoal', initial: 'P', color: '#4f86f7', dir: '/h/.claude', isDefault: true };
+const PERSONAL: Account = {
+  id: 'personal',
+  label: 'Pessoal',
+  initial: 'P',
+  color: '#4f86f7',
+  dir: '/h/.claude',
+  isDefault: true,
+};
 const WORK: Account = { id: 'work', label: 'work', initial: 'W', color: '#f5a623', dir: '/h/.claude-work' };
-const DEMO: Account = { id: 'demo-pessoal', label: 'Pessoal', initial: 'P', color: '#4f86f7', dir: '~/.claude', isDefault: true };
+const DEMO: Account = {
+  id: 'demo-pessoal',
+  label: 'Pessoal',
+  initial: 'P',
+  color: '#4f86f7',
+  dir: '~/.claude',
+  isDefault: true,
+};
 
 describe('recentFolders', () => {
   it('lists the newest folders first, once each', () => {
@@ -33,7 +55,14 @@ describe('recentFolders', () => {
   });
 
   it('leaves out folders that already are rooms and folders without a path', () => {
-    const folders = recentFolders([session('/w/a', 100), session('/w/b', 200), { ...session('', 300), projectPath: undefined as unknown as string }], ['/w/a']);
+    const folders = recentFolders(
+      [
+        session('/w/a', 100),
+        session('/w/b', 200),
+        { ...session('', 300), projectPath: undefined as unknown as string },
+      ],
+      ['/w/a'],
+    );
 
     expect(folders.map((folder) => folder.path)).toEqual(['/w/b']);
   });
@@ -107,7 +136,10 @@ describe('defaultAccountId', () => {
 
   it('ignores subagents and accounts that are not offered', () => {
     const office = snapshot({
-      agents: [agent({ id: 'sub', kind: 'sub', accountId: 'work', projectId: '/w/a', startedAt: 900 }), agent({ id: 'gone', accountId: 'elsewhere', projectId: '/w/a', startedAt: 800 })],
+      agents: [
+        agent({ id: 'sub', kind: 'sub', accountId: 'work', projectId: '/w/a', startedAt: 900 }),
+        agent({ id: 'gone', accountId: 'elsewhere', projectId: '/w/a', startedAt: 800 }),
+      ],
     });
 
     expect(defaultAccountId(office, '/w/a', accounts)).toBe('personal');
@@ -125,20 +157,42 @@ describe('localPathProblem', () => {
 });
 
 describe('buildHireRequest', () => {
-  const base: HireForm = { roomPath: '/work/app', path: '', accountId: 'work', prompt: '', model: 'default', permissionMode: 'default' };
+  const base: HireForm = {
+    roomPath: '/work/app',
+    path: '',
+    accountId: 'work',
+    prompt: '',
+    model: 'default',
+    permissionMode: 'default',
+  };
 
   it('sends only what differs from the defaults', () => {
     expect(buildHireRequest(base)).toEqual({ projectPath: '/work/app', accountId: 'work' });
   });
 
   it('sends everything that was chosen, with the prompt trimmed', () => {
-    const request = buildHireRequest({ ...base, prompt: '  Fix the login  ', model: 'opus', permissionMode: 'plan', deskIndex: 2 });
+    const request = buildHireRequest({
+      ...base,
+      prompt: '  Fix the login  ',
+      model: 'opus',
+      permissionMode: 'plan',
+      deskIndex: 2,
+    });
 
-    expect(request).toEqual({ projectPath: '/work/app', accountId: 'work', prompt: 'Fix the login', model: 'opus', permissionMode: 'plan', deskIndex: 2 });
+    expect(request).toEqual({
+      projectPath: '/work/app',
+      accountId: 'work',
+      prompt: 'Fix the login',
+      model: 'opus',
+      permissionMode: 'plan',
+      deskIndex: 2,
+    });
   });
 
   it('uses the typed path for a new project and leaves out an empty account', () => {
-    expect(buildHireRequest({ ...base, roomPath: undefined, path: '  ~/code/new  ', accountId: '' })).toEqual({ projectPath: '~/code/new' });
+    expect(buildHireRequest({ ...base, roomPath: undefined, path: '  ~/code/new  ', accountId: '' })).toEqual({
+      projectPath: '~/code/new',
+    });
   });
 });
 

@@ -44,12 +44,26 @@ describe('claudeArguments', () => {
   });
 
   test('maps the model and the permission mode to Claude Code options and puts the prompt last', () => {
-    expect(claudeArguments({ model: 'opus', permissionMode: 'acceptEdits', prompt: 'Fix the login' })).toEqual(['--model', 'opus', '--permission-mode', 'acceptEdits', 'Fix the login']);
-    expect(claudeArguments({ model: 'haiku', permissionMode: 'plan' })).toEqual(['--model', 'haiku', '--permission-mode', 'plan']);
+    expect(claudeArguments({ model: 'opus', permissionMode: 'acceptEdits', prompt: 'Fix the login' })).toEqual([
+      '--model',
+      'opus',
+      '--permission-mode',
+      'acceptEdits',
+      'Fix the login',
+    ]);
+    expect(claudeArguments({ model: 'haiku', permissionMode: 'plan' })).toEqual([
+      '--model',
+      'haiku',
+      '--permission-mode',
+      'plan',
+    ]);
   });
 
   test('ends the options before a prompt that starts with a dash', () => {
-    expect(claudeArguments({ prompt: '--dangerously-skip-permissions please' })).toEqual(['--', '--dangerously-skip-permissions please']);
+    expect(claudeArguments({ prompt: '--dangerously-skip-permissions please' })).toEqual([
+      '--',
+      '--dangerously-skip-permissions please',
+    ]);
   });
 });
 
@@ -78,12 +92,22 @@ describe('buildLauncherScript run by a real sh', () => {
   });
   afterEach(async () => removeDir(root));
 
-  const spec = (project: string, extra: Partial<LaunchSpec> = {}): LaunchSpec => ({ projectPath: project, claudePath: stub, locale: 'en', workDir, ...extra });
+  const spec = (project: string, extra: Partial<LaunchSpec> = {}): LaunchSpec => ({
+    projectPath: project,
+    claudePath: stub,
+    locale: 'en',
+    workDir,
+    ...extra,
+  });
 
   async function run(launcher: LaunchSpec): Promise<{ status: number | null; stdout: string }> {
     await mkdir(workDir, { recursive: true });
     await writeFile(join(workDir, 'launch.sh'), buildLauncherScript(launcher), { mode: 0o600 });
-    const result = spawnSync('/bin/sh', [join(workDir, 'launch.sh')], { encoding: 'utf8', input: '\n', env: { ...process.env, CLAUDE_CONFIG_DIR: 'leaked-from-the-server' } });
+    const result = spawnSync('/bin/sh', [join(workDir, 'launch.sh')], {
+      encoding: 'utf8',
+      input: '\n',
+      env: { ...process.env, CLAUDE_CONFIG_DIR: 'leaked-from-the-server' },
+    });
     return { status: result.status, stdout: result.stdout };
   }
 
@@ -105,19 +129,31 @@ describe('buildLauncherScript run by a real sh', () => {
     expect(seen.args).toEqual(['--model', 'sonnet', '--permission-mode', 'plan', 'Refactor the cart']);
   });
 
-  test.each(NASTY.filter((value) => value !== ''))('delivers the prompt %j byte for byte and runs nothing from it', async (prompt) => {
-    const project = join(projects, 'safe');
-    await mkdir(project);
-    const marker = join(root, 'pwned');
-    const hostile = `${prompt} $(touch ${marker}) \`touch ${marker}\``;
+  test.each(NASTY.filter((value) => value !== ''))(
+    'delivers the prompt %j byte for byte and runs nothing from it',
+    async (prompt) => {
+      const project = join(projects, 'safe');
+      await mkdir(project);
+      const marker = join(root, 'pwned');
+      const hostile = `${prompt} $(touch ${marker}) \`touch ${marker}\``;
 
-    await run(spec(project, { prompt: hostile }));
+      await run(spec(project, { prompt: hostile }));
 
-    expect((await recorded()).args.at(-1)).toBe(hostile);
-    expect(existsSync(marker)).toBe(false);
-  });
+      expect((await recorded()).args.at(-1)).toBe(hostile);
+      expect(existsSync(marker)).toBe(false);
+    },
+  );
 
-  test.each(["quote'dir", 'dir with spaces', '$(touch hacked)', '`touch hacked`', 'new\nline', 'ünï 日本', '--option-like', 'semi;colon && amp | pipe'])('enters the folder named %j', async (name) => {
+  test.each([
+    "quote'dir",
+    'dir with spaces',
+    '$(touch hacked)',
+    '`touch hacked`',
+    'new\nline',
+    'ünï 日本',
+    '--option-like',
+    'semi;colon && amp | pipe',
+  ])('enters the folder named %j', async (name) => {
     const project = join(projects, name);
     await mkdir(project);
 

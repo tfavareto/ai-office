@@ -16,8 +16,7 @@ const SUMMARY_CHARS = 220;
 
 /** The list mixes group headings and item rows. */
 export type InboxRowModel =
-  | { type: 'heading'; kind: InboxKind; count: number }
-  | { type: 'item'; item: InboxItem; ui: InboxRowUi };
+  { type: 'heading'; kind: InboxKind; count: number } | { type: 'item'; item: InboxItem; ui: InboxRowUi };
 
 export interface InboxRowUi {
   cursor: boolean;
@@ -32,7 +31,11 @@ export function rowKey(row: InboxRowModel): string {
   return row.type === 'heading' ? `heading:${row.kind}` : row.item.id;
 }
 
-export function createInboxEntry(ctx: AppContext, actions: InboxActions, row: InboxRowModel): KeyedEntry<InboxRowModel> {
+export function createInboxEntry(
+  ctx: AppContext,
+  actions: InboxActions,
+  row: InboxRowModel,
+): KeyedEntry<InboxRowModel> {
   return row.type === 'heading' ? createHeading() : new InboxRow(ctx, actions, row.item).entry();
 }
 
@@ -69,8 +72,19 @@ class InboxRow {
   private readonly note = h('p', { class: 'ao-inbox-note' });
   private readonly actionsBox = h('div', { class: 'ao-inbox-actions' });
   private readonly denyBox = h('div', { class: 'ao-inbox-deny', hidden: true });
-  private readonly reason = h('textarea', { class: 'ao-textarea ao-textarea--small', rows: 2, placeholder: t('permission.deny.placeholder'), 'aria-label': t('permission.deny.reason') });
-  private readonly permissionButtons: { approve: HTMLButtonElement; remember: HTMLButtonElement; deny: HTMLButtonElement; terminal: HTMLButtonElement; rule: HTMLButtonElement } | null;
+  private readonly reason = h('textarea', {
+    class: 'ao-textarea ao-textarea--small',
+    rows: 2,
+    placeholder: t('permission.deny.placeholder'),
+    'aria-label': t('permission.deny.reason'),
+  });
+  private readonly permissionButtons: {
+    approve: HTMLButtonElement;
+    remember: HTMLButtonElement;
+    deny: HTMLButtonElement;
+    terminal: HTMLButtonElement;
+    rule: HTMLButtonElement;
+  } | null;
   private item: InboxItem;
   private wasDenying = false;
 
@@ -116,11 +130,44 @@ class InboxRow {
   // --- construction -------------------------------------------------------------------------------------------------
 
   private buildPermissionActions(): NonNullable<InboxRow['permissionButtons']> {
-    const approve = button({ label: t('permission.allow'), icon: 'check', variant: 'primary', className: 'ao-btn--small', onClick: () => void this.actions.approve(this.item) });
-    const remember = button({ label: t('permission.remember'), icon: 'shield', variant: 'soft', className: 'ao-btn--small', onClick: () => void this.actions.approveAndRemember(this.item) });
-    const deny = button({ label: t('permission.deny'), icon: 'x', variant: 'soft', className: 'ao-btn--small', onClick: () => this.ctx.inbox.set({ denying: this.ctx.inbox.get().denying === this.item.id ? null : this.item.id }) });
-    const terminal = button({ label: t('permission.terminal'), icon: 'terminal', variant: 'ghost', className: 'ao-btn--small', title: t('permission.terminal.hint'), onClick: () => void this.actions.answerInTerminal(this.item) });
-    const rule = button({ label: t('rules.create'), icon: 'shield', variant: 'ghost', className: 'ao-btn--small', title: t('rules.create.title'), onClick: () => this.createRule() });
+    const approve = button({
+      label: t('permission.allow'),
+      icon: 'check',
+      variant: 'primary',
+      className: 'ao-btn--small',
+      onClick: () => void this.actions.approve(this.item),
+    });
+    const remember = button({
+      label: t('permission.remember'),
+      icon: 'shield',
+      variant: 'soft',
+      className: 'ao-btn--small',
+      onClick: () => void this.actions.approveAndRemember(this.item),
+    });
+    const deny = button({
+      label: t('permission.deny'),
+      icon: 'x',
+      variant: 'soft',
+      className: 'ao-btn--small',
+      onClick: () =>
+        this.ctx.inbox.set({ denying: this.ctx.inbox.get().denying === this.item.id ? null : this.item.id }),
+    });
+    const terminal = button({
+      label: t('permission.terminal'),
+      icon: 'terminal',
+      variant: 'ghost',
+      className: 'ao-btn--small',
+      title: t('permission.terminal.hint'),
+      onClick: () => void this.actions.answerInTerminal(this.item),
+    });
+    const rule = button({
+      label: t('rules.create'),
+      icon: 'shield',
+      variant: 'ghost',
+      className: 'ao-btn--small',
+      title: t('rules.create.title'),
+      onClick: () => this.createRule(),
+    });
     approve.dataset.role = 'approve';
     this.actionsBox.append(approve, remember, deny, terminal, rule);
     return { approve, remember, deny, terminal, rule };
@@ -133,9 +180,27 @@ class InboxRow {
 
   private buildOtherActions(): void {
     this.actionsBox.append(
-      button({ label: t('inbox.action.open'), icon: 'target', variant: 'primary', className: 'ao-btn--small', onClick: () => this.actions.openAgent(this.item) }),
-      button({ label: t('inbox.action.terminal'), icon: 'terminal', variant: 'ghost', className: 'ao-btn--small', onClick: () => this.actions.openTerminal(this.item) }),
-      button({ label: t('inbox.action.seen'), icon: 'check', variant: 'ghost', className: 'ao-btn--small', onClick: () => this.actions.markSeen([this.item]) }),
+      button({
+        label: t('inbox.action.open'),
+        icon: 'target',
+        variant: 'primary',
+        className: 'ao-btn--small',
+        onClick: () => this.actions.openAgent(this.item),
+      }),
+      button({
+        label: t('inbox.action.terminal'),
+        icon: 'terminal',
+        variant: 'ghost',
+        className: 'ao-btn--small',
+        onClick: () => this.actions.openTerminal(this.item),
+      }),
+      button({
+        label: t('inbox.action.seen'),
+        icon: 'check',
+        variant: 'ghost',
+        className: 'ao-btn--small',
+        onClick: () => this.actions.markSeen([this.item]),
+      }),
     );
   }
 
@@ -158,7 +223,17 @@ class InboxRow {
     });
     this.denyBox.append(
       this.reason,
-      h('div', { class: 'ao-row-actions' }, button({ label: t('permission.deny.confirm'), variant: 'danger', className: 'ao-btn--small', onClick: confirm }), button({ label: t('common.cancel'), variant: 'ghost', className: 'ao-btn--small', onClick: cancel })),
+      h(
+        'div',
+        { class: 'ao-row-actions' },
+        button({
+          label: t('permission.deny.confirm'),
+          variant: 'danger',
+          className: 'ao-btn--small',
+          onClick: confirm,
+        }),
+        button({ label: t('common.cancel'), variant: 'ghost', className: 'ao-btn--small', onClick: cancel }),
+      ),
     );
   }
 
@@ -170,7 +245,8 @@ class InboxRow {
     this.similar.addEventListener('click', () => this.selectGroup());
     this.el.addEventListener('click', (event) => this.onRowClick(event));
     this.el.addEventListener('dblclick', (event) => {
-      if (event.target instanceof Element && !event.target.closest('button, input, textarea')) this.actions.openAgent(this.item);
+      if (event.target instanceof Element && !event.target.closest('button, input, textarea'))
+        this.actions.openAgent(this.item);
     });
   }
 
@@ -183,7 +259,12 @@ class InboxRow {
   private selectGroup(): void {
     const key = this.item.similarKey;
     if (key === undefined) return;
-    const ids = this.ctx.inbox.view().items.filter((candidate) => candidate.similarKey === key && candidate.risk === undefined && candidate.expired !== true).map((candidate) => candidate.id);
+    const ids = this.ctx.inbox
+      .view()
+      .items.filter(
+        (candidate) => candidate.similarKey === key && candidate.risk === undefined && candidate.expired !== true,
+      )
+      .map((candidate) => candidate.id);
     const current = this.ctx.inbox.get().selection;
     this.ctx.inbox.set({ selection: { ids: Array.from(new Set([...current.ids, ...ids])), anchor: this.item.id } });
   }
@@ -222,7 +303,10 @@ class InboxRow {
     const note = this.noteText(item);
     this.note.hidden = note === '';
     setText(this.note, note);
-    this.checkbox.setAttribute('aria-label', t('inbox.row.select', { name: agent?.name ?? '', text: truncate(text, 80) }));
+    this.checkbox.setAttribute(
+      'aria-label',
+      t('inbox.row.select', { name: agent?.name ?? '', text: truncate(text, 80) }),
+    );
   }
 
   private bodyText(item: InboxItem, agent: Agent | undefined): string {
@@ -232,7 +316,9 @@ class InboxRow {
       case 'attention':
         return item.waitingText !== undefined ? localized(item.waitingMsg, item.waitingText) : t('waiting.default');
       case 'error':
-        return item.failure ? [activityText(item.failure), activityDetail(item.failure)].filter(Boolean).join(' · ') : t('inbox.row.errorNote');
+        return item.failure
+          ? [activityText(item.failure), activityDetail(item.failure)].filter(Boolean).join(' · ')
+          : t('inbox.row.errorNote');
       case 'finished':
         return agent?.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : t('inbox.row.finished');
     }
@@ -288,8 +374,11 @@ class InboxRow {
     setDisabled(buttons.rule, !this.ctx.isLocal || item.expired === true, reason);
     const rememberable = this.actions.rememberable(item);
     let rememberReason = reason;
-    if (rememberReason === undefined && !rememberable) rememberReason = item.risk !== undefined ? t('inbox.remember.risky') : t('inbox.remember.none');
-    buttons.remember.dataset.baseTitle = rememberable ? t('permission.remember.title', { rule: permissionSuggestion(item.permission, 0) }) : '';
+    if (rememberReason === undefined && !rememberable)
+      rememberReason = item.risk !== undefined ? t('inbox.remember.risky') : t('inbox.remember.none');
+    buttons.remember.dataset.baseTitle = rememberable
+      ? t('permission.remember.title', { rule: permissionSuggestion(item.permission, 0) })
+      : '';
     setDisabled(buttons.remember, off || !rememberable, rememberReason);
   }
 

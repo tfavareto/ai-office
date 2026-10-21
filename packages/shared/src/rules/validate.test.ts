@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { checkRuleDraft, checkRulePatch, dangerOfPrefix } from './validate';
 import { rule } from './fixtures';
 
-const allow = (tool: string, kind: string, value = '', extra: Record<string, unknown> = {}) => ({ effect: 'allow', tool, matcher: { kind, value }, ...extra });
+const allow = (tool: string, kind: string, value = '', extra: Record<string, unknown> = {}) => ({
+  effect: 'allow',
+  tool,
+  matcher: { kind, value },
+  ...extra,
+});
 const errorOf = (raw: unknown) => {
   const checked = checkRuleDraft(raw);
   return checked.ok ? undefined : checked.error;
@@ -10,10 +15,25 @@ const errorOf = (raw: unknown) => {
 
 describe('checkRuleDraft: structure', () => {
   it('normalizes a valid rule', () => {
-    const checked = checkRuleDraft({ effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: '  npm   test ' }, scope: { projectPath: '/demo//loja/' }, note: ' roda os testes ', locale: 'en' });
+    const checked = checkRuleDraft({
+      effect: 'allow',
+      tool: 'Bash',
+      matcher: { kind: 'command-prefix', value: '  npm   test ' },
+      scope: { projectPath: '/demo//loja/' },
+      note: ' roda os testes ',
+      locale: 'en',
+    });
     expect(checked).toEqual({
       ok: true,
-      draft: { effect: 'allow', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'npm   test' }, scope: { projectPath: '/demo/loja' }, enabled: true, note: 'roda os testes', locale: 'en' },
+      draft: {
+        effect: 'allow',
+        tool: 'Bash',
+        matcher: { kind: 'command-prefix', value: 'npm   test' },
+        scope: { projectPath: '/demo/loja' },
+        enabled: true,
+        note: 'roda os testes',
+        locale: 'en',
+      },
     });
   });
 
@@ -24,8 +44,14 @@ describe('checkRuleDraft: structure', () => {
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'regex', value: 'x' } }, 'invalid-matcher'],
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'command-prefix', value: '' } }, 'invalid-matcher'],
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'host', value: 'a.com' } }, 'matcher-unsupported'],
-    [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: { projectPath: 'relative' } }, 'invalid-scope'],
-    [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: { projectPath: '/a/../b' } }, 'invalid-scope'],
+    [
+      { effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: { projectPath: 'relative' } },
+      'invalid-scope',
+    ],
+    [
+      { effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, scope: { projectPath: '/a/../b' } },
+      'invalid-scope',
+    ],
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, enabled: 'yes' }, 'invalid-enabled'],
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, note: 'x'.repeat(201) }, 'invalid-note'],
     [{ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' }, locale: 'fr' }, 'invalid-locale'],
@@ -35,16 +61,31 @@ describe('checkRuleDraft: structure', () => {
 });
 
 describe('checkRuleDraft: allow rules never cover dangerous requests', () => {
-  it.each(['rm', 'rm -rf dist', 'sudo', 'sudo npm install', 'git push', 'git push origin main', 'git', 'git reset', 'git clean', 'chmod', 'bash', 'env', 'find', 'dd'])(
-    'refuses the prefix %s',
+  it.each([
+    'rm',
+    'rm -rf dist',
+    'sudo',
+    'sudo npm install',
+    'git push',
+    'git push origin main',
+    'git',
+    'git reset',
+    'git clean',
+    'chmod',
+    'bash',
+    'env',
+    'find',
+    'dd',
+  ])('refuses the prefix %s', (prefix) => {
+    expect(errorOf(allow('Bash', 'command-prefix', prefix))?.code).toBe('matcher-dangerous');
+  });
+
+  it.each(['npm test', 'npm run build', 'git status', 'git add', 'git commit', 'ls', 'pnpm install', 'docker ps'])(
+    'accepts the prefix %s',
     (prefix) => {
-      expect(errorOf(allow('Bash', 'command-prefix', prefix))?.code).toBe('matcher-dangerous');
+      expect(checkRuleDraft(allow('Bash', 'command-prefix', prefix)).ok).toBe(true);
     },
   );
-
-  it.each(['npm test', 'npm run build', 'git status', 'git add', 'git commit', 'ls', 'pnpm install', 'docker ps'])('accepts the prefix %s', (prefix) => {
-    expect(checkRuleDraft(allow('Bash', 'command-prefix', prefix)).ok).toBe(true);
-  });
 
   it('refuses any on Bash, file tools and wildcards', () => {
     expect(errorOf(allow('Bash', 'any'))).toMatchObject({ code: 'matcher-too-broad', detail: 'any' });
@@ -89,7 +130,9 @@ describe('checkRuleDraft: allow rules never cover dangerous requests', () => {
   });
 
   it('lets deny rules be broad', () => {
-    expect(checkRuleDraft({ effect: 'deny', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'git push' } }).ok).toBe(true);
+    expect(
+      checkRuleDraft({ effect: 'deny', tool: 'Bash', matcher: { kind: 'command-prefix', value: 'git push' } }).ok,
+    ).toBe(true);
     expect(checkRuleDraft({ effect: 'deny', tool: 'Bash', matcher: { kind: 'any', value: '' } }).ok).toBe(true);
     expect(checkRuleDraft({ effect: 'deny', tool: 'mcp__*', matcher: { kind: 'any', value: '' } }).ok).toBe(true);
   });

@@ -10,7 +10,17 @@ import { ruleLabel } from '../rules-text';
 import { button, createSegmented, emptyNote } from '../widgets';
 
 const OUTCOMES: readonly OutcomeFilter[] = ['all', 'allow', 'deny', 'ask'];
-const RISK_KEYS = ['delete', 'sudo', 'force-push', 'reset', 'permissions', 'pipe-shell', 'disk', 'data', 'sensitive-file'];
+const RISK_KEYS = [
+  'delete',
+  'sudo',
+  'force-push',
+  'reset',
+  'permissions',
+  'pipe-shell',
+  'disk',
+  'data',
+  'sensitive-file',
+];
 
 function riskText(reason: string): string {
   if (RISK_KEYS.includes(reason)) return t(`inbox.risk.${reason}` as TextKey);
@@ -30,7 +40,16 @@ class LogRow {
 
   constructor(private readonly ctx: AppContext) {
     this.el.append(
-      h('div', { class: 'ao-log-head' }, this.badge, this.who, this.tool, this.demo, h('span', { class: 'ao-inbox-spacer' }), this.time),
+      h(
+        'div',
+        { class: 'ao-log-head' },
+        this.badge,
+        this.who,
+        this.tool,
+        this.demo,
+        h('span', { class: 'ao-inbox-spacer' }),
+        this.time,
+      ),
       this.subject,
       h('div', { class: 'ao-log-meta' }, this.rule),
       this.why,
@@ -44,7 +63,10 @@ class LogRow {
   private update(entry: AutoDecision): void {
     setText(this.badge, t(`rules.log.badge.${entry.outcome}` as TextKey));
     this.badge.className = `ao-rule-badge ao-rule-badge--${entry.outcome}`;
-    setText(this.who, entry.projectPath === undefined ? entry.agentName : `${entry.agentName} · ${folderName(entry.projectPath)}`);
+    setText(
+      this.who,
+      entry.projectPath === undefined ? entry.agentName : `${entry.agentName} · ${folderName(entry.projectPath)}`,
+    );
     setText(this.tool, entry.requestTool);
     setText(this.subject, entry.subject);
     this.demo.hidden = entry.demo !== true;
@@ -52,7 +74,8 @@ class LogRow {
     setAttr(this.time, 'title', new Date(entry.at).toLocaleString());
     setText(this.rule, t('rules.log.byRule', { rule: ruleLabel(entry) }));
     this.why.hidden = entry.blockedBy === undefined;
-    if (entry.blockedBy !== undefined) setText(this.why, t('rules.log.askedWhy', { reason: riskText(entry.blockedBy) }));
+    if (entry.blockedBy !== undefined)
+      setText(this.why, t('rules.log.askedWhy', { reason: riskText(entry.blockedBy) }));
     toggleClass(this.el, 'is-ask', entry.outcome === 'ask');
   }
 }
@@ -64,7 +87,13 @@ export class RulesLog implements Component {
     OUTCOMES.map((value) => ({ value, label: t(`rules.log.outcome.${value}` as TextKey) })),
     (value) => this.ctx.rules.setFilter({ outcome: value }),
   );
-  private readonly search = h('input', { type: 'search', class: 'ao-input ao-log-search', placeholder: t('rules.log.search'), 'aria-label': t('rules.log.search'), autocomplete: 'off' });
+  private readonly search = h('input', {
+    type: 'search',
+    class: 'ao-input ao-log-search',
+    placeholder: t('rules.log.search'),
+    'aria-label': t('rules.log.search'),
+    autocomplete: 'off',
+  });
   private readonly ruleChip = h('button', { type: 'button', class: 'ao-log-rulechip', hidden: true });
   private readonly count = h('span', { class: 'ao-log-count' });
   private readonly clearBtn: HTMLButtonElement;
@@ -80,8 +109,20 @@ export class RulesLog implements Component {
     );
     this.search.addEventListener('input', () => ctx.rules.setFilter({ query: this.search.value }));
     this.ruleChip.addEventListener('click', () => ctx.rules.setFilter({ ruleId: null }));
-    this.clearBtn = button({ label: t('rules.log.clear'), icon: 'eraser', variant: 'ghost', className: 'ao-btn--small', title: t('rules.log.clear.title'), onClick: () => void this.clear() });
-    this.el.append(h('div', { class: 'ao-log-tools' }, this.outcome.el, this.search, this.ruleChip), h('div', { class: 'ao-log-bar' }, this.count, h('span', { class: 'ao-inbox-spacer' }), this.clearBtn), this.empty, this.list);
+    this.clearBtn = button({
+      label: t('rules.log.clear'),
+      icon: 'eraser',
+      variant: 'ghost',
+      className: 'ao-btn--small',
+      title: t('rules.log.clear.title'),
+      onClick: () => void this.clear(),
+    });
+    this.el.append(
+      h('div', { class: 'ao-log-tools' }, this.outcome.el, this.search, this.ruleChip),
+      h('div', { class: 'ao-log-bar' }, this.count, h('span', { class: 'ao-inbox-spacer' }), this.clearBtn),
+      this.empty,
+      this.list,
+    );
   }
 
   private async clear(): Promise<void> {
@@ -99,7 +140,12 @@ export class RulesLog implements Component {
     const filteredEntry = log.find((entry) => entry.ruleId === filter.ruleId);
     this.ruleChip.hidden = filter.ruleId === null;
     if (filter.ruleId !== null) {
-      const label = filtered !== undefined ? ruleLabel(filtered) : filteredEntry !== undefined ? ruleLabel(filteredEntry) : filter.ruleId;
+      const label =
+        filtered !== undefined
+          ? ruleLabel(filtered)
+          : filteredEntry !== undefined
+            ? ruleLabel(filteredEntry)
+            : filter.ruleId;
       setText(this.ruleChip, t('rules.log.ruleFilter', { rule: label }));
       setAttr(this.ruleChip, 'title', t('rules.log.ruleFilter.remove'));
     }

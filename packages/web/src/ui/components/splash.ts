@@ -15,7 +15,16 @@ export class Splash implements Component {
   private hidden = false;
 
   constructor(private readonly ctx: AppContext) {
-    this.el.append(h('div', { class: 'ao-splash-card' }, logo(56), h('div', { class: 'ao-wordmark ao-wordmark--big' }, 'AI ', h('span', null, 'Office')), this.text, this.hint));
+    this.el.append(
+      h(
+        'div',
+        { class: 'ao-splash-card' },
+        logo(56),
+        h('div', { class: 'ao-wordmark ao-wordmark--big' }, 'AI ', h('span', null, 'Office')),
+        this.text,
+        this.hint,
+      ),
+    );
   }
 
   render(): void {
@@ -42,7 +51,16 @@ export class ConnectionBanner implements Component {
   private readonly countdown = h('span', { class: 'ao-banner-count' });
 
   constructor(private readonly ctx: AppContext) {
-    this.el.append(h('span', { class: 'ao-banner-dot', 'aria-hidden': 'true' }), this.text, this.countdown, h('button', { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => ctx.store.retryNow() }, t('banner.retry')));
+    this.el.append(
+      h('span', { class: 'ao-banner-dot', 'aria-hidden': 'true' }),
+      this.text,
+      this.countdown,
+      h(
+        'button',
+        { type: 'button', class: 'ao-btn ao-btn--soft ao-btn--small', onclick: () => ctx.store.retryNow() },
+        t('banner.retry'),
+      ),
+    );
   }
 
   render(): void {
@@ -52,6 +70,9 @@ export class ConnectionBanner implements Component {
     if (!show) return;
     setText(this.text, t('banner.lost'));
     const left = retryAt === null ? 0 : Math.max(0, retryAt - Date.now());
-    setText(this.countdown, left > 0 ? t('banner.retryIn', { time: formatElapsed(left) }) : t('topbar.connection.reconnecting'));
+    setText(
+      this.countdown,
+      left > 0 ? t('banner.retryIn', { time: formatElapsed(left) }) : t('topbar.connection.reconnecting'),
+    );
   }
 }

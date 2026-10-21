@@ -26,7 +26,9 @@ export function parseHostHeader(value: string): { hostname: string; port: string
     return { hostname, port: rest.startsWith(':') ? rest.slice(1) : undefined };
   }
   const colon = value.lastIndexOf(':');
-  return colon < 0 ? { hostname: value, port: undefined } : { hostname: value.slice(0, colon), port: value.slice(colon + 1) };
+  return colon < 0
+    ? { hostname: value, port: undefined }
+    : { hostname: value.slice(0, colon), port: value.slice(colon + 1) };
 }
 
 function isHostAllowed(header: string, options: GuardOptions): boolean {
@@ -42,23 +44,32 @@ function isHostAllowed(header: string, options: GuardOptions): boolean {
 
 function isLoopbackAddress(address: string | undefined): boolean {
   if (address === undefined) return false;
-  return address === '::1' || address === '127.0.0.1' || address.startsWith('::ffff:127.') || /^127(\.\d{1,3}){3}$/.test(address);
+  return (
+    address === '::1' ||
+    address === '127.0.0.1' ||
+    address.startsWith('::ffff:127.') ||
+    /^127(\.\d{1,3}){3}$/.test(address)
+  );
 }
 
 export function guardRequest(req: IncomingMessage, options: GuardOptions): GuardResult {
   const host = req.headers.host;
   if (host === undefined || !isHostAllowed(host, options)) return { ok: false, status: 403, error: 'host-not-allowed' };
   const fetchSite = req.headers['sec-fetch-site'];
-  if (fetchSite !== undefined && !TRUSTED_FETCH_SITES.has(String(fetchSite).toLowerCase())) return { ok: false, status: 403, error: 'cross-site' };
+  if (fetchSite !== undefined && !TRUSTED_FETCH_SITES.has(String(fetchSite).toLowerCase()))
+    return { ok: false, status: 403, error: 'cross-site' };
   const method = req.method ?? 'GET';
   if (!SAFE_METHODS.has(method)) {
     if (!WRITE_METHODS.has(method)) return { ok: false, status: 405, error: 'method-not-allowed' };
     const type = req.headers['content-type'] ?? '';
-    if (JSON_METHODS.has(method) && !type.toLowerCase().startsWith('application/json')) return { ok: false, status: 415, error: 'json-required' };
+    if (JSON_METHODS.has(method) && !type.toLowerCase().startsWith('application/json'))
+      return { ok: false, status: 415, error: 'json-required' };
     const origin = req.headers.origin;
-    if (origin !== undefined && origin !== `http://${host}` && origin !== `https://${host}`) return { ok: false, status: 403, error: 'origin-not-allowed' };
+    if (origin !== undefined && origin !== `http://${host}` && origin !== `https://${host}`)
+      return { ok: false, status: 403, error: 'origin-not-allowed' };
   }
   const { hostname } = parseHostHeader(host);
-  const local = isLoopbackHost(options.bindHost) && isLoopbackHost(hostname) && isLoopbackAddress(req.socket.remoteAddress);
+  const local =
+    isLoopbackHost(options.bindHost) && isLoopbackHost(hostname) && isLoopbackAddress(req.socket.remoteAddress);
   return { ok: true, local };
 }

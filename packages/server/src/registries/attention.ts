@@ -25,7 +25,8 @@ export class AttentionRegistry {
 
   /** Marks the agent. Idle-prompt notifications ("waiting for your input") are not "needs you": returns false. */
   mark(agentId: string, input: AttentionInput): boolean {
-    if (input.notificationType === 'idle_prompt' || (input.message !== undefined && IDLE_PROMPT.test(input.message))) return false;
+    if (input.notificationType === 'idle_prompt' || (input.message !== undefined && IDLE_PROMPT.test(input.message)))
+      return false;
     this.marks.set(agentId, { at: this.now(), message: DEFAULT_TEXT });
     this.onChange();
     return true;

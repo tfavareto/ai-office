@@ -83,10 +83,42 @@ export function matcherKindsFor(tool: string): readonly RuleMatcherKind[] {
  * `git push`) or begins with one (`git push origin`).
  */
 const DANGEROUS_COMMANDS: readonly (readonly string[])[] = [
-  ['sudo'], ['doas'], ['su'], ['rm'], ['rmdir'], ['shred'], ['unlink'], ['dd'], ['mkfs'], ['fdisk'], ['parted'], ['diskutil'],
-  ['chmod'], ['chown'], ['chgrp'], ['eval'], ['exec'], ['source'], ['.'], ['sh'], ['bash'], ['zsh'], ['dash'], ['ksh'], ['fish'],
-  ['xargs'], ['env'], ['nohup'], ['ssh'], ['scp'],
-  ['git', 'push'], ['git', 'reset'], ['git', 'clean'], ['git', 'branch', '-D'], ['git', 'stash', 'drop'], ['git', 'stash', 'clear'],
+  ['sudo'],
+  ['doas'],
+  ['su'],
+  ['rm'],
+  ['rmdir'],
+  ['shred'],
+  ['unlink'],
+  ['dd'],
+  ['mkfs'],
+  ['fdisk'],
+  ['parted'],
+  ['diskutil'],
+  ['chmod'],
+  ['chown'],
+  ['chgrp'],
+  ['eval'],
+  ['exec'],
+  ['source'],
+  ['.'],
+  ['sh'],
+  ['bash'],
+  ['zsh'],
+  ['dash'],
+  ['ksh'],
+  ['fish'],
+  ['xargs'],
+  ['env'],
+  ['nohup'],
+  ['ssh'],
+  ['scp'],
+  ['git', 'push'],
+  ['git', 'reset'],
+  ['git', 'clean'],
+  ['git', 'branch', '-D'],
+  ['git', 'stash', 'drop'],
+  ['git', 'stash', 'clear'],
 ];
 /** Added to a prefix to see whether the risk detector flags a command it would start (`find` + `-delete`). */
 const RISK_PROBES: readonly string[] = ['-rf /', '--force', '--hard', '-D', '-delete', '-R'];
@@ -107,7 +139,8 @@ function sharesStart(a: readonly string[], b: readonly string[]): boolean {
 /** Why an allow prefix would also let something dangerous through (null when it would not). */
 export function dangerOfPrefix(prefix: string): RuleDanger | null {
   const words = commandTokens(prefix);
-  if (DANGEROUS_COMMANDS.some((command) => sharesStart(words, command))) return detectRisk({ toolName: 'Bash', input: { command: prefix }, summary: prefix }) ?? 'command';
+  if (DANGEROUS_COMMANDS.some((command) => sharesStart(words, command)))
+    return detectRisk({ toolName: 'Bash', input: { command: prefix }, summary: prefix }) ?? 'command';
   for (const suffix of ['', ...RISK_PROBES]) {
     const command = `${prefix} ${suffix}`.trim();
     const risk = detectRisk({ toolName: 'Bash', input: { command }, summary: command });
@@ -117,7 +150,9 @@ export function dangerOfPrefix(prefix: string): RuleDanger | null {
 }
 
 function checkEffect(value: unknown): RuleEffect | undefined {
-  return typeof value === 'string' && (EFFECTS as readonly string[]).includes(value) ? (value as RuleEffect) : undefined;
+  return typeof value === 'string' && (EFFECTS as readonly string[]).includes(value)
+    ? (value as RuleEffect)
+    : undefined;
 }
 
 function toolIsValid(tool: unknown): tool is string {
@@ -125,7 +160,8 @@ function toolIsValid(tool: unknown): tool is string {
 }
 
 function checkMatcherShape(value: unknown): RuleMatcher | undefined {
-  if (!isRecord(value) || typeof value.kind !== 'string' || !(MATCHER_KINDS as readonly string[]).includes(value.kind)) return undefined;
+  if (!isRecord(value) || typeof value.kind !== 'string' || !(MATCHER_KINDS as readonly string[]).includes(value.kind))
+    return undefined;
   const kind = value.kind as RuleMatcherKind;
   const text = typeof value.value === 'string' ? value.value.trim() : '';
   if (kind === 'any') return value.value === undefined || text === '' ? { kind, value: '' } : undefined;
@@ -138,11 +174,19 @@ function checkScope(value: unknown): RuleScope | undefined {
   if (!isRecord(value)) return undefined;
   const scope: RuleScope = {};
   if (value.projectPath !== undefined && value.projectPath !== null) {
-    if (typeof value.projectPath !== 'string' || !isAbsolutePath(value.projectPath) || value.projectPath.length > MAX_PATH_LENGTH || /[\0\n\r]/.test(value.projectPath) || hasParentSegment(value.projectPath)) return undefined;
+    if (
+      typeof value.projectPath !== 'string' ||
+      !isAbsolutePath(value.projectPath) ||
+      value.projectPath.length > MAX_PATH_LENGTH ||
+      /[\0\n\r]/.test(value.projectPath) ||
+      hasParentSegment(value.projectPath)
+    )
+      return undefined;
     scope.projectPath = normalizePath(value.projectPath);
   }
   if (value.accountId !== undefined && value.accountId !== null) {
-    if (typeof value.accountId !== 'string' || value.accountId.length === 0 || value.accountId.length > MAX_ID_LENGTH) return undefined;
+    if (typeof value.accountId !== 'string' || value.accountId.length === 0 || value.accountId.length > MAX_ID_LENGTH)
+      return undefined;
     scope.accountId = value.accountId;
   }
   return scope;
@@ -151,12 +195,26 @@ function checkScope(value: unknown): RuleScope | undefined {
 // ---- allow policy -----------------------------------------------------------------------------------------------------
 
 function allowGlobProblem(glob: string, tool: string): RuleCheck | undefined {
-  if (glob.startsWith('~') || hasParentSegment(glob) || /[[\]{}]/.test(glob) || glob.split('**').length - 1 > MAX_DOUBLE_STAR) return fail('invalid-matcher', 'matcher');
+  if (
+    glob.startsWith('~') ||
+    hasParentSegment(glob) ||
+    /[[\]{}]/.test(glob) ||
+    glob.split('**').length - 1 > MAX_DOUBLE_STAR
+  )
+    return fail('invalid-matcher', 'matcher');
   if (!WRITE_TOOLS.includes(tool)) return undefined;
   const base = staticBase(glob);
-  if (isAbsolutePath(glob) && base.length < MIN_ABSOLUTE_GLOB_DEPTH) return fail('matcher-too-broad', 'matcher', 'path');
-  const sample = (fill: string): string => `${isAbsolutePath(glob) ? '/' : ''}${pathSegments(glob).map((part) => part.replace(/[*?]+/g, fill)).join('/')}`;
-  return isSensitivePath(sample('')) || isSensitivePath(sample('x')) || isSensitivePath(`${isAbsolutePath(glob) ? '/' : ''}${base.join('/')}/`) ? fail('matcher-dangerous', 'matcher', 'sensitive-file') : undefined;
+  if (isAbsolutePath(glob) && base.length < MIN_ABSOLUTE_GLOB_DEPTH)
+    return fail('matcher-too-broad', 'matcher', 'path');
+  const sample = (fill: string): string =>
+    `${isAbsolutePath(glob) ? '/' : ''}${pathSegments(glob)
+      .map((part) => part.replace(/[*?]+/g, fill))
+      .join('/')}`;
+  return isSensitivePath(sample('')) ||
+    isSensitivePath(sample('x')) ||
+    isSensitivePath(`${isAbsolutePath(glob) ? '/' : ''}${base.join('/')}/`)
+    ? fail('matcher-dangerous', 'matcher', 'sensitive-file')
+    : undefined;
 }
 
 function allowHostProblem(host: string): RuleCheck | undefined {
@@ -181,7 +239,12 @@ function allowPrefixProblem(prefix: string): RuleCheck | undefined {
 
 function allowToolProblem(tool: string, matcher: RuleMatcher): RuleCheck | undefined {
   if (tool.endsWith('*') && !MCP_SERVER_PREFIX.test(tool)) return fail('matcher-too-broad', 'tool', 'tool-wildcard');
-  if (matcher.kind === 'any' && !SAFE_ANY_TOOLS.includes(tool) && !(tool.startsWith('mcp__') && !tool.endsWith('*')) && !MCP_SERVER_PREFIX.test(tool)) {
+  if (
+    matcher.kind === 'any' &&
+    !SAFE_ANY_TOOLS.includes(tool) &&
+    !(tool.startsWith('mcp__') && !tool.endsWith('*')) &&
+    !MCP_SERVER_PREFIX.test(tool)
+  ) {
     return fail('matcher-too-broad', 'matcher', 'any');
   }
   return undefined;
@@ -207,9 +270,17 @@ function allowPolicy(tool: string, matcher: RuleMatcher): RuleCheck | undefined 
 
 /** Structure shared by both effects: a deny prefix may hold any words, but no empty or oversized ones. */
 function denyShapeProblem(matcher: RuleMatcher): RuleCheck | undefined {
-  if (matcher.kind === 'path-glob' && (hasParentSegment(matcher.value) || matcher.value.startsWith('~') || matcher.value.split('**').length - 1 > MAX_DOUBLE_STAR)) return fail('invalid-matcher', 'matcher');
-  if (matcher.kind === 'host' && !HOST_NAME.test(matcher.value) && !LOCALHOST.test(matcher.value)) return fail('invalid-matcher', 'matcher');
-  if (matcher.kind === 'command-prefix' && commandTokens(matcher.value).length === 0) return fail('invalid-matcher', 'matcher');
+  if (
+    matcher.kind === 'path-glob' &&
+    (hasParentSegment(matcher.value) ||
+      matcher.value.startsWith('~') ||
+      matcher.value.split('**').length - 1 > MAX_DOUBLE_STAR)
+  )
+    return fail('invalid-matcher', 'matcher');
+  if (matcher.kind === 'host' && !HOST_NAME.test(matcher.value) && !LOCALHOST.test(matcher.value))
+    return fail('invalid-matcher', 'matcher');
+  if (matcher.kind === 'command-prefix' && commandTokens(matcher.value).length === 0)
+    return fail('invalid-matcher', 'matcher');
   return undefined;
 }
 
@@ -231,9 +302,14 @@ export function checkRuleDraft(raw: unknown, options: { enforcePolicy?: boolean 
   if (scope === undefined) return fail('invalid-scope', 'scope');
   if (raw.enabled !== undefined && typeof raw.enabled !== 'boolean') return fail('invalid-enabled', 'enabled');
   const note = typeof raw.note === 'string' ? raw.note.trim() : undefined;
-  if ((raw.note !== undefined && raw.note !== null && typeof raw.note !== 'string') || (note !== undefined && note.length > MAX_NOTE_LENGTH)) return fail('invalid-note', 'note');
+  if (
+    (raw.note !== undefined && raw.note !== null && typeof raw.note !== 'string') ||
+    (note !== undefined && note.length > MAX_NOTE_LENGTH)
+  )
+    return fail('invalid-note', 'note');
   if (raw.locale !== undefined && raw.locale !== null && !isLocale(raw.locale)) return fail('invalid-locale', 'locale');
-  const problem = effect === 'allow' && options.enforcePolicy !== false ? allowPolicy(tool, matcher) : denyShapeProblem(matcher);
+  const problem =
+    effect === 'allow' && options.enforcePolicy !== false ? allowPolicy(tool, matcher) : denyShapeProblem(matcher);
   if (problem !== undefined) return problem;
   return {
     ok: true,

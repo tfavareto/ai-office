@@ -28,7 +28,10 @@ interface Bay {
 }
 
 /** Free bays on the bottom row (between the corner plants and the aisle) where decoration may stand. */
-const DECOR_BAYS: readonly Bay[] = [{ fx: 1, fy: 8 }, { fx: 5, fy: 8 }];
+const DECOR_BAYS: readonly Bay[] = [
+  { fx: 1, fy: 8 },
+  { fx: 5, fy: 8 },
+];
 
 type DecorFn = (b: AreaBuilder, bay: Bay, rng: Rng) => void;
 
