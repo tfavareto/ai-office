@@ -14,7 +14,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { canvas2d, ASSET_BASE } from '../scene/textures';
 import { facePartOf } from './facePart';
-import { warmRedIris } from './irisColor';
+import { BROWN_IRIS, HAZEL_IRIS, toneIris, type IrisTone } from './irisColor';
 import { FEMALE_MODELS, MALE_MODELS, type LookChoice } from './outfits';
 
 /** The body (and with it the face) and the hair are told apart by their material. */
@@ -36,6 +36,9 @@ export interface HumanInstance {
 interface Template {
   scene: Object3D;
 }
+
+/** The iris tone of each eye material that is toned (blue and green eyes are left as the texture has them). */
+const IRIS_TONES: Readonly<Record<string, IrisTone>> = { eyes_brown: BROWN_IRIS, eyes_brownlight: HAZEL_IRIS };
 
 /** A texture of the same image after `edit` changed its RGBA pixels (a new array in, a new array out). */
 function editedTexture(source: Texture, edit: (pixels: Uint8ClampedArray) => Uint8ClampedArray): CanvasTexture {
@@ -101,13 +104,14 @@ export class HumanLibrary {
     return lib;
   }
 
-  /** The eyeballs of a model: the same material, with the iris texture warmed when it is a red brown. */
+  /** The eyeballs of a model: the same material, with the iris texture toned to a natural brown or hazel when it is one. */
   private eyeMaterial(source: MeshStandardMaterial): MeshStandardMaterial {
     const key = `eyes|${source.name}`;
     let mat = this.tints.get(key);
     if (mat) return mat;
     mat = source.clone();
-    if (source.map && source.name === 'eyes_brown') mat.map = editedTexture(source.map, warmRedIris);
+    const tone = IRIS_TONES[source.name];
+    if (source.map && tone !== undefined) mat.map = editedTexture(source.map, (px) => toneIris(px, tone));
     this.tints.set(key, mat);
     return mat;
   }
