@@ -7,7 +7,7 @@ export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
 /** The tabs of the "Meu dia" dialog. */
 export type DayTab = 'time' | 'report';
-export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage';
+export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {
@@ -43,6 +43,8 @@ export interface UiData {
   dayTab: DayTab;
   /** Where the "hire an agent" dialog starts (the room or desk it was opened from). */
   hire: HireTarget;
+  /** The day (YYYY-MM-DD) the share dialog makes a card for. */
+  shareDate: string;
 }
 
 export const NARROW_BREAKPOINT = 900;
@@ -65,6 +67,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     usageAccount: null,
     dayTab: 'time',
     hire: {},
+    shareDate: '',
   };
 }
 

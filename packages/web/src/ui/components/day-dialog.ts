@@ -28,6 +28,7 @@ export class DayDialog extends Dialog {
   private readonly dateLabel = h('span', { class: 'ao-day-date' });
   private readonly nextBtn: HTMLButtonElement;
   private readonly watchBtn: HTMLButtonElement;
+  private readonly shareBtn: HTMLButtonElement;
   private date = '';
   private tab: DayTab | null = null;
 
@@ -66,6 +67,14 @@ export class DayDialog extends Dialog {
       className: 'ao-day-watch',
       onClick: () => this.watch(),
     });
+    this.shareBtn = button({
+      label: t('share.button'),
+      icon: 'camera',
+      variant: 'soft',
+      title: t('share.button.hint'),
+      className: 'ao-day-share',
+      onClick: () => ctx.openShare(this.shownDate()),
+    });
     this.panel.append(
       h(
         'header',
@@ -73,6 +82,7 @@ export class DayDialog extends Dialog {
         h('h2', { id: 'ao-day-title' }, t('day.title')),
         this.tabs.el,
         this.nav,
+        this.shareBtn,
         this.watchBtn,
         closeButton(t('common.close'), () => ctx.closeDialog()),
       ),
@@ -113,6 +123,9 @@ export class DayDialog extends Dialog {
       !this.ctx.store.isLocal || !watchable,
       !this.ctx.store.isLocal ? localOnlyHint() : undefined,
     );
+    // The report tab has its own share button in the report toolbar.
+    this.shareBtn.hidden = tab === 'report';
+    setDisabled(this.shareBtn, !watchable);
     this.tabs.set(tab);
     if (tab !== this.tab) {
       this.tab = tab;

@@ -27,6 +27,7 @@ import { notifyPermission, showBrowserNotification } from './browser-notify';
 import { BoardDialog } from './components/board-dialog';
 import { Drawer } from './components/drawer';
 import { RulesDialog } from './components/rules-dialog';
+import { ShareDialog } from './components/share-dialog';
 import { DayDialog } from './components/day-dialog';
 import { ReplayBadge, ReplayBar } from './components/replay-bar';
 import { EmptyState } from './components/empty-state';
@@ -230,6 +231,7 @@ export class App implements AppContext {
       new HelpDialog(this),
       new HireDialog(this),
       new RulesDialog(this),
+      new ShareDialog(this),
     ];
     const empty = new EmptyState(this);
     const replayBar = new ReplayBar(this);
@@ -438,6 +440,10 @@ export class App implements AppContext {
       return;
     }
     this.ui.set({ dialog: 'day', dayTab: tab, popover: null });
+  }
+
+  openShare(date: string): void {
+    this.ui.set({ dialog: 'share', shareDate: date, popover: null });
   }
 
   openHire(target: HireTarget = {}): void {

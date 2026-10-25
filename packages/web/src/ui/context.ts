@@ -89,6 +89,8 @@ export interface AppContext {
   closeDialog(): void;
   /** Opens "Meu dia" on a tab (closes it when it is already open there). */
   openDay(tab: DayTab): void;
+  /** Opens the share dialog: a picture of the office and the numbers of a day (YYYY-MM-DD), ready to post. */
+  openShare(date: string): void;
   /** Plays a day (default: today) as a time-lapse; the page is read-only until `stopReplay`. */
   startReplay(date?: string): void;
   /** Leaves the time-lapse and shows the live office again. */

@@ -156,6 +156,18 @@ the source catalog the other two are translated from. Code, comments and docs in
     what is approximated, is in [02-server.md](02-server.md#day-time-lapse-apitimelapse). Demo mode tells a believable day (several
     rooms, subagent meetings, waits, commits, a failed test) for every day.
 
+21. **Share card** ("Meu escritório hoje"): the **Share** button of **Meu dia** (header of the Time tab, toolbar of the Report tab) opens
+    a dialog that makes a branded picture of the office and the numbers of a day, ready for LinkedIn or X, and free marketing for the
+    open-source project. Formats 1200x630 and 1080x1080, dark (navy gradient, glass panels, brand blue) and light themes. The office is the
+    hero (the 2D or the 3D renderer, whole building or what the camera shows now, with the day or night on screen); around it the AI Office
+    logo and wordmark, the date, the headline numbers of the day report (agents, active time, tasks done, commits, passed test runs; tokens
+    and estimated cost only when turned on), one highlight sentence and `github.com/tfavareto/ai-office`. **Download PNG**
+    (`ai-office-<date>.png`), **Copy image** (async clipboard, with a message when the browser cannot) and a localized caption to paste
+    ("Hoje meu time de agentes do Claude Code fechou 23 tarefas e 9 commits no AI Office ...") with its own copy button. Privacy by default:
+    rooms are labelled "Room 1", "Room 2"... and no project name, agent title, task text, branch or prompt is drawn or written unless
+    **Show project names** is on. Works in demo mode, in pt-BR, English and Spanish. Details in [04-ui.md](04-ui.md#share-card-dialog) and
+    [03-world-2d.md](03-world-2d.md#world-api).
+
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
 Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
 H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1 min, Shift+arrows 10 min), [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection, then the time-lapse).

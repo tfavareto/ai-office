@@ -1,0 +1,176 @@
+/* "Compartilhar": the dialog that makes the share card (preview on one side, options and actions on the other). */
+.ao-dialog--share {
+  width: min(1120px, 100%);
+  max-height: min(820px, calc(100vh - 32px));
+}
+
+.ao-share-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-share-stage {
+  position: relative;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  min-width: 0;
+}
+
+.ao-share-canvas {
+  width: 100%;
+  max-height: calc(100vh - 150px);
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow);
+}
+
+.ao-share-canvas.is-hidden {
+  visibility: hidden;
+  min-height: 220px;
+}
+
+.ao-share-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.ao-share-overlay .ao-btn {
+  pointer-events: auto;
+}
+
+.ao-share-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.ao-share-status[hidden],
+.ao-share-retry[hidden] {
+  display: none;
+}
+
+.ao-share-side {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.ao-share-field {
+  display: grid;
+  gap: 6px;
+}
+
+.ao-share-field[hidden] {
+  display: none;
+}
+
+.ao-share-field .ao-segmented {
+  display: flex;
+}
+
+.ao-share-field .ao-segmented-item {
+  flex: 1;
+}
+
+.ao-share-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-share-switch {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-share-switch .ao-switch-row {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ao-share-switch .ao-setting-hint {
+  margin: 0;
+}
+
+.ao-share-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-share-privacy svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--working);
+}
+
+.ao-share-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ao-share-actions .ao-btn {
+  justify-content: center;
+}
+
+.ao-share-feedback {
+  min-height: 16px;
+  margin: -6px 0 0;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.ao-share-feedback.is-ok {
+  color: var(--working);
+}
+
+.ao-share-feedback.is-bad {
+  color: #ffb4b4;
+}
+
+.ao-share-captionbox {
+  display: grid;
+  gap: 6px;
+}
+
+.ao-share-caption {
+  min-height: 96px;
+}
+
+.ao-share-captionbox .ao-btn {
+  justify-self: start;
+}
+
+@media (max-width: 860px) {
+  .ao-share-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ao-share-canvas {
+    max-height: 50vh;
+  }
+}

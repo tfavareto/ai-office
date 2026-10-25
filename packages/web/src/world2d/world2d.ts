@@ -19,10 +19,12 @@ import { Camera, fitZoom, focusZoom, overviewZoom, wheelFactor, type Bounds } fr
 import { portraitDataUrl } from './chars/portrait';
 import { DayNight } from './lighting';
 import { OverlaySprites } from './overlay';
+import { capture2d } from './capture';
 import { OverlayPass } from './overlayPass';
 import { pickCharacter, pickRoom, pickWhiteboard } from './picking';
 import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { Renderer, type FrameState } from './renderer';
+import { EMPTY_CAPTURE_SNAPSHOT, type CaptureOptions } from '../world/capture';
 import { type RoomInfo, summarizeRoom, withRoomGit } from './runtime/boards';
 import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
 
@@ -62,6 +64,7 @@ export class World2D implements WorldApi {
   private ticker: TickerStrip | null = null;
   private tickerKey = '';
   private tickerStats: TickerStats | null = null;
+  private lastSnapshot: { snapshot: OfficeSnapshot; serverNow: number } | null = null;
 
   private raf = 0;
   private last = 0;
@@ -117,6 +120,7 @@ export class World2D implements WorldApi {
   // WorldApi
 
   setSnapshot(snapshot: OfficeSnapshot, serverNow: number): void {
+    this.lastSnapshot = { snapshot, serverNow };
     this.sim.setSnapshot(snapshot, serverNow);
     this.agents = new Map(snapshot.agents.map((a) => [a.id, a]));
     this.accountColors = new Map(snapshot.accounts.map((a) => [a.id, a.color]));
@@ -307,6 +311,32 @@ export class World2D implements WorldApi {
       this.portraitCache.set(key, url);
     }
     return url;
+  }
+
+  capture(opts: CaptureOptions): Promise<HTMLCanvasElement> {
+    const view = this.cam.view;
+    const { insets } = view;
+    try {
+      return Promise.resolve(
+        capture2d({
+          snapshot: this.lastSnapshot?.snapshot ?? EMPTY_CAPTURE_SNAPSHOT,
+          serverNow: this.lastSnapshot?.serverNow ?? 0,
+          options: this.options,
+          night: this.dayNight.night,
+          live: {
+            zoom: this.cam.zoom,
+            center: this.cam.freeCenterWorld(),
+            free: {
+              width: Math.max(1, view.width - insets.left - insets.right),
+              height: Math.max(1, view.height - insets.top - insets.bottom),
+            },
+          },
+          opts,
+        }),
+      );
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   stats(): { fps: number; drawMs: number; agents: number; extra?: Record<string, unknown> } {

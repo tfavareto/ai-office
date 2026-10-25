@@ -39,6 +39,13 @@ export class ReportView {
     icon: 'arrowDown',
     onClick: () => this.download(),
   });
+  private readonly shareBtn = button({
+    label: t('share.button'),
+    icon: 'camera',
+    variant: 'primary',
+    title: t('share.button.hint'),
+    onClick: () => this.ctx.openShare(this.date),
+  });
   private date = '';
   private groupBy: ReportGroupBy = 'project';
   private includeRequests = false;
@@ -69,6 +76,7 @@ export class ReportView {
         this.groupSegment.el,
         requests,
         h('span', { class: 'ao-report-spacer' }),
+        this.shareBtn,
         this.copyBtn,
         this.downloadBtn,
       ),
@@ -214,6 +222,7 @@ export class ReportView {
     const exportable = this.state === 'ready' && this.report !== null && hasActivity(this.report);
     setDisabled(this.copyBtn, !exportable);
     setDisabled(this.downloadBtn, !exportable);
+    setDisabled(this.shareBtn, !exportable);
     setAttr(this.content, 'aria-busy', String(this.state === 'loading'));
     toggleClass(this.content, 'is-loading', this.state === 'loading');
   }

@@ -212,6 +212,13 @@ export function formatDateKey(key: string): string {
   return dateFormat('date', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(y, m - 1, d, 12));
 }
 
+/** A YYYY-MM-DD key written out: "25 de outubro de 2026" / "October 25, 2026" / "25 de octubre de 2026". */
+export function formatDateKeyLong(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  if (!y || !m || !d) return key;
+  return dateFormat('date-full', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(y, m - 1, d, 12));
+}
+
 /** Moves a YYYY-MM-DD key by whole days (calendar arithmetic, DST safe). */
 export function shiftDateKey(key: string, days: number): string {
   const [y, m, d] = key.split('-').map(Number);

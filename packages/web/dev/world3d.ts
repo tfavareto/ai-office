@@ -1,8 +1,9 @@
 // Dev harness: mounts the 3D world full-screen with a synthetic office. Query: ?locale=pt-BR|en|es&daylight=day|night|auto&projects=4
-// &agents=10&step=4&hud=1&mode=overview|first-person|shoulder&zoom=1.2&select=agent-0&force=working
+// &agents=10&step=4&hud=1&mode=overview|first-person|shoulder&zoom=1.2&select=agent-0&force=working &capture=1&cw=1200&ch=630&cmode=overview|current&names=1 (shows a capture)
 import { createWorld3D } from '../src/world3d';
 import { isLocale } from '@ai-office/shared';
 import { DEFAULT_WORLD_OPTIONS, type CameraMode, type DaylightMode, type WorldApi } from '../src/world/api';
+import { installCapture } from './capture';
 import { type FixtureOptions, makeFixture } from './fixture';
 
 const params = new URLSearchParams(location.search);
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
     insets: { top: 0, right: 0, bottom: 0, left: 0 },
   });
   window.__world = world;
+  installCapture(world, params);
   window.__stats = () => world.stats();
   window.__fixture = fixture;
   const push = (): void => world.setSnapshot(makeFixture(fixture, Date.now()), Date.now());

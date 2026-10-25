@@ -8,6 +8,8 @@ export const worldPtBR = {
   'area.meeting': 'Sala de reunião',
   'area.bathrooms': 'Banheiros',
   'area.lounge': 'Lounge',
+  // generic name of a project room in a shared picture (the real project name is hidden)
+  'room.generic': 'Sala {n}',
   // accessible names of the canvases
   'world.aria2d': 'Escritório',
   'world.aria3d': 'Escritório 3D',

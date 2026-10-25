@@ -33,6 +33,8 @@ import { DayNight } from '../world2d/lighting';
 import { summarizeRoom, withRoomGit } from '../world2d/runtime/boards';
 import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { type TickerStats, tickerFromSnapshot, tickerText } from '../world2d/runtime/ticker';
+import { capture3d } from './capture';
+import { EMPTY_CAPTURE_SNAPSHOT, type CaptureOptions } from '../world/capture';
 import { CameraRig } from './camera/cameraRig';
 import { pickCapsule, targetInSight, type ScreenCapsule, type SightTarget } from './camera/picking';
 import { stepWalker, RUN_FACTOR } from './camera/walker';
@@ -112,6 +114,7 @@ export class World3D implements WorldApi {
   private taskBoard: TaskBoardSummary = EMPTY_TASK_BOARD;
   private ticker = '';
   private tickerStats: TickerStats | null = null;
+  private lastSnapshot: { snapshot: OfficeSnapshot; serverNow: number } | null = null;
   private readonly canvas: HTMLCanvasElement;
   private minimap = false;
   private fpHint: string | null = null;
@@ -229,6 +232,7 @@ export class World3D implements WorldApi {
   // WorldApi
 
   setSnapshot(snapshot: OfficeSnapshot, serverNow: number): void {
+    this.lastSnapshot = { snapshot, serverNow };
     this.sim.setSnapshot(snapshot, serverNow);
     this.agents = new Map(snapshot.agents.map((a) => [a.id, a]));
     this.accountColors = new Map(snapshot.accounts.map((a) => [a.id, a.color]));
@@ -411,6 +415,39 @@ export class World3D implements WorldApi {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
     return this.portraits.portrait(agent.id, agent.look, agent.seed, Math.max(32, Math.round(size)));
+  }
+
+  capture(opts: CaptureOptions): Promise<HTMLCanvasElement> {
+    try {
+      const overview = this.rig.mode === 'overview';
+      return Promise.resolve(
+        capture3d({
+          stage: this.stage,
+          deps: { m: this.parts.materials, models: this.parts.models },
+          library: this.parts.library,
+          host: this.world,
+          live: [this.areas.group, this.crowd.group, this.deskHint.group],
+          snapshot: this.lastSnapshot?.snapshot ?? EMPTY_CAPTURE_SNAPSHOT,
+          serverNow: this.lastSnapshot?.serverNow ?? 0,
+          options: this.options,
+          night: this.dayNight.night,
+          liveView: overview
+            ? {
+                iso: this.rig.iso,
+                free: {
+                  width: Math.max(1, this.width - this.insets.left - this.insets.right),
+                  height: Math.max(1, this.height - this.insets.top - this.insets.bottom),
+                },
+              }
+            : null,
+          liveWidth: this.sim.building.width,
+          setCityWidth: (widthTiles) => this.city.setBuildingWidth(widthTiles),
+          opts,
+        }),
+      );
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   stats(): { fps: number; drawMs: number; agents: number; extra?: Record<string, unknown> } {

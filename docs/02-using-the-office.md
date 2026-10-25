@@ -260,6 +260,17 @@ The **Report** tab of **My day** (press `R` to open it directly) tells what each
 
 Token and cost figures are estimates. If the usage index is still being built you will see a note, and the report may say that it was limited by size or time on a very busy day. Demo mode shows believable demo data for every day.
 
+### Share your day
+
+**Share** (in the header of **My day**, and in the toolbar of the **Report** tab) makes a picture of your office and the numbers of the day, ready to post on LinkedIn or X.
+
+![The share card in English](assets/share-card-en.png)
+
+- **The card.** The AI Office logo and name, the day, your office as the hero, the headline numbers (agents, active time, tasks done, commits, passed test runs), one sentence about the day and the repository address. Choose **Landscape 1200×630** or **Square 1080×1080**, the **Dark** or **Light** theme, the **2D** or **3D** office (when 3D is available) and the **whole office** or **as I see it** framing. The picture uses the day or night on screen.
+- **What it never shows.** Rooms are called "Room 1", "Room 2"… and the card has no project names, agent titles, task texts, folders, branches or prompts. **Show project names** puts the project names on the room signs and in the highlight. **Show cost and tokens** adds the estimated cost and the tokens of the day. Both are off every time you open the dialog.
+- **Download or copy.** **Download PNG** saves `ai-office-<date>.png`. **Copy image** puts it on the clipboard (some browsers do not allow that; the dialog tells you and you can download instead).
+- **Caption.** A text ready to paste next to the picture, in the language of the interface, for example "Hoje meu time de agentes do Claude Code fechou 23 tarefas e 9 commits no AI Office 🏢 github.com/tfavareto/ai-office". You can edit it before **Copy caption**.
+
 ### Watch the day (time-lapse)
 
 **Watch the day** in **My day** (or the `L` key) replays today or any of the last six days in the office itself, at 30x, 120x, 600x or 1800x, so you can see what happened while you were away.

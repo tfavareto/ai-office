@@ -1,9 +1,10 @@
 // Dev harness: mounts the 2D world full-screen with a synthetic office. Query: ?locale=pt-BR|en|es&daylight=day|night|auto
-// &projects=4&agents=10&step=4&zoom=2&hud=1&insets=top,right,bottom,left (CSS px, like the app shell)
+// &projects=4&agents=10&step=4&zoom=2&hud=1&insets=top,right,bottom,left (CSS px, like the app shell) &capture=1&cw=1200&ch=630&cmode=overview|current&names=1 (shows a capture)
 import { isLocale } from '@ai-office/shared';
 import { createWorld2D } from '../src/world2d';
 import type { DaylightMode, WorldApi } from '../src/world/api';
 import { DEFAULT_WORLD_OPTIONS } from '../src/world/api';
+import { installCapture } from './capture';
 import { type FixtureOptions, makeFixture } from './fixture';
 
 const params = new URLSearchParams(location.search);
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
     insets: { top, right, bottom, left },
   });
   window.__world = world;
+  installCapture(world, params);
   window.__stats = () => world.stats();
   window.__fixture = fixture;
   const push = (): void => world.setSnapshot(makeFixture(fixture, Date.now()), Date.now());

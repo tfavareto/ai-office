@@ -21,6 +21,11 @@ export interface WorldLoadResult {
   notice?: string;
 }
 
+/** Whether this build contains the renderer (the folder may be absent, see above). */
+export function hasRenderer(kind: WorldKind): boolean {
+  return Object.keys(kind === '2d' ? loaders2d : loaders3d).length > 0;
+}
+
 async function factoryFor(kind: WorldKind): Promise<WorldFactory> {
   if (kind === '2d') {
     const load = Object.values(loaders2d)[0];

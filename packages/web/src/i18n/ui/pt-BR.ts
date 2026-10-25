@@ -968,6 +968,67 @@ export const uiPtBR = {
   'help.shortcut.replay.play': 'No time-lapse: pausar ou continuar',
   'help.shortcut.replay.skip': 'No time-lapse: voltar ou avançar 1 minuto (Shift: 10 minutos)',
   'help.shortcut.replay.mark': 'No time-lapse, na linha do tempo: marca anterior ou seguinte',
+  // Share card ("Compartilhar")
+  'share.button': 'Compartilhar',
+  'share.button.hint': 'Cria uma imagem bonita do seu escritório de hoje, pronta para postar.',
+  'share.title': 'Compartilhar meu dia',
+  'share.preview': 'Prévia do card',
+  'share.preview.loading': 'Montando o card…',
+  'share.error': 'Não foi possível montar a imagem do escritório. Tente de novo ou troque o visual.',
+  'share.loadError': 'Não foi possível carregar os números do dia.',
+  'share.empty': 'Nenhuma atividade de agentes neste dia para compartilhar.',
+  'share.format': 'Formato',
+  'share.format.landscape': 'Paisagem 1200×630',
+  'share.format.square': 'Quadrado 1080×1080',
+  'share.theme': 'Tema',
+  'share.theme.dark': 'Escuro',
+  'share.theme.light': 'Claro',
+  'share.visual': 'Visual do escritório',
+  'share.framing': 'Enquadramento',
+  'share.framing.overview': 'Escritório todo',
+  'share.framing.current': 'Como estou vendo',
+  'share.option.names': 'Mostrar nomes dos projetos',
+  'share.option.names.hint':
+    'Os nomes aparecem nas placas das salas e no destaque. Desligado, as salas viram "Sala 1", "Sala 2"…',
+  'share.option.usage': 'Mostrar custo e tokens',
+  'share.option.usage.hint': 'Inclui os tokens e o custo estimado do dia no card. Desligado por padrão.',
+  'share.privacy': 'O card nunca inclui seus pedidos, o texto das tarefas, nomes de agentes, pastas ou branches.',
+  'share.download': 'Baixar PNG',
+  'share.downloaded': 'Imagem {name} baixada',
+  'share.copyImage': 'Copiar imagem',
+  'share.copyImage.done': 'Imagem copiada',
+  'share.copyImage.unsupported': 'Este navegador não permite copiar imagens. Use Baixar PNG.',
+  'share.copyImage.failed': 'Não foi possível copiar a imagem. Use Baixar PNG.',
+  'share.caption.label': 'Legenda pronta para colar',
+  'share.caption.copy': 'Copiar legenda',
+  'share.caption.copied': 'Legenda copiada',
+  'share.card.title.today': 'Meu escritório hoje',
+  'share.card.title.day': 'Meu escritório em {date}',
+  'share.card.tag': 'Código aberto · MIT',
+  'share.stat.agents': 'Agentes',
+  'share.stat.time': 'Tempo ativo',
+  'share.stat.tasks': 'Tarefas feitas',
+  'share.stat.commits': 'Commits',
+  'share.stat.tests': 'Testes ok',
+  'share.stat.files': 'Arquivos',
+  'share.stat.tokens': 'Tokens',
+  'share.stat.cost': 'Custo estimado',
+  'share.highlight.topProject':
+    '{project} foi o projeto mais movimentado: {tasks, plural, =1 {# tarefa} other {# tarefas}} e {commits, plural, =1 {# commit} other {# commits}}',
+  'share.highlight.testsGreen':
+    '{n, plural, =1 {A execução de testes passou sem falhas} other {Todas as # execuções de testes passaram}}',
+  'share.highlight.lines': '+{added} −{removed} linhas em {files, plural, =1 {# arquivo} other {# arquivos}}',
+  'share.highlight.parallel':
+    '{rooms} salas trabalhando em paralelo, com {agents, plural, =1 {# agente} other {# agentes}} ao mesmo tempo',
+  'share.highlight.default': 'Um escritório inteiro de agentes de IA trabalhando em paralelo',
+  'share.caption.tasksCommits':
+    '{today, plural, =1 {Hoje} other {Em {date}}} meu time de agentes do Claude Code fechou {tasks, plural, =1 {# tarefa} other {# tarefas}} e {commits, plural, =1 {# commit} other {# commits}} no AI Office 🏢 {url}',
+  'share.caption.tasks':
+    '{today, plural, =1 {Hoje} other {Em {date}}} meu time de agentes do Claude Code fechou {tasks, plural, =1 {# tarefa} other {# tarefas}} no AI Office 🏢 {url}',
+  'share.caption.commits':
+    '{today, plural, =1 {Hoje} other {Em {date}}} meu time de agentes do Claude Code fez {commits, plural, =1 {# commit} other {# commits}} no AI Office 🏢 {url}',
+  'share.caption.time':
+    '{today, plural, =1 {Hoje} other {Em {date}}} meu time de {agents, plural, =1 {# agente} other {# agentes}} do Claude Code trabalhou {time} no AI Office 🏢 {url}',
 } as const;
 
 export type UiKey = keyof typeof uiPtBR;

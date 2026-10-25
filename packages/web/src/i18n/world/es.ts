@@ -6,6 +6,7 @@ export const worldEs: Readonly<Record<WorldKey, string>> = {
   'area.meeting': 'Sala de reuniones',
   'area.bathrooms': 'Baños',
   'area.lounge': 'Lounge',
+  'room.generic': 'Sala {n}',
   'world.aria2d': 'Oficina',
   'world.aria3d': 'Oficina 3D',
   'count.rooms': '{n, plural, one {# sala} other {# salas}}',

@@ -10,9 +10,44 @@ import {
   type WorldApi,
   type WorldOptions,
 } from '../world/api';
-import { createWorld, type WorldKind } from '../world/load';
+import type { CaptureOptions } from '../world/capture';
+import { createWorld, hasRenderer, type WorldKind } from '../world/load';
 
 type Listener<T> = (value: T) => void;
+
+/** Size of the hidden container a capture world is created in (it only needs a non-empty box). */
+const CAPTURE_STAGE = { width: 800, height: 450 };
+/** Frames a fresh world draws before its picture is taken (day/night and the first layers settle on the first ones). */
+const CAPTURE_WARMUP_FRAMES = 3;
+
+export interface WorldCaptureOptions extends CaptureOptions {
+  /** Which renderer draws the picture; the live one when absent. The other one is created off-screen for the capture. */
+  kind?: WorldKind;
+}
+
+let webgl2: boolean | null = null;
+
+/** Whether this browser can create a WebGL2 context (cached). */
+function hasWebGL2(): boolean {
+  if (webgl2 === null) {
+    try {
+      webgl2 = document.createElement('canvas').getContext('webgl2') !== null;
+    } catch {
+      webgl2 = false;
+    }
+  }
+  return webgl2;
+}
+
+function nextFrames(count: number): Promise<void> {
+  return new Promise((resolve) => {
+    const step = (left: number): void => {
+      if (left <= 0) resolve();
+      else requestAnimationFrame(() => step(left - 1));
+    };
+    step(count);
+  });
+}
 
 export class WorldHost {
   private world: WorldApi | null = null;
@@ -35,6 +70,14 @@ export class WorldHost {
 
   get kind(): WorldKind {
     return this.currentKind;
+  }
+
+  /** The renderers a picture can be made with: the live one, and the other one when this browser and build have it. */
+  captureKinds(): readonly WorldKind[] {
+    const live = this.currentKind;
+    const other: WorldKind = live === '2d' ? '3d' : '2d';
+    const available = other === '2d' ? hasRenderer('2d') : hasRenderer('3d') && hasWebGL2();
+    return this.world === null ? [] : available ? [live, other].sort() : [live];
   }
 
   get ready(): boolean {
@@ -156,6 +199,37 @@ export class WorldHost {
 
   stats(): ReturnType<WorldApi['stats']> | null {
     return this.world?.stats() ?? null;
+  }
+
+  /**
+   * A still image of the office (see `WorldApi.capture`). With `kind` other than the live renderer a second world is
+   * created off-screen for the picture and disposed right after; the live one is not touched.
+   */
+  async capture(opts: WorldCaptureOptions): Promise<HTMLCanvasElement> {
+    const live = this.world;
+    if (live === null) throw new Error('The office is not ready yet');
+    if (opts.kind === undefined || opts.kind === this.currentKind) return live.capture(opts);
+    const stage = document.createElement('div');
+    stage.setAttribute('aria-hidden', 'true');
+    stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${CAPTURE_STAGE.width}px;height:${CAPTURE_STAGE.height}px;pointer-events:none;visibility:hidden`;
+    document.body.appendChild(stage);
+    let temporary: WorldApi | null = null;
+    try {
+      const result = await createWorld(opts.kind, stage, {
+        options: this.options,
+        insets: { top: 0, right: 0, bottom: 0, left: 0 },
+      });
+      temporary = result.world;
+      if (temporary === null || result.kind !== opts.kind)
+        throw new Error(result.notice ?? 'The renderer is not available');
+      temporary.setClock(this.clock);
+      if (this.snapshot) temporary.setSnapshot(this.snapshot, this.snapshotTime);
+      await nextFrames(CAPTURE_WARMUP_FRAMES);
+      return await temporary.capture(opts);
+    } finally {
+      temporary?.dispose();
+      stage.remove();
+    }
   }
 
   resize(): void {

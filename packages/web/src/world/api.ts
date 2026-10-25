@@ -1,6 +1,9 @@
 // Contract between the UI and a world renderer (2D or 3D). The UI owns the store and panels; the world draws the
 // office from snapshots and reports selection/hover. Implementations: world2d (default) and world3d (lazy-loaded).
 import type { Locale, OfficeSnapshot } from '@ai-office/shared';
+import type { CaptureOptions } from './capture';
+
+export type { CaptureMode, CaptureOptions } from './capture';
 
 export type Selection = { type: 'agent'; id: string } | { type: 'room'; id: string } | null;
 
@@ -83,6 +86,14 @@ export interface WorldApi {
   onCameraMode(cb: (mode: CameraMode) => void): () => void;
   /** Portrait of an agent for UI avatars (cached data URL), or null while not ready. */
   portrait(agentId: string, size: number): string | null;
+  /**
+   * A still image of the office for sharing, drawn on a new canvas of exactly `width` x `height`. `overview` frames the
+   * whole building, `current` what the camera shows now; day or night is the one on screen. The picture is made from
+   * a sanitized copy of the last snapshot (rooms are numbered unless `showProjectNames`; no names, tasks or branches
+   * are drawn), at a whole zoom where it can be, so the pixel art stays crisp. The live view, its quality and its
+   * camera are left as they were.
+   */
+  capture(opts: CaptureOptions): Promise<HTMLCanvasElement>;
   /** Debug/perf info for `window.aiOffice.debug`. */
   stats(): { fps: number; drawMs: number; agents: number; extra?: Record<string, unknown> };
   resize(): void;
