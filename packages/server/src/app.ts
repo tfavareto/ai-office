@@ -5,6 +5,7 @@ import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  applyCustomization,
   type Account,
   autoAnswer,
   createDemoSimulator,
@@ -24,6 +25,7 @@ import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
 import { TranscriptCache } from './claude/transcript';
 import type { ServerConfig } from './config';
+import { CustomizationStore } from './customization/store';
 import { TokenAuth } from './http/auth';
 import type { AppContext } from './http/context';
 import { resolveClaudeExecutable } from './hire/claude-path';
@@ -124,7 +126,9 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   let build: string | undefined;
 
   const auth = new TokenAuth();
-  const names = NameStore.forStateDir(config.stateDir, log);
+  // A change of customization recomputes the office, so every page sees it in the next snapshot.
+  const customization = new CustomizationStore(config.stateDir, log, now, () => refresh());
+  const names = NameStore.forStateDir(config.stateDir, log, (id) => customization.current.agents[id]?.name);
   const day = new DayRecorder(config.stateDir, log);
   const sourceAccounts = (): Account[] => [...engine.accountList(), ...codex.accountList()];
   const indexer = new UsageIndexer({ stateDir: config.stateDir, accounts: sourceAccounts, log, now });
@@ -204,6 +208,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     now,
     names,
     log,
+    customize: (state) => applyCustomization(state, customization.current),
     overlays: { permissionFor: (id) => permissions.pendingFor(id), attentionFor: (id) => attention.messageFor(id) },
     events: {
       onChange: () => snapshots.markDirty(),
@@ -348,6 +353,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     snapshots,
     permissions,
     rules,
+    customization,
     messages,
     attention,
     hires,
@@ -408,6 +414,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await auth.load(config.stateDir);
       await names.load();
       await rules.load();
+      await customization.load();
       await gitSettings.load();
       await codexSettings.load();
       setDemo(config.demo);

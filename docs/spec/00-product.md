@@ -210,6 +210,13 @@ H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1
 - Not supported: answering approvals from the page, messaging or hiring Codex, live "running" state of a command while it
   runs (only on newer CLIs that log the begin), sessions resumed from more than a day-old folder until they are written.
 
+## Personalization
+The person makes the office theirs; nothing here changes the sessions or the projects, and everything is local (see [02-server.md](02-server.md#customization-apicustomization), [03-world-2d.md](03-world-2d.md#looks-and-room-finishes), [04-ui.md](04-ui.md#customization) and [06-world-3d.md](06-world-3d.md)).
+- **Agents.** Rename an agent (the name shown, per session) and choose its look: skin tone, hair style and color, outfit color, accessory (glasses, headphones, cap or none). Without a choice everything stays drawn from the agent's seed. The same choice is drawn by the 2D sprites and the 3D models. A look can be kept for one agent, for every agent of a room ("the team") or of an account; a subagent wears the defaults its main agent's room and account give unless it has choices of its own. The editor previews the result with the renderer in use.
+- **Rooms.** A display alias (the project does not change), a color, a floor (wood, carpet, tiles, concrete), a wall finish (wood slats, plaster, brick, concrete), plant density (few, normal, lush) and a sign style (brass, neon, wood, minimal). Only the room that changed is drawn again, in both worlds.
+- **Layout.** Reorder the rooms (drag in **Organizar salas**, which shows the slots of the building, or move up and down), pin favorites to the front and hide a room: a hidden room is not in the building but stays in the sidebar.
+- **Persistence.** The server keeps it in `<state dir>/customization.json` and puts it on every snapshot, so every tab and the share card show the same office. Each item can be reset, and **Restaurar tudo** resets everything. The demo ships a few customized agents and rooms.
+
 ## Non-goals
 Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a
 first prompt can be given when hiring an agent); Windows-specific work.

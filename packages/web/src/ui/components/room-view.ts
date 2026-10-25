@@ -40,6 +40,7 @@ export class RoomView implements Component {
   private readonly composer: MessageComposer;
   private readonly teamNote = h('p', { class: 'ao-note', hidden: true });
   private readonly hireBtn: HTMLButtonElement;
+  private readonly customizeBtn: HTMLButtonElement;
   private readonly history: MessageHistory;
   private readonly body = h('div', { class: 'ao-agent-body' });
   private readonly gone = h('div', { class: 'ao-gone', hidden: true }, emptyNote(t('room.gone')));
@@ -74,12 +75,19 @@ export class RoomView implements Component {
       className: 'ao-room-hirebtn',
       onClick: () => this.roomId && this.ctx.openHire({ projectPath: this.roomId }),
     });
+    this.customizeBtn = button({
+      label: t('customize.action'),
+      icon: 'palette',
+      variant: 'soft',
+      className: 'ao-room-hirebtn',
+      onClick: () => this.roomId && this.ctx.openCustomize({ kind: 'room', id: this.roomId }),
+    });
     this.body.append(
       this.stats,
       this.accounts,
       this.repo.el,
       this.agents,
-      this.hireBtn,
+      h('div', { class: 'ao-room-buttons' }, this.hireBtn, this.customizeBtn),
       h(
         'div',
         { class: 'ao-block' },
@@ -116,10 +124,11 @@ export class RoomView implements Component {
     this.gone.hidden = project !== undefined;
     if (!project || !this.roomId) return;
     const agents = agentsOfProject(this.ctx.snapshot, this.roomId);
-    this.swatch.style.background = roomColor(project.seed);
+    this.swatch.style.background = project.theme?.color ?? roomColor(project.seed);
     setText(this.name, project.name);
     setText(this.path, project.path);
     setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());
+    setDisabled(this.customizeBtn, !this.ctx.isLocal, localOnlyHint());
     this.renderStats(agents);
     this.renderAccounts(agents);
     this.repo.update(project);

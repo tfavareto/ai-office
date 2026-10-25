@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Office · looks harness</title>
+    <style>
+      html, body { margin: 0; background: #12151c; color: #cfd6e4; font: 12px/1.4 ui-monospace, monospace; }
+      #world { position: fixed; left: -9999px; top: 0; width: 800px; height: 450px; }
+      h2 { margin: 14px 12px 4px; font-size: 12px; color: #8d99ad; }
+      .row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px; }
+      figure { margin: 0; text-align: center; }
+      figure div { display: flex; gap: 2px; background: #1c212b; padding: 2px; border-radius: 6px; }
+      img { width: 96px; height: 96px; image-rendering: pixelated; background: #2a3140; border-radius: 4px; }
+      img.hd { image-rendering: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="world"></div>
+    <div id="out"></div>
+    <script type="module" src="./looks.ts"></script>
+  </body>
+</html>

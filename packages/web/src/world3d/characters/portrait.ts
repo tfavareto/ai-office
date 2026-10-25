@@ -15,7 +15,9 @@ import { createPose } from '../pose/poseVec';
 import { solvePose } from '../pose/poses';
 import { canvas2d } from '../scene/textures';
 import type { HumanLibrary } from './humanLibrary';
-import { chooseLook } from './outfits';
+import type { AgentLook } from '@ai-office/shared';
+import { choiceKey, chooseLook, type LookChoice } from './outfits';
+import { wearAccessory } from './accessories';
 
 const FRAME_HEIGHT = 0.56;
 
@@ -37,19 +39,18 @@ export class PortraitRenderer {
     this.scene.add(rim);
   }
 
-  portrait(agentKey: string, look: 'f' | 'm', seed: number, size: number): string {
-    const choice = chooseLook(look, seed);
-    const key = `${agentKey}|${choice.model}|${choice.outfit}|${size}`;
+  portrait(agentKey: string, look: 'f' | 'm', seed: number, size: number, appearance?: AgentLook): string {
+    const choice = chooseLook(look, seed, appearance);
+    const key = `${agentKey}|${choiceKey(choice)}|${size}`;
     const hit = this.cache.get(key);
     if (hit) return hit;
-    const url = this.render(look, seed, size);
+    const url = this.render(choice, size);
     this.cache.set(key, url);
     return url;
   }
 
-  private render(look: 'f' | 'm', seed: number, size: number): string {
-    const choice = chooseLook(look, seed);
-    const person = this.library.create(choice.model, choice.outfit);
+  private render(choice: LookChoice, size: number): string {
+    const person = this.library.create(choice.model, choice.outfit, choice);
     for (const m of person.detail) m.visible = true;
     for (const m of person.meshes) {
       m.castShadow = false;
@@ -57,6 +58,8 @@ export class PortraitRenderer {
     }
     person.root.scale.setScalar(choice.scale);
     const rig = new Rig(person.root);
+    if (choice.accessory !== undefined)
+      wearAccessory(person.root, rig.bone('head'), choice.accessory, choice.capColor ?? '#2b3a55');
     const pose = createPose();
     solvePose(pose, 'stand', {
       t: 0,

@@ -1,4 +1,4 @@
-import type { Agent, OfficeSnapshot } from '@ai-office/shared';
+import type { Agent, AgentLook, OfficeSnapshot } from '@ai-office/shared';
 import {
   Box3,
   Frustum,
@@ -23,6 +23,7 @@ import {
   type CameraMode,
   type DeskRef,
   type HoverInfo,
+  type PreviewPerson,
   type Selection,
   type ViewInsets,
   type WorldApi,
@@ -455,7 +456,11 @@ export class World3D implements WorldApi {
   portrait(agentId: string, size: number): string | null {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
-    return this.portraits.portrait(agent.id, agent.look, agent.seed, Math.max(32, Math.round(size)));
+    return this.portraits.portrait(agent.id, agent.look, agent.seed, Math.max(32, Math.round(size)), agent.appearance);
+  }
+
+  previewPortrait(person: PreviewPerson, appearance: AgentLook | undefined, size: number): string {
+    return this.portraits.portrait('preview', person.look, person.seed, Math.max(32, Math.round(size)), appearance);
   }
 
   capture(opts: CaptureOptions): Promise<HTMLCanvasElement> {

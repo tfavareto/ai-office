@@ -8,6 +8,7 @@ import type { Locale, Msg } from './i18n/i18n';
 import type { ProjectGit } from './git';
 import type { ProgressSummary } from './progress/types';
 import type { UsageBurn, UsagePeaks } from './usage/types';
+import type { AgentLook, RoomTheme } from './customization/types';
 
 /** Which CLI a session comes from. Absent means Claude Code (every field of this kind is optional and additive). */
 export type AgentSource = 'claude' | 'codex';
@@ -47,6 +48,16 @@ export interface Project {
   order: number;
   /** Git state of the folder (read-only); absent when it is not a repository or git could not be read. */
   git?: ProjectGit;
+  /** The folder's name, when `name` shows an alias the person chose. */
+  originalName?: string;
+  /** Finishes chosen for the room (color, floor, walls, plants, sign). */
+  theme?: RoomTheme;
+  /** Pinned to the front of the building. */
+  pinned?: boolean;
+  /** Collapsed out of the building (the sidebar still lists it). */
+  hidden?: boolean;
+  /** Position in the order the person arranged the rooms in; absent for rooms never placed there. */
+  rank?: number;
 }
 
 export type AgentKind = 'main' | 'sub';
@@ -183,6 +194,10 @@ export interface Agent {
   /** Localizable title (demo agents only). */
   titleMsg?: Msg;
   look: 'f' | 'm';
+  /** The name the office picked, when `name` shows one the person chose. */
+  defaultName?: string;
+  /** What the person chose to change about the look (agent, room and account choices already resolved). */
+  appearance?: AgentLook;
   seed: number;
   status: AgentStatus;
   statusSince: number;

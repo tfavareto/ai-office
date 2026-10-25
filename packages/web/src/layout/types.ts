@@ -1,5 +1,6 @@
 // Renderer-agnostic floor-plan data: rects, furniture items, spots, doors and the walkable grid.
 // Used by the 2D renderer, the simulation and (later) the 3D renderer. Coordinates are tile units, y grows south.
+import type { PlantDensity, RoomTheme, RoomWall, SignStyle } from '@ai-office/shared';
 
 import type { DecorId } from '@ai-office/shared';
 
@@ -193,6 +194,12 @@ export interface AreaTheme {
   pattern: number;
   /** Wall tone index (0 walnut · 1 oak · 2 ebony). */
   wood: number;
+  /** Wall finish chosen for a project room; absent = the wood slats every room has by default. */
+  wall?: RoomWall;
+  /** Plant density chosen for a project room (the furniture list already reflects it). */
+  plants?: PlantDensity;
+  /** Style of the room's sign; absent = the brass plate. */
+  sign?: SignStyle;
 }
 
 export interface AreaLayout {
@@ -246,6 +253,8 @@ export interface RoomSpec {
   slot: number;
   /** Optional id override so a moving room can exist twice (old and new slot) with distinct ids. */
   areaId?: string;
+  /** Finishes the person chose for the room (color, floor, walls, plants, sign). */
+  theme?: RoomTheme;
 }
 
 export interface SlotPos {

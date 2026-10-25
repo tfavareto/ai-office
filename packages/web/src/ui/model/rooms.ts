@@ -1,5 +1,6 @@
 // Sidebar model: rooms with their agents, filtered by search and account.
 import type { Account, Agent, OfficeSnapshot, Project, TaskItem } from '@ai-office/shared';
+import { sidebarOrder } from '../../layout/arrange';
 import { accountLabel, activityText, agentRole, agentTitle } from '../display';
 import { displayStatus, isLive, statusRank } from './status';
 
@@ -73,7 +74,7 @@ export function flattenTasks(agents: readonly Agent[]): TaskItem[] {
 
 /**
  * Builds the rooms for the sidebar. A room appears when one of its agents matches (or its project name matches);
- * rooms keep the order of arrival so they stay where the user expects them.
+ * rooms keep the order the person arranged (arrival, when they did not) so they stay where the user expects them.
  * `keepId` keeps the selected agent visible even after it left the office.
  */
 export function buildRooms(
@@ -98,9 +99,11 @@ export function buildRooms(
   }
 
   const rooms: RoomModel[] = [];
-  for (const project of [...snapshot.projects].sort((a, b) => a.order - b.order)) {
-    const agents = byRoom.get(project.id);
-    if (!agents || agents.length === 0) continue;
+  // Rooms follow the arrangement of the building (pinned first, then the order the person set); hidden ones come last.
+  for (const id of sidebarOrder(snapshot.projects)) {
+    const project = projects.get(id);
+    const agents = byRoom.get(id);
+    if (!project || !agents || agents.length === 0) continue;
     rooms.push(buildRoom(project, agents));
   }
   return rooms;

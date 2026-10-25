@@ -396,6 +396,55 @@ export function paintLoungeTv(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.fillText(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`, w / 2, h / 2);
 }
 
+/** Style of a project room's sign: the brass plate (0) every room had, a neon tube (1), engraved wood (2) or a plain plate (3). */
+function paintStyledSign(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  text: string,
+  accent: string,
+  style: number,
+): void {
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = font(Math.round(h * 0.5), 700);
+  const label = fitText(ctx, text, w - 40);
+  if (style === 1) {
+    ctx.fillStyle = '#0a0d16';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 6;
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = 18;
+    ctx.strokeRect(10, 10, w - 20, h - 20);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, w / 2, h / 2 + 2);
+    ctx.shadowBlur = 0;
+    return;
+  }
+  if (style === 2) {
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#7c5232');
+    grad.addColorStop(1, '#5a3a22');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(30,16,8,0.25)';
+    for (let y = h / 4; y < h; y += h / 4) ctx.fillRect(0, y, w, 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillText(label, w / 2 + 2, h / 2 + 3);
+    ctx.fillStyle = '#f3dfb8';
+    ctx.fillText(label, w / 2, h / 2 + 1);
+    return;
+  }
+  ctx.fillStyle = '#efece4';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, h - 10, w, 10);
+  ctx.fillRect(14, h / 2 - 22, 12, 36);
+  ctx.fillStyle = '#22262e';
+  ctx.fillText(label, w / 2 + 12, h / 2 - 4);
+}
+
 export function paintSign(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -403,7 +452,9 @@ export function paintSign(
   text: string,
   accent: string,
   dark: boolean,
+  style = 0,
 ): void {
+  if (style > 0) return paintStyledSign(ctx, w, h, text, accent, style);
   ctx.fillStyle = dark ? '#14161a' : '#d9c28a';
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = accent;

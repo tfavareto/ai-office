@@ -1,15 +1,19 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
 import {
   RuleBook,
+  applyCustomization,
+  applyCustomizationPatch,
   autoAnswer,
   buildUsageDetail,
   createDemoSimulator,
   dayRange,
+  emptyCustomization,
   demoDayReport,
   demoProgress,
   demoTimelapse,
   hourMapsFromRows,
   withOfficeSessions,
+  type Customization,
   type DemoSimulator,
   type CodexSettings,
   type GitSettings,
@@ -79,18 +83,32 @@ function asMockSnapshot(snapshot: OfficeSnapshot, now: number): OfficeSnapshot {
   };
 }
 
+/** What the person customized in the demo: kept in memory, put on every snapshot like the server does. */
+class MockCustomization {
+  value: Customization = emptyCustomization();
+  /** Tells the transport to publish a snapshot now. */
+  changed: () => void = () => undefined;
+}
+
 class MockTransport implements Transport {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastSnapshotAt = 0;
+  private handlers: TransportHandlers | null = null;
 
   constructor(
     private readonly sim: DemoSimulator,
     private readonly log: MockLog,
+    private readonly custom: MockCustomization,
     private readonly onSnapshot: (snapshot: OfficeSnapshot) => void,
-  ) {}
+  ) {
+    custom.changed = () => {
+      if (this.handlers !== null) this.push(this.handlers);
+    };
+  }
 
   connect(handlers: TransportHandlers): void {
     this.close();
+    this.handlers = handlers;
     handlers.onOpen();
     this.push(handlers);
     this.timer = setInterval(() => {
@@ -110,7 +128,11 @@ class MockTransport implements Transport {
   private push(handlers: TransportHandlers): void {
     const now = Date.now();
     this.lastSnapshotAt = now;
-    const snapshot = asMockSnapshot(this.sim.snapshot(now), now);
+    const raw = asMockSnapshot(this.sim.snapshot(now), now);
+    const snapshot = {
+      ...raw,
+      ...applyCustomization({ projects: raw.projects, agents: raw.agents }, this.custom.value),
+    };
     this.log.observe(snapshot);
     this.onSnapshot(snapshot);
     handlers.onSnapshot(snapshot);
@@ -136,6 +158,7 @@ class MockBackend implements Backend {
     private readonly book: RuleBook,
     /** The demo's pull requests are fake; this switch only mirrors the setting so the screens behave as with a server. */
     private readonly pullRequests: { on: boolean },
+    private readonly custom: MockCustomization,
   ) {}
 
   private snapshot(): OfficeSnapshot {
@@ -279,6 +302,24 @@ class MockBackend implements Backend {
     return unwrap(this.book.preview(draft));
   }
 
+  async customization() {
+    return this.custom.value;
+  }
+
+  async patchCustomization(patch: object) {
+    const result = applyCustomizationPatch(this.custom.value, patch);
+    if (!result.ok) throw new BackendError(result.error.error, 400);
+    this.custom.value = result.value;
+    this.custom.changed();
+    return result.value;
+  }
+
+  async resetCustomization() {
+    this.custom.value = emptyCustomization();
+    this.custom.changed();
+    return this.custom.value;
+  }
+
   async hireAgent(request: HireRequest) {
     return this.sim.hire({
       project: request.projectPath,
@@ -315,8 +356,9 @@ export function createMockEnvironment(): { transport: Transport; backend: Backen
       })?.decision,
   });
   const log = new MockLog();
-  const backend = new MockBackend(sim, log, book, pullRequests);
-  const transport = new MockTransport(sim, log, (snapshot) => {
+  const custom = new MockCustomization();
+  const backend = new MockBackend(sim, log, book, pullRequests, custom);
+  const transport = new MockTransport(sim, log, custom, (snapshot) => {
     backend.latest = snapshot;
   });
   return { transport, backend };

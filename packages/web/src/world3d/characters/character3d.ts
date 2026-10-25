@@ -17,6 +17,8 @@ import { Rig } from '../pose/rig';
 import { blendFactor, createPose, lerpPose } from '../pose/poseVec';
 import { solvePose } from '../pose/poses';
 import { TILE_M } from '../units';
+import { lookSignature } from '@ai-office/shared';
+import { wearAccessory } from './accessories';
 import { chooseLook, type LookChoice } from './outfits';
 import type { HumanInstance, HumanLibrary } from './humanLibrary';
 
@@ -76,6 +78,8 @@ export class Character3D {
   /** Marks above the person (not rotated with it): code glyphs, thought bubble, pulses, sparkles. */
   readonly fx: PersonFx;
   readonly choice: LookChoice;
+  /** The choices of the person this was built for: a different one means the person has to be built again. */
+  readonly appearanceKey: string;
   private readonly instance: HumanInstance;
   private readonly rig: Rig;
   private readonly current = createPose();
@@ -98,11 +102,19 @@ export class Character3D {
     library: HumanLibrary,
     readonly character: Character,
   ) {
-    this.choice = chooseLook(character.look, character.seed);
-    this.instance = library.create(this.choice.model, this.choice.outfit);
+    this.choice = chooseLook(character.look, character.seed, character.agent.appearance);
+    this.appearanceKey = lookSignature(character.agent.appearance);
+    this.instance = library.create(this.choice.model, this.choice.outfit, this.choice);
     this.root.add(this.instance.root);
     this.instance.root.scale.setScalar(this.choice.scale);
     this.rig = new Rig(this.instance.root);
+    if (this.choice.accessory !== undefined)
+      wearAccessory(
+        this.instance.root,
+        this.rig.bone('head'),
+        this.choice.accessory,
+        this.choice.capColor ?? '#2b3a55',
+      );
     this.fx = new PersonFx(1.85 * this.choice.scale, character.seed);
     this.selectRing = new Mesh(selectGeo, selectMaterial);
     this.selectRing.position.y = 0.025;

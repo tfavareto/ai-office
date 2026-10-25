@@ -1,15 +1,17 @@
 // Stable facade over the current world renderer: survives 2D/3D switches and a missing renderer.
-import type { OfficeSnapshot } from '@ai-office/shared';
+import type { AgentLook, OfficeSnapshot } from '@ai-office/shared';
 import {
   DEFAULT_WORLD_OPTIONS,
   type CameraMode,
   type DeskRef,
   type HoverInfo,
+  type PreviewPerson,
   type Selection,
   type ViewInsets,
   type WorldApi,
   type WorldOptions,
 } from '../world/api';
+import { arrangeSnapshot } from '../layout/arrange';
 import type { CaptureOptions } from '../world/capture';
 import { createWorld, hasRenderer, type WorldKind } from '../world/load';
 
@@ -55,6 +57,8 @@ export class WorldHost {
   private options: WorldOptions = DEFAULT_WORLD_OPTIONS;
   private insets: ViewInsets = { top: 0, right: 0, bottom: 0, left: 0 };
   private snapshot: OfficeSnapshot | null = null;
+  /** What the server said, before hidden rooms were taken out: people in a hidden room still get a portrait. */
+  private fullSnapshot: OfficeSnapshot | null = null;
   private snapshotTime = 0;
   private clock: number | null = null;
   private selection: Selection = null;
@@ -133,10 +137,13 @@ export class WorldHost {
     this.container.replaceChildren();
   }
 
+  /** The worlds draw the building the person arranged: hidden rooms and their people are left out, `order` is the slot. */
   setSnapshot(snapshot: OfficeSnapshot, serverNow: number): void {
-    this.snapshot = snapshot;
+    const arranged = arrangeSnapshot(snapshot);
+    this.fullSnapshot = snapshot;
+    this.snapshot = arranged;
     this.snapshotTime = serverNow;
-    this.world?.setSnapshot(snapshot, serverNow);
+    this.world?.setSnapshot(arranged, serverNow);
   }
 
   /** See `WorldApi.resetScene`. */
@@ -194,7 +201,17 @@ export class WorldHost {
   }
 
   portrait(agentId: string, size: number): string | null {
-    return this.world?.portrait(agentId, size) ?? null;
+    const drawn = this.world?.portrait(agentId, size);
+    if (drawn !== undefined && drawn !== null) return drawn;
+    // Somebody in a room hidden from the building is not in the world: draw them from their data.
+    const agent = this.fullSnapshot?.agents.find((candidate) => candidate.id === agentId);
+    return agent === undefined
+      ? null
+      : this.previewPortrait({ seed: agent.seed, look: agent.look, kind: agent.kind }, agent.appearance, size);
+  }
+
+  previewPortrait(person: PreviewPerson, appearance: AgentLook | undefined, size: number): string | null {
+    return this.world?.previewPortrait(person, appearance, size) ?? null;
   }
 
   stats(): ReturnType<WorldApi['stats']> | null {

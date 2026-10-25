@@ -1,4 +1,4 @@
-import type { Agent, OfficeSnapshot } from '@ai-office/shared';
+import type { Agent, AgentLook, OfficeSnapshot } from '@ai-office/shared';
 import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
 import { clamp } from '../layout/rng';
@@ -10,6 +10,7 @@ import {
   type CameraMode,
   type DeskRef,
   type HoverInfo,
+  type PreviewPerson,
   type Selection,
   type ViewInsets,
   type WorldApi,
@@ -17,6 +18,7 @@ import {
   type WorldOptions,
 } from '../world/api';
 import { Camera, fitZoom, focusZoom, overviewZoom, wheelFactor, type Bounds } from './camera';
+import { lookFor } from './chars/looks';
 import { portraitDataUrl } from './chars/portrait';
 import { DayNight } from './lighting';
 import { OverlaySprites } from './overlay';
@@ -92,7 +94,6 @@ export class World2D implements WorldApi {
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
   private readonly boardListeners = new Set<() => void>();
   private readonly deskListeners = new Set<(desk: DeskRef) => void>();
-  private readonly portraitCache = new Map<string, string>();
 
   constructor(
     private readonly container: HTMLElement,
@@ -313,14 +314,11 @@ export class World2D implements WorldApi {
 
   portrait(agentId: string, size: number): string | null {
     const agent = this.agents.get(agentId);
-    if (!agent) return null;
-    const key = `${agentId}|${agent.seed}|${size}`;
-    let url = this.portraitCache.get(key);
-    if (!url) {
-      url = portraitDataUrl(this.renderer.lookOf(agent), size);
-      this.portraitCache.set(key, url);
-    }
-    return url;
+    return agent ? portraitDataUrl(this.renderer.lookOf(agent), size) : null;
+  }
+
+  previewPortrait(person: PreviewPerson, appearance: AgentLook | undefined, size: number): string {
+    return portraitDataUrl(lookFor(person.seed, person.look, person.kind === 'sub', appearance), size);
   }
 
   capture(opts: CaptureOptions): Promise<HTMLCanvasElement> {

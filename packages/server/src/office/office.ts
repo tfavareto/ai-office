@@ -61,6 +61,8 @@ export interface OfficeDeps {
   log: Logger;
   overlays: OfficeOverlays;
   events: OfficeEvents;
+  /** Puts what the person customized (names, looks, room finishes) on the computed agents and projects. */
+  customize?: (office: { projects: Project[]; agents: Agent[] }) => { projects: Project[]; agents: Agent[] };
 }
 
 export interface OfficeState {
@@ -205,7 +207,13 @@ export class Office {
   tickDemo(now: number): void {
     if (this.demo === undefined) return;
     const result = this.demo.tick(now);
-    if (result.feed.length > 0) this.publishFeed(result.feed);
+    if (result.feed.length > 0)
+      this.publishFeed(
+        result.feed.map((item) => {
+          const chosen = this.deps.names.customName(item.agentId);
+          return chosen === undefined ? item : { ...item, agentName: chosen };
+        }),
+      );
     for (const notice of result.notices) this.deps.events.onNotice(notice);
   }
 
@@ -258,7 +266,7 @@ export class Office {
 
   /** Recomputes agents and projects; fires `onChange` when anything visible changed. */
   refresh(now: number): void {
-    this.computed = this.compute(now);
+    this.computed = this.customized(this.compute(now));
     const fingerprint = JSON.stringify([
       this.computed.agents,
       this.computed.projects,
@@ -269,6 +277,13 @@ export class Office {
     if (fingerprint === this.lastFingerprint) return;
     this.lastFingerprint = fingerprint;
     this.deps.events.onChange();
+  }
+
+  private customized(state: OfficeState): OfficeState {
+    const { customize } = this.deps;
+    return customize === undefined
+      ? state
+      : { ...state, ...customize({ projects: state.projects, agents: state.agents }) };
   }
 
   private compute(now: number): OfficeState {
@@ -307,18 +322,21 @@ export class Office {
       return { ...(permission !== undefined ? { permission } : {}), ...(attention !== undefined ? { attention } : {}) };
     };
     const mainId = mainAgentId(record);
-    const person = this.personOf(record, undefined);
-    out.push(buildMainAgent(record, projectId, person, overlayFor(mainId), now));
+    // The agent keeps the name the office picked; `customize` puts the chosen one on top (and remembers this one).
+    out.push(buildMainAgent(record, projectId, this.pickedPerson(record, undefined), overlayFor(mainId), now));
     if (this.announce.delete(record.key))
       this.notice(
         'info',
-        msg('notice.arrived', { name: person.name, project: projectId.split('/').pop() ?? projectId }),
+        msg('notice.arrived', {
+          name: this.personOf(record, undefined).name,
+          project: projectId.split('/').pop() ?? projectId,
+        }),
         mainId,
         projectId,
       );
     for (const sub of record.subs.values()) {
       if (!sub.state.sawAny || !subVisible(record, sub, now)) continue;
-      const subPerson = this.personOf(record, sub);
+      const subPerson = this.pickedPerson(record, sub);
       out.push(
         buildSubAgent(record, sub, projectId, mainId, subPerson, overlayFor(subAgentId(record, sub.agentId)), now),
       );
@@ -385,7 +403,8 @@ export class Office {
     return taken;
   }
 
-  private personOf(record: SessionRecord, sub: SubRecord | undefined): { name: string; look: 'f' | 'm' } {
+  /** The person the office picked for a session or subagent (stable, kept in names.json). */
+  private pickedPerson(record: SessionRecord, sub: SubRecord | undefined): { name: string; look: 'f' | 'm' } {
     const current = sub === undefined ? record.person : sub.person;
     if (current !== undefined) return current;
     const key = sub === undefined ? record.key : `${record.key}:${sub.agentId}`;
@@ -393,6 +412,12 @@ export class Office {
     if (sub === undefined) record.person = person;
     else sub.person = person;
     return person;
+  }
+
+  /** The person as shown in feed items and notices: the name the person chose, else the picked one. */
+  private personOf(record: SessionRecord, sub: SubRecord | undefined): { name: string; look: 'f' | 'm' } {
+    const key = sub === undefined ? record.key : `${record.key}:${sub.agentId}`;
+    return this.deps.names.display(key, this.pickedPerson(record, sub));
   }
 
   private noticesFor(

@@ -1,4 +1,4 @@
-import type { Agent, Locale } from '@ai-office/shared';
+import { lookSignature, type Agent, type Locale } from '@ai-office/shared';
 import { worldText } from '../i18n/world/translate';
 import { TILE } from '../layout/constants';
 import type { AreaLayout, Rect } from '../layout/types';
@@ -115,10 +115,10 @@ export class Renderer {
   }
 
   lookOf(agent: Agent): Look {
-    const key = `${agent.id}|${agent.seed}|${agent.look}|${agent.kind}`;
+    const key = `${agent.id}|${agent.seed}|${agent.look}|${agent.kind}|${lookSignature(agent.appearance)}`;
     let look = this.lookCache.get(key);
     if (!look) {
-      look = lookFor(agent.seed, agent.look, agent.kind === 'sub');
+      look = lookFor(agent.seed, agent.look, agent.kind === 'sub', agent.appearance);
       this.lookCache.set(key, look);
     }
     return look;

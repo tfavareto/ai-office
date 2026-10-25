@@ -22,3 +22,16 @@ export function hslToHex(h: number, s: number, l: number): string {
       .padStart(2, '0');
   return `#${to(r)}${to(g)}${to(b)}`;
 }
+
+/** Hue (0-360) of a #rrggbb color; 0 for greys. */
+export function hexHue(hex: string): number {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const r = ((value >> 16) & 255) / 255;
+  const g = ((value >> 8) & 255) / 255;
+  const b = (value & 255) / 255;
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (delta === 0) return 0;
+  const sector = max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return Math.round(((sector * 60 + 360) % 360) * 10) / 10;
+}

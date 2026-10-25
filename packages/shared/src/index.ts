@@ -15,6 +15,7 @@ export * from './i18n';
 export * from './usage';
 export * from './report';
 export * from './timelapse';
+export * from './customization';
 export { DEMO_ACCOUNTS, DEMO_ALL_ACCOUNTS, DEMO_CODEX_ACCOUNT, DEMO_PROJECTS } from './demo/content';
 export { createDemoSimulator } from './demo/simulator';
 export { demoDayReport, type DemoReportInput } from './demo/report';

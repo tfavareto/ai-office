@@ -1,4 +1,4 @@
-import type { Project } from '@ai-office/shared';
+import type { Project, RoomTheme } from '@ai-office/shared';
 import type { RoomSpec } from '../layout/types';
 
 export type RoomPhase = 'building' | 'open' | 'dismantling';
@@ -12,6 +12,10 @@ export interface RoomState {
   projectId: string;
   name: string;
   seed: number;
+  /** Finishes the person chose for the room. */
+  theme: RoomTheme | undefined;
+  /** Slot order of the room in the snapshot (the building's order when the person arranged it). */
+  order: number;
   slot: number;
   phase: RoomPhase;
   /** Seconds spent in the current phase. */
@@ -27,6 +31,8 @@ export interface RoomMove {
   toAreaId: string;
   fromSlot: number;
   toSlot: number;
+  /** The room changed place at once (the person rearranged the building): people sitting in it are moved with it. */
+  instant?: boolean;
 }
 
 export interface RoomUpdate {
@@ -38,11 +44,18 @@ export interface RoomUpdate {
 
 const liveId = (projectId: string): string => `room:${projectId}`;
 
+function sameTheme(a: RoomTheme | undefined, b: RoomTheme | undefined): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
 /** Owns the project rooms: slot assignment, build/dismantle lifecycle and compaction into freed slots. */
 export class RoomManager {
   private rooms: RoomState[] = [];
   private seenFirst = false;
   private ghostCounter = 0;
+  /** The person arranged the rooms (pinned or ordered some): slots follow `order` instead of arrival. */
+  private arranged = false;
+  private pendingMoves: RoomMove[] = [];
 
   get all(): readonly RoomState[] {
     return this.rooms;
@@ -63,7 +76,14 @@ export class RoomManager {
   }
 
   specs(): RoomSpec[] {
-    return this.rooms.map((r) => ({ id: r.projectId, seed: r.seed, name: r.name, slot: r.slot, areaId: r.areaId }));
+    return this.rooms.map((r) => ({
+      id: r.projectId,
+      seed: r.seed,
+      name: r.name,
+      slot: r.slot,
+      areaId: r.areaId,
+      ...(r.theme !== undefined ? { theme: r.theme } : {}),
+    }));
   }
 
   /** Sync with the snapshot's projects. Returns true when anything changed. */
@@ -72,6 +92,7 @@ export class RoomManager {
     const ids = new Set(projects.map((p) => p.id));
     const instant = !this.seenFirst;
     this.seenFirst = true;
+    this.arranged = projects.some((p) => p.pinned === true || p.rank !== undefined);
 
     for (const room of this.rooms) {
       if (room.ghost || room.phase === 'dismantling' || ids.has(room.projectId)) continue;
@@ -82,9 +103,15 @@ export class RoomManager {
     for (const project of sorted) {
       const existing = this.live(project.id);
       if (existing) {
-        if (existing.name !== project.name || existing.seed !== project.seed) {
+        existing.order = project.order;
+        if (
+          existing.name !== project.name ||
+          existing.seed !== project.seed ||
+          !sameTheme(existing.theme, project.theme)
+        ) {
           existing.name = project.name;
           existing.seed = project.seed;
+          existing.theme = project.theme;
           changed = true;
         }
         continue;
@@ -95,6 +122,8 @@ export class RoomManager {
         projectId: project.id,
         name: project.name,
         seed: project.seed,
+        theme: project.theme,
+        order: project.order,
         slot,
         phase: instant ? 'open' : 'building',
         t: 0,
@@ -103,7 +132,39 @@ export class RoomManager {
       });
       changed = true;
     }
+    if (this.arranged && this.settle()) changed = true;
     return changed;
+  }
+
+  /** Moves made without animation (the building was rearranged) that the simulation has not handled yet. */
+  takeMoves(): RoomMove[] {
+    const moves = this.pendingMoves;
+    this.pendingMoves = [];
+    return moves;
+  }
+
+  /**
+   * Puts every room in the slot of its place in the arrangement, at once. It waits while a room is being dismantled
+   * (its slot is still in use); it never animates, so only the rooms whose slot changed are drawn again.
+   */
+  private settle(): boolean {
+    if (this.rooms.some((r) => r.ghost)) return false;
+    const live = [...this.rooms].sort((a, b) => a.order - b.order);
+    let moved = false;
+    live.forEach((room, index) => {
+      if (room.slot === index) return;
+      this.pendingMoves.push({
+        projectId: room.projectId,
+        fromAreaId: room.areaId,
+        toAreaId: room.areaId,
+        fromSlot: room.slot,
+        toSlot: index,
+        instant: true,
+      });
+      room.slot = index;
+      moved = true;
+    });
+    return moved;
   }
 
   /** Advance animations; `occupied(areaId)` tells whether people are still inside a room being dismantled. */
@@ -129,11 +190,16 @@ export class RoomManager {
     });
     if (this.rooms.length !== before) update.layoutChanged = true;
 
-    const move = this.compact();
-    if (move) {
-      update.moves.push(move);
-      update.layoutChanged = true;
+    if (this.arranged) {
+      if (this.settle()) update.layoutChanged = true;
+    } else {
+      const move = this.compact();
+      if (move) {
+        update.moves.push(move);
+        update.layoutChanged = true;
+      }
     }
+    update.moves.push(...this.takeMoves());
     return update;
   }
 
@@ -167,6 +233,8 @@ export class RoomManager {
       projectId: farthest.projectId,
       name: farthest.name,
       seed: farthest.seed,
+      theme: farthest.theme,
+      order: farthest.order,
       slot: fromSlot,
       phase: 'dismantling',
       t: 0,

@@ -1,8 +1,23 @@
+import {
+  HAIR_COLORS as HAIR_CHOICES,
+  OUTFITS,
+  SKIN_TONES as SKIN_CHOICES,
+  lookSignature,
+  swatchHex,
+  type AgentLook,
+} from '@ai-office/shared';
 import { Rng, hash32 } from '../../layout/rng';
 import { SKIN_TONES } from '../palette';
 import { shade } from '../color';
 
-export type HairStyle = 0 | 1 | 2 | 3 | 4 | 5;
+/** 0-5 are drawn from the seed; 6 is the round, full cut that only a person's choice gives. */
+export type HairStyle = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/** The sprite cut that stands for each of the four hair styles a person can choose, by look. */
+export const SPRITE_HAIR_STYLES: Readonly<Record<'f' | 'm', readonly HairStyle[]>> = {
+  f: [1, 6, 0, 5],
+  m: [0, 1, 2, 3],
+};
 
 export interface Look {
   key: string;
@@ -24,6 +39,10 @@ export interface Look {
   bareLegs: boolean;
   shoes: string;
   glasses: boolean;
+  headphones: boolean;
+  cap: boolean;
+  /** Color of the cap when there is one. */
+  capColor: string;
   beard: boolean;
   /** Small ID badge on the chest (subagents). */
   badge: boolean;
@@ -49,9 +68,34 @@ function weighted(rng: Rng, weights: readonly number[]): number {
   return weights.length - 1;
 }
 
-/** Deterministic appearance from the agent seed and look (f/m). */
-export function lookFor(seed: number, gender: 'f' | 'm', badge: boolean): Look {
-  const key = `${seed}|${gender}|${badge ? 1 : 0}`;
+/** What a person's choices change on top of the look the seed gave. */
+function withAppearance(look: Look, appearance: AgentLook): Look {
+  const skin = swatchHex(SKIN_CHOICES, appearance.skin) ?? look.skin;
+  const hair = swatchHex(HAIR_CHOICES, appearance.hairColor) ?? look.hair;
+  const outfit = swatchHex(OUTFITS, appearance.outfit);
+  const jacket = outfit ?? look.jacket;
+  const accessory = appearance.accessory;
+  return {
+    ...look,
+    skin,
+    skinShade: shade(skin, -0.16),
+    hair,
+    hairShade: shade(hair, -0.3),
+    hairLight: shade(hair, 0.25),
+    hairStyle:
+      appearance.hairStyle === undefined ? look.hairStyle : SPRITE_HAIR_STYLES[look.gender][appearance.hairStyle],
+    jacket,
+    bottom: outfit === undefined || look.skirt ? look.bottom : shade(outfit, -0.1),
+    glasses: accessory === undefined ? look.glasses : accessory === 'glasses',
+    headphones: accessory === 'headphones',
+    cap: accessory === 'cap',
+    capColor: jacket ?? look.capColor,
+  };
+}
+
+/** Deterministic appearance from the agent seed and look (f/m), with the choices the person made on top. */
+export function lookFor(seed: number, gender: 'f' | 'm', badge: boolean, appearance?: AgentLook): Look {
+  const key = `${seed}|${gender}|${badge ? 1 : 0}|${lookSignature(appearance)}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const rng = new Rng(hash32(seed, gender === 'f' ? 7 : 13));
@@ -78,9 +122,13 @@ export function lookFor(seed: number, gender: 'f' | 'm', badge: boolean): Look {
     bareLegs: skirt && rng.chance(0.6),
     shoes: gender === 'f' && rng.chance(0.3) ? '#8a2f3a' : rng.chance(0.5) ? '#1b1613' : '#3a271a',
     glasses: rng.chance(0.25),
+    headphones: false,
+    cap: false,
+    capColor: '#2b3a55',
     beard: gender === 'm' && rng.chance(0.18),
     badge,
   };
-  cache.set(key, look);
-  return look;
+  const result = appearance === undefined ? look : withAppearance(look, appearance);
+  cache.set(key, result);
+  return result;
 }

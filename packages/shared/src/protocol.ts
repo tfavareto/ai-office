@@ -77,6 +77,12 @@ export const API = {
   usageDetail: '/api/usage/detail',
   /** GET → GitSettings · POST { pullRequests: boolean } → GitSettings. Local access only. */
   gitSettings: '/api/git/settings',
+  /**
+   * Customization (local access only): GET → CustomizationResponse · PUT a whole Customization → CustomizationResponse ·
+   * PATCH a JSON merge patch (`null` resets a key) → CustomizationResponse · DELETE → CustomizationResponse (all reset).
+   * A refused body answers 400 CustomizationErrorBody.
+   */
+  customization: '/api/customization',
   /** GET → CodexSettings · POST { sessions: boolean } → CodexSettings. Local access only. */
   codexSettings: '/api/codex/settings',
   /** POST { on: boolean } → { demo } */

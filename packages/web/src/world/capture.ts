@@ -2,6 +2,7 @@
 // applies. A capture never draws from the live scene: it builds a throwaway office from a sanitized copy of the
 // snapshot, so a project name, a task title or a git branch cannot end up in the picture by accident.
 import type { Account, Agent, OfficeSnapshot, Project, ShellJob, TaskItem } from '@ai-office/shared';
+import { arrangeSnapshot } from '../layout/arrange';
 
 export type CaptureMode = 'overview' | 'current';
 
@@ -59,6 +60,7 @@ function plainAgent(agent: Agent, projectId: string): Agent {
     name: agent.name,
     role: agent.kind === 'main' ? 'Principal' : 'Sub',
     look: agent.look,
+    ...(agent.appearance !== undefined ? { appearance: agent.appearance } : {}),
     seed: agent.seed,
     status: agent.status,
     statusSince: agent.statusSince,
@@ -85,7 +87,8 @@ function plainAccount(account: Account): Account {
  * `showProjectNames` is on; otherwise each room is numbered in the order it arrived.
  */
 export function captureSnapshot(snapshot: OfficeSnapshot, privacy: CapturePrivacy): OfficeSnapshot {
-  const ordered = [...snapshot.projects].sort((a, b) => a.order - b.order);
+  // The picture shows the building as the person arranged it: hidden rooms are not in it.
+  const ordered = [...arrangeSnapshot(snapshot).projects].sort((a, b) => a.order - b.order);
   const ids = new Map(ordered.map((project, index) => [project.id, `room-${index + 1}`]));
   const projects: Project[] = ordered.map((project, index) => ({
     id: `room-${index + 1}`,
@@ -93,6 +96,7 @@ export function captureSnapshot(snapshot: OfficeSnapshot, privacy: CapturePrivac
     path: '',
     seed: project.seed,
     order: index,
+    ...(project.theme !== undefined ? { theme: project.theme } : {}),
   }));
   const agents = snapshot.agents.flatMap((agent) => {
     const projectId = ids.get(agent.projectId);

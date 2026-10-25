@@ -171,8 +171,10 @@ export class OfficeSim {
     if (
       this.rooms.sync(withHireProjects(snapshot.projects, waiting)) &&
       layoutKey(this.rooms.specs()) !== this.builtKey
-    )
+    ) {
       this.relayout();
+      for (const move of this.rooms.takeMoves()) this.onRoomMoved(move);
+    }
     const instant = this.firstSnapshot;
     this.firstSnapshot = false;
     this.handOverHires(snapshot);
@@ -447,8 +449,24 @@ export class OfficeSim {
   private onRoomMoved(move: RoomMove): void {
     for (const actor of this.list) {
       if (actor.projectId !== move.projectId || actor.leaving || !actor.home) continue;
-      if (actor.phase === 'atHome') this.goHome(actor);
+      if (actor.phase !== 'atHome') continue;
+      if (move.instant) this.seatAtHome(actor);
+      else this.goHome(actor);
     }
+  }
+
+  /** The room moved while the person sat in it: they are at their desk in the new place, no walk across the building. */
+  private seatAtHome(a: Actor): void {
+    const home = a.home ? this.spots.get(a.home.id) : undefined;
+    if (!home) return this.goHome(a);
+    a.home = home;
+    a.x = home.x;
+    a.y = home.y;
+    a.dir = home.dir;
+    a.leaveTile = home.approach;
+    a.path = [];
+    a.pathIndex = 0;
+    a.moving = false;
   }
 
   private walkSpeed(): number {

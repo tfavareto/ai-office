@@ -1,5 +1,6 @@
 // All people in the scene: creates and removes Character3D instances to follow the simulation.
 import { Color, DynamicDrawUsage, Group, InstancedMesh, Matrix4, MeshBasicMaterial, Vector3 } from 'three';
+import { lookSignature } from '@ai-office/shared';
 import type { OfficeSim } from '../../sim/sim';
 import { Character3D, ringGeo } from './character3d';
 import type { HumanLibrary } from './humanLibrary';
@@ -53,6 +54,12 @@ export class Crowd {
     const live = new Set<string>();
     for (const c of this.sim.characters) {
       live.add(c.id);
+      const existing = this.people.get(c.id);
+      // The person changed the look: build the body again with it.
+      if (existing && existing.appearanceKey !== lookSignature(c.agent.appearance)) {
+        existing.dispose();
+        this.people.delete(c.id);
+      }
       if (!this.people.has(c.id)) {
         const person = new Character3D(this.library, c);
         this.people.set(c.id, person);

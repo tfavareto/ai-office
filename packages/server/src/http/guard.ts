@@ -12,8 +12,8 @@ export type GuardResult = { ok: true; local: boolean } | { ok: false; status: nu
 
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
 /** Writes that carry a JSON body. DELETE has none, but gets the same origin check. */
-const JSON_METHODS = new Set(['POST', 'PATCH']);
-const WRITE_METHODS = new Set(['POST', 'PATCH', 'DELETE']);
+const JSON_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 /** Sec-Fetch-Site values of requests made by the page itself or typed in the address bar. */
 const TRUSTED_FETCH_SITES = new Set(['same-origin', 'none']);
 

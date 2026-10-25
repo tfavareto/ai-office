@@ -93,8 +93,20 @@ describe('guardRequest', () => {
     expect(guardRequest(req('GET', { host: 'localhost:4848', 'sec-fetch-site': 'cross-site' }), options)).toMatchObject(
       { ok: false, status: 403 },
     );
-    expect(guardRequest(req('PUT', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
+    expect(guardRequest(req('TRACE', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
     expect(guardRequest(req('OPTIONS', { host: 'localhost:4848' }), options)).toMatchObject({ ok: false, status: 405 });
+  });
+
+  test('PUT needs JSON and a same-origin request like POST and PATCH', () => {
+    const host = 'localhost:4848';
+    expect(guardRequest(req('PUT', { host }), options)).toMatchObject({ ok: false, status: 415 });
+    expect(guardRequest(req('PUT', { host, 'content-type': 'application/json' }), options)).toMatchObject({ ok: true });
+    expect(
+      guardRequest(req('PUT', { host, 'content-type': 'application/json', origin: 'http://evil.example' }), options),
+    ).toMatchObject({ ok: false, status: 403 });
+    expect(
+      guardRequest(req('PUT', { host, 'content-type': 'application/json', 'sec-fetch-site': 'same-site' }), options),
+    ).toMatchObject({ ok: false, status: 403 });
   });
 
   test('PATCH needs JSON like POST, DELETE only the origin check, and neither accepts a foreign origin', () => {

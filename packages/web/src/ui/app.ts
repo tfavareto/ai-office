@@ -66,6 +66,8 @@ import { ProgressController } from './progress-controller';
 import { announcements, loadSeen, saveSeen, type Seen } from './model/progress-seen';
 import { achievementNameKey, decorNameKey, levelTitleKey } from './model/progress-view';
 import { RulesController, type RulesTab } from './rules-controller';
+import { CustomizationController } from './customization-controller';
+import { CustomizeDialog } from './components/customize-dialog';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
 import type { HireTarget } from './model/hire';
@@ -80,6 +82,7 @@ import {
   UiState,
   initialUiData,
   type DayTab,
+  type CustomizeTarget,
   type DialogId,
   type DrawerTab,
   type PopoverId,
@@ -126,6 +129,7 @@ export class App implements AppContext {
   readonly board = new BoardStore();
   readonly inbox: InboxController;
   readonly rules: RulesController;
+  readonly customization: CustomizationController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
   private seen: Seen | null = loadSeen();
@@ -169,6 +173,7 @@ export class App implements AppContext {
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
     this.rules = new RulesController(() => this.store.backend);
+    this.customization = new CustomizationController(() => this.store.backend);
     this.progress = new ProgressController(() => this.store.backend);
     // The inbox is about the live office, whatever the panels show.
     this.inbox = new InboxController({
@@ -245,6 +250,7 @@ export class App implements AppContext {
       new HireDialog(this),
       new RulesDialog(this),
       new ShareDialog(this),
+      new CustomizeDialog(this),
       new AchievementsDialog(this),
     ];
     const empty = new EmptyState(this);
@@ -458,6 +464,15 @@ export class App implements AppContext {
 
   openShare(date: string): void {
     this.ui.set({ dialog: 'share', shareDate: date, popover: null });
+  }
+
+  openCustomize(target: CustomizeTarget): void {
+    if (!this.isLocal) {
+      this.announce(localOnlyHint());
+      this.flash('info', localOnlyHint());
+      return;
+    }
+    this.ui.set({ customize: target, dialog: 'customize', popover: null });
   }
 
   openHire(target: HireTarget = {}): void {

@@ -226,7 +226,8 @@ function placeNorthItem(
       break;
     }
     case 'sign': {
-      c.box(m.graphite, mid, 2.32, z + 0.02, 1.86, 0.48, 0.03);
+      const plate = [m.graphite, m.black, m.walnutDark, m.steel][item.variant] ?? m.graphite;
+      c.box(plate, mid, 2.32, z + 0.02, 1.86, 0.48, 0.03);
       decorQuad(
         c,
         out,
@@ -235,7 +236,7 @@ function placeNorthItem(
         z + 0.045,
         1.8,
         0.42,
-        (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true),
+        (ctx, w, h) => paintSign(ctx, w, h, projectName, accent, true, item.variant),
         text,
       );
       break;

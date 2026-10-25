@@ -160,3 +160,65 @@ describe('project rooms', () => {
     }
   });
 });
+
+describe('room finishes', () => {
+  const spec = (theme?: RoomSpec['theme']): RoomSpec => ({
+    id: 'p',
+    seed: 4242,
+    name: 'proj',
+    slot: 1,
+    ...(theme ? { theme } : {}),
+  });
+
+  it('changes nothing without a theme', () => {
+    expect(layoutProjectRoom(spec())).toEqual(layoutProjectRoom({ ...spec(), theme: {} }));
+  });
+
+  it('applies the color, floor, wall and sign chosen', () => {
+    const area = layoutProjectRoom(spec({ color: '#37b27a', floor: 'concrete', wall: 'brick', sign: 'neon' }));
+    expect(area.theme).toMatchObject({ accent: '#37b27a', floor: 'stone', wall: 'brick', sign: 'neon' });
+    expect(area.theme.hue).toBeGreaterThan(140);
+    expect(area.theme.hue).toBeLessThan(170);
+    expect(area.wallItems.find((w) => w.kind === 'sign')?.variant).toBe(1);
+  });
+
+  it('keeps the default sign and the default floor when only the color is set', () => {
+    const base = layoutProjectRoom(spec());
+    const colored = layoutProjectRoom(spec({ color: '#e0577a' }));
+    expect(colored.theme.floor).toBe(base.theme.floor);
+    expect(colored.wallItems.find((w) => w.kind === 'sign')?.variant).toBe(0);
+  });
+
+  it('removes every plant for few and adds four for lush, leaving the rest of the room as it was', () => {
+    const count = (area: ReturnType<typeof layoutProjectRoom>): number =>
+      area.furniture.filter((f) => f.kind === 'plant' || f.kind === 'plantTall').length;
+    const normal = layoutProjectRoom(spec({ plants: 'normal' }));
+    const few = layoutProjectRoom(spec({ plants: 'few' }));
+    const lush = layoutProjectRoom(spec({ plants: 'lush' }));
+    expect(count(few)).toBe(0);
+    expect(count(lush)).toBe(count(normal) + 4);
+    const others = (area: ReturnType<typeof layoutProjectRoom>): string[] =>
+      area.furniture
+        .filter((f) => f.kind !== 'plant' && f.kind !== 'plantTall')
+        .map((f) => `${f.kind}${f.x},${f.y},${f.variant}`);
+    expect(others(few)).toEqual(others(normal));
+    expect(others(lush)).toEqual(others(normal));
+  });
+
+  it('keeps every desk reachable with the lushest room in every slot', () => {
+    const building = computeBuilding(
+      Array.from({ length: 6 }, (_, i) => ({
+        id: `p${i}`,
+        seed: 77 * (i + 1),
+        name: `p${i}`,
+        slot: i,
+        theme: { plants: 'lush' as const },
+      })),
+    );
+    const seen = reachable(building);
+    for (const spot of allSpots(building)) {
+      if (spot.kind !== 'desk') continue;
+      expect(seen.has(spot.approach.y * building.grid.width + spot.approach.x), spot.id).toBe(true);
+    }
+  });
+});

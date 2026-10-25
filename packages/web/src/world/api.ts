@@ -1,6 +1,6 @@
 // Contract between the UI and a world renderer (2D or 3D). The UI owns the store and panels; the world draws the
 // office from snapshots and reports selection/hover. Implementations: world2d (default) and world3d (lazy-loaded).
-import type { Locale, OfficeSnapshot } from '@ai-office/shared';
+import type { AgentKind, AgentLook, Locale, OfficeSnapshot } from '@ai-office/shared';
 import type { CaptureOptions } from './capture';
 
 export type { CaptureMode, CaptureOptions } from './capture';
@@ -55,6 +55,13 @@ export interface HoverInfo {
   y: number;
 }
 
+/** Who a preview portrait shows: the same inputs that draw an agent. */
+export interface PreviewPerson {
+  seed: number;
+  look: 'f' | 'm';
+  kind: AgentKind;
+}
+
 /** Third-person/first-person camera modes; the 2D world supports only 'overview'. */
 export type CameraMode = 'overview' | 'first-person' | 'shoulder';
 
@@ -90,6 +97,11 @@ export interface WorldApi {
   onCameraMode(cb: (mode: CameraMode) => void): () => void;
   /** Portrait of an agent for UI avatars (cached data URL), or null while not ready. */
   portrait(agentId: string, size: number): string | null;
+  /**
+   * Portrait of a person who is not drawn (yet): what the customization editor shows while choices are made. `person`
+   * is what the agent's look is drawn from, `appearance` the choices on top of it. Null while the renderer is not ready.
+   */
+  previewPortrait(person: PreviewPerson, appearance: AgentLook | undefined, size: number): string | null;
   /**
    * A still image of the office for sharing, drawn on a new canvas of exactly `width` x `height`. `overview` frames the
    * whole building, `current` what the camera shows now; day or night is the one on screen. The picture is made from

@@ -101,11 +101,29 @@ function buildFloors(c: PartCollector, area: AreaLayout, m: Materials): void {
 }
 
 interface WallLook {
-  main: 'plaster' | 'marble' | 'tile' | 'warm';
+  main: 'plaster' | 'marble' | 'tile' | 'warm' | 'brick' | 'concrete' | 'tinted';
   slats: boolean;
 }
 
+/** The surface a person chose for a project room's back wall; wood (slats on plaster) is what every room has. */
+function chosenLook(area: AreaLayout): WallLook | undefined {
+  switch (area.theme.wall) {
+    case 'plaster':
+      return { main: 'tinted', slats: false };
+    case 'brick':
+      return { main: 'brick', slats: false };
+    case 'concrete':
+      return { main: 'concrete', slats: false };
+    default:
+      return undefined;
+  }
+}
+
 function lookOf(area: AreaLayout): WallLook {
+  if (area.kind === 'project') {
+    const chosen = chosenLook(area);
+    if (chosen) return chosen;
+  }
   switch (area.kind) {
     case 'reception':
       return { main: 'marble', slats: false };
@@ -121,7 +139,9 @@ function lookOf(area: AreaLayout): WallLook {
   }
 }
 
-function wallMaterial(m: Materials, look: WallLook) {
+function wallMaterial(m: Materials, look: WallLook, accent: string) {
+  if (look.main === 'brick' || look.main === 'concrete') return m.wall(look.main, accent);
+  if (look.main === 'tinted') return m.wall('plaster', accent);
   return look.main === 'marble'
     ? m.marbleWall
     : look.main === 'tile'
@@ -136,7 +156,7 @@ function buildNorthWall(c: PartCollector, area: AreaLayout, m: Materials): void 
   const r = area.rect;
   const zFace = (r.y + WALL_ROWS) * T;
   const look = lookOf(area);
-  const mat = wallMaterial(m, look);
+  const mat = wallMaterial(m, look, area.theme.accent);
   const gaps = northGaps(area);
   for (const [a, b] of solidRanges(r.x * T, (r.x + r.w) * T, gaps)) {
     const w = b - a;

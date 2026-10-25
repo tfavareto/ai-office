@@ -40,6 +40,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
 | `usage-index/` | Mode 0700, files 0600. `YYYY-MM.json` shards: per hour, account, project (working directory path), model, session id and subagent id, the counts of input, output, cache-write and cache-read tokens and the estimated cost. `meta.json`: for each transcript, its path relative to the account directory, session and subagent ids, how many bytes were read, its size, modification time, inode, a hash of its first bytes and the ids and counts of the last 16 messages. Numbers and identifiers only: no conversation text. Up to 13 months are kept; delete the folder at any time and it is rebuilt. |
 | `progress.json` | The office level and achievements (mode 0600, written atomically): per local day, counters (sessions, work time, tasks completed, commits, passing test runs, tokens, subagents), the agents with most completed tasks that day (name and the project folder's name, never a path), a folded total of older days, the unlock dates and the first time you watched a time-lapse or shared the card. Numbers and names only: no prompt, reply, task title or file content. Delete it and the history is counted again. |
+| `customization.json` | What you changed with **Personalization** (mode 0600, written atomically, at most 192 KB): the names you gave agents (by agent id), their looks (skin, hair, outfit and accessory choices), the aliases, finishes, pins and hidden flags of rooms (by the project's folder path), looks kept for an account (by account id) and the order of the rooms. Only what you chose: no prompt, reply, title, task or file content. A file this version cannot read is kept aside as `customization.json.unreadable-<time>`. **Settings → Personalization → Restore everything** erases it. |
 | `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
@@ -76,9 +77,9 @@ Every request passes through a guard before any handler runs:
 | --- | --- |
 | `Host` header must be a loopback name (or the bind address, or an IP literal for a wildcard bind) and carry the right port. Protects against DNS rebinding. | 403 `host-not-allowed` |
 | `Sec-Fetch-Site`, when sent, must be `same-origin` or `none`. | 403 `cross-site` |
-| Only `GET`, `HEAD`, `POST`, `PATCH` and `DELETE` are served. | 405 |
-| `POST` and `PATCH` must be `application/json`. | 415 |
-| `POST`, `PATCH` and `DELETE` `Origin`, when present, must be the page's own origin (hooks send none). | 403 `origin-not-allowed` |
+| Only `GET`, `HEAD`, `POST`, `PUT`, `PATCH` and `DELETE` are served. | 405 |
+| `POST`, `PUT` and `PATCH` must be `application/json`. | 415 |
+| `POST`, `PUT`, `PATCH` and `DELETE` `Origin`, when present, must be the page's own origin (hooks send none). | 403 `origin-not-allowed` |
 | Request bodies are limited to 256 KB. | 413 |
 
 Limits: a request must arrive within 30 seconds and its headers within 15 seconds (this does not apply to long-lived responses), at most 20 simultaneous live streams (more get 503 `too-many-streams`), and long-poll waits are capped at 25 seconds per request.
@@ -119,6 +120,10 @@ The picture and caption of **My day → Share** are made in your browser from th
 ## The office that grows
 
 Levels, achievements and the "Employee of the month" are computed on your computer from the same transcripts and usage index as the day report, and nothing is sent anywhere. `GET /api/progress` and `POST /api/progress/event` are local-only, token-protected and origin-guarded like the report. The snapshot carries the level and, for the plaque, the **agent's name only**; the project name leaves the server only when the page asks for it (`?project=1`) because you turned on **Show the project in Employee of the month**, and it is the folder's name, not a path. The share card draws the decoration of your level but never the employee's name. Demo mode has its own fixed progress and never touches the real one. **Settings → Office evolution** hides everything visible about it.
+
+## Personalization
+
+`GET`, `PUT`, `PATCH` and `DELETE /api/customization` are local-only, token-protected and origin-guarded like the report. Every body is validated before anything is stored: names (32 characters) and aliases (40) are trimmed and refused when they hold control characters, text-direction overrides or line separators; palette values must be known ids (or a `#rrggbb` color); keys such as `__proto__` are refused; unknown fields are refused; the document is limited to 192 KB, 300 agents and 200 rooms. The page puts names and aliases on screen with `textContent`, never as HTML. Names and aliases are shown in the office, the sidebar, the feed and the day report. The share card draws no names and still numbers the rooms "Room 1", "Room 2"... unless you turn project names on, in which case it shows the alias you chose; it does follow your arrangement and your looks and finishes. Nothing here is sent anywhere.
 
 ## Hiring an agent
 

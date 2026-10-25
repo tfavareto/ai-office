@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chooseLook, FEMALE_MODELS, MALE_MODELS, OUTFIT_COLORS } from './outfits';
+import { choiceKey, chooseLook, FEMALE_MODELS, MALE_MODELS, OUTFIT_COLORS } from './outfits';
 
 describe('chooseLook', () => {
   it('is deterministic per seed and look', () => {
@@ -24,5 +24,47 @@ describe('chooseLook', () => {
       expect(l.phase).toBeLessThan(1);
     }
     expect(outfits.size).toBeGreaterThan(OUTFIT_COLORS.length / 2);
+  });
+});
+
+describe('chooseLook with the choices of a person', () => {
+  it('is the seeded look when nothing is chosen', () => {
+    expect(chooseLook('m', 99, {})).toEqual(chooseLook('m', 99));
+    expect(chooseLook('f', 99, undefined)).toEqual(chooseLook('f', 99));
+  });
+
+  it('turns the hair style into the model that has that hair, by look', () => {
+    for (let style = 0 as 0 | 1 | 2 | 3; style < 4; style++) {
+      expect(chooseLook('f', 5, { hairStyle: style }).model).toBe(FEMALE_MODELS[style]);
+      expect(chooseLook('m', 5, { hairStyle: style }).model).toBe(MALE_MODELS[style]);
+    }
+  });
+
+  it('takes the outfit, skin and hair colors from the palettes', () => {
+    const choice = chooseLook('f', 5, { outfit: 'teal', skin: 'deep', hairColor: 'blond' });
+    expect(choice).toMatchObject({ outfit: '#1f8a8a', skin: '#6a3d28', hair: '#c9a14e' });
+  });
+
+  it('keeps the size and the walking phase of the seed', () => {
+    const base = chooseLook('m', 31);
+    const chosen = chooseLook('m', 31, { outfit: 'wine', hairStyle: 2, skin: 'tan' });
+    expect([chosen.scale, chosen.phase]).toEqual([base.scale, base.phase]);
+  });
+
+  it('wears an accessory only when one is chosen, and a cap in the color of the outfit', () => {
+    expect(chooseLook('m', 3).accessory).toBeUndefined();
+    expect(chooseLook('m', 3, { accessory: 'none' }).accessory).toBeUndefined();
+    expect(chooseLook('m', 3, { accessory: 'glasses' }).accessory).toBe('glasses');
+    expect(chooseLook('m', 3, { accessory: 'cap', outfit: 'crimson' })).toMatchObject({
+      accessory: 'cap',
+      capColor: '#b3282d',
+    });
+  });
+
+  it('keys a portrait on what is drawn, not on who is drawn', () => {
+    const plain = choiceKey(chooseLook('m', 8));
+    expect(choiceKey(chooseLook('m', 8, { accessory: 'cap' }))).not.toBe(plain);
+    expect(choiceKey(chooseLook('m', 8, { skin: 'fair' }))).not.toBe(plain);
+    expect(choiceKey(chooseLook('m', 8))).toBe(plain);
   });
 });

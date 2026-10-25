@@ -11,7 +11,16 @@ import {
   type Texture,
 } from 'three';
 import type { AreaTheme } from '../../layout/types';
-import { glowTexture, rugTexture, slatTexture, walnutTexture, deckTexture, type TextureLoader } from './textures';
+import { mix } from '../../world2d/color';
+import {
+  brickTexture,
+  glowTexture,
+  rugTexture,
+  slatTexture,
+  walnutTexture,
+  deckTexture,
+  type TextureLoader,
+} from './textures';
 
 export type FloorKind = AreaTheme['floor'];
 
@@ -154,6 +163,7 @@ export class Materials {
   );
 
   private readonly floors = new Map<string, MeshStandardMaterial>();
+  private readonly walls = new Map<string, MeshStandardMaterial>();
   private readonly leds = new Map<string, MeshBasicMaterial>();
   private readonly fabrics = new Map<string, MeshStandardMaterial>();
   private readonly rugs = new Map<string, MeshStandardMaterial>();
@@ -194,6 +204,23 @@ export class Materials {
     if (t.nor) {
       m.normalMap = t.nor;
       m.normalScale = new Vector2(normalScale, normalScale);
+    }
+    return m;
+  }
+
+  /** Wall surface a person chose for a project room; `accent` tints the plaster. */
+  wall(kind: 'plaster' | 'brick' | 'concrete', accent: string): MeshStandardMaterial {
+    const key = kind === 'plaster' ? `plaster|${accent}` : kind;
+    let m = this.walls.get(key);
+    if (!m) {
+      m =
+        kind === 'brick'
+          ? this.canvasWood(brickTexture(), 0.85)
+          : kind === 'concrete'
+            ? this.textured('concrete_wall_008', '#a3a8ad', 0.9, 0.5)
+            : this.textured('concrete_wall_008', mix('#f1ece3', accent, 0.2), 0.92, 0.4);
+      this.walls.set(key, m);
+      this.extra.push(m);
     }
     return m;
   }

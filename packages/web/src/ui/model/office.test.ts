@@ -104,6 +104,26 @@ describe('counters', () => {
   });
 });
 
+describe('buildRooms with an arranged building', () => {
+  it('lists pinned rooms first, then the order the person set, and hidden rooms last', () => {
+    const snap = snapshot({
+      projects: [
+        project({ id: '/a', name: 'a', order: 0, hidden: true }),
+        project({ id: '/b', name: 'b', order: 1 }),
+        project({ id: '/c', name: 'c', order: 2, rank: 0 }),
+        project({ id: '/d', name: 'd', order: 3, pinned: true }),
+      ],
+      agents: ['a', 'b', 'c', 'd'].map((id) => agent({ id, projectId: `/${id}` })),
+    });
+    expect(buildRooms(snap, { query: '', accountIds: [] }).map((room) => room.project.id)).toEqual([
+      '/d',
+      '/c',
+      '/b',
+      '/a',
+    ]);
+  });
+});
+
 describe('buildRooms', () => {
   const snap = snapshot({
     accounts: [account(), account({ id: 'acc2', label: 'Trabalho', initial: 'T' })],

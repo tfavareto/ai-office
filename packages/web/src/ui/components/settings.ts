@@ -7,6 +7,7 @@ import { notifyPermission, requestNotifyPermission } from '../browser-notify';
 import { localOnlyHint, type AppContext } from '../context';
 import { h, setAttr, setText } from '../dom';
 import { button, createSegmented, createSwitch } from '../widgets';
+import { CustomizationManager } from './customize-manager';
 import { Popover } from './overlay';
 
 interface Row {
@@ -121,6 +122,8 @@ export class Settings extends Popover {
   });
   private readonly rulesRow = row(t('rules.settings.label'), this.rulesButton, t('rules.settings.hint'));
   private readonly about = h('p', { class: 'ao-setting-about' });
+  private readonly customization: CustomizationManager;
+  private readonly customizationRow: HTMLElement;
   private busy = false;
   /** What the server says about the pull request lookup (read when the popover opens). */
   private gitSettings: GitSettings | null = null;
@@ -130,6 +133,14 @@ export class Settings extends Popover {
   constructor(ctx: AppContext) {
     super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
     this.pullRequestsRow.el.append(this.ghHint);
+    this.customization = new CustomizationManager(ctx);
+    this.customizationRow = h(
+      'div',
+      { class: 'ao-setting' },
+      h('span', { class: 'ao-setting-label' }, t('settings.custom.label')),
+      h('p', { class: 'ao-setting-hint' }, t('settings.custom.hint')),
+      this.customization.el,
+    );
     this.volume.addEventListener('input', () => ctx.prefs.set({ volume: Number(this.volume.value) / 100 }));
     this.volume.addEventListener('change', () => ctx.cue('info'));
     this.soundRow = row(t('settings.sounds'), h('div', { class: 'ao-sound-control' }, this.volume, this.sounds.el));
@@ -153,6 +164,7 @@ export class Settings extends Popover {
         this.pullRequestsRow.el,
         this.codexRow.el,
         this.rulesRow.el,
+        this.customizationRow,
         this.demoRow.el,
         h(
           'div',
@@ -178,6 +190,7 @@ export class Settings extends Popover {
 
   protected onOpen(): void {
     void this.loadGitSettings();
+    this.customization.onOpen();
     void this.loadCodexSettings();
   }
 
@@ -261,6 +274,7 @@ export class Settings extends Popover {
     this.pullRequestsRow.hint.hidden = false;
     setText(this.pullRequestsRow.hint, this.ctx.isLocal ? t('settings.gitPr.hint') : localOnlyHint());
 
+    this.customization.update();
     const codex = this.codexSettings;
     this.codexRow.el.hidden = codex?.available !== true;
     this.codex.set(codex?.sessions === true);

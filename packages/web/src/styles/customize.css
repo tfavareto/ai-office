@@ -1,0 +1,393 @@
+/* Customization: the dialog (agent, room and layout editors) and the section of the settings popover. */
+.ao-room-buttons {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.ao-room-buttons .ao-room-hirebtn {
+  margin-bottom: 0;
+}
+
+.ao-dialog--customize {
+  width: min(560px, 100%);
+}
+
+.ao-cz-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 16px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-cz-hero {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 8px;
+  background: var(--bg-solid);
+}
+
+.ao-cz-heroinfo {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ao-cz-heroname {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.ao-cz-heronote {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ao-cz-roomswatch {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+}
+
+.ao-cz-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ao-cz-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ao-cz-hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ao-cz-hint.is-error {
+  color: var(--error);
+}
+
+.ao-cz-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ao-cz-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.ao-cz-choice:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.ao-cz-choice.is-on {
+  border-color: rgba(110, 162, 255, 0.7);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(110, 162, 255, 0.35);
+}
+
+.ao-cz-choice:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ao-cz-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ao-cz-choice.is-swatch {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.ao-cz-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.ao-cz-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 14px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-solid);
+}
+
+.ao-cz-spacer {
+  flex: 1;
+}
+
+.ao-cz-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ao-cz-toggletext {
+  display: grid;
+  gap: 2px;
+}
+
+/* Layout editor: the plan of the slots and the list of rooms. */
+.ao-cz-plan {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+
+.ao-cz-planrow {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-cz-planlabel {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-cz-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 34px;
+}
+
+.ao-cz-corridor {
+  padding: 3px 0;
+  border-block: 1px dashed var(--line);
+  color: var(--faint);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ao-cz-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 150px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--bg-hover);
+  font-size: 12px;
+  cursor: grab;
+}
+
+.ao-cz-slotnum {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ao-cz-slotdot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.ao-cz-slotname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-cz-rooms {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-cz-room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.ao-cz-room[draggable='true'] {
+  cursor: grab;
+}
+
+.ao-cz-room.is-hidden {
+  opacity: 0.7;
+}
+
+.ao-cz-room.is-pinned {
+  border-color: rgba(245, 181, 68, 0.45);
+}
+
+.ao-cz-slot.is-over,
+.ao-cz-room.is-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.ao-cz-slot.is-dragging,
+.ao-cz-room.is-dragging {
+  opacity: 0.45;
+}
+
+.ao-cz-grip {
+  display: inline-flex;
+  flex: none;
+  color: var(--faint);
+}
+
+.ao-cz-roomname {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.ao-cz-roomname strong,
+.ao-cz-roomname span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-cz-roomname span {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.ao-cz-rowbtn[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ao-cz-rowbtn:disabled {
+  opacity: 0.35;
+}
+
+/* Settings: the "Personalização" section. */
+.ao-cz-manager {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ao-cz-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ao-cz-items {
+  display: grid;
+  gap: 4px;
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ao-cz-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 12px;
+}
+
+.ao-cz-itemtext {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-cz-itemtext strong,
+.ao-cz-itemtext span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-cz-itemtext span {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+/* Sidebar badges of pinned and hidden rooms. */
+.ao-room-flag {
+  display: inline-flex;
+  flex: none;
+  color: var(--faint);
+}
+
+.ao-room.is-hidden-room .ao-room-name {
+  opacity: 0.6;
+  text-decoration: line-through;
+  text-decoration-color: rgba(148, 163, 184, 0.5);
+}
+
+@media (max-width: 899px) {
+  .ao-dialog--customize {
+    max-height: calc(100vh - 16px);
+  }
+  .ao-cz-slot {
+    max-width: 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-cz-choice {
+    transition: none;
+  }
+}

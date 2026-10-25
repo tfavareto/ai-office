@@ -28,7 +28,8 @@ import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
 import type { ReplayController } from './replay-controller';
 import type { RulesController, RulesTab } from './rules-controller';
-import type { DayTab, DialogId, DrawerTab, PopoverId, UiState } from './state';
+import type { CustomizeTarget, DayTab, DialogId, DrawerTab, PopoverId, UiState } from './state';
+import type { CustomizationController } from './customization-controller';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
 
@@ -62,6 +63,7 @@ export interface AppContext {
   readonly board: BoardStore;
   readonly inbox: InboxController;
   readonly rules: RulesController;
+  readonly customization: CustomizationController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
 
@@ -119,6 +121,8 @@ export interface AppContext {
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
   /** Opens a terminal with Claude Code for a new agent; rejects with the server's error. */
   hireAgent(request: HireRequest): Promise<PendingHire>;
+  /** Opens the customization dialog on an agent, a room or the arrangement of the rooms. */
+  openCustomize(target: CustomizeTarget): void;
   /** Opens the approval rules dialog on a tab. */
   openRules(tab?: RulesTab): void;
   /** "Create rule…": opens the rule editor pre-filled from a permission request of an agent. */

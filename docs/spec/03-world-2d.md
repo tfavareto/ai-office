@@ -107,6 +107,13 @@ celebrate, sleep, and the poses of the work moods, reactions and greetings (`rea
 blouses/skirts or suits; deterministic from the agent seed + look. Subagents wear a small badge. Account color shows
 as a thin ring at the feet / name tag accent.
 
+## Looks and room finishes
+What the person chose (see [00-product.md](00-product.md#personalization) and [02-server.md](02-server.md#customization-apicustomization)) arrives in the snapshot as `Agent.appearance` and `Project.theme`.
+- **Looks.** `chars/looks.ts`: `lookFor(seed, gender, badge, appearance?)` draws the look from the seed exactly as before (every random draw is unchanged) and then puts the choices on top (`withAppearance`): skin, hair color and outfit from the shared palettes (the outfit is the jacket; trousers follow it), the hair style as one of four cuts per look (`SPRITE_HAIR_STYLES`; `6` is the round, full cut only a choice gives), and the accessory: glasses, headphones (band and ear cups) or a cap in the outfit color; `none` also removes the glasses the seed gave. The cache key (`Look.key`, `Renderer.lookOf`) includes `lookSignature(appearance)`, so only the people whose look changed are drawn again. `World2D.previewPortrait` draws a look nobody wears yet for the editor.
+- **Room finishes.** `layout/project.ts`: `themeWith(base, theme)` puts the color (accent, hue and carpet tint), the floor (`tiles` is the porcelain, `concrete` the stone), the wall finish, the plant density and the sign style on top of `projectTheme(seed)`; `RoomSpec.theme` carries them from `RoomManager` (which reads `Project.theme`). Plants: `few` removes every plant of the room, `lush` adds one at each lane edge (the random draws of the room are unchanged, a test keeps every desk reachable). The sign is a wall item whose `variant` is the style (0 brass, 1 neon tube, 2 engraved wood, 3 plain plate: `paint/wallitems.ts`); `paint/walls.ts` paints the wall finishes (wood slats, smooth plaster tinted by the room color, brick, concrete with panel seams).
+- **Caches.** `areaKey` includes the whole theme and the furniture, so changing one room's finishes redraws that room's layers and no other.
+- **Arrangement.** `OfficeSim` receives the snapshot as the page arranged it (`layout/arrange.ts`: hidden rooms and their people are gone, `order` is the slot). Without pinned or ordered rooms `RoomManager` behaves as it always did (lowest free slot, compaction by walking). With them (`arranged`) every room takes the slot of its place (`settle`): at once, with no animation, only the rooms whose slot changed, and only while no room is being dismantled; people sitting in a moved room are seated at their desks in the new place (`RoomMove.instant`). A room hidden or closed is dismantled as before and its people leave by the elevator.
+
 ## Branch plaque
 A project room whose folder is a repository (`Project.git`) and `WorldOptions.showGit` hang a 40x7 px plaque right under the room sign
 (`runtime/plaque.ts`, drawn by the renderer's dynamic pass and cached per room by `roomGitKey`): a brass-framed dark plate with a
@@ -135,6 +142,8 @@ The office grows with the level in the snapshot (`progress.level`, see [00-produ
 ## World API
 Implement `createWorld2D(container, opts): WorldApi` from `packages/web/src/world/api.ts` (do not change that file
 without updating every implementation).
+
+`WorldApi.previewPortrait(person, appearance, size)` returns the portrait of a look nobody wears yet (the live preview of the customization editor; `portrait(agentId, size)` of an agent in a hidden room is drawn the same way by `WorldHost`).
 
 `WorldApi.resetScene()` (`OfficeSim.reset`) drops every person, spot and room so the next snapshot is placed at once, and `WorldApi.setClock(at)` feeds `DayNight` an instant of a time-lapse (see [04-ui.md](04-ui.md#time-lapse-mode)); `setClock(null)` returns to the real clock.
 

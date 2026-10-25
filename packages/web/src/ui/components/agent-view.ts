@@ -61,7 +61,7 @@ export class AgentView implements Component {
   private readonly permissionCard: PermissionCard;
   private readonly waitingCard: WaitingCard;
   private readonly shellCard: ShellCard;
-  private readonly actions: Record<'message' | 'follow' | 'center' | 'terminal', ActionButton>;
+  private readonly actions: Record<'message' | 'follow' | 'center' | 'terminal' | 'customize', ActionButton>;
   private activeTab: DrawerTab | null = null;
 
   constructor(private readonly ctx: AppContext) {
@@ -79,6 +79,7 @@ export class AgentView implements Component {
       follow: this.action('follow', t('agent.action.follow'), () => ctx.toggleFollow()),
       center: this.action('target', t('agent.action.center'), () => ctx.world.focusSelection()),
       terminal: this.action('terminal', t('agent.action.terminal'), () => this.toggleTerminal()),
+      customize: this.action('palette', t('customize.action'), () => this.openCustomize()),
     };
     this.roomLink.append(icon('folder', 14), this.roomName);
     this.roomLink.addEventListener(
@@ -180,6 +181,10 @@ export class AgentView implements Component {
     this.ctx.ui.set({ drawerTab: 'messages', composerFocus: ui.composerFocus + 1 });
   }
 
+  private openCustomize(): void {
+    if (this.agentId) this.ctx.openCustomize({ kind: 'agent', id: this.agentId });
+  }
+
   private toggleTerminal(): void {
     const agent = this.agentId ? this.ctx.agent(this.agentId) : undefined;
     if (!agent) return;
@@ -241,6 +246,7 @@ export class AgentView implements Component {
       !local ? localOnlyHint() : (readOnly ?? t('agent.gone')),
     );
     setDisabled(this.actions.terminal.el, !local, localOnlyHint());
+    setDisabled(this.actions.customize.el, !local, localOnlyHint());
     const ui = this.ctx.ui.get();
     setPressed(this.actions.follow.el, ui.following);
     setPressed(this.actions.terminal.el, ui.terminal?.officeAgentId === agent.id);

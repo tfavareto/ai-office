@@ -1,6 +1,8 @@
 // Defensive parsing of everything that comes from the network: never trust external data.
 import {
   parseLogFile,
+  parseLook,
+  parseTheme,
   parseRulesFile,
   type Activity,
   type Agent,
@@ -118,8 +120,12 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
         suggestions: arr(raw.permission.suggestions, (s): s is string => typeof s === 'string'),
       } as unknown as Agent['permission'])
     : undefined;
+  const { appearance: rawAppearance, defaultName: rawDefaultName, ...rest } = raw;
+  const appearance = parseLook(rawAppearance);
   return withValidSource({
-    ...(raw as unknown as Agent),
+    ...(rest as unknown as Agent),
+    ...(appearance !== undefined ? { appearance } : {}),
+    ...(typeof rawDefaultName === 'string' ? { defaultName: rawDefaultName } : {}),
     kind: raw.kind === 'sub' ? 'sub' : 'main',
     recent: arr(raw.recent, isActivity),
     tasks: Array.isArray(raw.tasks) ? (raw.tasks as Agent['tasks']) : [],
@@ -131,9 +137,18 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
 
 /** A project as the snapshot carries it, with its optional repository state validated (or dropped). */
 function normalizeProject(raw: Record<string, unknown>): Project {
-  const { git: rawState, ...rest } = raw;
+  const { git: rawState, theme: rawTheme, originalName, pinned, hidden, rank, ...rest } = raw;
   const state = parseProjectGit(rawState);
-  return { ...(rest as unknown as Project), ...(state !== undefined ? { git: state } : {}) };
+  const theme = parseTheme(rawTheme);
+  return {
+    ...(rest as unknown as Project),
+    ...(state !== undefined ? { git: state } : {}),
+    ...(theme !== undefined ? { theme } : {}),
+    ...(typeof originalName === 'string' ? { originalName } : {}),
+    ...(pinned === true ? { pinned } : {}),
+    ...(hidden === true ? { hidden } : {}),
+    ...(typeof rank === 'number' && Number.isInteger(rank) && rank >= 0 ? { rank } : {}),
+  };
 }
 
 function isPendingHire(value: unknown): value is PendingHire {

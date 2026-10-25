@@ -7,7 +7,10 @@ export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
 /** The tabs of the "Meu dia" dialog. */
 export type DayTab = 'time' | 'report';
-export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'achievements';
+export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'customize' | 'achievements';
+
+/** What the customization dialog edits: one agent, one room, or the order of the rooms. */
+export type CustomizeTarget = { kind: 'agent'; id: string } | { kind: 'room'; id: string } | { kind: 'layout' };
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {
@@ -45,6 +48,8 @@ export interface UiData {
   hire: HireTarget;
   /** The day (YYYY-MM-DD) the share dialog makes a card for. */
   shareDate: string;
+  /** What the customization dialog edits when it opens. */
+  customize: CustomizeTarget;
 }
 
 export const NARROW_BREAKPOINT = 900;
@@ -68,6 +73,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     dayTab: 'time',
     hire: {},
     shareDate: '',
+    customize: { kind: 'layout' },
   };
 }
 

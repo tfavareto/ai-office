@@ -81,10 +81,62 @@ function bodyLounge(ctx: Ctx, w: number): void {
   hline(ctx, 0, 18, w, rgba('#000000', 0.2));
 }
 
+function plasterWall(ctx: Ctx, w: number, accent: string): void {
+  const base = mix('#ece6da', accent, 0.2);
+  rect(ctx, 0, CROWN_H, w, SKIRT_Y - CROWN_H, base);
+  rect(ctx, 0, CROWN_H + 6, w, SKIRT_Y - CROWN_H - 6, shade(base, -0.03));
+  hline(ctx, 0, 19, w, shade(base, -0.14));
+  hline(ctx, 0, 20, w, shade(base, 0.12));
+  for (let x = 0; x < w; x += 3)
+    if (noise2(x, 4, 17) > 0.8) rect(ctx, x, CROWN_H + 6 + Math.floor(noise2(x, 9, 3) * 16), 1, 1, shade(base, -0.07));
+}
+
+function brickWall(ctx: Ctx, w: number, accent: string): void {
+  const mortar = '#cfc3b3';
+  rect(ctx, 0, CROWN_H, w, SKIRT_Y - CROWN_H, mortar);
+  for (let row = 0; row * 4 < SKIRT_Y - CROWN_H; row++) {
+    const y = CROWN_H + row * 4;
+    const offset = row % 2 === 0 ? 0 : 4;
+    for (let x = -offset; x < w; x += 8) {
+      const tone = noise2(Math.floor((x + offset) / 8), row, 33);
+      const brick = mix('#a45a45', accent, 0.18);
+      const c = tone < 0.33 ? brick : tone < 0.66 ? shade(brick, -0.1) : shade(brick, 0.1);
+      rect(ctx, Math.max(0, x), y, Math.min(7, w - Math.max(0, x)), 3, c);
+      hline(ctx, Math.max(0, x), y, Math.min(7, w - Math.max(0, x)), shade(c, 0.18));
+    }
+  }
+}
+
+function concreteWall(ctx: Ctx, w: number, accent: string): void {
+  const base = mix('#a4a8ad', accent, 0.08);
+  rect(ctx, 0, CROWN_H, w, SKIRT_Y - CROWN_H, base);
+  for (let x = 0; x < w; x += 32) {
+    vline(ctx, x, CROWN_H, SKIRT_Y - CROWN_H, shade(base, -0.18));
+    vline(ctx, x + 1, CROWN_H, SKIRT_Y - CROWN_H, shade(base, 0.1));
+  }
+  for (let x = 0; x < w; x++)
+    for (let y = CROWN_H; y < SKIRT_Y; y += 2) {
+      const n = noise2(x, y, 51);
+      if (n > 0.88) rect(ctx, x, y, 1, 1, shade(base, 0.1));
+      else if (n < 0.1) rect(ctx, x, y, 1, 1, shade(base, -0.1));
+    }
+}
+
 function bodyProject(ctx: Ctx, area: AreaLayout, w: number): void {
-  const wood = WOODS[area.theme.wood];
-  slats(ctx, 0, CROWN_H, w, SKIRT_Y - CROWN_H, wood, area.theme.hue);
   const accent = area.theme.accent;
+  switch (area.theme.wall) {
+    case 'plaster':
+      plasterWall(ctx, w, accent);
+      break;
+    case 'brick':
+      brickWall(ctx, w, accent);
+      break;
+    case 'concrete':
+      concreteWall(ctx, w, accent);
+      break;
+    default:
+      slats(ctx, 0, CROWN_H, w, SKIRT_Y - CROWN_H, WOODS[area.theme.wood], area.theme.hue);
+  }
   rect(ctx, 0, CROWN_H, w, 2, accent);
   hline(ctx, 0, CROWN_H + 2, w, rgba(accent, 0.45));
   hline(ctx, 0, CROWN_H + 3, w, rgba(accent, 0.2));

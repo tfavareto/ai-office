@@ -133,6 +133,30 @@ describe('captureSnapshot', () => {
   });
 });
 
+describe('captureSnapshot with a customized office', () => {
+  it('keeps the looks and finishes (they say nothing private) and follows the arrangement of the building', () => {
+    const source = snapshot({
+      projects: [
+        project({ id: '/a', name: 'a', order: 0, theme: { floor: 'wood', sign: 'neon' } }),
+        project({ id: '/b', name: 'Casa', originalName: 'secret-b', order: 1, pinned: true, rank: 0 }),
+        project({ id: '/c', name: 'c', order: 2, hidden: true }),
+      ],
+      agents: [
+        agent({ id: 'x', projectId: '/a', appearance: { accessory: 'cap', outfit: 'teal' } }),
+        agent({ id: 'y', projectId: '/b' }),
+        agent({ id: 'z', projectId: '/c' }),
+      ],
+    });
+    const safe = captureSnapshot(source, { showProjectNames: false, roomLabel });
+    expect(safe.projects.map((p) => p.name)).toEqual(['Room 1', 'Room 2']);
+    expect(safe.projects[1]?.theme).toEqual({ floor: 'wood', sign: 'neon' });
+    expect(safe.agents.map((a) => a.id)).toEqual(['x', 'y']);
+    expect(safe.agents[0]?.appearance).toEqual({ accessory: 'cap', outfit: 'teal' });
+    expect(JSON.stringify(safe)).not.toContain('secret-b');
+    expect(JSON.stringify(safe)).not.toContain('Casa');
+  });
+});
+
 describe('captureSize', () => {
   it('rounds to whole pixels', () => {
     expect(captureSize({ width: 1200.4, height: 629.6 })).toEqual({ width: 1200, height: 630 });

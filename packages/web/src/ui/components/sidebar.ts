@@ -187,6 +187,7 @@ export class Sidebar implements Component {
     const branchText = h('span', { class: 'ao-room-branch-text' });
     const branchDot = h('span', { class: 'ao-room-branch-dot', 'aria-hidden': 'true' });
     const branch = h('span', { class: 'ao-room-branch', hidden: true }, icon('branch', 11), branchText, branchDot);
+    const flag = h('span', { class: 'ao-room-flag', hidden: true });
     const attention = h('span', { class: 'ao-room-attention', hidden: true });
     const progressBar = h('span', { class: 'ao-progress-bar' });
     const progress = h('span', { class: 'ao-progress', hidden: true }, progressBar);
@@ -198,6 +199,13 @@ export class Sidebar implements Component {
       className: 'ao-iconbtn--small ao-room-hire',
       onClick: () => this.ctx.openHire({ projectPath: path }),
     });
+    const customize = iconButton({
+      icon: 'palette',
+      label: t('customize.action'),
+      size: 15,
+      className: 'ao-iconbtn--small ao-room-hire',
+      onClick: () => this.ctx.openCustomize({ kind: 'room', id: projectId }),
+    });
     const toggle = h(
       'button',
       { type: 'button', class: 'ao-room-toggle', 'aria-label': t('sidebar.room.toggle') },
@@ -208,6 +216,7 @@ export class Sidebar implements Component {
       { type: 'button', class: 'ao-room-main' },
       swatch,
       name,
+      flag,
       attention,
       count,
       progressText,
@@ -217,7 +226,7 @@ export class Sidebar implements Component {
     const el = h(
       'section',
       { class: 'ao-room' },
-      h('div', { class: 'ao-room-head' }, toggle, main, hire),
+      h('div', { class: 'ao-room-head' }, toggle, main, customize, hire),
       branch,
       rowsEl,
     );
@@ -240,13 +249,27 @@ export class Sidebar implements Component {
         const ui = this.ctx.ui.get();
         const collapsed = ui.collapsedRooms.includes(room.project.id);
         const selected = ui.selection?.type === 'room' && ui.selection.id === room.project.id;
-        swatch.style.background = roomColor(room.project.seed);
+        swatch.style.background = room.project.theme?.color ?? roomColor(room.project.seed);
         setText(name, room.project.name);
+        const hidden = room.project.hidden === true;
+        const pinned = room.project.pinned === true;
+        flag.hidden = !hidden && !pinned;
+        if (hidden || pinned) {
+          flag.replaceChildren(icon(hidden ? 'eyeOff' : 'pin', 12));
+          setAttr(flag, 'title', t(hidden ? 'sidebar.room.hidden' : 'sidebar.room.pinned'));
+          setAttr(flag, 'role', 'img');
+          setAttr(flag, 'aria-label', t(hidden ? 'sidebar.room.hidden' : 'sidebar.room.pinned'));
+        }
+        toggleClass(el, 'is-hidden-room', hidden);
         main.title = room.project.path;
         const hireLabel = t('hire.action.room', { room: room.project.name });
         hire.setAttribute('aria-label', hireLabel);
         hire.dataset.baseTitle = hireLabel;
         setDisabled(hire, !this.ctx.isLocal, localOnlyHint());
+        const customizeLabel = t('customize.action.room', { room: room.project.name });
+        customize.setAttribute('aria-label', customizeLabel);
+        customize.dataset.baseTitle = customizeLabel;
+        setDisabled(customize, !this.ctx.isLocal, localOnlyHint());
         const chip = this.ctx.prefs.get().showGit ? branchChip(room.project.git) : null;
         branch.hidden = chip === null;
         if (chip !== null) {

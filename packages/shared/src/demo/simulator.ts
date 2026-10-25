@@ -18,6 +18,7 @@ import type {
 } from '../model';
 import type { UsageRow } from '../usage/types';
 import type { DemoHireOptions, DemoOptions, DemoSimulator, DemoTick } from './types';
+import { customizedDemo } from './customization';
 import { type DemoSessionAnchor, demoAccountUsage, demoUsageRows } from './usage-history';
 import {
   type ActivityDraft,
@@ -191,11 +192,16 @@ class Simulator implements DemoSimulator {
     return result;
   }
 
+  /** The agents, with the demo's own customization on them (a few names and looks). */
   agents(): Agent[] {
-    return Array.from(this.agentMap.values());
+    return customizedDemo(this.rawProjects(), Array.from(this.agentMap.values())).agents;
   }
 
   projects(): Project[] {
+    return customizedDemo(this.rawProjects(), Array.from(this.agentMap.values())).projects;
+  }
+
+  private rawProjects(): Project[] {
     const active = new Set(Array.from(this.agentMap.values()).map((agent) => agent.projectId));
     return Array.from(this.projectMap.entries())
       .filter(([path]) => active.has(path))

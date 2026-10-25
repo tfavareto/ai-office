@@ -1,5 +1,6 @@
 import { AreaBuilder } from './builder';
-import { hslToHex } from './color';
+import { SIGN_STYLES, type RoomFloor, type RoomTheme } from '@ai-office/shared';
+import { hexHue, hslToHex } from './color';
 import { ROOM_W } from './constants';
 import { Rng } from './rng';
 import { slotPosition } from './slots';
@@ -21,6 +22,51 @@ export function projectTheme(seed: number): AreaTheme {
     wood: rng.int(3),
   };
 }
+
+const FLOOR_MATERIAL: Readonly<Record<RoomFloor, AreaTheme['floor']>> = {
+  wood: 'wood',
+  carpet: 'carpet',
+  tiles: 'tile',
+  concrete: 'stone',
+};
+
+/** The theme a room gets from its seed, with the finishes the person chose put on top. */
+export function themeWith(base: AreaTheme, custom: RoomTheme | undefined): AreaTheme {
+  if (custom === undefined) return base;
+  const color =
+    custom.color === undefined
+      ? {}
+      : {
+          hue: hexHue(custom.color),
+          accent: custom.color,
+          carpet: hslToHex(hexHue(custom.color), 0.12, 0.32),
+          carpetAlt: hslToHex(hexHue(custom.color), 0.12, 0.28),
+        };
+  return {
+    ...base,
+    ...color,
+    ...(custom.floor !== undefined ? { floor: FLOOR_MATERIAL[custom.floor] } : {}),
+    ...(custom.wall !== undefined ? { wall: custom.wall } : {}),
+    ...(custom.plants !== undefined ? { plants: custom.plants } : {}),
+    ...(custom.sign !== undefined ? { sign: custom.sign } : {}),
+  };
+}
+
+/** Wall item variant of each sign style: 0 is the brass plate every room had before styles existed. */
+export function signVariant(style: AreaTheme['sign']): number {
+  return Math.max(
+    0,
+    SIGN_STYLES.findIndex((candidate) => candidate === style),
+  );
+}
+
+/** Edge tiles where a lush room gets extra plants: in the lanes between desk rows, clear of every path. */
+const EXTRA_PLANTS: readonly Bay[] = [
+  { fx: 0, fy: 2 },
+  { fx: 8, fy: 2 },
+  { fx: 0, fy: 5 },
+  { fx: 8, fy: 5 },
+];
 
 interface Bay {
   fx: number;
@@ -57,6 +103,18 @@ const DECOR: readonly DecorFn[] = [
   },
 ];
 
+/** Fewer plants takes all of them away; lush adds one to each lane edge. The random draws above are unaffected. */
+function withPlantDensity(b: AreaBuilder, rng: Rng): AreaLayout {
+  const density = b.area.theme.plants;
+  if (density === 'few') {
+    const kept = b.area.furniture.filter((item) => item.kind !== 'plant' && item.kind !== 'plantTall');
+    b.area.furniture.splice(0, b.area.furniture.length, ...kept);
+  } else if (density === 'lush') {
+    for (const bay of EXTRA_PLANTS) b.put('plant', bay.fx, bay.fy, 1, 1, { variant: rng.int(4) });
+  }
+  return b.build();
+}
+
 /** A project room: 6 workstations around a central aisle, deterministic variations from the project seed. */
 export function layoutProjectRoom(spec: RoomSpec): AreaLayout {
   const slot = slotPosition(spec.slot);
@@ -67,14 +125,15 @@ export function layoutProjectRoom(spec: RoomSpec): AreaLayout {
     row: slot.row,
     x: slot.x,
     width: ROOM_W,
-    theme: projectTheme(spec.seed),
+    theme: themeWith(projectTheme(spec.seed), spec.theme),
     projectId: spec.id,
     slot: spec.slot,
   });
   const rng = new Rng(spec.seed ^ 0x9e3779b9);
   const northRow = slot.row === 'north';
 
-  b.wallItem('sign', 0, 3);
+  const variantOfSign = signVariant(b.area.theme.sign);
+  b.wallItem('sign', 0, 3, variantOfSign);
   if (northRow) {
     b.wallItem('board', 3, 3);
     b.wallItem(rng.chance(0.5) ? 'clock' : 'poster', 7, 2, rng.int(3));
@@ -114,5 +173,5 @@ export function layoutProjectRoom(spec: RoomSpec): AreaLayout {
   b.spot('overflow', 6.5, 5.55, 'n', { approach: { x: 6, y: 5 } });
   b.spot('overflow', 7.5, 5.55, 'n', { approach: { x: 7, y: 5 } });
   b.door(AISLE_FX, 1, 'door');
-  return b.build();
+  return withPlantDensity(b, rng);
 }

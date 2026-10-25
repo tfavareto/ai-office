@@ -67,7 +67,7 @@ People react to their status and to what their agent is doing. **Working** peopl
 
 Select a person to open the drawer.
 
-**Header.** Avatar, name, kind (**Main** or the subagent's role), account chip and a link to the room. Below it, the session title, the current status with how long ago it began, and four actions:
+**Header.** Avatar, name, kind (**Main** or the subagent's role), account chip and a link to the room. Below it, the session title, the current status with how long ago it began, and five actions:
 
 | Action | Effect |
 | --- | --- |
@@ -75,6 +75,7 @@ Select a person to open the drawer.
 | **Follow** | Camera follows the agent (`F`). |
 | **Center** | Moves the camera to the agent once. |
 | **Terminal** | Opens the read-only terminal panel (`T`). |
+| **Customize** | Opens the [personalization](#personalization) editor for this agent. |
 
 **Urgent cards** always sit at the top:
 
@@ -106,7 +107,7 @@ Messages need the [plugin](03-plugin.md#messages-to-agents). A message to an age
 
 ## Details drawer: a room
 
-Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a team composer (**Send to the team**), **Git** (see below), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
+Select a room (click it, or its row in the sidebar). The drawer shows the room color and project name (with a button to copy the path), counts for agents, working and needing you, the **Accounts** present, the **Agents** list, a **Customize** button (see [Personalization](#personalization)), a team composer (**Send to the team**), **Git** (see below), **Tasks** from every agent's plan and **Recent activity**. A team message goes to every agent in the room (up to 24) and its history reads like "2 of 3 delivered".
 
 ### Git
 
@@ -177,6 +178,22 @@ Some requests come again and again: `npm test`, edits in `src/`, a documentation
 **Safety.** Dangerous requests (deleting files recursively, `sudo`, forced pushes, hard resets, piping a download into a shell, wiping disks, writing secrets or system files, running inline code such as `bash -c`) are **never approved by a rule**, even when one matches: you are asked, and the log says why. Allow rules also only match single commands, never ones chained with `;`, `&&`, `||`, `|`, backticks, `$(` or redirections. When you try to save an allow rule that would cover dangerous commands (`any` on Bash, `rm`, `sudo`, `git push`...) or compound ones, the dialog refuses and explains. See [Privacy and security](05-privacy-and-security.md#approval-rules).
 
 **The log.** The **Log** tab lists the last 500 automatic decisions, newest first: approved, denied, or "asked you" (the rule matched but the request was risky), with who asked, what, and which rule answered. Filter by result, by text or by rule; **Clear log** erases it. Each automatic answer also leaves a quiet line in the agent's activity ("Rule approved: npm test"). Rules work in demo mode too.
+
+## Personalization
+
+Make the office yours. Everything stays on your computer (in `customization.json`, see [what AI Office stores](05-privacy-and-security.md#what-ai-office-stores)) and every browser tab shows it, share card included. It needs a page opened on this computer, like hiring.
+
+**An agent.** Select someone and press **Customize** (or use the same button on a room's row in the sidebar for the room). The editor shows a live portrait, drawn by the visual you are using, and lets you:
+
+- **Rename** the agent (up to 32 characters, no control characters). Leave the name empty to bring back the one the office picked.
+- Choose the **skin tone**, **hair style** (four per look), **hair color**, **outfit** color and **accessory** (glasses, headphones, a cap, or none). **Automatic** leaves a part to the default, which is drawn from the agent's session as always. The same choices are drawn in 2D and in 3D.
+- Decide **where the look applies**: this agent only, everybody in its room (a team color: "everyone here wears teal") or everybody on its account. An agent's own choices win over its room's, and the room's over the account's. A subagent wears what its main agent's room and account give unless you customize it itself.
+
+**A room.** The **Customize** button of a room offers the **name shown** (the project does not change; leave it empty for the folder's name), a **color**, **floor** (wood, carpet, tiles, concrete), **wall** (wood slats, smooth plaster, brick, raw concrete), **plants** (few, normal, many), the **sign** (brass, neon, wood, minimal), the team's outfit, **Pin to the front** and **Hide from the building**. Only that room is redrawn.
+
+**The order of the rooms.** **Settings → Personalization → Arrange rooms…** (or the same button when you customize a room) shows the slots of the building: the north row, the corridor and the south row, with each room in its slot. Drag rooms on the plan or in the list, or use the up and down buttons (they work with the keyboard). Pinned rooms take the first slots; a hidden room leaves the building (its people walk out through the elevator) but stays in the sidebar with an eye icon. **Restore order** puts the rooms back in the order they arrived.
+
+**Resetting.** **Restore default** in an editor resets that agent or room. **Settings → Personalization** lists everything you changed with a reset button for each item, and **Restore everything** (asks you to confirm) clears it all. In demo mode a few agents and rooms come customized, so you can see the effect; your own choices go on top.
 
 ## Hiring an agent
 
@@ -340,6 +357,7 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
+| **Personalization** | How much is customized, **Arrange rooms…**, a list of what was changed with a reset for each item and **Restore everything**. See [Personalization](#personalization). Needs a local page. |
 | **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |
 | **About** | Version and build. |
 

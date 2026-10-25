@@ -40,6 +40,17 @@ describe('NameStore', () => {
     expect(reloaded.assign('claude:abc', new Set())).toEqual(person);
   });
 
+  test('shows the name the person chose and keeps the one the office picked', () => {
+    const chosen = new Map([['k', 'Rô']]);
+    const store = new NameStore(undefined, silentLogger, (id) => chosen.get(id));
+    const picked = store.assign('k', new Set());
+    expect(store.display('k', picked)).toEqual({ name: 'Rô', look: picked.look });
+    expect(store.customName('k')).toBe('Rô');
+    expect(store.assign('k', new Set())).toEqual(picked);
+    chosen.delete('k');
+    expect(store.display('k', picked)).toEqual(picked);
+  });
+
   test('survives a corrupt names file', async () => {
     const { writeFile } = await import('node:fs/promises');
     await writeFile(join(dir, 'names.json'), '{oops');

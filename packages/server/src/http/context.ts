@@ -6,6 +6,7 @@ import type { Account } from '@ai-office/shared';
 import type { TranscriptCache } from '../claude/transcript';
 import type { ServerConfig } from '../config';
 import type { Logger } from '../log';
+import type { CustomizationStore } from '../customization/store';
 import type { DayRecorder } from '../office/day-recorder';
 import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
@@ -39,6 +40,7 @@ export interface AppContext {
   snapshots: SnapshotPublisher;
   permissions: PermissionRegistry;
   rules: RulesStore;
+  customization: CustomizationStore;
   messages: MessageRegistry;
   attention: AttentionRegistry;
   hires: HireService;

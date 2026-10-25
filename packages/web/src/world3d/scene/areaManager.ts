@@ -51,7 +51,8 @@ function hasDecor(area: AreaLayout): boolean {
 function signatureOf(area: AreaLayout, building: BuildingLayout, evolution: Evolution): string {
   const r = area.rect;
   const decor = hasDecor(area) ? evolutionKey(evolution) : '';
-  const base = `${area.kind}|${r.x},${r.y},${r.w},${r.h}|${area.label}|${area.theme.carpet}|${area.furniture.length}|${decor}`;
+  // The theme and the furniture take part whole: a changed finish builds that room again and no other.
+  const base = `${area.kind}|${r.x},${r.y},${r.w},${r.h}|${area.label}|${JSON.stringify(area.theme)}|${area.furniture.map((f) => `${f.kind}${f.x},${f.y},${f.variant}`).join(';')}|${decor}`;
   if (area.kind === 'terrace' || area.kind === 'corridor') return `${base}|${building.width}|${area.doors.length}`;
   return base;
 }

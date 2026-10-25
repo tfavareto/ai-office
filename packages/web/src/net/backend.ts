@@ -4,6 +4,7 @@ import type {
   Activity,
   AutoDecision,
   BossMessage,
+  Customization,
   DayReport,
   DayStats,
   CodexSettings,
@@ -91,6 +92,12 @@ export interface Backend {
   clearRuleLog(): Promise<void>;
   /** How many of today's requests the rule would have answered. */
   previewRule(draft: RuleDraft): Promise<RulePreview>;
+  /** Everything the person changed about names, looks, rooms and their order (local access only). */
+  customization(): Promise<Customization>;
+  /** A JSON merge patch of the customization: `null` resets a key. Resolves to the whole document. */
+  patchCustomization(patch: object): Promise<Customization>;
+  /** Back to the defaults for everything. */
+  resetCustomization(): Promise<Customization>;
   /** Opens a terminal running Claude Code in the folder (local access only); the placeholder then arrives in the snapshot. */
   hireAgent(request: HireRequest): Promise<PendingHire>;
   /** Whether a folder can host a new agent (feedback while typing a path). */

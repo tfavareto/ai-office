@@ -39,6 +39,7 @@ import {
 } from './parse';
 import { parseCodexSettings } from './parse-codex';
 import { parseGitSettings } from './parse-git';
+import { parseCustomizationResponse } from './parse-customization';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 /** The server may spend up to 25 s reading the day's transcripts. */
@@ -194,6 +195,32 @@ export class HttpBackend implements Backend {
   async setGitPullRequests(on: boolean) {
     const { body } = await this.post(API.gitSettings, { pullRequests: on });
     return parseGitSettings(body);
+  }
+
+  async customization() {
+    return parseCustomizationResponse(await this.get(API.customization));
+  }
+
+  async patchCustomization(patch: object) {
+    return parseCustomizationResponse(await this.writeCustomization('PATCH', patch));
+  }
+
+  async resetCustomization() {
+    return parseCustomizationResponse(await this.writeCustomization('DELETE'));
+  }
+
+  /** PATCH or DELETE the customization; the server explains a refusal by code (`invalid-name`...) in `error`. */
+  private async writeCustomization(method: 'PATCH' | 'DELETE', payload?: object): Promise<unknown> {
+    const { status, body } = await this.request(this.url(API.customization), {
+      method,
+      headers: {
+        Accept: 'application/json',
+        ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+    });
+    if (status < 200 || status >= 300) throw new BackendError(errorText(body), status);
+    return body;
   }
 
   async codexSettings() {

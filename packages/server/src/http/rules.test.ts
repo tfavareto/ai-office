@@ -231,7 +231,8 @@ describe('rules endpoints', () => {
     expect((await send('DELETE', '/api/rules/x', undefined, { ...auth(), origin: 'http://evil.example' })).status).toBe(
       403,
     );
-    expect((await send('PUT', '/api/rules', {})).status).toBe(405);
+    expect((await send('PUT', '/api/rules', {})).status).toBe(404);
+    expect((await send('OPTIONS', '/api/rules')).status).toBe(405);
   });
 
   test('is local only', async () => {

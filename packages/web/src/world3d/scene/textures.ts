@@ -110,6 +110,28 @@ export function slatTexture(base = '#6b4630'): CanvasTexture {
   return toTexture(canvas);
 }
 
+/** Running-bond brick (one repeat = 1 m wide, 8 courses) with mortar joints and per-brick tone. */
+export function brickTexture(): CanvasTexture {
+  const { canvas, ctx } = canvas2d(256, 256);
+  const rng = new Rng(61);
+  ctx.fillStyle = '#c9bdae';
+  ctx.fillRect(0, 0, 256, 256);
+  const courses = 8;
+  const rowH = 256 / courses;
+  for (let row = 0; row < courses; row++) {
+    const offset = row % 2 === 0 ? 0 : 32;
+    for (let x = -offset; x < 256; x += 64) {
+      const tone = rng.range(-0.12, 0.12);
+      const l = 40 + tone * 100;
+      ctx.fillStyle = `hsl(${rng.range(10, 18)},${rng.range(38, 48)}%,${l}%)`;
+      ctx.fillRect(x + 2, row * rowH + 2, 60, rowH - 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(x + 2, row * rowH + 2, 60, 2);
+    }
+  }
+  return toTexture(canvas);
+}
+
 /** Planks for outdoor decks (repeat = 1 m). */
 export function deckTexture(): CanvasTexture {
   const { canvas, ctx } = canvas2d(256, 256);

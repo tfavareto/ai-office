@@ -7,6 +7,9 @@ import { asRecord, readJsonFile, writeJsonAtomic } from '../util/fs-safe';
 const MAX_STORED = 3000;
 const SAVE_DELAY_MS = 1500;
 
+/** The name a person gave to an agent, by agent id (the customization). */
+export type CustomNames = (agentId: string) => string | undefined;
+
 export class NameStore {
   private readonly names = new Map<string, string>();
   private saveTimer: NodeJS.Timeout | undefined;
@@ -14,10 +17,22 @@ export class NameStore {
   constructor(
     private readonly file: string | undefined,
     private readonly log: Logger,
+    private readonly custom: CustomNames = () => undefined,
   ) {}
 
-  static forStateDir(stateDir: string, log: Logger): NameStore {
-    return new NameStore(join(stateDir, 'names.json'), log);
+  static forStateDir(stateDir: string, log: Logger, custom?: CustomNames): NameStore {
+    return new NameStore(join(stateDir, 'names.json'), log, custom);
+  }
+
+  /** The name the person chose for this agent, if any. */
+  customName(key: string): string | undefined {
+    return this.custom(key);
+  }
+
+  /** The person to show: the chosen name wins over the one the office picked; the look stays the picked one's. */
+  display(key: string, person: PersonName): PersonName {
+    const chosen = this.custom(key);
+    return chosen === undefined ? person : { name: chosen, look: person.look };
   }
 
   async load(): Promise<void> {

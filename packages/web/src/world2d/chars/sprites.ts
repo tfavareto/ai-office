@@ -296,7 +296,12 @@ function hairFront(p: Pen, look: Look, hx: number, hy: number, w: number): void 
   p.r(hx, hy - 1, w, 3, hair);
   p.r(hx + 1, hy - 2, w - 2, 1, hair);
   p.r(hx + 1, hy - 1, 2, 1, hairLight);
-  if (f) {
+  if (s === 6) {
+    p.r(hx - 1, hy - 3, w + 2, 5, hair);
+    p.r(hx - 2, hy - 1, 2, 5, hair);
+    p.r(hx + w, hy - 1, 2, 5, hair);
+    p.r(hx + 1, hy - 3, 3, 1, hairLight);
+  } else if (f) {
     if (s === 0 || s === 4) {
       p.r(hx - 1, hy, 2, 12, hair);
       p.r(hx + w - 1, hy, 2, 12, hair);
@@ -338,6 +343,42 @@ function hairFront(p: Pen, look: Look, hx: number, hy: number, w: number): void 
   }
 }
 
+const HEADSET = { band: '#2a2f3a', cup: '#39404f', pad: '#8d99ad' } as const;
+
+/** Headphones or a cap on top of the hair; `view` says how the head is turned. */
+function accessory(p: Pen, look: Look, hx: number, hy: number, w: number, view: 'front' | 'back' | 'side'): void {
+  if (look.headphones) {
+    p.r(hx - 1, hy - 3, w + 2, 1, HEADSET.band);
+    if (view === 'side') {
+      p.r(hx + 1, hy - 2, 1, 3, HEADSET.band);
+      p.r(hx + 1, hy + 1, 3, 4, HEADSET.cup);
+      p.r(hx + 2, hy + 2, 1, 2, HEADSET.pad);
+      return;
+    }
+    p.r(hx - 1, hy - 2, 1, 4, HEADSET.band);
+    p.r(hx + w, hy - 2, 1, 4, HEADSET.band);
+    p.r(hx - 2, hy + 2, 2, 4, HEADSET.cup);
+    p.r(hx + w, hy + 2, 2, 4, HEADSET.cup);
+    p.r(hx - 2, hy + 3, 1, 2, HEADSET.pad);
+    p.r(hx + w + 1, hy + 3, 1, 2, HEADSET.pad);
+    return;
+  }
+  if (!look.cap) return;
+  const dark = shade(look.capColor, -0.3);
+  if (view === 'side') {
+    p.r(hx - 2, hy - 3, w + 2, 4, look.capColor);
+    p.r(hx - 1, hy - 4, w, 1, look.capColor);
+    p.r(hx + w - 1, hy, 4, 1, dark);
+    p.r(hx - 2, hy, w + 1, 1, dark);
+    return;
+  }
+  p.r(hx - 1, hy - 3, w + 2, 3, look.capColor);
+  p.r(hx, hy - 4, w, 1, look.capColor);
+  p.r(hx + 1, hy - 3, 2, 1, shade(look.capColor, 0.25));
+  if (view === 'front') p.r(hx - 1, hy, w + 2, 1, dark);
+  else p.r(hx + 2, hy + 1, w - 4, 1, dark);
+}
+
 function headFront(p: Pen, look: Look, hx: number, hy: number, rig: Rig): void {
   const w = 8;
   p.r(hx, hy, w, 8, look.skin);
@@ -370,6 +411,7 @@ function headFront(p: Pen, look: Look, hx: number, hy: number, rig: Rig): void {
     p.r(hx + 3, hy + 3, 2, 1, '#20242c');
   }
   hairFront(p, look, hx, hy, w);
+  accessory(p, look, hx, hy, w, 'front');
 }
 
 function headBack(p: Pen, look: Look, hx: number, hy: number): void {
@@ -395,6 +437,8 @@ function headBack(p: Pen, look: Look, hx: number, hy: number): void {
     p.r(hx - 1, hy - 2, w + 2, 6, look.hair);
   }
   if (look.gender === 'm' && look.hairStyle === 5) p.r(hx + 2, hy, w - 4, 3, mix(look.hair, look.skin, 0.65));
+  if (look.hairStyle === 6) p.r(hx - 1, hy - 3, w + 2, 7, look.hair);
+  accessory(p, look, hx, hy, w, 'back');
 }
 
 function headSide(p: Pen, look: Look, hx: number, hy: number, rig: Rig): void {
@@ -430,6 +474,8 @@ function headSide(p: Pen, look: Look, hx: number, hy: number, rig: Rig): void {
   } else p.r(hx - 1, hy, 3, 6, look.hair);
   if (!f && s === 2) p.r(hx, hy - 1, w, 2, mix(look.hair, look.skin, 0.4));
   if (!f && s === 3) p.r(hx - 2, hy - 2, w + 1, 5, look.hair);
+  if (s === 6) p.r(hx - 3, hy - 3, w + 2, 7, look.hair);
+  accessory(p, look, hx, hy, w, 'side');
 }
 
 function torsoColor(look: Look): { body: string; dark: string; light: string } {

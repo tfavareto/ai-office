@@ -31,14 +31,44 @@ function fitName(text: string, maxChars: number): string {
   return `${flat.slice(0, maxChars - 1)}.`;
 }
 
-function sign(ctx: Ctx, x: number, w: number, label: string, accent: string): void {
+/** The room sign: variant 0 is the brass plate, 1 a neon tube, 2 engraved wood, 3 a plain light plate. */
+function sign(ctx: Ctx, x: number, w: number, label: string, accent: string, variant: number): void {
   const px = x * T;
   const pw = w * T;
   const y = ITEM_Y;
+  const text = fitName(label, Math.floor((pw - 18) / 4));
+  if (variant === 1) {
+    rect(ctx, px + 2, y, pw - 4, 11, '#0b0e18');
+    hline(ctx, px + 2, y, pw - 4, accent);
+    hline(ctx, px + 2, y + 10, pw - 4, accent);
+    vline(ctx, px + 2, y, 11, accent);
+    vline(ctx, px + pw - 3, y, 11, accent);
+    rect(ctx, px + 3, y + 1, pw - 6, 9, rgba(accent, 0.16));
+    drawPixelText(ctx, text, px + 6, y + 4, rgba(accent, 0.55));
+    drawPixelText(ctx, text, px + 6, y + 3, shade(accent, 0.6));
+    return;
+  }
+  if (variant === 2) {
+    frame(ctx, px + 2, y, pw - 4, 11, WALNUT.base);
+    rect(ctx, px + 4, y + 2, pw - 8, 7, WALNUT.mid);
+    hline(ctx, px + 4, y + 4, pw - 8, WALNUT.base);
+    hline(ctx, px + 4, y + 7, pw - 8, WALNUT.base);
+    pixel(ctx, px + 4, y + 2, BRASS.base);
+    pixel(ctx, px + pw - 5, y + 2, BRASS.base);
+    drawPixelText(ctx, text, px + 7, y + 3, '#f3dfb8');
+    return;
+  }
+  if (variant === 3) {
+    rect(ctx, px + 2, y, pw - 4, 11, '#efece4');
+    hline(ctx, px + 2, y + 10, pw - 4, accent);
+    hline(ctx, px + 2, y, pw - 4, '#ffffff');
+    rect(ctx, px + 4, y + 3, 3, 4, accent);
+    drawPixelText(ctx, text, px + 9, y + 3, '#22262e');
+    return;
+  }
   frame(ctx, px + 2, y, pw - 4, 11, BRASS.base);
   rect(ctx, px + 4, y + 2, pw - 8, 7, EBONY.base);
   hline(ctx, px + 4, y + 2, pw - 8, EBONY.mid);
-  const text = fitName(label, Math.floor((pw - 18) / 4));
   rect(ctx, px + 5, y + 3, 3, 5, accent);
   rect(ctx, px + 5, y + 3, 3, 1, shade(accent, 0.45));
   drawPixelText(ctx, text, px + 10, y + 3, BRASS.hi);
@@ -196,7 +226,7 @@ export function paintWallItem(
 ): WallItemFrame {
   switch (item.kind) {
     case 'sign':
-      sign(ctx, localX, item.w, label, accent);
+      sign(ctx, localX, item.w, label, accent, item.variant);
       return { screen: null };
     case 'logoSign':
       logoSign(ctx, localX, item.w);

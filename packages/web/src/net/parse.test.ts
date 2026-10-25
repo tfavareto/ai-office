@@ -63,6 +63,42 @@ describe('parseSnapshot', () => {
   });
 });
 
+describe('parseSnapshot with customization', () => {
+  it('keeps valid looks, themes and flags and drops what is not valid', () => {
+    const raw = JSON.parse(
+      JSON.stringify(
+        snapshot({
+          projects: [{ id: 'p', name: 'Casa', path: '/p', seed: 1, order: 0 }],
+          agents: [agent({ id: 'a' })],
+        }),
+      ),
+    ) as Record<string, unknown>;
+    const projects = raw.projects as Record<string, unknown>[];
+    Object.assign(projects[0] as object, {
+      theme: { floor: 'wood', wall: 'lava', color: '#ABCDEF' },
+      originalName: 'p',
+      pinned: true,
+      hidden: 'yes',
+      rank: 2,
+    });
+    Object.assign((raw.agents as object[])[0] as object, {
+      appearance: { skin: 'tan', outfit: 'nope', accessory: 'cap' },
+      defaultName: 'Ana',
+    });
+    const parsed = parseSnapshot(raw);
+    expect(parsed?.projects[0]).toMatchObject({
+      theme: { floor: 'wood', color: '#abcdef' },
+      originalName: 'p',
+      pinned: true,
+      rank: 2,
+    });
+    expect(parsed?.projects[0]?.hidden).toBeUndefined();
+    expect(parsed?.projects[0]?.theme?.wall).toBeUndefined();
+    expect(parsed?.agents[0]).toMatchObject({ appearance: { skin: 'tan', accessory: 'cap' }, defaultName: 'Ana' });
+    expect(parsed?.agents[0]?.appearance?.outfit).toBeUndefined();
+  });
+});
+
 describe('parseSnapshot: session sources', () => {
   it('keeps the Codex source of agents and accounts', () => {
     const base = snapshot({ agents: [agent({ source: 'codex' })] });
