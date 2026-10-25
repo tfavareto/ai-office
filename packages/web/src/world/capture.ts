@@ -1,7 +1,15 @@
 // Still images of the office for sharing: what a world's `capture` is asked for, and the privacy filter every capture
 // applies. A capture never draws from the live scene: it builds a throwaway office from a sanitized copy of the
 // snapshot, so a project name, a task title or a git branch cannot end up in the picture by accident.
-import type { Account, Agent, OfficeSnapshot, Project, ShellJob, TaskItem } from '@ai-office/shared';
+import {
+  isTeamId,
+  type Account,
+  type Agent,
+  type OfficeSnapshot,
+  type Project,
+  type ShellJob,
+  type TaskItem,
+} from '@ai-office/shared';
 import { arrangeSnapshot } from '../layout/arrange';
 
 export type CaptureMode = 'overview' | 'current';
@@ -88,7 +96,10 @@ function plainAccount(account: Account): Account {
  */
 export function captureSnapshot(snapshot: OfficeSnapshot, privacy: CapturePrivacy): OfficeSnapshot {
   // The picture shows the building as the person arranged it: hidden rooms are not in it.
-  const ordered = [...arrangeSnapshot(snapshot).projects].sort((a, b) => a.order - b.order);
+  // The picture is of this office: the other computers of a team are not in it.
+  const ordered = [...arrangeSnapshot(snapshot).projects]
+    .filter((project) => !isTeamId(project.id))
+    .sort((a, b) => a.order - b.order);
   const ids = new Map(ordered.map((project, index) => [project.id, `room-${index + 1}`]));
   const projects: Project[] = ordered.map((project, index) => ({
     id: `room-${index + 1}`,
@@ -111,7 +122,7 @@ export function captureSnapshot(snapshot: OfficeSnapshot, privacy: CapturePrivac
       local: false,
       demo: snapshot.meta.demo,
     },
-    accounts: snapshot.accounts.map(plainAccount),
+    accounts: snapshot.accounts.filter((account) => !isTeamId(account.id)).map(plainAccount),
     projects,
     agents,
     usage: [],

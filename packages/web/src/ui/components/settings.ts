@@ -121,6 +121,18 @@ export class Settings extends Popover {
     onClick: () => this.ctx.openRules(),
   });
   private readonly rulesRow = row(t('rules.settings.label'), this.rulesButton, t('rules.settings.hint'));
+  private readonly teamState = h('span', { class: 'ao-team-state' });
+  private readonly teamButton = button({
+    label: t('settings.team.open'),
+    variant: 'soft',
+    className: 'ao-btn--small',
+    onClick: () => this.ctx.openTeam(),
+  });
+  private readonly teamRow = row(
+    t('settings.team.label'),
+    h('div', { class: 'ao-team-setting' }, this.teamState, this.teamButton),
+    t('settings.team.hint'),
+  );
   private readonly about = h('p', { class: 'ao-setting-about' });
   private readonly customization: CustomizationManager;
   private readonly customizationRow: HTMLElement;
@@ -164,6 +176,7 @@ export class Settings extends Popover {
         this.pullRequestsRow.el,
         this.codexRow.el,
         this.rulesRow.el,
+        this.teamRow.el,
         this.customizationRow,
         this.demoRow.el,
         h(
@@ -281,6 +294,16 @@ export class Settings extends Popover {
     this.codex.el.disabled = !this.ctx.isLocal || this.busy || codex?.locked === true;
     setText(this.codexRow.hint, codex?.locked === true ? t('settings.codex.locked') : t('settings.codex.hint'));
     this.codexRow.hint.hidden = false;
+
+    const team = this.ctx.liveSnapshot?.team;
+    setText(
+      this.teamState,
+      team === undefined
+        ? t('settings.team.state.off')
+        : t(team.role === 'host' ? 'settings.team.state.host' : 'settings.team.state.member', { team: team.teamName }),
+    );
+    this.teamButton.disabled = !this.ctx.isLocal;
+    setAttr(this.teamButton, 'title', this.ctx.isLocal ? null : localOnlyHint());
 
     this.rulesButton.disabled = !this.ctx.isLocal;
     setAttr(this.rulesButton, 'title', this.ctx.isLocal ? null : localOnlyHint());

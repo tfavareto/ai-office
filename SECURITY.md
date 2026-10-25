@@ -25,8 +25,15 @@ AI Office runs on your own computer. These parts are in scope:
   by hooks and by the page, and anything that could leak it.
 - **Web app** (`packages/web`): injection, cross-site scripting, or anything that lets a web page or another local
   origin read data from the server or act on a session.
+- **Team mode** (`packages/server/src/team`, `packages/shared/src/team`, [spec](docs/spec/08-team-mode.md)): the pairing
+  handshake and the session handshake, the encrypted channel, the pairing code and its limits, the key storage, the
+  separate team listener (it must serve nothing but the team protocol, never the web app or a local-only endpoint, and
+  bind only to the chosen LAN address), the sanitizer (nothing outside the allowlist may leave the computer), the readers
+  of data from other machines, and the revocation of members. Weaknesses of the pairing design listed under residual
+  risks in the spec are known; a way around them that the spec does not list is in scope.
 - **Privacy**: anything that makes the app send session content, paths or tokens off the machine. It should make no
-  outbound network requests.
+  outbound network requests, except the opt-in `gh` pull request lookup and, only when you host or join a team, the
+  encrypted connection of team mode to your own local network.
 
 ## Reporting a vulnerability
 

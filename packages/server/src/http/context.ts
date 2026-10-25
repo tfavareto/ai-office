@@ -20,6 +20,7 @@ import type { RulesStore } from '../rules/rules-store';
 import type { GitSettingsStore } from '../git/settings-store';
 import type { GitWatcher } from '../git/watcher';
 import type { HireService } from '../hire/service';
+import type { TeamService } from '../team/service';
 import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
 import type { SnapshotPublisher } from '../office/snapshot';
@@ -44,6 +45,7 @@ export interface AppContext {
   messages: MessageRegistry;
   attention: AttentionRegistry;
   hires: HireService;
+  team: TeamService;
   git: GitWatcher;
   gitSettings: GitSettingsStore;
   day: DayRecorder;

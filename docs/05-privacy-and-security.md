@@ -2,7 +2,7 @@
 
 This guide states exactly what AI Office reads, what it stores, how it keeps everything on your computer, how access is protected and how to report a vulnerability.
 
-The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests (the one optional exception is the pull request lookup through your own `gh` CLI, **off by default**, see [Git and pull requests](#git-and-pull-requests)) and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
+The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests (two optional exceptions, both **off by default**: the pull request lookup through your own `gh` CLI, see [Git and pull requests](#git-and-pull-requests), and [team mode](#team-mode), which talks to computers of your own local network) and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
 
 ## What AI Office reads
 
@@ -41,6 +41,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `usage-index/` | Mode 0700, files 0600. `YYYY-MM.json` shards: per hour, account, project (working directory path), model, session id and subagent id, the counts of input, output, cache-write and cache-read tokens and the estimated cost. `meta.json`: for each transcript, its path relative to the account directory, session and subagent ids, how many bytes were read, its size, modification time, inode, a hash of its first bytes and the ids and counts of the last 16 messages. Numbers and identifiers only: no conversation text. Up to 13 months are kept; delete the folder at any time and it is rebuilt. |
 | `progress.json` | The office level and achievements (mode 0600, written atomically): per local day, counters (sessions, work time, tasks completed, commits, passing test runs, tokens, subagents), the agents with most completed tasks that day (name and the project folder's name, never a path), a folded total of older days, the unlock dates and the first time you watched a time-lapse or shared the card. Numbers and names only: no prompt, reply, task title or file content. Delete it and the history is counted again. |
 | `customization.json` | What you changed with **Personalization** (mode 0600, written atomically, at most 192 KB): the names you gave agents (by agent id), their looks (skin, hair, outfit and accessory choices), the aliases, finishes, pins and hidden flags of rooms (by the project's folder path), looks kept for an account (by account id) and the order of the rooms. Only what you chose: no prompt, reply, title, task or file content. A file this version cannot read is kept aside as `customization.json.unreadable-<time>`. **Settings → Personalization → Restore everything** erases it. |
+| `team/` | Only after you use [team mode](#team-mode). Mode 0700, files 0600: `host.json` (the team you host: its identity key pair, the members' **public** keys, names and devices, the removed ids, where the listener was left), `member.json` (the team you joined: your own key pair, the host's pinned public key and address) and `settings.json` (what you share, and the salt of the opaque agent ids). No pairing code, no session key and nothing received from other computers is written. **Leave the team** or **End the team** deletes the files. |
 | `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
@@ -137,6 +138,27 @@ Levels, achievements and the "Employee of the month" are computed on your comput
 
 If you do not want this at all, do not open the page on the computer that runs AI Office: the endpoint answers 403 `local-only` to every other client. A macOS prompt asks once whether the app that runs the server may control Terminal.
 
+## Team mode
+
+Team mode is the one feature that opens a listening port beyond `127.0.0.1` and the one that sends information about your sessions to other computers. It is **off by default**: nothing listens and nothing connects until you press **Host a team** or **Join a team** in **Settings → Team mode**. The full threat model and protocol are in the [team mode spec](spec/08-team-mode.md); this is what it means for you.
+
+**What leaves your computer, and only if you are in a team.** A sanitized picture of your office, built field by field from an allowlist:
+
+- Always: the name of each agent (the one you gave it, if any), its status (working, waiting, idle), the *kind* of what it is doing ("Editing", "Running a command", never which file or which command), how long ago the status began, which CLI it is, and its look. Your rooms are numbered "Project 1, 2…".
+- Never: folders and paths, prompts and replies, commands, file names, tasks, permission requests, messages, git state, accounts, session ids.
+- Only if you turn the category on (each one **off by default**, in **Settings → Team mode → What I share**): real room names (your alias if you gave one, never the folder behind it), what each agent is doing in words (may include file names and the head of a command), session titles (usually your first prompt), git branches, tokens and cost.
+- **Pause sharing** stops all of it at once without leaving the team. Everything you share is visible to the host and to every other member of the team.
+
+**How it is protected.**
+
+- A separate listener on **one LAN address you choose**, never `0.0.0.0`. It speaks only the team protocol: no web app, no API, no transcripts, no permissions, no messages, no hiring. Anything else (a browser, a scanner) is dropped without a reply. Only private, link-local, shared (Tailscale) and loopback IPv4 addresses are accepted, for listening and for joining: there are no names, so nothing in team mode can be steered to the internet.
+- Joining needs a **pairing code**: 8 characters of an unambiguous alphabet, single use, valid for 10 minutes, destroyed after 5 wrong attempts. The code never crosses the network; both sides prove they know it. After pairing, each computer holds an Ed25519 key, the member pins the host's public key, and the host stores only the members' public keys.
+- **Nothing travels in clear text.** Every message is encrypted and authenticated (AES-256-GCM, a key per direction, keys fresh for each connection); a replayed, altered, reordered or dropped message ends the connection. Plain HTTP on the LAN is not used for data because anyone on the same Wi-Fi could read and rewrite it.
+- The host can list members (name, device, last seen), **remove** one (it cannot come back without a new pairing) and **end** the team. A member can **leave**. People of other computers are drawn read-only: you cannot message them, answer their permissions, open their terminals or hire into their rooms, and the protocol has no message that could.
+- The endpoints that manage team mode are local-only, token-protected and cross-site-guarded like every other local-only endpoint. `AI_OFFICE_TEAM=0` removes the mode entirely.
+
+**What it does not protect against.** Honest limits: Node has no password-authenticated key exchange, so someone who records the pairing or sits in the middle of it can test code guesses offline, each costing a memory-hard key derivation (about 80 ms and 32 MiB) and worth nothing after ten minutes; pair with people you can see, make a new code if anything looks off and check the member list afterwards. The code makes whoever uses it first a member. The existence of the host and who connects to it are visible on the network. IPv6 is not supported. See [residual risks](spec/08-team-mode.md#9-residual-risks-honest-list).
+
 ## Remote access
 
 Remote access is **not supported for browsers**. The setting exists only for programmatic `Bearer` clients:
@@ -145,7 +167,7 @@ Remote access is **not supported for browsers**. The setting exists only for pro
 - Even with it, the server issues no cookie to non-loopback peers, offers no token in the URL, and keeps all local-only features off. A remote browser sees a page that cannot authenticate.
 - With a wildcard bind, only IP-literal `Host` values are accepted, never arbitrary names.
 
-Exposing the server to a network is your responsibility. If you want to see the office from another device, there is no supported way today.
+Exposing the server to a network is your responsibility. If you want to see the office from another device, there is no supported way today. [Team mode](#team-mode) shows the offices of other *computers* inside yours; it never serves the page to another browser.
 
 ## Cost figures are estimates
 

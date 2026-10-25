@@ -7,6 +7,7 @@ import type {
   Project,
   ProjectGit,
   ProgressSummary,
+  TeamSnapshot,
 } from '@ai-office/shared';
 import type { Office } from './office';
 
@@ -24,6 +25,8 @@ export interface SnapshotDeps {
   git?: (projectId: string) => ProjectGit | undefined;
   /** The office level and recent unlocks (the demo's own while demo mode is on). */
   progress?: () => ProgressSummary | undefined;
+  /** The other computers of the team, when this one is in one. */
+  team?: () => TeamSnapshot | undefined;
   emit: (snapshot: OfficeSnapshot) => void;
   minIntervalMs?: number;
 }
@@ -50,6 +53,7 @@ export class SnapshotPublisher {
     );
     const hires = [...this.deps.hires(now), ...state.demoHires];
     const progress = this.deps.progress?.();
+    const team = this.deps.team?.();
     return {
       rev: this.rev,
       serverTime: now,
@@ -60,6 +64,7 @@ export class SnapshotPublisher {
       usage: [...realUsage, ...state.demoUsage],
       ...(hires.length > 0 ? { hires } : {}),
       ...(progress !== undefined ? { progress } : {}),
+      ...(team !== undefined ? { team } : {}),
     };
   }
 

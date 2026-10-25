@@ -2,6 +2,9 @@
 import {
   API,
   type HireRequest,
+  type TeamHostStartRequest,
+  type TeamJoinRequest,
+  type TeamSharePrefs,
   type PermissionDecision,
   type ProgressEventName,
   type RuleDraft,
@@ -11,6 +14,7 @@ import { locale, t } from '../i18n';
 import {
   BackendError,
   RuleRejectedError,
+  TeamRejectedError,
   type Backend,
   type DecisionResult,
   type ReportQuery,
@@ -38,12 +42,15 @@ import {
   parseTranscriptPage,
 } from './parse';
 import { parseCodexSettings } from './parse-codex';
+import { parseErrorCode, parseTeamStatus } from './parse-team';
 import { parseGitSettings } from './parse-git';
 import { parseCustomizationResponse } from './parse-customization';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 /** The server may spend up to 25 s reading the day's transcripts. */
 const SCAN_TIMEOUT_MS = 40_000;
+/** Joining a team waits for the host (a connection, a key derivation and a disk write). */
+const TEAM_TIMEOUT_MS = 20_000;
 
 type FetchLike = typeof fetch;
 
@@ -230,6 +237,61 @@ export class HttpBackend implements Backend {
   async setCodexSessions(on: boolean) {
     const { body } = await this.post(API.codexSettings, { sessions: on });
     return parseCodexSettings(body);
+  }
+
+  /** GET or POST a team route; a refusal becomes a TeamRejectedError with the server's code. */
+  private async team(path: string, payload?: object): Promise<ReturnType<typeof parseTeamStatus>> {
+    const { status, body } = await this.request(
+      this.url(path),
+      payload === undefined && path === API.team
+        ? { method: 'GET', headers: { Accept: 'application/json' } }
+        : {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload ?? {}),
+          },
+      TEAM_TIMEOUT_MS,
+    );
+    if (status >= 200 && status < 300) return parseTeamStatus(body);
+    const code = isRecord(body) ? parseErrorCode(body.error) : undefined;
+    if (code !== undefined) throw new TeamRejectedError(code, status);
+    throw new BackendError(errorText(body), status);
+  }
+
+  teamStatus() {
+    return this.team(API.team);
+  }
+
+  teamHostStart(request: TeamHostStartRequest) {
+    return this.team(`${API.team}/host/start`, request);
+  }
+
+  teamHostStop() {
+    return this.team(`${API.team}/host/stop`, {});
+  }
+
+  teamNewCode() {
+    return this.team(`${API.team}/host/code`, {});
+  }
+
+  teamRevoke(memberId: string) {
+    return this.team(`${API.team}/host/revoke`, { id: memberId });
+  }
+
+  teamEnd() {
+    return this.team(`${API.team}/host/end`, {});
+  }
+
+  teamJoin(request: TeamJoinRequest) {
+    return this.team(`${API.team}/join`, request);
+  }
+
+  teamLeave() {
+    return this.team(`${API.team}/leave`, {});
+  }
+
+  teamSharing(prefs: TeamSharePrefs) {
+    return this.team(`${API.team}/sharing`, prefs);
   }
 
   async rules() {

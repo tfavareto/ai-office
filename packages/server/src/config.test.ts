@@ -91,4 +91,18 @@ describe('loadConfig', () => {
     expect(isWildcardHost('0.0.0.0')).toBe(true);
     expect(isWildcardHost('127.0.0.1')).toBe(false);
   });
+
+  test('team mode is off by default only through its own switches, and a team never widens the main bind', () => {
+    expect(load({})).toMatchObject({ teamDisabled: false, teamLoopback: false, teamDevice: undefined });
+    expect(load({ AI_OFFICE_TEAM: '0' })).toMatchObject({ teamDisabled: true });
+    expect(
+      load({ AI_OFFICE_TEAM: '1', AI_OFFICE_TEAM_LOOPBACK: '1', AI_OFFICE_TEAM_DEVICE: ' Mesa 2 ' }),
+    ).toMatchObject({
+      teamDisabled: false,
+      teamLoopback: true,
+      teamDevice: 'Mesa 2',
+      host: '127.0.0.1',
+    });
+    expect(() => load({ AI_OFFICE_TEAM_LOOPBACK: '1', AI_OFFICE_HOST: '192.168.1.5' })).toThrow(ConfigError);
+  });
 });

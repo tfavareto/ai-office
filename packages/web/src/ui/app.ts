@@ -20,6 +20,7 @@ import {
   type PermissionRequest,
   type Project,
   type RecentSession,
+  isTeamId,
 } from '@ai-office/shared';
 import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
@@ -68,6 +69,9 @@ import { achievementNameKey, decorNameKey, levelTitleKey } from './model/progres
 import { RulesController, type RulesTab } from './rules-controller';
 import { CustomizationController } from './customization-controller';
 import { CustomizeDialog } from './components/customize-dialog';
+import { TeamDialog } from './components/team-dialog';
+import { TeamController } from './team-controller';
+import { EMPTY_OVERLAY, firstTeamOrder, teamOverlay, withTeam, type TeamFilter, type TeamOverlay } from './model/team';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
 import type { HireTarget } from './model/hire';
@@ -130,6 +134,7 @@ export class App implements AppContext {
   readonly inbox: InboxController;
   readonly rules: RulesController;
   readonly customization: CustomizationController;
+  readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
   private seen: Seen | null = loadSeen();
@@ -156,6 +161,9 @@ export class App implements AppContext {
   private lastNeeds = 0;
   private buildId: string | undefined;
   private usageAlertsSeen: ReadonlySet<string> = new Set();
+  private mergedMemo:
+    { snapshot: OfficeSnapshot; overlay: TeamOverlay; filter: TeamFilter; value: OfficeSnapshot } | undefined;
+  private overlayMemo: { key: string; snapshot: OfficeSnapshot; value: TeamOverlay } | undefined;
   private localId = 0;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -174,6 +182,7 @@ export class App implements AppContext {
     this.notifications.setDnd(initial.dnd);
     this.rules = new RulesController(() => this.store.backend);
     this.customization = new CustomizationController(() => this.store.backend);
+    this.team = new TeamController(() => this.store.backend);
     this.progress = new ProgressController(() => this.store.backend);
     // The inbox is about the live office, whatever the panels show.
     this.inbox = new InboxController({
@@ -251,6 +260,7 @@ export class App implements AppContext {
       new RulesDialog(this),
       new ShareDialog(this),
       new CustomizeDialog(this),
+      new TeamDialog(this),
       new AchievementsDialog(this),
     ];
     const empty = new EmptyState(this);
@@ -350,15 +360,58 @@ export class App implements AppContext {
   }
 
   agent(id: string): Agent | undefined {
+    if (isTeamId(id)) return this.teamOverlay.agents.find((agent) => agent.id === id);
     return this.snapshot?.agents.find((agent) => agent.id === id);
   }
 
   account(id: string): Account | undefined {
+    if (isTeamId(id)) return this.teamOverlay.accounts.find((account) => account.id === id);
     return this.snapshot?.accounts.find((account) => account.id === id);
   }
 
   project(id: string): Project | undefined {
+    if (isTeamId(id)) return this.teamOverlay.projects.find((project) => project.id === id);
     return this.snapshot?.projects.find((project) => project.id === id);
+  }
+
+  // --- AppContext: the team -------------------------------------------------------------------------------------------
+
+  /** The other computers' people for a snapshot, computed once per snapshot and language. */
+  private overlayFor(snapshot: OfficeSnapshot | null): TeamOverlay {
+    if (snapshot === null || snapshot.team === undefined || this.replay.engaged) return EMPTY_OVERLAY;
+    const key = `${locale()}|${snapshot.rev}`;
+    if (this.overlayMemo?.key !== key || this.overlayMemo.snapshot !== snapshot)
+      this.overlayMemo = {
+        key,
+        snapshot,
+        value: teamOverlay(snapshot.team, firstTeamOrder(snapshot)),
+      };
+    return this.overlayMemo.value;
+  }
+
+  get teamOverlay(): TeamOverlay {
+    return this.overlayFor(this.liveSnapshot);
+  }
+
+  teamSnapshot(filter: TeamFilter): OfficeSnapshot | null {
+    const snapshot = this.snapshot;
+    if (snapshot === null) return null;
+    const overlay = this.overlayFor(this.liveSnapshot);
+    // The hover tip asks on every pointer move: the same inputs give the same object.
+    const memo = this.mergedMemo;
+    if (memo?.snapshot === snapshot && memo.overlay === overlay && memo.filter === filter) return memo.value;
+    const value = withTeam(snapshot, overlay, filter);
+    this.mergedMemo = { snapshot, overlay, filter, value };
+    return value;
+  }
+
+  openTeam(): void {
+    if (!this.store.isLocal) {
+      this.announce(localOnlyHint());
+      this.flash('info', localOnlyHint());
+      return;
+    }
+    this.ui.set({ dialog: 'team', popover: null });
   }
 
   // --- AppContext: navigation ----------------------------------------------------------------------------------------
@@ -687,6 +740,7 @@ export class App implements AppContext {
       this.inbox,
       this.board,
       this.rules,
+      this.team,
       this.progress,
     ])
       observable.subscribe(() => this.refresh());
@@ -780,9 +834,18 @@ export class App implements AppContext {
   /** Clears the selection when its agent or room is not in the snapshot any more. */
   private dropGoneSelection(snapshot: OfficeSnapshot): void {
     const selection = this.ui.get().selection;
-    if (selection?.type === 'agent' && !snapshot.agents.some((agent) => agent.id === selection.id))
+    const overlay = this.overlayFor(snapshot);
+    if (
+      selection?.type === 'agent' &&
+      !snapshot.agents.some((agent) => agent.id === selection.id) &&
+      !overlay.agents.some((agent) => agent.id === selection.id)
+    )
       this.clearSelection();
-    if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id))
+    if (
+      selection?.type === 'room' &&
+      !snapshot.projects.some((project) => project.id === selection.id) &&
+      !overlay.projects.some((project) => project.id === selection.id)
+    )
       this.clearSelection();
   }
 
@@ -889,7 +952,7 @@ export class App implements AppContext {
   private renderAll(): void {
     // While a time-lapse is on, the world shows the replay's snapshots; the live ones wait for the way back.
     if (this.pendingSnapshot && !this.replay.engaged) {
-      this.world.setSnapshot(this.pendingSnapshot, this.store.now());
+      this.world.setSnapshot(withTeam(this.pendingSnapshot, this.overlayFor(this.pendingSnapshot)), this.store.now());
       this.pendingSnapshot = null;
     }
     if (this.replay.active && this.snapshot) this.dropGoneSelection(this.snapshot);

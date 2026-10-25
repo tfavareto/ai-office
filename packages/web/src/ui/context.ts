@@ -30,6 +30,8 @@ import type { ReplayController } from './replay-controller';
 import type { RulesController, RulesTab } from './rules-controller';
 import type { CustomizeTarget, DayTab, DialogId, DrawerTab, PopoverId, UiState } from './state';
 import type { CustomizationController } from './customization-controller';
+import type { TeamOverlay, TeamFilter } from './model/team';
+import type { TeamController } from './team-controller';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
 
@@ -64,6 +66,7 @@ export interface AppContext {
   readonly inbox: InboxController;
   readonly rules: RulesController;
   readonly customization: CustomizationController;
+  readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
 
@@ -71,6 +74,12 @@ export interface AppContext {
   readonly snapshot: OfficeSnapshot | null;
   /** The office now, whatever the panels show. */
   readonly liveSnapshot: OfficeSnapshot | null;
+  /** The people of the other computers of the team, as the worlds draw them (empty without a team or during a time-lapse). */
+  readonly teamOverlay: TeamOverlay;
+  /** The office with the team added (`all`), only the team (`team`) or only this computer (`mine`). */
+  teamSnapshot(filter: TeamFilter): OfficeSnapshot | null;
+  /** Opens the team dialog. */
+  openTeam(): void;
   /** Terminal, permissions and messages are available (never while a time-lapse is on). */
   readonly isLocal: boolean;
   /** Server-aligned current time (epoch ms). */

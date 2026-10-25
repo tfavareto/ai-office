@@ -9,6 +9,7 @@ import type { ProjectGit } from './git';
 import type { ProgressSummary } from './progress/types';
 import type { UsageBurn, UsagePeaks } from './usage/types';
 import type { AgentLook, RoomTheme } from './customization/types';
+import type { TeamSnapshot } from './team/types';
 
 /** Which CLI a session comes from. Absent means Claude Code (every field of this kind is optional and additive). */
 export type AgentSource = 'claude' | 'codex';
@@ -283,6 +284,8 @@ export interface OfficeSnapshot {
   hires?: PendingHire[];
   /** The office level, its recent unlocks and the employee of the month (see `progress/`). Absent until known. */
   progress?: ProgressSummary;
+  /** The other computers of the team and their people (team mode); absent unless this computer is in a team. */
+  team?: TeamSnapshot;
 }
 
 export interface FeedItem {

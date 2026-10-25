@@ -49,6 +49,10 @@ Plugin hooks ----REST----> Registries ------'                                |
 
 Details of the hooks are in [plugin](03-plugin.md).
 
+### Between computers (team mode)
+
+Off until you turn it on. A member builds a sanitized share of its office (`shared/src/team`, from an allowlist) and sends it, encrypted, over one long-lived TCP connection to the host's separate listener; the host keeps the latest share per member and sends everyone the merged view without their own share. Each server puts the others' people on its snapshot (`OfficeSnapshot.team`), and the page draws them as extra, read-only rooms. The listener speaks only this protocol (no HTTP, no web app, no local-only endpoint); see the [team mode spec](spec/08-team-mode.md) and [privacy and security](05-privacy-and-security.md#team-mode).
+
 ## Server layout
 
 | Folder | Role |
@@ -56,6 +60,7 @@ Details of the hooks are in [plugin](03-plugin.md).
 | `src/claude/` | Reading Claude Code files: accounts, session registry with process liveness, the incremental JSONL tailer, the line parser, the transcript reducer, tasks, stats and cost, subagent discovery, the transcript renderer, the recent-sessions scan, usage backfill and the ingest `Engine`. |
 | `src/office/` | The model: `Office`, pure status derivation, subagent lifecycle rules, names, the snapshot publisher, per-account usage and the day recorder. |
 | `src/registries/` | Permissions (pending map, expiry, long-poll), messages (queues, 2-hour TTL, inbox, long-poll, groups) and attention. |
+| `src/team/` | Team mode: keys and framing, the encrypted channel, the pairing code, the two handshakes, the host listener, the member connection, the service and the storage. |
 | `src/http/` | Request guard, router, SSE hub, static files, token auth and one handler module per route group. |
 | `src/app.ts` | Composition root (`createApp`). `src/index.ts` is the command-line entry. |
 
@@ -120,6 +125,7 @@ The pt-BR file exports the keys (`UiKey = keyof typeof uiPtBR`) and the other tw
 | [05 · Plugin](spec/05-plugins.md) | Hooks, authentication, installer |
 | [06 · 3D world](spec/06-world-3d.md) | The three.js renderer, cameras, assets, performance rules |
 | [07 · Process](spec/07-process.md) | Contribution process |
+| [08 · Team mode](spec/08-team-mode.md) | Threat model, protocol and data rules of team mode |
 
 ## Next
 

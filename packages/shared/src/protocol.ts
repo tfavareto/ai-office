@@ -83,6 +83,13 @@ export const API = {
    * A refused body answers 400 CustomizationErrorBody.
    */
   customization: '/api/customization',
+  /**
+   * Team mode (local access only; the team listener serves none of this). GET → TeamStatus · POST /host/start
+   * TeamHostStartRequest, /host/stop, /host/code (a new pairing code), /host/revoke { id }, /host/end · POST /join
+   * TeamJoinRequest, /leave · POST /sharing TeamSharePrefs. Every write answers the new TeamStatus; a refusal answers
+   * { error: TeamErrorCode }.
+   */
+  team: '/api/team',
   /** GET → CodexSettings · POST { sessions: boolean } → CodexSettings. Local access only. */
   codexSettings: '/api/codex/settings',
   /** POST { on: boolean } → { demo } */

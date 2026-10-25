@@ -1,13 +1,15 @@
 // Transient UI state: what is selected, which panels and overlays are open, filters.
 import type { Selection } from '../world/api';
 import type { HireTarget } from './model/hire';
+import type { TeamFilter } from './model/team';
 import { Observable } from './observable';
 
 export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
 /** The tabs of the "Meu dia" dialog. */
 export type DayTab = 'time' | 'report';
-export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'customize' | 'achievements';
+export type DialogId =
+  'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'customize' | 'team' | 'achievements';
 
 /** What the customization dialog edits: one agent, one room, or the order of the rooms. */
 export type CustomizeTarget = { kind: 'agent'; id: string } | { kind: 'room'; id: string } | { kind: 'layout' };
@@ -50,6 +52,8 @@ export interface UiData {
   shareDate: string;
   /** What the customization dialog edits when it opens. */
   customize: CustomizeTarget;
+  /** Which rooms the sidebar lists once a team exists: all of them, this computer's, or the team's. */
+  teamFilter: TeamFilter;
 }
 
 export const NARROW_BREAKPOINT = 900;
@@ -74,6 +78,7 @@ export function initialUiData(init: { sidebarOpen: boolean; feedOpen: boolean; n
     hire: {},
     shareDate: '',
     customize: { kind: 'layout' },
+    teamFilter: 'all',
   };
 }
 

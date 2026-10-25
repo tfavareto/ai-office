@@ -22,3 +22,4 @@ export { demoDayReport, type DemoReportInput } from './demo/report';
 export { demoTimelapse, type DemoTimelapseInput } from './demo/timelapse';
 export { type DemoSessionAnchor, demoAccountUsage, demoUsageRows } from './demo/usage-history';
 export * from './progress';
+export * from './team';

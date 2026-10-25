@@ -1,5 +1,5 @@
 // Sidebar: search, account filter chips, rooms with their agents and subagents.
-import { isCodex, type Agent } from '@ai-office/shared';
+import { isCodex, isTeamId, memberColor, type Account, type Agent, type TeamSnapshot } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { localOnlyHint, type AppContext, type Component } from '../context';
 import { accountLabel, activityText, agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../display';
@@ -7,10 +7,13 @@ import { KeyedList, h, setAttr, setText, toggleClass, type KeyedEntry } from '..
 import { icon } from '../icons';
 import { branchChip } from '../model/git';
 import { buildRooms, roomColor, type AgentRowModel, type RoomModel } from '../model/rooms';
+import type { TeamFilter } from '../model/team';
+import { linkText, linkTone, presenceOf, remoteStatusLabel } from '../model/team-text';
 import { displayStatus, primaryShell, statusLabel } from '../model/status';
 import {
   accountChip,
   createAvatar,
+  createSegmented,
   iconButton,
   liveText,
   setDisabled,
@@ -32,6 +35,25 @@ export class Sidebar implements Component {
   private readonly chips = h('div', { class: 'ao-chips', role: 'group', 'aria-label': t('sidebar.accountFilter') });
   private readonly list = h('div', { class: 'ao-sidebar-list' });
   private readonly note = h('p', { class: 'ao-note ao-sidebar-note' });
+  private readonly teamHead = h('div', { class: 'ao-team-head' });
+  private readonly teamFilter = createSegmented<TeamFilter>(
+    t('team.filter.label'),
+    [
+      { value: 'all', label: t('team.filter.all') },
+      { value: 'mine', label: t('team.filter.mine') },
+      { value: 'team', label: t('team.filter.team') },
+    ],
+    (value) => this.ctx.ui.set({ teamFilter: value }),
+  );
+  private readonly teamPeople = h('div', { class: 'ao-team-people' });
+  private readonly teamBar = h(
+    'div',
+    { class: 'ao-team-bar', hidden: true },
+    this.teamHead,
+    this.teamFilter.el,
+    this.teamPeople,
+  );
+  private teamSignature = '';
   private readonly replayNote = h('p', { class: 'ao-sidebar-replay', hidden: true }, t('replay.sidebar.note'));
   private readonly rooms: KeyedList<RoomModel>;
   private signature = '';
@@ -88,6 +110,7 @@ export class Sidebar implements Component {
         h('div', { class: 'ao-sidebar-searchrow' }, search, this.hireBtn),
         this.chips,
       ),
+      this.teamBar,
       this.replayNote,
       this.list,
       this.note,
@@ -123,7 +146,7 @@ export class Sidebar implements Component {
 
   render(): void {
     const ui = this.ctx.ui.get();
-    const snapshot = this.ctx.snapshot;
+    const snapshot = this.ctx.teamSnapshot(ui.teamFilter);
     toggleClass(this.el, 'is-open', ui.sidebarOpen);
     setAttr(this.el, 'aria-hidden', String(!ui.sidebarOpen));
     if (ui.sidebarOpen) this.el.removeAttribute('inert');
@@ -134,9 +157,10 @@ export class Sidebar implements Component {
     this.clearBtn.hidden = ui.query.length === 0;
     setDisabled(this.hireBtn, !this.ctx.isLocal, localOnlyHint());
 
-    this.renderChips();
+    this.renderTeamBar(snapshot.team, ui.teamFilter);
+    this.renderChips(snapshot.accounts);
     const selectedId = ui.selection?.type === 'agent' ? ui.selection.id : null;
-    const signature = `${snapshot.rev}|${ui.query}|${ui.accountFilter.join(',')}|${ui.collapsedRooms.join(',')}|${ui.selection?.id ?? ''}|${this.ctx.prefs.get().showGit}|${Math.floor(this.ctx.now() / PORTRAIT_REFRESH_MS)}`;
+    const signature = `${snapshot.rev}|${ui.query}|${ui.accountFilter.join(',')}|${ui.collapsedRooms.join(',')}|${ui.teamFilter}|${ui.selection?.id ?? ''}|${this.ctx.prefs.get().showGit}|${Math.floor(this.ctx.now() / PORTRAIT_REFRESH_MS)}`;
     if (signature === this.signature) return;
     this.signature = signature;
 
@@ -145,14 +169,79 @@ export class Sidebar implements Component {
     const filtering = ui.query.trim().length > 0 || ui.accountFilter.length > 0;
     if (rooms.length === 0) {
       this.note.hidden = false;
-      setText(this.note, filtering ? t('sidebar.empty.noResults') : t('sidebar.empty.noSessions'));
+      setText(
+        this.note,
+        filtering
+          ? t('sidebar.empty.noResults')
+          : ui.teamFilter === 'team'
+            ? t('team.sidebar.empty')
+            : t('sidebar.empty.noSessions'),
+      );
     } else {
       this.note.hidden = true;
     }
   }
 
-  private renderChips(): void {
-    const accounts = this.ctx.snapshot?.accounts ?? [];
+  /** The team strip: its state, the filter between this computer and the team, and who is there. */
+  private renderTeamBar(team: TeamSnapshot | undefined, filter: TeamFilter): void {
+    const shown = team !== undefined && !this.ctx.replay.engaged;
+    this.teamBar.hidden = !shown;
+    if (!shown) return;
+    this.teamFilter.set(filter);
+    const signature = JSON.stringify([
+      team.teamName,
+      team.link,
+      team.paused,
+      team.people.map((person) => [
+        person.id,
+        person.name,
+        person.online,
+        person.paused,
+        person.host,
+        person.lastSeenAt,
+      ]),
+    ]);
+    if (signature === this.teamSignature) return;
+    this.teamSignature = signature;
+    const tone = linkTone(team.link);
+    this.teamHead.replaceChildren(
+      h('span', { class: `ao-team-dot is-${tone}`, 'aria-hidden': 'true' }),
+      h('span', { class: 'ao-team-name' }, team.teamName),
+      h('span', { class: 'ao-team-link' }, linkText(team.link)),
+      iconButton({
+        icon: 'settings',
+        label: t('team.sidebar.manage'),
+        size: 15,
+        className: 'ao-iconbtn--small',
+        onClick: () => this.ctx.openTeam(),
+      }),
+    );
+    this.teamPeople.replaceChildren(
+      ...team.people.map((person) => {
+        const presence = presenceOf(person);
+        return h(
+          'div',
+          { class: `ao-team-person is-${presence}` },
+          h('span', { class: 'ao-team-swatch', style: `background:${memberColor(person.id)}`, 'aria-hidden': 'true' }),
+          h('span', { class: 'ao-team-person-name' }, person.name),
+          person.host ? h('span', { class: 'ao-tag' }, t('team.person.host')) : null,
+          h(
+            'span',
+            { class: 'ao-team-presence' },
+            presence === 'online'
+              ? t('team.person.online')
+              : presence === 'paused'
+                ? t('team.person.paused')
+                : t('team.person.offline'),
+            presence === 'offline' && person.lastSeenAt !== undefined ? ' · ' : null,
+            presence === 'offline' && person.lastSeenAt !== undefined ? liveText('ago', person.lastSeenAt) : null,
+          ),
+        );
+      }),
+    );
+  }
+
+  private renderChips(accounts: readonly Account[]): void {
     const selected = this.ctx.ui.get().accountFilter;
     const signature = `${accounts.map((a) => `${a.id}${a.label}${a.color}`).join(',')}|${selected.join(',')}`;
     if (signature === this.chipSignature) return;
@@ -261,7 +350,10 @@ export class Sidebar implements Component {
           setAttr(flag, 'aria-label', t(hidden ? 'sidebar.room.hidden' : 'sidebar.room.pinned'));
         }
         toggleClass(el, 'is-hidden-room', hidden);
-        main.title = room.project.path;
+        const remote = isTeamId(room.project.id);
+        hire.hidden = remote;
+        customize.hidden = remote;
+        main.title = remote ? '' : room.project.path;
         const hireLabel = t('hire.action.room', { room: room.project.name });
         hire.setAttribute('aria-label', hireLabel);
         hire.dataset.baseTitle = hireLabel;
@@ -283,7 +375,7 @@ export class Sidebar implements Component {
           toggleClass(branch, 'is-op', chip.op !== null);
         }
         setText(count, String(room.agentCount));
-        attention.hidden = room.needsYou === 0;
+        attention.hidden = room.needsYou === 0 || remote;
         setText(attention, room.needsYou > 0 ? t('sidebar.room.needs', { n: room.needsYou }) : '');
         const hasTasks = room.tasksTotal > 0;
         progress.hidden = !hasTasks;
@@ -344,7 +436,7 @@ export class Sidebar implements Component {
         account.hidden = isCodex(agent);
         setText(role, agent.kind === 'sub' ? agentRole(agent) : this.mainRole(agent));
         setText(activity, this.activityText(agent));
-        setText(status, statusLabel(ds));
+        setText(status, isTeamId(agent.id) ? remoteStatusLabel(ds) : statusLabel(ds));
         status.className = `ao-row-status ao-text--${ds}`;
         const shell = primaryShell(agent);
         shellIcon.hidden = !shell;
@@ -364,6 +456,8 @@ export class Sidebar implements Component {
   }
 
   private activityText(agent: Agent): string {
+    if (agent.status === 'waiting' && isTeamId(agent.id))
+      return agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : t('team.status.waiting');
     if (agent.status === 'waiting')
       return (
         (agent.permission ? permissionSummary(agent.permission) : undefined) ??

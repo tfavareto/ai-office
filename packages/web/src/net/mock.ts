@@ -1,5 +1,6 @@
 // `?mock=1`: a fully client-side office driven by the shared demo simulator (no server needed).
 import {
+  DEFAULT_TEAM_SHARE,
   RuleBook,
   applyCustomization,
   applyCustomizationPatch,
@@ -24,12 +25,17 @@ import {
   type ProgressEventName,
   type RuleDraft,
   type RuleResult,
+  type TeamHostStartRequest,
+  type TeamJoinRequest,
+  type TeamSharePrefs,
+  type TeamStatus,
   type UsagePeriod,
 } from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import {
   BackendError,
   RuleRejectedError,
+  TeamRejectedError,
   type Backend,
   type DecisionResult,
   type ReportQuery,
@@ -273,6 +279,24 @@ class MockBackend implements Backend {
   async setCodexSessions(_on: boolean): Promise<CodexSettings> {
     return this.codexSettings();
   }
+
+  /** The demonstration has no network: team mode is not available in it. */
+  async teamStatus(): Promise<TeamStatus> {
+    return { available: false, role: null, sharing: { ...DEFAULT_TEAM_SHARE }, interfaces: [] };
+  }
+
+  private async teamRefused(): Promise<TeamStatus> {
+    throw new TeamRejectedError('team-disabled', 409);
+  }
+
+  teamHostStart = (_request: TeamHostStartRequest): Promise<TeamStatus> => this.teamRefused();
+  teamHostStop = (): Promise<TeamStatus> => this.teamRefused();
+  teamNewCode = (): Promise<TeamStatus> => this.teamRefused();
+  teamRevoke = (_memberId: string): Promise<TeamStatus> => this.teamRefused();
+  teamEnd = (): Promise<TeamStatus> => this.teamRefused();
+  teamJoin = (_request: TeamJoinRequest): Promise<TeamStatus> => this.teamRefused();
+  teamLeave = (): Promise<TeamStatus> => this.teamRefused();
+  teamSharing = (_prefs: TeamSharePrefs): Promise<TeamStatus> => this.teamRefused();
 
   async rules() {
     return [...this.book.rules()];

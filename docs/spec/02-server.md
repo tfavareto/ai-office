@@ -74,6 +74,16 @@ gives threads, tail only). `auth.json`, `config.toml`, the SQLite files, logs an
 - **Read-only**: Codex has no hooks, so there are no permission requests, messages or hiring for it. `POST /api/messages`
   answers 409 `codex-read-only` when every target is a Codex agent and skips Codex agents in a team message.
 
+## Team mode (`packages/server/src/team/`)
+Full spec: [08-team-mode.md](08-team-mode.md). Summary:
+- **Config**: `AI_OFFICE_TEAM=0` makes the mode unavailable; `AI_OFFICE_TEAM_LOOPBACK=1` lets a team use `127.0.0.1` (tests, demos); `AI_OFFICE_TEAM_DEVICE` sets the device name (default: the host name without `.local`). None of them touches `AI_OFFICE_HOST`.
+- **Listener** (`TeamHost`): `node:net`, bound to the single address chosen in the page (private, link-local, CGNAT or loopback IPv4; never a wildcard; it must belong to an interface of this computer), refuses peers outside those ranges, framed length-prefixed protocol, no HTTP. A request that is not a team frame is dropped without a reply. Unauthenticated connections are capped (8, 3 per address) and have an 8 s handshake deadline.
+- **Handshakes**: pairing with the code (X25519 + HMAC keyed from scrypt(code) + HKDF + AES-256-GCM) and the session handshake (X25519 + Ed25519 signatures over the whole transcript, host key pinned by the member, member keys stored by the host). Sealed frames use a per-direction key and an implicit counter: replay, tampering, reordering and reflection end the connection.
+- **Data**: a member sends a `TeamShare` (built by `buildTeamShare` in shared, from an allowlist); the host re-reads it with `parseTeamShare`, keeps the latest per member and sends each member the merged view without its own share. Times travel as ages.
+- **Storage**: `<stateDir>/team/{host,member,settings}.json` (dir 0700, files 0600): identity keys, public keys of the others, no member secret on the host.
+- **REST** (local-only, token-protected; the listener serves none of it): `GET /api/team` (`TeamStatus`, including the pairing code), `POST /api/team/host/start|stop|code|revoke|end`, `POST /api/team/join|leave|sharing`. Refusals answer `{ error: TeamErrorCode }` (400 invalid input, 403 `pairing-failed`, 404 `unknown-member`, 409 state conflicts, 429, 502 `unreachable`, 504 `timeout`).
+- **Snapshot**: `OfficeSnapshot.team` (`TeamSnapshot`: role, link, people with their rooms and agents, times on this computer's clock) when the computer is in a team; `agents` and `projects` stay strictly local.
+
 ## Agents
 - One **main agent** per open session (sessionId + account). It enters when the session opens and leaves (`offline`)
   when the session closes (registry file gone or pid not alive) or after 30 min without events and not in registry.

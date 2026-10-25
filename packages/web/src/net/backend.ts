@@ -20,6 +20,11 @@ import type {
   Rule,
   RuleDraft,
   RuleErrorBody,
+  TeamErrorCode,
+  TeamHostStartRequest,
+  TeamJoinRequest,
+  TeamSharePrefs,
+  TeamStatus,
   RulePreview,
   Timelapse,
   TranscriptPage,
@@ -82,6 +87,16 @@ export interface Backend {
   codexSettings(): Promise<CodexSettings>;
   /** Turns the reading of Codex sessions on or off. */
   setCodexSessions(on: boolean): Promise<CodexSettings>;
+  /** Team mode (local access only): the status, and the actions that host, join, share and leave. */
+  teamStatus(): Promise<TeamStatus>;
+  teamHostStart(request: TeamHostStartRequest): Promise<TeamStatus>;
+  teamHostStop(): Promise<TeamStatus>;
+  teamNewCode(): Promise<TeamStatus>;
+  teamRevoke(memberId: string): Promise<TeamStatus>;
+  teamEnd(): Promise<TeamStatus>;
+  teamJoin(request: TeamJoinRequest): Promise<TeamStatus>;
+  teamLeave(): Promise<TeamStatus>;
+  teamSharing(prefs: TeamSharePrefs): Promise<TeamStatus>;
   rules(): Promise<Rule[]>;
   createRule(draft: RuleDraft): Promise<Rule>;
   /** Fields named in `patch` replace the rule's; `note: null` removes the note. */
@@ -111,6 +126,17 @@ export class BackendError extends Error {
   ) {
     super(message);
     this.name = 'BackendError';
+  }
+}
+
+/** Team mode refused an action: `code` says why (the dialog explains it in the user's language). */
+export class TeamRejectedError extends BackendError {
+  constructor(
+    readonly code: TeamErrorCode,
+    status: number,
+  ) {
+    super(code, status);
+    this.name = 'TeamRejectedError';
   }
 }
 

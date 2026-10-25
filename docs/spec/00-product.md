@@ -217,6 +217,12 @@ The person makes the office theirs; nothing here changes the sessions or the pro
 - **Layout.** Reorder the rooms (drag in **Organizar salas**, which shows the slots of the building, or move up and down), pin favorites to the front and hide a room: a hidden room is not in the building but stays in the sidebar.
 - **Persistence.** The server keeps it in `<state dir>/customization.json` and puts it on every snapshot, so every tab and the share card show the same office. Each item can be reset, and **Restaurar tudo** resets everything. The demo ships a few customized agents and rooms.
 
+## Team mode
+Several computers of one local network share one office (full design, threat model and protocol in [08-team-mode.md](08-team-mode.md)).
+- **Off by default**, local network only, read-only between machines, authenticated and encrypted. **Settings → Team mode** hosts a team (a LAN address and a single-use, 10-minute pairing code) or joins one (address and code).
+- A member shares a **sanitized snapshot**: display names, statuses and the kind of activity; rooms numbered "Project 1/2…". Project names, the activity in words, session titles, branches and tokens/cost are opt-in per category, off by default. Paths, prompts, replies, commands, file names, tasks, permissions and messages are never shared. A member can pause sharing or leave; the host lists members (name, device, last seen), removes them and ends the team.
+- Teammates appear as extra rooms grouped by member ("Ana · Project 1", member color), in 2D and 3D, with presence, a **Team** filter in the sidebar and a read-only drawer. No message, answer, terminal or hiring reaches another computer.
+
 ## Non-goals
-Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a
+Remote multi-user access (team mode shows other computers' offices read-only over the LAN; it never serves the page or the API to another computer); editing files; sending prompts to running sessions other than through the message feature (a
 first prompt can be given when hiring an agent); Windows-specific work.

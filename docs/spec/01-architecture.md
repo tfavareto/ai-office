@@ -54,7 +54,8 @@ page, page decisions go back to the hooks.
 - Limits: request 30 s and headers 15 s (they bound receiving a request, not SSE or long-poll responses); at most 20
   SSE streams (503 `too-many-streams` beyond); transcript entries keep at most 4 KB of text, a cached view at most
   ~8 MB, and `/api/transcript` pages carry at most 500 entries.
-- No secrets in the repo; no outbound network requests (the only exception: the optional, off-by-default pull request lookup through the user's own `gh` CLI, see 02-server).
+- **Team mode** is the only code that listens beyond loopback, and only when the person turns it on: a separate `node:net` listener bound to one chosen private IPv4 address, speaking a framed, encrypted protocol with no HTTP, no routes and no static files, so it can never serve the web app or a local-only endpoint. The main listener, its guards and its allowed `Host` values are unchanged. See [08-team-mode.md](08-team-mode.md).
+- No secrets in the repo; no outbound network requests (the exceptions, both off by default: the optional pull request lookup through the user's own `gh` CLI, see 02-server, and team mode's encrypted connection to computers of the user's own local network, see 08-team-mode).
 
 ## Build and run
 - `npm run dev`: server (tsx watch, port 4848) + Vite dev server (proxy /api to 4848).

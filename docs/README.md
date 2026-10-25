@@ -34,7 +34,7 @@ Paste a prompt into Claude Code, Codex or any agent with terminal access. Each o
 
 ## Specifications
 
-The files in [`spec/`](spec/00-product.md) are the design specs that guided the implementation: [product](spec/00-product.md), [architecture](spec/01-architecture.md), [server](spec/02-server.md), [2D world](spec/03-world-2d.md), [UI](spec/04-ui.md), [plugin](spec/05-plugins.md), [3D world](spec/06-world-3d.md) and [process rules](spec/07-process.md). When a guide and a spec disagree, the code and the guides are current.
+The files in [`spec/`](spec/00-product.md) are the design specs that guided the implementation: [product](spec/00-product.md), [architecture](spec/01-architecture.md), [server](spec/02-server.md), [2D world](spec/03-world-2d.md), [UI](spec/04-ui.md), [plugin](spec/05-plugins.md), [3D world](spec/06-world-3d.md), [process rules](spec/07-process.md) and [team mode](spec/08-team-mode.md) (the threat model and protocol of the only feature that listens beyond loopback). When a guide and a spec disagree, the code and the guides are current.
 
 ## Elsewhere in the repository
 

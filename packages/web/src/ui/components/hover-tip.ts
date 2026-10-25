@@ -6,7 +6,9 @@ import { h, setText } from '../dom';
 import { activityText, agentKindLabel, agentTitle } from '../display';
 import { displayStatus, statusLabel } from '../model/status';
 import { branchChip } from '../model/git';
+import { isTeamId } from '@ai-office/shared';
 import { agentsOfProject } from '../model/rooms';
+import { personIdOf } from '../model/team';
 
 const OFFSET_PX = 14;
 
@@ -49,10 +51,11 @@ export class HoverTip implements Component {
         agent.activity ? `${agent.activity.icon} ${activityText(agent.activity)}` : (agentTitle(agent) ?? ''),
       );
     } else if (project) {
-      const agents = agentsOfProject(this.ctx.snapshot, project.id);
+      const agents = agentsOfProject(this.ctx.teamSnapshot('all'), project.id);
       setText(this.title, project.name);
       setText(this.line, t('hover.room.people', { n: agents.length }));
-      setText(this.extra, project.path);
+      const member = isTeamId(project.id) ? this.ctx.account(`team:${personIdOf(project.id)}`)?.label : undefined;
+      setText(this.extra, member === undefined ? project.path : t('team.hover.member', { member }));
       const chip = this.ctx.prefs.get().showGit ? branchChip(project.git) : null;
       this.branch.hidden = chip === null;
       if (chip !== null) setText(this.branch, t('hover.room.branch', { branch: chip.label }));

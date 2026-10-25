@@ -17,6 +17,12 @@ export interface ServerConfig {
   codexHomeEnv: string | undefined;
   /** AI_OFFICE_CODEX=0: Codex sessions are never read, whatever Settings says. */
   codexDisabled: boolean;
+  /** AI_OFFICE_TEAM=0: team mode cannot be turned on, whatever Settings says. */
+  teamDisabled: boolean;
+  /** AI_OFFICE_TEAM_LOOPBACK=1: team mode may use 127.0.0.1 (two instances on one computer: tests and demos). */
+  teamLoopback: boolean;
+  /** AI_OFFICE_TEAM_DEVICE: the device name team mode shows instead of the computer's host name. */
+  teamDevice: string | undefined;
   stateDir: string;
   demo: boolean;
   /** Directory with the built web app. */
@@ -112,6 +118,9 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
     codexDirs,
     codexHomeEnv: codexHome !== undefined && codexHome.length > 0 ? expandHome(codexHome, homeDir) : undefined,
     codexDisabled: env.AI_OFFICE_CODEX !== undefined && !isTruthy(env.AI_OFFICE_CODEX),
+    teamDisabled: env.AI_OFFICE_TEAM !== undefined && !isTruthy(env.AI_OFFICE_TEAM),
+    teamLoopback: isTruthy(env.AI_OFFICE_TEAM_LOOPBACK),
+    teamDevice: env.AI_OFFICE_TEAM_DEVICE?.trim() || undefined,
     stateDir: expandHome(flags.get('--state-dir') ?? env.AI_OFFICE_STATE_DIR ?? join(homeDir, '.ai-office'), homeDir),
     demo: flags.has('--demo') ? isTruthy(flags.get('--demo')) : isTruthy(env.AI_OFFICE_DEMO),
     webDir: expandHome(flags.get('--web-dir') ?? env.AI_OFFICE_WEB_DIR ?? defaultWebDir, homeDir),

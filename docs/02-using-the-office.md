@@ -322,6 +322,16 @@ Everything that talks back does not, because Codex has no hooks: the **Message**
 
 Turn Codex off in **Settings → Show Codex sessions**; off, AI Office does not read the Codex folder.
 
+## Team mode
+
+**Settings → Team mode → Open…** puts several computers in one office over your local network. It is off until you use it, read-only between machines, and shares only what you choose (see [privacy and security](05-privacy-and-security.md#team-mode)).
+
+- **Host a team.** Type your name and the team's name, pick the network and port, press **Start hosting**. The dialog shows the address to join, the **pairing code** (`ABCD-EFGH`, with a countdown; it works once and for ten minutes; **New code** replaces it) and the members with their device and *Online* or *Offline · seen 3 min ago*. **Remove** (it asks twice) takes a member out for good; **Stop listening** closes the port and keeps the team; **End the team** (asks twice) tells everybody and deletes it.
+- **Join a team.** Type your name, the host's address and the code. When it works you are connected; if not, the dialog says why (wrong code, expired code, host not reachable, different versions).
+- **What I share.** Always your agents' names, statuses and the kind of activity, with rooms numbered "Project 1, 2…". Switches add, each off by default: project names, what each agent does in words, session titles, git branches, tokens and cost. **Pause sharing** shows nobody without leaving. **Leave the team** (asks twice) tells the host and deletes this computer's keys.
+- **In the office.** Teammates appear in extra rooms grouped by member ("Ana · Project 1"), tinted with the member's color, in 2D and 3D. The sidebar gets a strip with the team's state, who is online, and a **All / Mine / Team** filter; the account chips include one per member. Click a teammate's agent or room to see who and what kind of work; the drawer is read-only (no messages, terminal, permissions or hiring) and says so. The topbar counters, the inbox and notifications are about *your* agents only.
+- **Members also see the host's merged view**: everybody except themselves.
+
 ## Terminal panel
 
 The terminal panel renders a session's conversation the way the terminal would: your prompts, the assistant's text, collapsed **Thinking…** blocks, and tool calls with a summary and result. It updates live (**Live · read-only**) and cannot send input.
@@ -356,6 +366,7 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Show Codex sessions** | Follow the open Codex CLI sessions, read-only. On by default when a Codex home exists (the row only shows then). Stored on the server: off, the Codex folder is not read. Needs a local page. See [Codex agents](#codex-agents). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
+| **Team mode** | **Open…** the [team mode](#team-mode) dialog (the state next to it: off, hosting or in a team). Needs a local page. |
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
 | **Personalization** | How much is customized, **Arrange rooms…**, a list of what was changed with a reset for each item and **Restore everything**. See [Personalization](#personalization). Needs a local page. |
 | **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |

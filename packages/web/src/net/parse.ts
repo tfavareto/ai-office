@@ -28,6 +28,7 @@ import { t } from '../i18n';
 import { normalizeAccount, withValidSource } from './parse-codex';
 import { parseProjectGit } from './parse-git';
 import { parseProgressSummary } from './parse-progress';
+import { parseTeamSnapshot } from './parse-team';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -194,6 +195,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
   const meta = data.meta;
   const hires = parseHires(data.hires);
   const progress = parseProgressSummary(data.progress);
+  const team = parseTeamSnapshot(data.team);
   return {
     rev: data.rev,
     serverTime: data.serverTime,
@@ -211,6 +213,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
     usage: Array.isArray(data.usage) ? (data.usage.filter(isRecord) as unknown as OfficeSnapshot['usage']) : [],
     ...(hires.length > 0 ? { hires } : {}),
     ...(progress !== undefined ? { progress } : {}),
+    ...(team !== undefined ? { team } : {}),
   };
 }
 

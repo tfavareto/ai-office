@@ -1,0 +1,411 @@
+/* Team mode: the dialog, the sidebar strip and the read-only view of somebody else's agent. */
+.ao-dialog--team {
+  width: min(820px, 100%);
+}
+
+.ao-team-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 14px 16px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-team-subtitle {
+  margin: 0;
+}
+
+.ao-team-error {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--error) 50%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.ao-team-error[hidden],
+.ao-team-note[hidden] {
+  display: none;
+}
+
+.ao-team-choose {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.ao-team-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+}
+
+.ao-team-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ao-team-card .ao-note {
+  margin: 0;
+}
+
+.ao-team-form {
+  display: grid;
+  gap: 10px;
+}
+
+.ao-team-form .ao-hire-field {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-team-form-row {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 10px;
+}
+
+.ao-team-form .ao-btn[type='submit'] {
+  justify-self: start;
+}
+
+.ao-team-code-input {
+  font-family: var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ao-team-hosting,
+.ao-team-member {
+  display: grid;
+  gap: 14px;
+}
+
+.ao-team-hosting[hidden],
+.ao-team-member[hidden],
+.ao-team-choose[hidden],
+.ao-team-sharing-slot[hidden],
+.ao-team-footers[hidden] {
+  display: none;
+}
+
+.ao-team-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ao-team-status-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ao-team-status-text strong {
+  font-size: 15px;
+}
+
+.ao-team-error-inline {
+  color: var(--waiting);
+  font-size: 13px;
+}
+
+.ao-team-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--idle);
+}
+
+.ao-team-dot.is-ok {
+  background: var(--working);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--working) 22%, transparent);
+}
+
+.ao-team-dot.is-wait {
+  background: var(--waiting);
+}
+
+.ao-team-dot.is-bad {
+  background: var(--error);
+}
+
+.ao-team-copy,
+.ao-team-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-team-address {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.ao-team-code {
+  display: grid;
+  gap: 6px;
+}
+
+.ao-team-code-text {
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  user-select: all;
+}
+
+.ao-team-code .ao-note,
+.ao-team-code-none .ao-note {
+  margin: 0;
+}
+
+.ao-team-code-none {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-team-warn {
+  color: var(--waiting);
+}
+
+.ao-team-members {
+  display: grid;
+  gap: 6px;
+}
+
+.ao-team-member-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.ao-team-member-info {
+  display: grid;
+  min-width: 0;
+}
+
+.ao-team-member-info .ao-note {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-team-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.ao-team-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-team-presence .ao-team-dot {
+  margin-top: 0;
+  width: 8px;
+  height: 8px;
+}
+
+.ao-team-footers {
+  display: grid;
+  gap: 8px;
+}
+
+.ao-team-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-team-footer[hidden] {
+  display: none;
+}
+
+.ao-team-footer .ao-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.ao-team-sharing .ao-note {
+  margin: 0 0 6px;
+}
+
+.ao-team-visible {
+  color: var(--waiting);
+}
+
+.ao-team-optin {
+  margin-top: 10px;
+}
+
+.ao-team-share-row {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+/* Settings row. */
+.ao-team-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-team-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Sidebar strip. */
+.ao-team-bar {
+  display: grid;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-team-bar[hidden] {
+  display: none;
+}
+
+.ao-team-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ao-team-head .ao-team-dot {
+  margin-top: 0;
+}
+
+.ao-team-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-team-link {
+  flex: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-team-bar .ao-segmented {
+  width: 100%;
+}
+
+.ao-team-bar .ao-segmented-item {
+  flex: 1;
+}
+
+.ao-team-people {
+  display: grid;
+  gap: 4px;
+}
+
+.ao-team-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.ao-team-person.is-offline {
+  opacity: 0.65;
+}
+
+.ao-team-person-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-team-person .ao-team-presence {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* The member chip and the read-only drawer. */
+.ao-tag--member {
+  border-color: var(--member, var(--line-strong));
+  color: var(--text);
+  background: color-mix(in srgb, var(--member, transparent) 22%, transparent);
+}
+
+.ao-team-hero {
+  border-left: 4px solid var(--member, transparent);
+}
+
+.ao-team-readonly {
+  margin: 0;
+}
+
+.ao-team-doing {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ao-team-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.ao-team-details dt {
+  color: var(--muted);
+}
+
+.ao-team-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .ao-team-member-row {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+  }
+
+  .ao-team-member-row .ao-team-presence {
+    grid-column: 2 / 4;
+  }
+}

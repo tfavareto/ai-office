@@ -14,6 +14,7 @@ import { registerProgressRoutes } from './handlers/progress';
 import { registerReportRoutes } from './handlers/report';
 import { registerRuleRoutes } from './handlers/rules';
 import { registerSystemRoutes } from './handlers/system';
+import { registerTeamRoutes } from './handlers/team';
 import { registerTimelapseRoutes } from './handlers/timelapse';
 import { registerUsageRoutes } from './handlers/usage';
 import { guardRequest } from './guard';
@@ -62,6 +63,7 @@ export function buildRouter(app: AppContext): Router {
   registerCustomizationRoutes(router, app);
   registerCodexRoutes(router, app);
   registerProgressRoutes(router, app);
+  registerTeamRoutes(router, app);
   return router;
 }
 

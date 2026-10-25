@@ -46,6 +46,7 @@ import { DayRecorder, RECORD_INTERVAL_MS } from './office/day-recorder';
 import { NameStore } from './office/name-store';
 import { Office } from './office/office';
 import { SnapshotPublisher } from './office/snapshot';
+import { TeamService } from './team/service';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
@@ -241,6 +242,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     hires: (time) => hireRegistry.list(time),
     git: (projectId) => git.get(projectId),
     progress: () => (demoOn ? demoView().summary : progress.summary()),
+    team: () => team.snapshot(),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
   });
   // One cap for every program started on the user's repositories, whoever asks (the watcher or the day report).
@@ -328,6 +330,17 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     refresh,
   });
 
+  const team: TeamService = new TeamService({
+    stateDir: config.stateDir,
+    log,
+    now,
+    disabled: config.teamDisabled,
+    loopback: config.teamLoopback,
+    device: config.teamDevice,
+    source: () => office.state(),
+    onChange: () => snapshots.markDirty(),
+  });
+
   const report = new ReportService({
     now,
     log,
@@ -357,6 +370,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    team,
     git,
     gitSettings,
     day,
@@ -380,6 +394,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     office.refresh(time);
     if (++ticks % SLOW_TICK_EVERY !== 0) return;
     permissions.sweep();
+    team.tick();
     messages.expire();
     if (!demoOn) progress.observeAgents(office.state().agents.filter((agent) => agent.demo !== true).length);
     hireRegistry.sweep(office.state().agents, time);
@@ -433,6 +448,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await codex.start();
       await indexer.start();
       await progress.start();
+      await team.start();
       ticker = setInterval(tick, TICK_MS);
       buildTimer = setInterval(() => void refreshBuild(), BUILD_CHECK_MS);
       log.info(`AI Office em http://${config.host}:${this.port()}`);
@@ -443,6 +459,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       engine.stop();
       codex.stop();
       git.stop();
+      await team.stop();
       await progress.stop();
       await indexer.stop();
       snapshots.stop();
