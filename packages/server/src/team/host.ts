@@ -20,14 +20,13 @@ import type { Logger } from '../log';
 import { RateLimiter } from '../util/rate-limit';
 import { isTeamAddress } from './addresses';
 import { FrameError, FramedConn } from './conn';
-import { type Identity, fromB64, importIdentity } from './keys';
+import { type Identity, fingerprint, fromB64, importIdentity } from './keys';
 import {
   DEAD_AFTER_MS,
   DOWN_MAX_BYTES,
+  FIRST_FRAME_MS,
   HANDSHAKE_MAX_BYTES,
   HANDSHAKE_TIMEOUT_MS,
-  MAX_PENDING,
-  MAX_PENDING_PER_IP,
   MESSAGES_PER_WINDOW,
   MESSAGE_WINDOW_MS,
   PAIR_ATTEMPTS_PER_MINUTE,
@@ -36,8 +35,10 @@ import {
   SESSION_HELLOS_PER_MINUTE,
   UP_MAX_BYTES,
   VIEW_MIN_INTERVAL_MS,
+  WRONG_PROOFS_PER_MINUTE,
 } from './limits';
 import { PairingGate } from './pairing';
+import { DEFAULT_PENDING_LIMITS, PendingGate, type PendingLimits } from './pending';
 import { hostPair } from './pair';
 import { peopleFromView } from './people';
 import { SEAL_OVERHEAD, type SecureChannel } from './secure-channel';
@@ -46,7 +47,6 @@ import type { HostFile, StoredMember } from './store';
 import { ProtocolError, decode, encode, sendPlain, type WireMessage } from './wire';
 
 const MINUTE_MS = 60_000;
-const LIMITER_IDLE_MS = 10 * MINUTE_MS;
 
 export interface HostDeps {
   now: () => number;
@@ -57,6 +57,9 @@ export interface HostDeps {
   onChange: () => void;
   /** Replaces the scrypt stretching (tests only). */
   stretch?: (code: string, salt: Buffer) => Promise<Buffer>;
+  /** Limits of the connections that have not authenticated yet, and the first-frame deadline (tests). */
+  pending?: PendingLimits;
+  firstFrameMs?: number;
 }
 
 interface Session {
@@ -73,33 +76,49 @@ interface Session {
 interface Received {
   share: TeamShare;
   at: number;
+  /** The share without its ages: a keepalive that says the same thing does not make everybody redraw. */
+  signature: string;
 }
 
-/** A sliding-window limiter per source address, forgotten when idle. */
+/** Events per source address in a sliding minute; `isFull` asks without counting. */
 class PerAddress {
-  private readonly map = new Map<string, { limiter: RateLimiter; lastAt: number }>();
+  private readonly map = new Map<string, number[]>();
 
   constructor(
     private readonly limit: number,
     private readonly now: () => number,
   ) {}
 
-  allow(address: string): boolean {
+  private stamps(address: string): number[] {
     const time = this.now();
-    let entry = this.map.get(address);
-    if (entry === undefined) {
-      entry = { limiter: new RateLimiter(this.limit, MINUTE_MS, this.now), lastAt: time };
-      this.map.set(address, entry);
-    }
-    entry.lastAt = time;
-    return entry.limiter.tryAcquire();
+    const fresh = (this.map.get(address) ?? []).filter((at) => time - at < MINUTE_MS);
+    if (fresh.length === 0) this.map.delete(address);
+    else this.map.set(address, fresh);
+    return fresh;
+  }
+
+  isFull(address: string): boolean {
+    return this.stamps(address).length >= this.limit;
+  }
+
+  record(address: string): void {
+    this.map.set(address, [...this.stamps(address), this.now()]);
+  }
+
+  /** Counts the event and says whether it is within the limit. */
+  allow(address: string): boolean {
+    if (this.isFull(address)) return false;
+    this.record(address);
+    return true;
   }
 
   sweep(): void {
-    const time = this.now();
-    for (const [address, entry] of this.map) if (time - entry.lastAt > LIMITER_IDLE_MS) this.map.delete(address);
+    for (const address of [...this.map.keys()]) this.stamps(address);
   }
 }
+
+const shareSignature = (share: TeamShare): string =>
+  JSON.stringify(share, (key, value: unknown) => (key === 'sinceAgeMs' ? undefined : value));
 
 export class TeamHost {
   readonly gate: PairingGate;
@@ -109,15 +128,20 @@ export class TeamHost {
   private bound: { address: string; port: number } | undefined;
   private lastError: TeamErrorCode | undefined;
   private readonly sockets = new Set<Socket>();
-  private readonly saving = new Set<Promise<unknown>>();
   private readonly sessions = new Map<string, Session>();
+  /** Connections that are in the middle of a session handshake, by the member id they claim. */
+  private readonly handshaking = new Map<string, Set<FramedConn>>();
   private readonly received = new Map<string, Received>();
   private readonly lastSeen = new Map<string, number>();
   private localShare: TeamShare = EMPTY_TEAM_SHARE;
   private localShareSig = '';
-  private pending = 0;
-  private readonly pendingByAddress = new Map<string, number>();
+  /** Every change of the host file goes through this chain, each computed from the latest state. */
+  private queue: Promise<unknown> = Promise.resolve();
+  private ended = false;
+  private readonly pendingGate: PendingGate;
+  private readonly firstFrameMs: number;
   private readonly pairLimits: PerAddress;
+  private readonly wrongProofs: PerAddress;
   private readonly helloLimits: PerAddress;
   private readonly failureLimits: PerAddress;
   private timer: NodeJS.Timeout | undefined;
@@ -129,8 +153,11 @@ export class TeamHost {
   ) {
     this.file = file;
     this.identity = importIdentity(file.identity);
-    this.gate = new PairingGate(deps.now, undefined, undefined, deps.stretch);
+    this.gate = new PairingGate(deps.now, deps.stretch === undefined ? {} : { stretch: deps.stretch });
+    this.pendingGate = new PendingGate(deps.now, deps.pending ?? DEFAULT_PENDING_LIMITS);
+    this.firstFrameMs = deps.firstFrameMs ?? FIRST_FRAME_MS;
     this.pairLimits = new PerAddress(PAIR_ATTEMPTS_PER_MINUTE, deps.now);
+    this.wrongProofs = new PerAddress(WRONG_PROOFS_PER_MINUTE, deps.now);
     this.helloLimits = new PerAddress(SESSION_HELLOS_PER_MINUTE, deps.now);
     this.failureLimits = new PerAddress(SESSION_FAILURES_PER_MINUTE, deps.now);
   }
@@ -143,6 +170,11 @@ export class TeamHost {
 
   get hostName(): string {
     return this.file.hostName;
+  }
+
+  /** The host's key fingerprint, for people to compare out of band. */
+  get fingerprint(): string {
+    return fingerprint(this.identity.publicRaw);
   }
 
   get listening(): boolean {
@@ -183,6 +215,36 @@ export class TeamHost {
       this.viewMembers(time).filter((member) => !member.host),
       time,
     );
+  }
+
+  // ---- the host file: one writer ---------------------------------------------------------------------------------------
+
+  /**
+   * Changes the host file. `change` receives the latest state (never a stale copy) and returns the next one, or
+   * undefined to change nothing. Changes run one after the other, so concurrent ones (a removal, a new member, a
+   * last-seen update, a member leaving) cannot overwrite each other. Resolves true when the change was stored.
+   */
+  private mutate(change: (file: HostFile) => HostFile | undefined): Promise<boolean> {
+    const run = this.queue.then(async () => {
+      if (this.ended) return false;
+      const next = change(this.file);
+      if (next === undefined) return false;
+      if (!(await this.deps.save(next))) return false;
+      this.file = next;
+      return true;
+    });
+    this.queue = run.catch(() => false);
+    return run.catch(() => false);
+  }
+
+  /** Waits for every change asked so far to be stored. */
+  drain(): Promise<unknown> {
+    return this.queue;
+  }
+
+  private isMember(memberId: string, pub?: Buffer): boolean {
+    const member = this.file.members.find((candidate) => candidate.id === memberId);
+    return member !== undefined && (pub === undefined || fromB64(member.pub, 32).equals(pub));
   }
 
   // ---- lifecycle ---------------------------------------------------------------------------------------------------
@@ -226,12 +288,16 @@ export class TeamHost {
     // Closing the listener waits for open connections: end the unfinished handshakes now.
     setTimeout(() => this.sockets.forEach((socket) => socket.destroy()), 300).unref();
     if (server !== undefined) await new Promise<void>((resolve) => server.close(() => resolve()));
-    await Promise.allSettled([...this.saving]);
+    await this.drain();
     this.deps.onChange();
   }
 
-  /** The team is over: members are told, then everything stops. The caller deletes the files. */
+  /**
+   * The team is over: members are told, then everything stops, and nothing may write the host file again (so it
+   * cannot come back after the caller deletes it). The caller deletes the files.
+   */
   async end(): Promise<void> {
+    this.ended = true;
     for (const session of [...this.sessions.values()]) this.endSession(session, 'ended');
     await this.stop();
   }
@@ -242,64 +308,62 @@ export class TeamHost {
     return status;
   }
 
-  /** Removes a member: its key is forgotten, it is told if connected, and later hellos are answered "removed". */
+  /**
+   * Removes a member: its key is forgotten, it is told if connected, a handshake it has in progress is cut, and later
+   * hellos are answered "removed". Resolves false when there is no such member or the disk refused.
+   */
   async revoke(memberId: string): Promise<boolean> {
-    if (!this.file.members.some((member) => member.id === memberId)) return false;
-    const next: HostFile = {
-      ...this.file,
-      members: this.file.members.filter((member) => member.id !== memberId),
-      revoked: [...this.file.revoked, memberId].slice(-64),
-    };
-    if (!(await this.deps.save(next))) return false;
-    this.file = next;
+    const stored = await this.mutate((file) =>
+      file.members.some((member) => member.id === memberId)
+        ? {
+            ...file,
+            members: file.members.filter((member) => member.id !== memberId),
+            revoked: [...file.revoked, memberId].slice(-64),
+          }
+        : undefined,
+    );
+    if (!stored) return false;
+    this.cutOff(memberId, 'revoked');
+    return true;
+  }
+
+  /** Closes a member's session and every handshake it has in progress. */
+  private cutOff(memberId: string, reason: string): void {
     const session = this.sessions.get(memberId);
-    if (session !== undefined) this.endSession(session, 'revoked');
+    if (session !== undefined) this.endSession(session, reason);
+    for (const conn of [...(this.handshaking.get(memberId) ?? [])]) conn.destroy();
     this.received.delete(memberId);
     this.markAllDirty();
     this.deps.onChange();
-    return true;
   }
 
   /** The host's own office, shared like any member's. */
   setLocalShare(share: TeamShare): void {
-    const signature = JSON.stringify(share, (key, value: unknown) => (key === 'sinceAgeMs' ? undefined : value));
-    if (signature === this.localShareSig) {
-      this.localShare = share;
-      return;
-    }
-    this.localShareSig = signature;
+    const signature = shareSignature(share);
     this.localShare = share;
+    if (signature === this.localShareSig) return;
+    this.localShareSig = signature;
     this.markAllDirty();
     this.deps.onChange();
   }
 
-  setNames(names: { teamName?: string; hostName?: string }): Promise<boolean> {
-    const next: HostFile = {
-      ...this.file,
+  setNames(names: { teamName?: string; hostName?: string; hostDevice?: string }): Promise<boolean> {
+    return this.mutate((file) => ({
+      ...file,
       ...(names.teamName !== undefined ? { teamName: names.teamName } : {}),
       ...(names.hostName !== undefined ? { hostName: names.hostName } : {}),
-    };
-    return this.persist(next);
+      ...(names.hostDevice !== undefined ? { hostDevice: names.hostDevice } : {}),
+    }));
   }
 
   /** Remembers where the listener is (or that it is off) so the app can bring it back. */
   setListen(listen: HostFile['listen']): Promise<boolean> {
-    const next: HostFile = { ...this.file };
-    if (listen === undefined) delete next.listen;
-    else next.listen = listen;
-    return this.persist(next);
-  }
-
-  private async persist(next: HostFile): Promise<boolean> {
-    const saving = this.deps.save(next);
-    this.saving.add(saving);
-    try {
-      if (!(await saving)) return false;
-    } finally {
-      this.saving.delete(saving);
-    }
-    this.file = next;
-    return true;
+    return this.mutate((file) => {
+      const next: HostFile = { ...file };
+      if (listen === undefined) delete next.listen;
+      else next.listen = listen;
+      return next;
+    });
   }
 
   // ---- connections -------------------------------------------------------------------------------------------------
@@ -307,22 +371,14 @@ export class TeamHost {
   private onSocket(socket: Socket): void {
     const raw = socket.remoteAddress ?? '';
     const address = raw.startsWith('::ffff:') ? raw.slice(7) : raw;
-    const perAddress = this.pendingByAddress.get(address) ?? 0;
-    if (!isTeamAddress(address) || this.pending >= MAX_PENDING || perAddress >= MAX_PENDING_PER_IP) {
+    const conn = new FramedConn(socket, HANDSHAKE_MAX_BYTES);
+    const release = isTeamAddress(address) ? this.pendingGate.admit(address, () => conn.destroy()) : undefined;
+    if (release === undefined) {
       socket.destroy();
       return;
     }
-    this.pending++;
-    this.pendingByAddress.set(address, perAddress + 1);
     this.sockets.add(socket);
     socket.once('close', () => this.sockets.delete(socket));
-    const release = (): void => {
-      this.pending = Math.max(0, this.pending - 1);
-      const left = (this.pendingByAddress.get(address) ?? 1) - 1;
-      if (left <= 0) this.pendingByAddress.delete(address);
-      else this.pendingByAddress.set(address, left);
-    };
-    const conn = new FramedConn(socket, HANDSHAKE_MAX_BYTES);
     const deadline = setTimeout(() => conn.destroy(), HANDSHAKE_TIMEOUT_MS);
     let released = false;
     const done = (): void => {
@@ -339,39 +395,59 @@ export class TeamHost {
   }
 
   private async handshake(conn: FramedConn, address: string, authenticated: () => void): Promise<void> {
-    const first = decode(await conn.read(HANDSHAKE_TIMEOUT_MS));
+    // The first frame must come quickly: an idle connection is not allowed to hold a slot for the whole handshake.
+    const first = decode(await conn.read(this.firstFrameMs));
     const refuse = (code: TeamErrorCode): void => {
       sendPlain(conn, { t: 'error', code });
       conn.close();
     };
     if (first.t === 'pair-hello') {
-      if (!this.pairLimits.allow(address)) return refuse('rate-limited');
+      // Nothing answers a stranger while no code is open: not even that pairing exists.
+      if (!this.gate.isOpen()) return conn.destroy();
+      if (!this.pairLimits.allow(address) || this.wrongProofs.isFull(address)) return refuse('rate-limited');
       await hostPair(conn, first, {
         gate: this.gate,
+        address,
         identity: this.identity,
         teamId: this.file.teamId,
         teamName: this.file.teamName,
         hostName: this.file.hostName,
         addMember: (member) => this.addMember(member),
-        onWrongProof: () => this.failureLimits.allow(address),
+        onWrongProof: () => this.wrongProofs.record(address),
       });
       this.deps.onChange();
       return;
     }
     if (first.t !== 'hello') return conn.destroy();
-    if (!this.helloLimits.allow(address)) return refuse('rate-limited');
+    if (!this.helloLimits.allow(address) || this.failureLimits.isFull(address)) return refuse('rate-limited');
+    const claimed = typeof first.member === 'string' ? first.member : undefined;
+    const untrack = claimed === undefined ? () => undefined : this.trackHandshake(claimed, conn);
     let session;
     try {
       session = await hostSession(conn, first, { identity: this.identity, lookup: (id) => this.lookup(id) });
     } catch (error) {
+      untrack();
       return refuse(error instanceof ProtocolError ? error.code : 'protocol-error');
     }
-    if (session === undefined) {
-      this.failureLimits.allow(address);
+    untrack();
+    if (session === 'bad-signature') {
+      this.failureLimits.record(address);
       return;
     }
+    if (session === 'refused') return;
     authenticated();
-    await this.runSession(conn, session.memberId, session.channel);
+    this.pendingGate.markTrusted(address);
+    await this.runSession(conn, session.memberId, session.memberPub, session.channel);
+  }
+
+  private trackHandshake(memberId: string, conn: FramedConn): () => void {
+    const set = this.handshaking.get(memberId) ?? new Set<FramedConn>();
+    set.add(conn);
+    this.handshaking.set(memberId, set);
+    return () => {
+      set.delete(conn);
+      if (set.size === 0 && this.handshaking.get(memberId) === set) this.handshaking.delete(memberId);
+    };
   }
 
   private lookup(memberId: string): { pub: Buffer } | 'revoked' | 'unknown' {
@@ -380,8 +456,11 @@ export class TeamHost {
     return this.file.revoked.includes(memberId) ? 'revoked' : 'unknown';
   }
 
-  private async addMember(input: { name: string; device: string; pub: Buffer }): Promise<string | undefined> {
-    if (this.file.members.length >= TEAM_MAX_MEMBERS) return undefined;
+  private async addMember(input: {
+    name: string;
+    device: string;
+    pub: Buffer;
+  }): Promise<string | { error: 'team-full' | 'save-failed' }> {
     const member: StoredMember = {
       id: randomBytes(12).toString('base64url'),
       name: input.name,
@@ -389,12 +468,28 @@ export class TeamHost {
       pub: input.pub.toString('base64'),
       createdAt: this.deps.now(),
     };
-    return (await this.persist({ ...this.file, members: [...this.file.members, member] })) ? member.id : undefined;
+    let full = false;
+    const stored = await this.mutate((file) => {
+      full = file.members.length >= TEAM_MAX_MEMBERS;
+      return full ? undefined : { ...file, members: [...file.members, member] };
+    });
+    if (stored) return member.id;
+    return { error: full ? 'team-full' : 'save-failed' };
   }
 
   // ---- an authenticated member ---------------------------------------------------------------------------------------
 
-  private async runSession(conn: FramedConn, memberId: string, channel: SecureChannel): Promise<void> {
+  private async runSession(
+    conn: FramedConn,
+    memberId: string,
+    memberPub: Buffer,
+    channel: SecureChannel,
+  ): Promise<void> {
+    // The member may have been removed (or replaced) while its handshake was in progress: it must still be this member.
+    if (!this.listening || !this.isMember(memberId, memberPub)) {
+      conn.destroy();
+      return;
+    }
     const old = this.sessions.get(memberId);
     if (old !== undefined) this.endSession(old, 'replaced');
     conn.setMaxBytes(UP_MAX_BYTES + SEAL_OVERHEAD);
@@ -421,6 +516,7 @@ export class TeamHost {
     try {
       for (;;) {
         const frame = await conn.read(DEAD_AFTER_MS);
+        if (!this.isMember(memberId, memberPub)) break;
         session.lastRx = this.deps.now();
         this.lastSeen.set(memberId, session.lastRx);
         if (!session.limiter.tryAcquire()) {
@@ -453,9 +549,13 @@ export class TeamHost {
           this.send(session, { t: 'bye', reason: 'protocol-error' });
           return false;
         }
-        this.received.set(session.memberId, { share, at: this.deps.now() });
-        this.markAllDirty();
-        this.deps.onChange();
+        const signature = shareSignature(share);
+        const changed = this.received.get(session.memberId)?.signature !== signature;
+        this.received.set(session.memberId, { share, at: this.deps.now(), signature });
+        if (changed) {
+          this.markAllDirty();
+          this.deps.onChange();
+        }
         return true;
       }
       case 'ping':
@@ -474,18 +574,27 @@ export class TeamHost {
 
   /** A member left by itself: its key is dropped (a new pairing is needed to come back). */
   private async forget(memberId: string): Promise<void> {
-    await this.persist({ ...this.file, members: this.file.members.filter((member) => member.id !== memberId) });
+    await this.mutate((file) =>
+      file.members.some((member) => member.id === memberId)
+        ? { ...file, members: file.members.filter((member) => member.id !== memberId) }
+        : undefined,
+    );
     this.received.delete(memberId);
     this.markAllDirty();
   }
 
   private async rememberSeen(memberId: string): Promise<void> {
     const seen = this.lastSeen.get(memberId);
-    if (seen === undefined || !this.file.members.some((member) => member.id === memberId)) return;
-    await this.persist({
-      ...this.file,
-      members: this.file.members.map((member) => (member.id === memberId ? { ...member, lastSeenAt: seen } : member)),
-    });
+    // Nothing writes the file in the background once the listener is closed.
+    if (seen === undefined || !this.listening) return;
+    await this.mutate((file) =>
+      file.members.some((member) => member.id === memberId)
+        ? {
+            ...file,
+            members: file.members.map((member) => (member.id === memberId ? { ...member, lastSeenAt: seen } : member)),
+          }
+        : undefined,
+    );
   }
 
   private endSession(session: Session, reason: string): void {
@@ -561,9 +670,7 @@ export class TeamHost {
     }
     if (time - this.lastTick > MINUTE_MS) {
       this.lastTick = time;
-      this.pairLimits.sweep();
-      this.helloLimits.sweep();
-      this.failureLimits.sweep();
+      for (const counter of [this.pairLimits, this.wrongProofs, this.helloLimits, this.failureLimits]) counter.sweep();
     }
   }
 }

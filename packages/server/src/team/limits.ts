@@ -12,11 +12,29 @@ export const HANDSHAKE_TIMEOUT_MS = 8000;
 export const PING_EVERY_MS = 10_000;
 export const DEAD_AFTER_MS = 35_000;
 
-/** Connections that have not authenticated yet: in total and per source address. */
-export const MAX_PENDING = 8;
+/**
+ * The first frame must arrive within this: an idle connection is cut after it, long before the whole handshake deadline.
+ */
+export const FIRST_FRAME_MS = 2000;
+
+/**
+ * Connections that have not authenticated yet: in total, per source address and per /24 subnet. When the total is
+ * reached the oldest connection of the busiest address is dropped, and addresses that authenticated lately may use
+ * `PENDING_RESERVE` more.
+ */
+export const MAX_PENDING = 32;
 export const MAX_PENDING_PER_IP = 3;
-/** Pairing attempts per source address per minute, and failed session proofs per address per minute. */
+export const MAX_PENDING_PER_SUBNET = 8;
+export const PENDING_RESERVE = 8;
+/** How long an address that authenticated stays "known" for the reserve. */
+export const TRUSTED_ADDRESS_MS = 10 * 60_000;
+
+/** Pairing attempts per source address per minute, wrong proofs per address per minute, failed session proofs per address. */
 export const PAIR_ATTEMPTS_PER_MINUTE = 10;
+export const WRONG_PROOFS_PER_MINUTE = 2;
+/** A pairing code is locked for an address after this many wrong proofs, and destroyed for everybody after this many in all. */
+export const PAIRING_LOCK_PER_ADDRESS = 5;
+export const PAIRING_DESTROY_AFTER = 60;
 export const SESSION_HELLOS_PER_MINUTE = 30;
 export const SESSION_FAILURES_PER_MINUTE = 8;
 /** Messages per authenticated connection: more than this in the window closes it. */

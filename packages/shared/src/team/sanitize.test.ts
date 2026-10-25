@@ -6,6 +6,8 @@ import { DEFAULT_TEAM_SHARE, SHARE_CATEGORIES, TEAM_MAX_AGENTS, TEAM_MAX_ROOMS, 
 import { parseTeamShare } from './validate';
 
 const NOW = 1_000_000;
+const key_ = (kind: 'agent' | 'room', id: string): string =>
+  `${kind[0]}${fnv1a(`${kind}:${id}`).toString(16).padStart(8, '0')}`;
 const key = (kind: string, id: string): string => `${kind[0]}${fnv1a(`${kind}:${id}`).toString(16).padStart(8, '0')}`;
 const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1);
 
@@ -141,12 +143,102 @@ describe('a share survives the strict reader unchanged', () => {
 
 describe('flatMsg', () => {
   test('keeps plain parameters and refuses nested messages and odd keys', () => {
-    expect(flatMsg({ key: 'a.b', params: { n: 2, file: 'x\u0007y' } })).toEqual({
-      key: 'a.b',
+    expect(flatMsg({ key: 'activity.read', params: { n: 2, file: 'x\u0007y' } })).toEqual({
+      key: 'activity.read',
       params: { n: 2, file: 'x y' },
     });
-    expect(flatMsg({ key: 'a.b', params: { inner: { key: 'x' } } })).toBeUndefined();
+    expect(flatMsg({ key: 'activity.read', params: { inner: { key: 'x' } } })).toBeUndefined();
     expect(flatMsg({ key: '../etc' })).toBeUndefined();
     expect(flatMsg('text')).toBeUndefined();
+  });
+});
+
+describe('activity messages are a fixed whitelist', () => {
+  const NOW_ = 1_000_000;
+  const office = (activity: Record<string, unknown>): ReturnType<typeof randomOffice> => {
+    const base = randomOffice(7, NOW_);
+    const project = fakeProject(0);
+    const agent = {
+      ...fakeAgent(0, project.id, mulberry32(1), NOW_),
+      status: 'working' as const,
+      activity: { id: 'a', at: 1, icon: 'x', ...activity },
+    };
+    return { projects: [project], agents: [agent as never], ...(base ? {} : {}) };
+  };
+  const on = { ...DEFAULT_TEAM_SHARE, activityText: true };
+
+  test('a catalog key outside the activity messages never leaves, even with the category on', () => {
+    for (const key of [
+      'settings.about',
+      'constructor',
+      '__proto__',
+      'toString',
+      'activity.prompt',
+      'activity.message',
+    ]) {
+      const result = buildTeamShare(office({ kind: 'read', text: 'Lendo x', msg: { key } }), on, NOW_, key_);
+      expect(result.agents[0]?.activityMsg, key).toBeUndefined();
+    }
+  });
+
+  test('an activity message travels only with the category on', () => {
+    const activity = { kind: 'read', text: 'Lendo a.ts', msg: { key: 'activity.read', params: { file: 'a.ts' } } };
+
+    expect(buildTeamShare(office(activity), on, NOW_, key_).agents[0]?.activityMsg).toEqual(activity.msg);
+    expect(buildTeamShare(office(activity), DEFAULT_TEAM_SHARE, NOW_, key_).agents[0]?.activityMsg).toBeUndefined();
+  });
+
+  test('what the person typed (a prompt, a message) is never shared as words', () => {
+    for (const kind of ['prompt', 'message']) {
+      const result = buildTeamShare(
+        office({ kind, text: 'Nova tarefa: SEGREDO', msg: { key: 'activity.prompt', params: { prompt: 'SEGREDO' } } }),
+        on,
+        NOW_,
+        key_,
+      );
+      expect(JSON.stringify(result), kind).not.toContain('SEGREDO');
+    }
+  });
+
+  test('the host reader drops a message that is not on the list, or that comes without its words', () => {
+    const room = { key: 'r1', index: 1 };
+    const agent = { key: 'a1', name: 'Ana', roomKey: 'r1', kind: 'main', status: 'working', sinceAgeMs: 1, look: 'f' };
+    const read = (extra: Record<string, unknown>) =>
+      parseTeamShare({ rooms: [room], agents: [{ ...agent, ...extra }] })?.agents[0];
+
+    expect(read({ activityText: 'x', activityMsg: { key: 'activity.read' } })?.activityMsg).toEqual({
+      key: 'activity.read',
+    });
+    expect(read({ activityText: 'x', activityMsg: { key: 'constructor' } })?.activityMsg).toBeUndefined();
+    expect(read({ activityText: 'x', activityMsg: { key: 'ui.anything' } })?.activityMsg).toBeUndefined();
+    expect(read({ activityMsg: { key: 'activity.read' } })?.activityMsg).toBeUndefined();
+  });
+});
+
+describe('what the sender rebuilds itself', () => {
+  test('a look is rebuilt from valid fields only', () => {
+    const project = fakeProject(0);
+    const agent = {
+      ...fakeAgent(0, project.id, mulberry32(2), NOW),
+      status: 'idle' as const,
+      appearance: { outfit: 'blue', secret: 'x', skin: 'not-a-skin' } as never,
+    };
+
+    const text = JSON.stringify(buildTeamShare({ projects: [project], agents: [agent] }, DEFAULT_TEAM_SHARE, NOW, key));
+
+    expect(text).not.toContain('secret');
+    expect(text).not.toContain('not-a-skin');
+  });
+
+  test('a room without an alias shows the last folder segment, with either kind of separator', () => {
+    const prefs = { ...DEFAULT_TEAM_SHARE, projectNames: true };
+    for (const name of ['/home/ana/repo/site', 'C:\\Users\\ana\\site']) {
+      const project = { ...fakeProject(0), name };
+      const bare = { ...project, originalName: undefined };
+      delete bare.originalName;
+      const agent = { ...fakeAgent(0, project.id, mulberry32(3), NOW), status: 'idle' as const };
+      const result = buildTeamShare({ projects: [bare], agents: [agent] }, prefs, NOW, key);
+      expect(result.rooms[0]?.name, name).toBe('site');
+    }
   });
 });

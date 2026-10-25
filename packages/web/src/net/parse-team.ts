@@ -59,6 +59,7 @@ const ERROR_CODES: ReadonlySet<string> = new Set<TeamErrorCode>([
   'replaced',
   'protocol-error',
   'team-full',
+  'shared-address',
   'save-failed',
 ]);
 
@@ -117,9 +118,20 @@ export function parseTeamSnapshot(raw: unknown): TeamSnapshot | undefined {
 function parseInterfaces(raw: unknown): LanInterface[] {
   return (Array.isArray(raw) ? raw : []).flatMap((item) =>
     isRecord(item) && typeof item.name === 'string' && typeof item.address === 'string'
-      ? [{ name: item.name.slice(0, 32), address: item.address.slice(0, 45) }]
+      ? [
+          {
+            name: item.name.slice(0, 32),
+            address: item.address.slice(0, 45),
+            ...(item.shared === true ? { shared: true } : {}),
+          },
+        ]
       : [],
   );
+}
+
+/** The short fingerprint of a key (`1a2b-3c4d-5e6f-7a8b`); empty when absent or not of that shape. */
+function parseFingerprint(value: unknown): string {
+  return typeof value === 'string' && /^[0-9a-f]{4}(-[0-9a-f]{4}){3}$/.test(value) ? value : '';
 }
 
 function parseHostMember(raw: unknown): HostMember | undefined {
@@ -154,6 +166,7 @@ function parseHost(raw: unknown): HostStatus | undefined {
     ...(pairing !== undefined && typeof pairing.code === 'string' && finite(pairing.expiresAt) !== undefined
       ? { pairing: { code: pairing.code, expiresAt: pairing.expiresAt as number, locked: pairing.locked === true } }
       : {}),
+    fingerprint: parseFingerprint(raw.fingerprint),
     members: (Array.isArray(raw.members) ? raw.members : []).flatMap((item) => parseHostMember(item) ?? []),
     ...(error !== undefined ? { error } : {}),
   };
@@ -174,6 +187,7 @@ function parseMember(raw: unknown): MemberStatus | undefined {
     ...(hostName !== undefined ? { hostName } : {}),
     hostAddress: raw.hostAddress,
     hostPort: raw.hostPort as number,
+    hostFingerprint: parseFingerprint(raw.hostFingerprint),
     link: state,
     ...(error !== undefined ? { error } : {}),
   };

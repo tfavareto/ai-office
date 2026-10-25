@@ -75,3 +75,13 @@ describe('createTranslator', () => {
     );
   });
 });
+
+describe('createTranslator with keys from another computer', () => {
+  const translate = createTranslator({ 'pt-BR': { ok: 'sim' }, en: { ok: 'yes' }, es: { ok: 'si' } });
+
+  test('only own catalog keys are templates: Object.prototype names fall back to the given text', () => {
+    for (const key of ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf'])
+      expect(translate('en', { key }, 'fallback'), key).toBe('fallback');
+    expect(translate('en', { key: 'ok' })).toBe('yes');
+  });
+});

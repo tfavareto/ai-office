@@ -1,21 +1,25 @@
-// The pairing code of a host: one at a time, 8 characters, single use, valid 10 minutes, destroyed after 5 wrong proofs.
-// The code itself is never sent anywhere. It is stretched with scrypt (the salt is public) into the key that
-// authenticates the pairing handshake.
+// The pairing code of a host: one at a time, 8 characters, single use, valid 10 minutes. The code itself is never sent
+// anywhere: it is stretched with scrypt (the salt is public) into the key that authenticates the pairing handshake.
+//
+// Wrong proofs lock the code **for the address they came from** (after 5), so a stranger on the network cannot keep the
+// pairing unusable for everybody by failing on purpose; only a flood of wrong proofs in all (60) destroys the code. The
+// expiry follows a monotonic clock, so changing the system time cannot extend or shorten it.
 import { randomBytes, randomInt } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import {
   PAIRING_ALPHABET,
   PAIRING_CODE_LENGTH,
-  PAIRING_MAX_FAILURES,
   PAIRING_TTL_MS,
   formatPairingCode,
   type PairingStatus,
 } from '@ai-office/shared';
 import { stretchCode } from './keys';
+import { PAIRING_DESTROY_AFTER, PAIRING_LOCK_PER_ADDRESS } from './limits';
 
 export interface PairingTicket {
   salt: Buffer;
   key: Buffer;
-  /** Identity of the code the ticket came from: it stops working when the code is replaced, used or locked. */
+  /** Identity of the code the ticket came from: it stops working when the code is replaced, used or destroyed. */
   readonly id: number;
 }
 
@@ -26,10 +30,29 @@ interface Open {
   code: string;
   salt: Buffer;
   key: Buffer;
-  expiresAt: number;
-  failures: number;
-  locked: boolean;
+  /** Monotonic time at which the code expires. */
+  expiresAtMono: number;
+  /** Wrong proofs per source address, and in all. */
+  failures: Map<string, number>;
+  totalFailures: number;
+  destroyed: boolean;
+  /** A connection with a right proof is storing its member: nobody else may use the code meanwhile. */
+  claimed: boolean;
 }
+
+export interface PairingOptions {
+  /** Wrong proofs that lock the code for one address. */
+  perAddress?: number;
+  /** Wrong proofs in all that destroy the code. */
+  destroyAfter?: number;
+  ttlMs?: number;
+  stretch?: (code: string, salt: Buffer) => Promise<Buffer>;
+  /** Monotonic milliseconds (default: `performance.now`). */
+  monotonic?: () => number;
+}
+
+/** Addresses remembered per code; beyond this only the total counts. */
+const MAX_TRACKED = 256;
 
 export function generateCode(): string {
   let code = '';
@@ -40,15 +63,24 @@ export function generateCode(): string {
 export class PairingGate {
   private current: Open | undefined;
   private nextId = 1;
+  private readonly perAddress: number;
+  private readonly destroyAfter: number;
+  private readonly ttlMs: number;
+  private readonly stretch: (code: string, salt: Buffer) => Promise<Buffer>;
+  private readonly monotonic: () => number;
 
   constructor(
     private readonly now: () => number,
-    private readonly maxFailures = PAIRING_MAX_FAILURES,
-    private readonly ttlMs = PAIRING_TTL_MS,
-    private readonly stretch: (code: string, salt: Buffer) => Promise<Buffer> = stretchCode,
-  ) {}
+    options: PairingOptions = {},
+  ) {
+    this.perAddress = options.perAddress ?? PAIRING_LOCK_PER_ADDRESS;
+    this.destroyAfter = options.destroyAfter ?? PAIRING_DESTROY_AFTER;
+    this.ttlMs = options.ttlMs ?? PAIRING_TTL_MS;
+    this.stretch = options.stretch ?? stretchCode;
+    this.monotonic = options.monotonic ?? (() => performance.now());
+  }
 
-  /** Replaces any code by a new one (the old one stops working at once). */
+  /** Replaces any code by a new one (the old one stops working at once, and every address starts clean). */
   async open(): Promise<PairingStatus> {
     const code = generateCode();
     const salt = randomBytes(16);
@@ -57,7 +89,17 @@ export class PairingGate {
     const key = await this.stretch(code, salt);
     // A newer open() or a close() that ran meanwhile wins.
     if (this.nextId !== id + 1) return this.status() ?? { code: '', expiresAt: 0, locked: true };
-    this.current = { id, code, salt, key, expiresAt: this.now() + this.ttlMs, failures: 0, locked: false };
+    this.current = {
+      id,
+      code,
+      salt,
+      key,
+      expiresAtMono: this.monotonic() + this.ttlMs,
+      failures: new Map(),
+      totalFailures: 0,
+      destroyed: false,
+      claimed: false,
+    };
     return this.status() as PairingStatus;
   }
 
@@ -66,41 +108,62 @@ export class PairingGate {
     this.current = undefined;
   }
 
-  /** What the page shows; undefined when there is no code (never opened, used, or closed). */
+  /** Whether there is a code a stranger could pair with right now (open, not expired, not destroyed). */
+  isOpen(): boolean {
+    const open = this.current;
+    return open !== undefined && !open.destroyed && this.monotonic() < open.expiresAtMono;
+  }
+
+  /** What the page shows; undefined when there is no code (never opened, used, or closed). `locked`: destroyed. */
   status(): PairingStatus | undefined {
     const open = this.current;
     if (open === undefined) return undefined;
+    const remaining = Math.max(0, open.expiresAtMono - this.monotonic());
     return {
-      code: open.locked ? '' : formatPairingCode(open.code),
-      expiresAt: open.expiresAt,
-      locked: open.locked,
+      code: open.destroyed ? '' : formatPairingCode(open.code),
+      expiresAt: this.now() + remaining,
+      locked: open.destroyed,
     };
   }
 
   /** Hands the key to a connection that wants to pair, or says why not. */
-  ticket(): PairingTicket | TicketRefusal {
+  ticket(address: string): PairingTicket | TicketRefusal {
     const open = this.current;
-    if (open === undefined || this.now() >= open.expiresAt) return 'not-pairing';
-    if (open.locked) return 'pairing-locked';
+    if (open === undefined || open.claimed || this.monotonic() >= open.expiresAtMono) return 'not-pairing';
+    if (open.destroyed || (open.failures.get(address) ?? 0) >= this.perAddress) return 'pairing-locked';
     return { salt: open.salt, key: open.key, id: open.id };
   }
 
-  /** A wrong proof: enough of them destroy the code. Returns true when this one locked it. */
-  fail(ticket: PairingTicket): boolean {
+  /** A wrong proof from `address`. Returns true when it locked that address or destroyed the code. */
+  fail(ticket: PairingTicket, address: string): boolean {
     const open = this.current;
     if (open === undefined || open.id !== ticket.id) return false;
-    open.failures++;
-    if (open.failures < this.maxFailures) return false;
-    open.locked = true;
-    open.key.fill(0);
+    const tracked = open.failures.has(address) || open.failures.size < MAX_TRACKED;
+    const count = (open.failures.get(address) ?? 0) + 1;
+    if (tracked) open.failures.set(address, count);
+    open.totalFailures++;
+    if (open.totalFailures >= this.destroyAfter) {
+      open.destroyed = true;
+      open.key.fill(0);
+      return true;
+    }
+    return tracked && count >= this.perAddress;
+  }
+
+  /** The proof was right: the code is held for this connection while it stores the member. True for exactly one caller. */
+  claim(ticket: PairingTicket): boolean {
+    const open = this.current;
+    if (open === undefined || open.id !== ticket.id || open.claimed || open.destroyed) return false;
+    if (this.monotonic() >= open.expiresAtMono) return false;
+    open.claimed = true;
     return true;
   }
 
-  /** The proof was right: the code is used up. True for exactly one caller, whatever the timing. */
-  consume(ticket: PairingTicket): boolean {
+  /** The member was stored (`ok`: the code is used up) or not (the code works again for the next try). */
+  finish(ticket: PairingTicket, ok: boolean): void {
     const open = this.current;
-    if (open === undefined || open.id !== ticket.id || open.locked || this.now() >= open.expiresAt) return false;
-    this.current = undefined;
-    return true;
+    if (open === undefined || open.id !== ticket.id || !open.claimed) return;
+    if (ok) this.current = undefined;
+    else open.claimed = false;
   }
 }

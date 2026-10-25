@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, test } from 'vitest';
 import { FrameError } from './conn';
-import { CryptoError, exportIdentity, fingerprint, fromB64, importIdentity, newIdentity, toB64 } from './keys';
+import { CryptoError, hkdf, exportIdentity, fingerprint, fromB64, importIdentity, newIdentity, toB64 } from './keys';
 import { ChannelError, channelFromKeys } from './secure-channel';
 import { type Pair, connectedPair } from './testkit';
 
@@ -142,10 +142,87 @@ describe('framed connection', () => {
     expect((await pair.server.read(1000)).toString()).toBe('beta');
   });
 
+  test('a frame of exactly the limit is accepted, one byte more is not', async () => {
+    const pair = await connectedPair(64);
+    open.push(pair);
+
+    pair.client.send(Buffer.alloc(64, 1));
+    expect((await pair.server.read(1000)).length).toBe(64);
+    pair.client.send(Buffer.alloc(65, 1));
+
+    await expect(pair.server.read(1000)).rejects.toMatchObject({ code: 'too-large' });
+  });
+
+  test('a header that trickles in one byte at a time still makes one whole frame', async () => {
+    const pair = await connectedPair();
+    open.push(pair);
+    const wire = Buffer.concat([Buffer.from([0, 0, 0, 5]), Buffer.from('hello')]);
+
+    for (const byte of wire) {
+      pair.rawClient.write(Buffer.from([byte]));
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    expect((await pair.server.read(1000)).toString()).toBe('hello');
+  });
+
+  test('a flood of frames nobody reads ends the connection instead of growing memory', async () => {
+    const pair = await connectedPair();
+    open.push(pair);
+    const one = Buffer.concat([Buffer.from([0, 0, 0, 1]), Buffer.from('x')]);
+
+    pair.rawClient.write(Buffer.concat(Array.from({ length: 300 }, () => one)));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    let read = 0;
+    let code: string;
+    for (;;) {
+      try {
+        await pair.server.read(200);
+        read++;
+      } catch (error) {
+        code = (error as { code: string }).code;
+        break;
+      }
+    }
+    expect(code).toBe('flood');
+    expect(read).toBeLessThanOrEqual(64);
+  });
+
   test('a silent peer times out', async () => {
     const pair = await connectedPair();
     open.push(pair);
 
     await expect(pair.server.read(50)).rejects.toMatchObject({ code: 'timeout' });
+  });
+});
+
+describe('key separation', () => {
+  test("the same secret gives different keys for pairing and for sessions, and neither opens the other's frames", () => {
+    const secret = randomBytes(32);
+    const salt = randomBytes(32);
+    const pairing = hkdf(secret, salt, 'ao-team/v1 pair keys', 64);
+    const session = hkdf(secret, salt, 'ao-team/v1 session keys', 64);
+    const context = Buffer.from('tr');
+
+    const pairFrame = channelFromKeys(pairing, 'member', context).seal(Buffer.from('pair'));
+    const sessionHost = channelFromKeys(session, 'host', context);
+
+    expect(pairing.equals(session)).toBe(false);
+    expect(() => sessionHost.open(pairFrame)).toThrow(ChannelError);
+  });
+
+  test('two sessions of the same pair of keys never share keys: a frame of one does not open in the other', () => {
+    const a = randomBytes(32);
+    const b = randomBytes(32);
+    const salt = randomBytes(32);
+    const keysA = hkdf(a, salt, 'ao-team/v1 session keys', 64);
+    const keysB = hkdf(b, salt, 'ao-team/v1 session keys', 64);
+
+    const frame = channelFromKeys(keysA, 'member', salt).seal(Buffer.from('x'));
+
+    expect(keysA.equals(keysB)).toBe(false);
+    expect(() => channelFromKeys(keysB, 'host', salt).open(frame)).toThrow(ChannelError);
+    expect(channelFromKeys(keysA, 'host', salt).open(frame).toString()).toBe('x');
   });
 });

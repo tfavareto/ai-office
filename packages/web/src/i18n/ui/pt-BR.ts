@@ -1417,7 +1417,8 @@ export const uiPtBR = {
   'team.error.unknown-member': 'O anfitrião não reconhece este computador (membro não encontrado ou time recriado).',
   'team.error.unreachable': 'Não foi possível conectar. Confira o endereço, a porta e se o anfitrião está escutando.',
   'team.error.timeout': 'O anfitrião não respondeu a tempo.',
-  'team.error.not-pairing': 'O anfitrião não tem um código aberto (ele expirou ou já foi usado). Peça um novo.',
+  'team.error.not-pairing':
+    'O anfitrião não respondeu ao pareamento: não há código aberto (ele expirou ou já foi usado) ou ele não está escutando. Peça um novo código.',
   'team.error.pairing-failed': 'Código errado. Confira os 8 caracteres.',
   'team.error.pairing-locked': 'O código foi bloqueado depois de tentativas erradas. Peça um novo ao anfitrião.',
   'team.error.rate-limited': 'Tentativas demais. Espere um minuto.',
@@ -1450,6 +1451,15 @@ export const uiPtBR = {
   'team.act.done': 'Concluiu',
   'team.act.other': 'Trabalhando',
   'team.status.waiting': 'Esperando resposta',
+  'team.field.device': 'Nome deste computador (opcional)',
+  'team.field.device.placeholder': 'Deixe vazio para um rótulo neutro',
+  'team.field.shared':
+    'Este endereço (100.64.x.x) pode ser de uma rede compartilhada com outros assinantes do provedor, que alcançariam a porta. Marque para continuar só se for uma VPN sua, como o Tailscale.',
+  'team.network.shared': '{name} · {address} (rede compartilhada)',
+  'team.fingerprint': 'Impressão digital da chave do anfitrião',
+  'team.fingerprint.hint':
+    'Opcional: quem entra deve ver a mesma. Compare em voz alta para ter certeza de que fala com o computador certo.',
+  'team.error.shared-address': 'Esse endereço pode ser compartilhado com estranhos. Confirme o aviso para usá-lo.',
   'team.room': 'Projeto {n}',
   'team.room.full': '{member} · {room}',
   'team.role.sub': 'Subagente',

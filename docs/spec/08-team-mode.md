@@ -57,22 +57,23 @@ the pairing code and the host's key, traffic analysis (who talks to whom and how
 | # | Threat | Answer |
 | --- | --- | --- |
 | T1 | The team port exposes the web app, the local API or transcripts. | The team listener is a different server (`node:net`, not `node:http`) that speaks only the framed team protocol. It has no routes, no files, no HTTP. Any other first bytes (an HTTP request, a scanner) exceed the frame limit or fail to parse and the connection is closed **without a reply**. The REST endpoints that manage team mode live on the loopback server only and are local-only, token-protected and `Sec-Fetch-Site`-guarded. The main listener and its guards are unchanged. |
-| T2 | The port is reachable from the internet or an unintended network. | Binding is to **one chosen interface address**, never `0.0.0.0` or `::`. Only private, link-local, CGNAT (Tailscale) and loopback IPv4 literals are accepted, and the address must belong to an interface of this computer. The listener also drops peers whose source address is not in those ranges (a port forward shows a public source). Joining accepts the same literals only: no names, so no DNS and no way to aim a connection at the internet. Off until the person turns it on. |
+| T2 | The port is reachable from the internet or an unintended network. | Binding is to **one chosen interface address**, never `0.0.0.0` or `::`. Only private, link-local, shared (100.64.0.0/10) and loopback IPv4 literals are accepted, and the address must belong to an interface of this computer. The shared range is also used by carrier-grade NAT, where strangers of the same provider could reach the port, so listening there needs an explicit confirmation in the dialog (and is not resumed after a restart without it). The listener also drops peers whose source address is not in those ranges (a port forward shows a public source). Joining accepts the same literals only: no names, so no DNS and no way to aim a connection at the internet. Off until the person turns it on. |
 | T3 | An eavesdropper reads or alters the shared data. | No data travels in clear text. After the handshake every message is AES-256-GCM with a key per direction. Plain HTTP (or any cleartext) on the LAN is **not used for data** because anyone on the network could read agent names and activity and could rewrite them; the whole point of the mode is that the LAN is not trusted. |
-| T4 | A man in the middle during pairing hands out its own keys. | Pairing is authenticated by the code, which never crosses the wire: both sides prove knowledge of a key derived from it (scrypt, then HKDF) over the whole transcript (both ephemeral public keys, the nonce, the salt, the ciphertext). A relay that changes a byte breaks the proof; an attacker who does not know the code cannot produce either proof. The member ends the pairing knowing the host's long-term public key; that key is then pinned. |
-| T5 | Guessing the code online. | 8 characters of a 32-symbol alphabet (40 bits), single use, valid 10 minutes. The host reveals nothing keyed by the code before the member has proven it (so connecting without the code yields nothing to test guesses against). 5 wrong proofs **destroy** the code (the host must make a new one); a limit per source address (10 attempts a minute) and a cap on unauthenticated connections (8 in total, 3 per address) apply on top. |
+| T4 | A man in the middle during pairing hands out its own keys. | Pairing is authenticated by the code, which never crosses the wire: both sides prove knowledge of a key derived from it (scrypt, then HKDF) over the whole transcript (both ephemeral public keys, the nonce, the salt, the ciphertext). A relay that changes a byte breaks the proof; an attacker who does not know the code cannot produce either proof. The member ends the pairing knowing the host's long-term public key; that key is then pinned. Both dialogs show the host key's **fingerprint**, so two people can also compare it out loud. |
+| T5 | Guessing the code online, or keeping the pairing unusable. | 8 characters of a 32-symbol alphabet (40 bits), single use, valid 10 minutes (by a monotonic clock, so changing the system time cannot stretch it). While **no code is open the host answers a pairing hello with silence**; with a code open it reveals nothing keyed by the code before the member has proven it. Wrong proofs are counted **per source address**: 5 lock the code for that address only, so a stranger cannot spend the attempts of everybody (60 wrong proofs in all, from many addresses, destroy it); each address may make 2 wrong proofs and 10 pairing attempts a minute, and is then answered `rate-limited`. The code is used up only after the member is stored (a pairing that fails on the host's side leaves it usable). |
 | T6 | Guessing the code offline from a recorded handshake. | The proofs are the only values an observer can test a guess against. The code is stretched with scrypt (N=2^15, r=8: 32 MiB, about 80 ms) with a public random salt per code, so each of the 2^40 candidates costs the attacker that much, and the code is dead after at most ten minutes or its first success. A true PAKE would remove the oracle altogether; Node has none and a hand-made one would be riskier than this (see section 9). |
 | T7 | Stealing a session by replaying captured traffic. | Handshakes use fresh ephemeral keys and nonces on both sides and the signatures cover them: a recorded `auth` never verifies in a new session. Inside a session each frame is sealed with a counter that is the GCM nonce and part of the key schedule; the counter is **not sent** but counted by both ends, so a replayed, duplicated, dropped or reordered frame fails authentication and the connection ends. Keys are fresh per connection, so a nonce is never reused under a key. |
-| T8 | Impersonating a member or the host after pairing. | Each machine has an Ed25519 identity. The host stores only the members' **public** keys (no member secret exists on the host to steal or hash); a member pins the host's public key at pairing. Every session signs a transcript with both identity keys, both ephemeral keys, both nonces and the status. A host key that does not match the pinned one makes the member stop and say so (`host-key-changed`), never connect anyway. |
-| T9 | A forged "you were removed" message that makes devices leave, or hides a real one. | The host's answer to a hello carries a status (`ok`, `revoked`, `unknown`) inside the signed transcript. A refusal that is not signed by the pinned key is a host-key error, not a revocation. Errors that anyone on the network could produce (version mismatch, rate limit) never stop a member for good: it keeps retrying slowly. |
-| T10 | A removed member keeps access. | Revoking deletes its public key, adds its id to the removed list, closes its connection with `bye revoked` and answers every later hello with a signed `revoked`. Ending the team deletes the identity key and the member list: nobody can pair or reconnect to the old team. |
-| T11 | Denial of service of the host (connections, memory, CPU). | Frame size limits per phase (4 KB before authentication, 64 KB member to host, 512 KB host to member), at most 64 queued frames, a write backlog cap, an 8-second deadline for the whole handshake, the pending-connection caps of T5, 40 messages per 10 seconds per authenticated connection, at most 16 members, 40 agents and 16 rooms per share, heartbeats (ping every 10 s, dead after 35 s). The pairing key is stretched once per code, not per connection. |
-| T12 | A member sends hostile content (huge strings, control or bidi characters, HTML, nested objects). | The host rebuilds every share and view from an **allowlist** (`parseTeamShare`, `parseTeamView`): unknown fields are dropped, strings are cleaned (no control or bidirectional override characters) and capped, numbers are bounded, unknown enums are refused. The page renders everything with `textContent`. Members apply the same reader to the host's view. |
+| T8 | Impersonating a member or the host after pairing. | Each machine has an Ed25519 identity. The host stores only the members' **public** keys (no member secret exists on the host to steal or hash); a member pins the host's public key at pairing. Every session signs a transcript with both identity keys, both ephemeral keys, both nonces and the status. A host key that does not match the pinned one makes the member refuse to continue (it has sent nothing but its id and a fresh ephemeral key) and show `host-key-changed` as a warning; it keeps checking every 60 s, because whoever can answer on that address can also forge this failure, and a forged answer must not be able to switch a member off. |
+| T9 | A forged "you were removed" message that makes devices leave, or hides a real one. | The host's answer to a hello carries a status (`ok`, `revoked`, `unknown`) inside the signed transcript. A refusal that is not signed by the pinned key is a host-key warning, never a removal. Only signed statuses and sealed `bye` messages (`revoked`, `ended`) stop a member for good; every error that anyone on the network could produce (version mismatch, rate limit, a wrong key) only slows the retries. |
+| T10 | A removed member keeps access. | Revoking deletes its public key, adds its id to the removed list, closes its connection with `bye revoked`, **cuts every handshake it has in progress**, and answers every later hello with a signed `revoked`. A handshake that finishes anyway is refused because the host checks, right before the session starts and on every frame, that the member id is still in the list with the key it proved. Ending the team deletes the identity key and the member list, and nothing may write the host file again: nobody can pair or reconnect to the old team. |
+| T11 | Denial of service of the host (connections, memory, CPU). | Frame size limits per phase (4 KB before authentication, 64 KB member to host, 512 KB host to member), at most 64 queued frames, a write backlog cap, a **2 s deadline for the first frame** (an idle connection is cut long before the 8 s handshake deadline), unauthenticated connections capped at 32 in total, 3 per address and 8 per /24 subnet, the **oldest connection of the busiest address dropped** when the total is reached, a reserve of 8 for addresses that authenticated in the last 10 minutes (they are never the ones dropped), 40 messages per 10 seconds per authenticated connection, at most 16 members, 40 agents and 16 rooms per share, heartbeats (ping every 10 s, dead after 35 s). The pairing key is stretched once per code, not per connection. |
+| T12 | A member sends hostile content (huge strings, control or bidi characters, HTML, nested objects, catalog keys). | The host rebuilds every share and view from an **allowlist** (`parseTeamShare`, `parseTeamView`): unknown fields are dropped, texts are normalized to NFC and stripped of control, format (zero-width, bidi), line-separator, variation-selector and tag characters, runs of combining marks are cut, lengths are capped, numbers are bounded, unknown enums are refused, and keys and ids may not be `__proto__`, `constructor` and the like. A member can never make another computer render a catalog key of its choice: `activityMsg` is accepted only if its key is one of the activity messages of the shared catalog (never the ones that carry a prompt or a message), only together with the words it renders, and the translator reads own catalog keys only. The page renders everything with `textContent`. Members apply the same readers to the host's view. |
 | T13 | The shared data contains more than the person meant. | The share is built by one function, `buildTeamShare`, from an allowlist, with a property test over random offices that carry markers in every sensitive field. See section 7. |
 | T14 | A web page in the browser (E) drives team mode or reads the pairing code. | The management endpoints are loopback-only, require the access token, reject cross-site requests and need JSON with a same-origin `Origin`, like every other local-only endpoint. The code is only in the response to an authorized local `GET /api/team`. |
-| T15 | Secrets at rest. | `<stateDir>/team/` is `0700`, files `0600`, written atomically. They hold the identity private keys (needed to sign), public keys, names and addresses. No code, no session key and no data from other machines is written. |
+| T15 | Secrets at rest. | `<stateDir>/team/` is `0700`, files `0600`, written atomically (a failed write removes its temporary file, deleting a file removes leftovers). They hold the identity private keys (needed to sign), public keys, names and addresses. No code, no session key and no data from other machines is written. |
 | T16 | Clock differences break expiry or ordering. | The protocol carries **ages** (milliseconds ago), never clock readings; each computer converts to its own clock on receipt. The only clock that matters is the host's own for the ten-minute code. Skew between machines has no effect. |
 | T17 | A downgrade to an older protocol. | Version 1 is the only one; the version is in the first message and in the signed transcript. A different version is answered with `version-mismatch` before anything else. |
+| T18 | Lost updates: two changes to the host file (a removal, a new member, a last-seen update, a member leaving) overwrite each other and bring a removed member back. | Every change goes through one queue and is computed from the latest state, never from a copy taken earlier; management actions of the service are queued too. Background writes stop with the listener. |
 
 ## 5. Architecture
 
@@ -120,14 +121,17 @@ H -> M  pair-challenge  eH, nH (16 random bytes), salt (16 random bytes, per cod
                 keys = HKDF(X25519(eM,eH) || codeKey, tr, "pair keys", 64)   // member->host || host->member
 M -> H  pair-proof      box  = AEAD(keys.m2h, { name, device, member public key }, aad = tr)
                         proofM = HMAC(kMac, "member" || tr || SHA-256(box))
-H:      constant-time check of proofM. Wrong: count a failure, answer one generic error `pairing-failed`.
-        Right: use up the code (exactly one connection wins, even in a race), decrypt, store the member's PUBLIC key.
+H:      constant-time check of proofM. Wrong: count it for the source address, answer one generic error `pairing-failed`.
+        Right: claim the code (exactly one connection wins, even in a race), decrypt, store the member's PUBLIC key;
+        the code is used up only once the member is stored.
 H -> M  pair-accept     box' = AEAD(keys.h2m, { memberId, teamId, teamName, hostName, host public key })
                         proofH = HMAC(kMac, "host" || tr || proofM || SHA-256(box'))
 M:      constant-time check of proofH, then pins the host public key.
 ```
 
-The host sends nothing derived from the code before `proofM` verified. A host that does not know the code cannot produce
+The host sends nothing derived from the code before `proofM` verified, and answers a `pair-hello` with silence while no
+code is open (a stranger learns nothing, not even that pairing exists; a member who gets silence reports "no open code or
+not listening"). A host that does not know the code cannot produce
 `proofH`. Pairing then closes; the member opens a normal session.
 
 ### 6.4 Session (every connection after pairing)
@@ -158,17 +162,20 @@ Nothing else exists. There is no message that carries a command, a prompt, an an
 
 ### 6.6 Errors
 
-Before the handshake completes a peer may answer one `error` with a code: `not-pairing`, `pairing-failed`, `pairing-locked`,
-`rate-limited`, `version-mismatch`, `team-full`, `protocol-error`. The page explains each in the user's language. Reconnecting
-members back off 1 s, 2 s, 4 s … up to 30 s with jitter (60 s after errors a stranger could forge) and stop only for
-`revoked`, `unknown-member` (the host does not know this device: team ended or recreated), `host-key-changed` and `ended`.
+Before the handshake completes a peer may answer one `error` with a code: `pairing-failed`, `pairing-locked` (for the
+address that failed), `rate-limited`, `version-mismatch`, `team-full`, `save-failed`, `protocol-error`. `not-pairing` is
+never sent: a host with no code open stays silent. The page explains each in the user's language. Reconnecting members back
+off 1 s, 2 s, 4 s … up to 30 s with jitter, and 60 s after errors a stranger could forge (`version-mismatch`, `replaced`,
+`rate-limited`, `protocol-error`, `host-key-changed`). They stop for good only for `revoked`, `unknown-member` (the host does
+not know this device: team ended or recreated; signed) and `ended` (sealed).
 
 ## 7. What is shared
 
 A member sends a **sanitized office snapshot** built by `buildTeamShare` from an allowlist. The result holds rooms
 (`key`, `index`, optional `name`) and agents.
 
-Always shared (needed to draw a person): the **display name** (the personalized one when set), main or sub, status
+Always shared (needed to draw a person): the **display name** (the personalized one when set), the **device name** (a neutral
+label such as `PC-3f9a` unless the person types one; never the host name, which often holds a real name), main or sub, status
 (working, waiting, idle; finished or offline agents are not sent), how long ago the status began, the look (`f`/`m` and the
 personalization look, harmless), which CLI (`claude` or `codex`) and the **kind** of the current activity (read, edit, bash…;
 the page words it generically: "Reading", "Running a command"). Rooms are numbered "Project 1/2…" per member, in order of
@@ -184,8 +191,8 @@ everything at once without leaving the team):
 
 | Category | Adds | Note |
 | --- | --- | --- |
-| Project names | The real room name instead of "Project N" | The alias when the person gave one, else the folder's last segment; never the path or the original name behind an alias. |
-| Activity in words | `activityText` (and its message) | May contain a file name or the head of a command. |
+| Project names | The real room name instead of "Project N" | The alias when the person gave one, else the folder's last segment (either kind of separator); never the path or the original name behind an alias. |
+| Activity in words | `activityText` (and its message) | May contain a file name or the head of a command. What the person typed (a prompt, a message) is never sent as words, even with this on. |
 | Session titles | `title` | Usually the first prompt. |
 | Branches | `branch` | |
 | Tokens and cost | `tokens`, `costUSD` per agent | |
@@ -193,7 +200,7 @@ everything at once without leaving the team):
 Visibility: whatever a member shares is visible to the host and to every other member. The host's own office is shared
 under the host's own settings.
 
-Tests: `shared/src/team/sanitize.test.ts` runs 200 random offices whose every sensitive field holds a marker, for the
+The look is rebuilt at the source with the validated fields only. Tests: `shared/src/team/sanitize.test.ts` runs 200 random offices whose every sensitive field holds a marker, for the
 defaults, each category alone, and all on; no marker may appear except the one of the category enabled.
 
 ## 8. Where it appears
@@ -224,7 +231,11 @@ defaults, each category alone, and all on; no marker may appear except the one o
   junk (they cannot do more than the allowlist and the caps allow).
 - **Timing.** Proof comparisons are constant time; the rest is not written to resist local timing attacks, which are
   outside the threat model (adversary C is a different user).
-- **Anyone on the LAN can spend the five attempts of a code.** That locks the code (a denial of the *code*, not of the team); the host makes a new one. The cost to the attacker is being on the network and the host's per-address limit does not stop a spoofed source from burning it.
+- **A LAN attacker with many source addresses can still keep a code unusable.** Per-address locks stop one address; sixty wrong proofs from several (spoofed or borrowed) addresses destroy the code, and the host makes a new one. It is a denial of the *pairing*, never of the team, and it costs the attacker the network position and many addresses. The same goes for the pool of unauthenticated connections: addresses that authenticated lately are protected and the busiest address is dropped first, but an attacker with many addresses can still churn it.
+- **While a code is open a stranger learns that pairing exists** (a challenge with a public salt). With no code open the host answers nothing.
+- **The fingerprint check is optional.** Comparing the host key out loud removes the code's offline-guessing risk; most people will not do it.
+- **Listening on a shared address (100.64/10)** is possible after a confirmation; on carrier-grade NAT that exposes the (authenticated) listener to other subscribers.
+- **The device name** is shared with the whole team; the person can type any label.
 - **IPv6 is not supported.** Only IPv4 literals are accepted (a deliberate simplification: fewer address forms to validate).
 
 ## 10. Storage
@@ -242,9 +253,11 @@ A file this version cannot read is ignored (and kept). `AI_OFFICE_TEAM=0` makes 
 
 ## 11. Limits (constants in `server/src/team/limits.ts` and `shared/src/team/types.ts`)
 
-Code: 8 characters, 10 minutes, 5 wrong proofs. Members: 16. Per share: 40 agents, 16 rooms. Frames: 4 KB / 64 KB / 512 KB.
-Handshake: 8 s. Pending connections: 8 (3 per address). Pairing attempts: 10 per minute per address. Hellos: 30 per minute
-per address, failed proofs: 8 per minute per address. Messages: 40 per 10 s per connection. Heartbeat: 10 s / dead at 35 s.
+Code: 8 characters, 10 minutes (monotonic), 5 wrong proofs lock it for an address, 60 in all destroy it. Members: 16. Per share:
+40 agents, 16 rooms. Frames: 4 KB / 64 KB / 512 KB. First frame: 2 s. Handshake: 8 s. Pending connections: 32 (3 per address, 8
+per /24, reserve 8 for recently authenticated addresses, oldest of the busiest address dropped when full). Pairing attempts: 10 per
+minute per address, wrong proofs 2 per minute per address. Hellos: 30 per minute per address, failed session proofs: 8 per
+minute per address. Messages: 40 per 10 s per connection. Heartbeat: 10 s / dead at 35 s.
 Share: at most 1/s, keepalive 20 s. Reconnect: 1 s doubling to 30 s with jitter.
 
 ## 12. Test map
@@ -259,3 +272,7 @@ Share: at most 1/s, keepalive 20 s. Reconnect: 1 s doubling to 30 s with jitter.
 | Nothing but the allowed fields leaves; opt-in per category | `shared/src/team/sanitize.test.ts`, `service.test.ts`, `http/team-route.test.ts` |
 | The team port speaks no HTTP; the main listener is still loopback-only; endpoints need the token | `service.test.ts`, `channel.test.ts`, `http/team-route.test.ts` |
 | Two real servers over loopback | `http/team-route.test.ts` |
+| Review fixes: revoke during a handshake, serialized file changes, idle strangers, forged host answers, per-address limits, silent host, shared address, fingerprints, device name | `hardening.test.ts`, `pending.test.ts`, `pairing.test.ts` |
+| Hostile text and keys, message whitelist, prototype names | `shared/src/team/text.test.ts`, `sanitize.test.ts`, `validate.test.ts`, `shared/src/i18n/i18n.test.ts` |
+| Framing edges (exact limit, trickled header, queue flood), key separation | `channel.test.ts` |
+| Management endpoints refuse a non-local request | `http/team-route.test.ts` |

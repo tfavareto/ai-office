@@ -4,8 +4,10 @@
 // Never shared: paths, prompts, commands, file names, branches, costs, tokens, session ids, accounts, tasks, permission
 // requests, messages, git state, the folder name behind a room alias. Opt-in, per category and off by default: room
 // names, the activity in words, titles, branches, tokens and cost.
-import type { Agent, Project } from '../model';
+import { parseLook } from '../customization/validate';
+import { SHARED_CATALOGS } from '../i18n';
 import type { Msg } from '../i18n/i18n';
+import type { ActivityKind, Agent, Project } from '../model';
 import { cleanLine } from './text';
 import {
   TEAM_MAX_AGENTS,
@@ -30,13 +32,34 @@ export type ShareKey = (kind: 'agent' | 'room', id: string) => string;
 const SHARED_STATUSES: ReadonlySet<string> = new Set<SharedStatus>(['working', 'waiting', 'idle']);
 const MAX_BRANCH = 60;
 const MAX_MSG_PARAMS = 8;
-const MSG_KEY = /^[a-z][a-zA-Z0-9.]{0,63}$/;
+
+/** Kinds whose words are what the person typed (a prompt, a message): never shared, even with "activity in words" on. */
+const WORDS_WITHHELD: ReadonlySet<ActivityKind> = new Set<ActivityKind>(['prompt', 'message']);
+
+/**
+ * The only message keys that may travel: the activity messages of the shared catalog, minus those that carry what the
+ * person typed. A member cannot make another computer render any other key, and the host refuses all others.
+ */
+const ACTIVITY_MSG_KEYS: ReadonlySet<string> = new Set(
+  Object.keys(SHARED_CATALOGS['pt-BR']).filter(
+    (key) => key.startsWith('activity.') && key !== 'activity.prompt' && key !== 'activity.message',
+  ),
+);
+
+export function isShareableActivityKey(key: unknown): key is string {
+  return typeof key === 'string' && ACTIVITY_MSG_KEYS.has(key);
+}
+
+/** The last segment of a folder path, with either kind of separator. */
+export function lastSegment(path: string): string {
+  return path.replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? path;
+}
 
 /** A message whose parameters are all plain text or numbers, cleaned; undefined when it cannot be kept whole. */
 export function flatMsg(msg: unknown): Msg | undefined {
   if (typeof msg !== 'object' || msg === null) return undefined;
   const { key, params } = msg as { key?: unknown; params?: unknown };
-  if (typeof key !== 'string' || !MSG_KEY.test(key)) return undefined;
+  if (!isShareableActivityKey(key)) return undefined;
   if (params === undefined) return { key };
   if (typeof params !== 'object' || params === null || Array.isArray(params)) return undefined;
   const entries = Object.entries(params as Record<string, unknown>);
@@ -65,10 +88,11 @@ function shareAgent(agent: Agent, roomKey: string, prefs: TeamSharePrefs, now: n
     sinceAgeMs: Math.max(0, Math.round(now - agent.statusSince)),
     look: agent.look === 'm' ? 'm' : 'f',
   };
-  if (agent.appearance !== undefined) out.appearance = agent.appearance;
+  const appearance = parseLook(agent.appearance);
+  if (appearance !== undefined) out.appearance = appearance;
   if (agent.source === 'codex') out.source = 'codex';
   if (agent.activity !== undefined) out.activityKind = agent.activity.kind;
-  if (prefs.activityText && agent.activity !== undefined) {
+  if (prefs.activityText && agent.activity !== undefined && !WORDS_WITHHELD.has(agent.activity.kind)) {
     const text = cleanLine(agent.activity.text, TEAM_TEXT_MAX);
     if (text !== undefined) out.activityText = text;
     const msg = flatMsg(agent.activity.msg);
@@ -106,7 +130,11 @@ export function buildTeamShare(source: ShareSource, prefs: TeamSharePrefs, now: 
   const rooms: SharedRoom[] = used.map((project, index) => {
     const room: SharedRoom = { key: key('room', project.id), index: index + 1 };
     if (prefs.projectNames) {
-      const name = cleanLine(project.name, TEAM_TEXT_MAX);
+      // Without an alias `name` is the folder's name; with one it is what the person chose to call the room.
+      const name = cleanLine(
+        project.originalName === undefined ? lastSegment(project.name) : project.name,
+        TEAM_TEXT_MAX,
+      );
       if (name !== undefined) room.name = name;
     }
     return room;

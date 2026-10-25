@@ -1423,7 +1423,8 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'team.error.unknown-member': 'El anfitrión no reconoce esta computadora (miembro no encontrado o equipo recreado).',
   'team.error.unreachable': 'No se pudo conectar. Revisa la dirección, el puerto y que el anfitrión esté escuchando.',
   'team.error.timeout': 'El anfitrión no respondió a tiempo.',
-  'team.error.not-pairing': 'El anfitrión no tiene un código abierto (caducó o ya se usó). Pide uno nuevo.',
+  'team.error.not-pairing':
+    'El anfitrión no respondió al emparejamiento: no hay un código abierto (caducó o ya se usó) o no está escuchando. Pide un código nuevo.',
   'team.error.pairing-failed': 'Código incorrecto. Revisa los 8 caracteres.',
   'team.error.pairing-locked': 'El código se bloqueó tras intentos fallidos. Pide uno nuevo al anfitrión.',
   'team.error.rate-limited': 'Demasiados intentos. Espera un minuto.',
@@ -1456,6 +1457,15 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'team.act.done': 'Terminó',
   'team.act.other': 'Trabajando',
   'team.status.waiting': 'Esperando respuesta',
+  'team.field.device': 'Nombre de esta computadora (opcional)',
+  'team.field.device.placeholder': 'Déjalo vacío para una etiqueta neutra',
+  'team.field.shared':
+    'Esta dirección (100.64.x.x) puede estar en una red compartida con otros abonados del proveedor, que alcanzarían el puerto. Márcalo para continuar solo si es tu propia VPN, como Tailscale.',
+  'team.network.shared': '{name} · {address} (red compartida)',
+  'team.fingerprint': 'Huella de la clave del anfitrión',
+  'team.fingerprint.hint':
+    'Opcional: quien se une debe ver la misma. Compárala en voz alta para estar seguro de hablar con la computadora correcta.',
+  'team.error.shared-address': 'Esa dirección puede compartirse con extraños. Confirma el aviso para usarla.',
   'team.room': 'Proyecto {n}',
   'team.room.full': '{member} · {room}',
   'team.role.sub': 'Subagente',

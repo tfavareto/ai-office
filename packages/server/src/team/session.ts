@@ -7,7 +7,7 @@
 // replayed in another session and neither side can be replaced by a man in the middle. The host's status (ok, revoked,
 // unknown) is signed too, so "you were removed" cannot be forged. The host stores only public keys of its members.
 import { randomBytes } from 'node:crypto';
-import { TEAM_PROTOCOL_VERSION } from '@ai-office/shared';
+import { TEAM_PROTOCOL_VERSION, isSafeKey } from '@ai-office/shared';
 import type { FramedConn } from './conn';
 import { type Identity, agree, edSign, edVerify, fromB64, hkdf, newEphemeral, toB64, transcript } from './keys';
 import { HANDSHAKE_MAX_BYTES, HANDSHAKE_TIMEOUT_MS } from './limits';
@@ -17,7 +17,6 @@ import { ProtocolError, decode, expect, sendPlain, type WireMessage } from './wi
 export type SessionStatus = 'ok' | 'revoked' | 'unknown';
 const STATUS_BYTE: Record<SessionStatus, number> = { ok: 0, revoked: 1, unknown: 2 };
 const ZERO_KEY = Buffer.alloc(32);
-const MEMBER_ID = /^[A-Za-z0-9_-]{8,32}$/;
 
 interface Parts {
   hostPub: Buffer;
@@ -105,21 +104,24 @@ export interface HostSessionContext {
 
 export interface HostSession {
   memberId: string;
+  /** The public key the member proved at this handshake: the host re-checks it is still the member's. */
+  memberPub: Buffer;
   channel: SecureChannel;
 }
 
 /**
- * Answers one hello. Resolves with the authenticated session, or undefined when the attempt ended (a signed refusal was
- * sent, or the member could not prove its key). Throws ProtocolError for a malformed or foreign-version hello.
+ * Answers one hello. Resolves with the authenticated session; `refused` when a signed refusal (removed, unknown) was
+ * sent; `bad-signature` when the member could not prove its key (the caller counts those). Throws ProtocolError for a
+ * malformed or foreign-version hello.
  */
 export async function hostSession(
   conn: FramedConn,
   hello: WireMessage,
   ctx: HostSessionContext,
-): Promise<HostSession | undefined> {
+): Promise<HostSession | 'refused' | 'bad-signature'> {
   checkVersion(hello);
   const memberId = hello.member;
-  if (typeof memberId !== 'string' || !MEMBER_ID.test(memberId)) throw new ProtocolError('protocol-error');
+  if (!isSafeKey(memberId, 8, 32)) throw new ProtocolError('protocol-error');
   const eMember = fromB64(hello.e, 32);
   const nMember = fromB64(hello.n, 16);
   const found = ctx.lookup(memberId);
@@ -144,14 +146,14 @@ export async function hostSession(
   });
   if (typeof found === 'string') {
     conn.close();
-    return undefined;
+    return 'refused';
   }
   const auth = expect(decode(await conn.read(HANDSHAKE_TIMEOUT_MS)), 'auth');
   if (!edVerify(found.pub, trFor('ao-team/v1 member sig', parts), fromB64(auth.sig, 64))) {
     conn.destroy();
-    return undefined;
+    return 'bad-signature';
   }
   const tr = trFor('ao-team/v1 session', parts);
   const material = hkdf(agree(eHost.privateKey, eMember), tr, 'ao-team/v1 session keys', 64);
-  return { memberId, channel: channelFromKeys(material, 'host', tr) };
+  return { memberId, memberPub: found.pub, channel: channelFromKeys(material, 'host', tr) };
 }

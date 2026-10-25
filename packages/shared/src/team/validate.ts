@@ -3,7 +3,7 @@
 import { parseLook } from '../customization/validate';
 import type { ActivityKind } from '../model';
 import { flatMsg } from './sanitize';
-import { cleanLine } from './text';
+import { cleanLine, isSafeKey } from './text';
 import {
   DEFAULT_TEAM_SHARE,
   TEAM_DEVICE_MAX,
@@ -41,7 +41,6 @@ const ACTIVITY_KINDS: ReadonlySet<string> = new Set<ActivityKind>([
   'done',
   'other',
 ]);
-const KEY = /^[A-Za-z0-9_-]{1,32}$/;
 const MAX_AGE_MS = 10 * 365 * 24 * 3600 * 1000;
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -56,7 +55,7 @@ function boundedNumber(value: unknown, max: number): number | undefined {
 
 function readRoom(raw: unknown): SharedRoom | undefined {
   const r = record(raw);
-  if (r === undefined || typeof r.key !== 'string' || !KEY.test(r.key)) return undefined;
+  if (r === undefined || !isSafeKey(r.key)) return undefined;
   const index = boundedNumber(r.index, 99);
   if (index === undefined || !Number.isInteger(index) || index < 1) return undefined;
   const name = cleanLine(r.name, TEAM_TEXT_MAX);
@@ -66,8 +65,8 @@ function readRoom(raw: unknown): SharedRoom | undefined {
 function readAgent(raw: unknown, rooms: ReadonlySet<string>): SharedAgent | undefined {
   const r = record(raw);
   if (r === undefined) return undefined;
-  if (typeof r.key !== 'string' || !KEY.test(r.key)) return undefined;
-  if (typeof r.roomKey !== 'string' || !rooms.has(r.roomKey)) return undefined;
+  if (!isSafeKey(r.key)) return undefined;
+  if (!isSafeKey(r.roomKey) || !rooms.has(r.roomKey)) return undefined;
   if (r.status !== 'working' && r.status !== 'waiting' && r.status !== 'idle') return undefined;
   const name = cleanLine(r.name, TEAM_NAME_MAX);
   const since = boundedNumber(r.sinceAgeMs, MAX_AGE_MS);
@@ -88,7 +87,8 @@ function readAgent(raw: unknown, rooms: ReadonlySet<string>): SharedAgent | unde
     out.activityKind = r.activityKind as ActivityKind;
   const text = cleanLine(r.activityText, TEAM_TEXT_MAX);
   if (text !== undefined) out.activityText = text;
-  const msg = flatMsg(r.activityMsg);
+  // A message only travels with the words it renders (both are part of "activity in words").
+  const msg = text === undefined ? undefined : flatMsg(r.activityMsg);
   if (msg !== undefined) out.activityMsg = msg;
   const title = cleanLine(r.title, TEAM_TEXT_MAX);
   if (title !== undefined) out.title = title;
@@ -127,7 +127,7 @@ export function parseTeamShare(raw: unknown): TeamShare | undefined {
 
 function readViewMember(raw: unknown): TeamViewMember | undefined {
   const r = record(raw);
-  if (r === undefined || typeof r.id !== 'string' || !KEY.test(r.id)) return undefined;
+  if (r === undefined || !isSafeKey(r.id)) return undefined;
   const name = cleanLine(r.name, TEAM_NAME_MAX);
   if (name === undefined) return undefined;
   const lastSeen = boundedNumber(r.lastSeenAgoMs, MAX_AGE_MS);

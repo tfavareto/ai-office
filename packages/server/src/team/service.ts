@@ -2,7 +2,6 @@
 // the sharing preferences, and that the REST handlers and the snapshot publisher talk to. Off until the person turns it
 // on: nothing listens and nothing connects until "host a team" or "join a team".
 import { createHmac, randomBytes } from 'node:crypto';
-import { hostname } from 'node:os';
 import {
   TEAM_DEFAULT_PORT,
   TEAM_DEVICE_MAX,
@@ -23,8 +22,16 @@ import {
   type TeamStatus,
 } from '@ai-office/shared';
 import type { Logger } from '../log';
-import { isOwnAddress, isLoopbackAddress, isTeamAddress, isValidPort, lanInterfaces, parseHostPort } from './addresses';
-import { TeamHost } from './host';
+import {
+  isLoopbackAddress,
+  isOwnAddress,
+  isSharedAddress,
+  isTeamAddress,
+  isValidPort,
+  lanInterfaces,
+  parseHostPort,
+} from './addresses';
+import { TeamHost, type HostDeps } from './host';
 import { exportIdentity, newIdentity, toB64 } from './keys';
 import { TeamMember, pairWithHost } from './member';
 import { ProtocolError } from './wire';
@@ -53,16 +60,28 @@ export interface TeamServiceDeps {
   onChange: () => void;
   stretch?: (code: string, salt: Buffer) => Promise<Buffer>;
   delayScale?: number;
+  /** Limits of the host's unauthenticated connections (tests). */
+  hostOptions?: Pick<HostDeps, 'pending' | 'firstFrameMs'>;
 }
 
 export class TeamService {
   private readonly store: TeamStore;
   private host: TeamHost | undefined;
   private member: TeamMember | undefined;
-  private busy = false;
+  /** Management actions run one after the other: a double click or two tabs cannot interleave them. */
+  private lock: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly deps: TeamServiceDeps) {
     this.store = new TeamStore(deps.stateDir, deps.log);
+  }
+
+  private exclusive<T>(action: () => Promise<T>): Promise<T> {
+    const run = this.lock.then(action, action);
+    this.lock = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }
 
   // ---- lifecycle ---------------------------------------------------------------------------------------------------
@@ -74,7 +93,10 @@ export class TeamService {
     if (this.store.host !== undefined) {
       const host = this.createHost(this.store.host);
       const listen = this.store.host.listen;
-      if (listen !== undefined && (this.deps.loopback || !isLoopbackAddress(listen.address))) {
+      const allowed = this.deps.loopback || !isLoopbackAddress(listen?.address ?? '');
+      // A shared address (100.64/10) comes back only if the person confirmed the warning for it.
+      const confirmed = listen !== undefined && (!isSharedAddress(listen.address) || listen.sharedOk === true);
+      if (listen !== undefined && allowed && confirmed) {
         const failure = await host.listen(listen.address, listen.port);
         if (failure !== undefined)
           this.deps.log.warn(`Modo time: não foi possível voltar a escutar em ${listen.address}:${listen.port}`);
@@ -142,6 +164,7 @@ export class TeamService {
         link: this.host.listening ? 'listening' : 'stopped',
         ...(bound !== undefined ? { address: bound.address, port: bound.port } : {}),
         ...(pairing !== undefined ? { pairing } : {}),
+        fingerprint: this.host.fingerprint,
         members: this.host.members(),
         ...(this.host.error !== undefined ? { error: this.host.error } : {}),
       };
@@ -153,6 +176,7 @@ export class TeamService {
         hostName: file.hostName,
         hostAddress: file.address,
         hostPort: file.port,
+        hostFingerprint: this.member.hostFingerprint,
         link: this.member.link,
         ...(this.member.error !== undefined ? { error: this.member.error } : {}),
       };
@@ -163,132 +187,153 @@ export class TeamService {
   // ---- hosting -----------------------------------------------------------------------------------------------------
 
   /** Starts (or restarts) the listener, creating the team the first time, and opens a pairing code. */
-  async startHosting(request: TeamHostStartRequest): Promise<PairingStatus> {
-    this.guard('host');
-    const name = cleanLine(request.name, TEAM_NAME_MAX);
-    if (name === undefined) throw new TeamActionError('invalid-name');
-    const port = request.port ?? TEAM_DEFAULT_PORT;
-    if (!isValidPort(port)) throw new TeamActionError('invalid-port');
-    const address = request.address;
-    if (typeof address !== 'string' || !isTeamAddress(address) || (isLoopbackAddress(address) && !this.deps.loopback))
-      throw new TeamActionError('invalid-address');
-    if (!isOwnAddress(address)) throw new TeamActionError('address-not-available');
-    const teamName = cleanLine(request.teamName, TEAM_TEAMNAME_MAX);
-    this.busy = true;
-    try {
-      const host = this.host ?? this.createHost(await this.createHostFile(name, teamName ?? name));
-      await host.setNames({ hostName: name, ...(teamName !== undefined ? { teamName } : {}) });
-      const failure = await host.listen(address, port);
-      if (failure !== undefined) throw new TeamActionError(failure);
-      await host.setListen({ address, port });
-      return await host.newCode();
-    } finally {
-      this.busy = false;
-      this.deps.onChange();
-    }
+  startHosting(request: TeamHostStartRequest): Promise<PairingStatus> {
+    return this.exclusive(async () => {
+      this.guard('host');
+      const name = cleanLine(request.name, TEAM_NAME_MAX);
+      if (name === undefined) throw new TeamActionError('invalid-name');
+      const port = request.port ?? TEAM_DEFAULT_PORT;
+      if (!isValidPort(port)) throw new TeamActionError('invalid-port');
+      const address = request.address;
+      if (typeof address !== 'string' || !isTeamAddress(address) || (isLoopbackAddress(address) && !this.deps.loopback))
+        throw new TeamActionError('invalid-address');
+      const shared = isSharedAddress(address);
+      // 100.64/10 may be a carrier-grade NAT shared with strangers: listening there needs an explicit confirmation.
+      if (shared && request.allowShared !== true) throw new TeamActionError('shared-address');
+      if (!isOwnAddress(address)) throw new TeamActionError('address-not-available');
+      const teamName = cleanLine(request.teamName, TEAM_TEAMNAME_MAX);
+      const device = this.deviceName(request.device);
+      try {
+        const host = this.host ?? this.createHost(await this.createHostFile(name, teamName ?? name, device));
+        await host.setNames({ hostName: name, hostDevice: device, ...(teamName !== undefined ? { teamName } : {}) });
+        const failure = await host.listen(address, port);
+        if (failure !== undefined) throw new TeamActionError(failure);
+        await host.setListen({ address, port, ...(shared ? { sharedOk: true as const } : {}) });
+        return await host.newCode();
+      } finally {
+        this.deps.onChange();
+      }
+    });
   }
 
-  async stopHosting(): Promise<void> {
-    const host = this.requireHost();
-    await host.stop();
-    await host.setListen(undefined);
+  stopHosting(): Promise<void> {
+    return this.exclusive(async () => {
+      const host = this.requireHost();
+      await host.stop();
+      await host.setListen(undefined);
+    });
   }
 
-  async newCode(): Promise<PairingStatus> {
-    const host = this.requireHost();
-    if (!host.listening) throw new TeamActionError('not-hosting');
-    return host.newCode();
+  newCode(): Promise<PairingStatus> {
+    return this.exclusive(async () => {
+      const host = this.requireHost();
+      if (!host.listening) throw new TeamActionError('not-hosting');
+      return host.newCode();
+    });
   }
 
-  async revoke(memberId: string): Promise<void> {
-    const host = this.requireHost();
-    if (typeof memberId !== 'string' || !(await host.revoke(memberId))) throw new TeamActionError('unknown-member');
+  revoke(memberId: string): Promise<void> {
+    return this.exclusive(async () => {
+      const host = this.requireHost();
+      if (typeof memberId !== 'string' || !(await host.revoke(memberId))) throw new TeamActionError('unknown-member');
+    });
   }
 
   /** Ends the team: members are told, the listener closes, the identity and the member list are deleted. */
-  async endTeam(): Promise<void> {
-    const host = this.requireHost();
-    await host.end();
-    this.host = undefined;
-    await this.store.deleteHost();
-    this.deps.onChange();
+  endTeam(): Promise<void> {
+    return this.exclusive(async () => {
+      const host = this.requireHost();
+      // `end` waits for every pending change to the file and refuses new ones, so nothing can write it back.
+      await host.end();
+      this.host = undefined;
+      await this.store.deleteHost();
+      this.deps.onChange();
+    });
   }
 
   // ---- joining -----------------------------------------------------------------------------------------------------
 
-  async join(request: TeamJoinRequest): Promise<void> {
-    this.guard('member');
-    const name = cleanLine(request.name, TEAM_NAME_MAX);
-    if (name === undefined) throw new TeamActionError('invalid-name');
-    const target = parseHostPort(String(request.address ?? ''), request.port ?? TEAM_DEFAULT_PORT);
-    if (target === undefined || (isLoopbackAddress(target.address) && !this.deps.loopback))
-      throw new TeamActionError('invalid-address');
-    const code = normalizePairingCode(String(request.code ?? ''));
-    if (!isValidPairingCode(code)) throw new TeamActionError('invalid-code');
-    this.busy = true;
-    try {
-      const identity = newIdentity();
-      const device = this.deviceName();
-      const paired = await pairWithHost(target.address, target.port, {
-        code,
-        name,
-        device,
-        identity,
-        ...(this.deps.stretch !== undefined ? { stretch: this.deps.stretch } : {}),
-      });
-      const file: JoinedFile = {
-        teamId: paired.teamId,
-        teamName: paired.teamName,
-        memberId: paired.memberId,
-        name,
-        device,
-        identity: exportIdentity(identity),
-        hostPub: toB64(paired.hostPub),
-        hostName: paired.hostName,
-        address: target.address,
-        port: target.port,
-      };
-      if (!(await this.store.saveJoined(file))) throw new TeamActionError('save-failed');
-      this.createMember(file).start();
-    } catch (error) {
-      throw error instanceof ProtocolError ? new TeamActionError(error.code) : error;
-    } finally {
-      this.busy = false;
-      this.deps.onChange();
-    }
+  join(request: TeamJoinRequest): Promise<void> {
+    return this.exclusive(async () => {
+      this.guard('member');
+      const name = cleanLine(request.name, TEAM_NAME_MAX);
+      if (name === undefined) throw new TeamActionError('invalid-name');
+      const target = parseHostPort(String(request.address ?? ''), request.port ?? TEAM_DEFAULT_PORT);
+      if (target === undefined || (isLoopbackAddress(target.address) && !this.deps.loopback))
+        throw new TeamActionError('invalid-address');
+      const code = normalizePairingCode(String(request.code ?? ''));
+      if (!isValidPairingCode(code)) throw new TeamActionError('invalid-code');
+      try {
+        const identity = newIdentity();
+        const device = this.deviceName(request.device);
+        const paired = await pairWithHost(target.address, target.port, {
+          code,
+          name,
+          device,
+          identity,
+          ...(this.deps.stretch !== undefined ? { stretch: this.deps.stretch } : {}),
+        });
+        const file: JoinedFile = {
+          teamId: paired.teamId,
+          teamName: paired.teamName,
+          memberId: paired.memberId,
+          name,
+          device,
+          identity: exportIdentity(identity),
+          hostPub: toB64(paired.hostPub),
+          hostName: paired.hostName,
+          address: target.address,
+          port: target.port,
+        };
+        if (!(await this.store.saveJoined(file))) throw new TeamActionError('save-failed');
+        this.createMember(file).start();
+      } catch (error) {
+        throw error instanceof ProtocolError ? new TeamActionError(error.code) : error;
+      } finally {
+        this.deps.onChange();
+      }
+    });
   }
 
   /** Leaves the team: the host is told, the keys are deleted. */
-  async leave(): Promise<void> {
-    const member = this.member;
-    if (member === undefined) throw new TeamActionError('not-member');
-    await member.leave();
-    this.member = undefined;
-    await this.store.deleteJoined();
-    this.deps.onChange();
+  leave(): Promise<void> {
+    return this.exclusive(async () => {
+      const member = this.member;
+      if (member === undefined) throw new TeamActionError('not-member');
+      await member.leave();
+      this.member = undefined;
+      await this.store.deleteJoined();
+      this.deps.onChange();
+    });
   }
 
   // ---- sharing -----------------------------------------------------------------------------------------------------
 
-  async setSharing(raw: unknown): Promise<TeamSharePrefs> {
-    const share = parseSharePrefs(raw);
-    if (!(await this.store.saveSettings({ ...this.store.settings, share }))) throw new TeamActionError('save-failed');
-    this.tick();
-    this.deps.onChange();
-    return share;
+  setSharing(raw: unknown): Promise<TeamSharePrefs> {
+    return this.exclusive(async () => {
+      const share = parseSharePrefs(raw);
+      if (!(await this.store.saveSettings({ ...this.store.settings, share }))) throw new TeamActionError('save-failed');
+      this.tick();
+      this.deps.onChange();
+      return share;
+    });
   }
 
   // ---- internals ---------------------------------------------------------------------------------------------------
 
-  private deviceName(): string {
-    return cleanLine(this.deps.device ?? hostname().replace(/\.local$/i, ''), TEAM_DEVICE_MAX) ?? '';
+  /**
+   * How this computer is called in the team: what the person typed, else AI_OFFICE_TEAM_DEVICE, else a neutral label
+   * (never the host name, which often holds a person's name). It is shared with the whole team.
+   */
+  private deviceName(requested?: string): string {
+    const neutral = `PC-${this.store.settings.keySalt.slice(0, 4)}`;
+    return cleanLine(requested, TEAM_DEVICE_MAX) ?? cleanLine(this.deps.device, TEAM_DEVICE_MAX) ?? neutral;
   }
 
   private guard(wanted: 'host' | 'member'): void {
     if (this.deps.disabled) throw new TeamActionError('team-disabled');
     if (this.member !== undefined) throw new TeamActionError('already-member');
     if (wanted === 'member' && this.host !== undefined) throw new TeamActionError('already-host');
-    if (this.busy) throw new TeamActionError('rate-limited');
   }
 
   private requireHost(): TeamHost {
@@ -297,12 +342,12 @@ export class TeamService {
     return this.host;
   }
 
-  private async createHostFile(hostName: string, teamName: string): Promise<HostFile> {
+  private async createHostFile(hostName: string, teamName: string, hostDevice: string): Promise<HostFile> {
     const file: HostFile = {
       teamId: randomBytes(12).toString('base64url'),
       teamName,
       hostName,
-      hostDevice: this.deviceName(),
+      hostDevice,
       identity: exportIdentity(newIdentity()),
       members: [],
       revoked: [],
@@ -318,6 +363,7 @@ export class TeamService {
       save: (next) => this.store.saveHost(next),
       onChange: this.deps.onChange,
       ...(this.deps.stretch !== undefined ? { stretch: this.deps.stretch } : {}),
+      ...this.deps.hostOptions,
     });
     this.host = host;
     return host;

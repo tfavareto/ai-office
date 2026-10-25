@@ -32,6 +32,12 @@ export function isTeamAddress(address: string): boolean {
   );
 }
 
+/** 100.64.0.0/10: Tailscale uses it, but so does carrier-grade NAT, where other subscribers of the provider share it. */
+export function isSharedAddress(address: string): boolean {
+  const o = octets(address);
+  return o !== undefined && o[0] === 100 && o[1] >= 64 && o[1] <= 127;
+}
+
 export interface HostPort {
   address: string;
   port: number;
@@ -58,7 +64,7 @@ export function lanInterfaces(includeLoopback: boolean): LanInterface[] {
     for (const entry of list ?? []) {
       if (entry.family !== 'IPv4' || !isTeamAddress(entry.address)) continue;
       if (entry.internal && !includeLoopback) continue;
-      out.push({ name, address: entry.address });
+      out.push({ name, address: entry.address, ...(isSharedAddress(entry.address) ? { shared: true } : {}) });
     }
   }
   return out;

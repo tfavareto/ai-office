@@ -409,3 +409,29 @@
     grid-column: 2 / 4;
   }
 }
+
+.ao-team-shared {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
+.ao-team-shared[hidden] {
+  display: none;
+}
+
+.ao-team-fingerprint {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.ao-team-fingerprint code {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.ao-team-fingerprint .ao-note {
+  margin: 0;
+}

@@ -1,6 +1,7 @@
 // The two forms of the team dialog: host a team, and join one. They keep what is typed while the dialog refreshes.
 import {
   TEAM_DEFAULT_PORT,
+  TEAM_DEVICE_MAX,
   TEAM_NAME_MAX,
   TEAM_TEAMNAME_MAX,
   normalizePairingCode,
@@ -42,6 +43,9 @@ export interface HostValues {
   teamName: string;
   address: string;
   port: number;
+  /** Empty: the server picks a neutral label. */
+  device: string;
+  allowShared: boolean;
 }
 
 export class HostForm {
@@ -50,9 +54,18 @@ export class HostForm {
   private readonly teamName: HTMLInputElement;
   private readonly network: HTMLSelectElement;
   private readonly port: HTMLInputElement;
+  private readonly device: HTMLInputElement;
+  private readonly shared = h('input', { type: 'checkbox', class: 'ao-team-shared-check' });
+  private readonly sharedRow = h(
+    'label',
+    { class: 'ao-team-shared ao-note ao-team-warn', hidden: true },
+    this.shared,
+    h('span', null, t('team.field.shared')),
+  );
   readonly submit: HTMLButtonElement;
   private readonly noNetwork = h('p', { class: 'ao-note ao-team-warn', hidden: true }, t('team.host.noInterface'));
   private interfaces = '';
+  private sharedAddresses: ReadonlySet<string> = new Set();
 
   constructor(label: string, onSubmit: (values: HostValues) => void, idPrefix = 'ao-team-host') {
     this.name = input(`${idPrefix}-name`, {
@@ -63,6 +76,10 @@ export class HostForm {
     this.network = h('select', { id: `${idPrefix}-net`, class: 'ao-select' });
     this.port = input(`${idPrefix}-port`, { inputmode: 'numeric', maxlength: 5 });
     this.port.value = String(TEAM_DEFAULT_PORT);
+    this.device = input(`${idPrefix}-device`, {
+      maxlength: TEAM_DEVICE_MAX,
+      placeholder: t('team.field.device.placeholder'),
+    });
     this.name.value = rememberedName();
     this.submit = button({ label, variant: 'primary', onClick: () => undefined });
     this.submit.type = 'submit';
@@ -77,9 +94,13 @@ export class HostForm {
         field(`${idPrefix}-net`, t('team.field.interface'), this.network),
         field(`${idPrefix}-port`, t('team.field.port'), this.port),
       ),
+      field(`${idPrefix}-device`, t('team.field.device'), this.device),
+      this.sharedRow,
       this.noNetwork,
       this.submit,
     );
+    this.network.addEventListener('change', () => this.refreshShared());
+    this.shared.addEventListener('change', () => this.refreshShared());
     this.el.addEventListener('submit', (event) => {
       event.preventDefault();
       onSubmit(this.values());
@@ -92,7 +113,19 @@ export class HostForm {
       teamName: this.teamName.value.trim(),
       address: this.network.value,
       port: Number(this.port.value),
+      device: this.device.value.trim(),
+      allowShared: this.isShared() && this.shared.checked,
     };
+  }
+
+  private isShared(): boolean {
+    return this.sharedAddresses.has(this.network.value);
+  }
+
+  /** The warning about a shared address shows only for one, and the form waits for the person to tick it. */
+  private refreshShared(): void {
+    this.sharedRow.hidden = !this.isShared();
+    this.submit.disabled = this.interfaces === '' || (this.isShared() && !this.shared.checked);
   }
 
   /** Fills the network list (keeping the choice) and, once, the names the form starts with. */
@@ -101,13 +134,22 @@ export class HostForm {
     if (signature !== this.interfaces) {
       const chosen = this.network.value;
       this.interfaces = signature;
+      this.sharedAddresses = new Set(interfaces.filter((entry) => entry.shared === true).map((entry) => entry.address));
       this.network.replaceChildren(
-        ...interfaces.map((entry) => h('option', { value: entry.address }, `${entry.name} · ${entry.address}`)),
+        ...interfaces.map((entry) =>
+          h(
+            'option',
+            { value: entry.address },
+            entry.shared === true
+              ? t('team.network.shared', { name: entry.name, address: entry.address })
+              : `${entry.name} · ${entry.address}`,
+          ),
+        ),
       );
       if (interfaces.some((entry) => entry.address === chosen)) this.network.value = chosen;
     }
-    this.submit.disabled = interfaces.length === 0;
     this.noNetwork.hidden = interfaces.length > 0;
+    this.refreshShared();
     if (defaults.name !== undefined && this.name.value === '') this.name.value = defaults.name;
     if (defaults.teamName !== undefined && this.teamName.value === '') this.teamName.value = defaults.teamName;
     if (defaults.port !== undefined && this.port.value === String(TEAM_DEFAULT_PORT))
@@ -115,8 +157,9 @@ export class HostForm {
   }
 
   setBusy(busy: boolean): void {
-    for (const control of [this.name, this.teamName, this.network, this.port]) control.disabled = busy;
-    this.submit.disabled = busy || this.interfaces === '';
+    for (const control of [this.name, this.teamName, this.network, this.port, this.device, this.shared])
+      control.disabled = busy;
+    this.submit.disabled = busy || this.interfaces === '' || (this.isShared() && !this.shared.checked);
   }
 }
 
@@ -124,6 +167,7 @@ export interface JoinValues {
   name: string;
   address: string;
   code: string;
+  device: string;
 }
 
 export class JoinForm {
@@ -140,6 +184,10 @@ export class JoinForm {
     maxlength: 12,
     placeholder: t('team.field.code.placeholder'),
     autocapitalize: 'characters',
+  });
+  private readonly device = input('ao-team-join-device', {
+    maxlength: TEAM_DEVICE_MAX,
+    placeholder: t('team.field.device.placeholder'),
   });
   readonly submit: HTMLButtonElement;
 
@@ -159,6 +207,7 @@ export class JoinForm {
       field('ao-team-join-name', t('team.field.name'), this.name),
       field('ao-team-join-address', t('team.field.address'), this.address),
       field('ao-team-join-code', t('team.field.code'), this.code),
+      field('ao-team-join-device', t('team.field.device'), this.device),
       this.submit,
     );
     this.el.addEventListener('submit', (event) => {
@@ -172,6 +221,7 @@ export class JoinForm {
       name: this.name.value.trim(),
       address: this.address.value.trim(),
       code: normalizePairingCode(this.code.value),
+      device: this.device.value.trim(),
     };
   }
 
@@ -181,7 +231,7 @@ export class JoinForm {
   }
 
   setBusy(busy: boolean): void {
-    for (const control of [this.name, this.address, this.code]) control.disabled = busy;
+    for (const control of [this.name, this.address, this.code, this.device]) control.disabled = busy;
     this.submit.disabled = busy;
     const label = this.submit.querySelector('span');
     if (label !== null) label.textContent = busy ? t('team.working') : t('team.join.start');

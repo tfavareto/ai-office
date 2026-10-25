@@ -1,123 +1,13 @@
 import { stat } from 'node:fs/promises';
 import { connect } from 'node:net';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import {
-  PAIRING_MAX_FAILURES,
-  normalizePairingCode,
-  type Agent,
-  type Project,
-  type TeamSnapshot,
-} from '@ai-office/shared';
-import { silentLogger } from '../log';
-import { freePort, makeTempDir, removeDir } from '../test-helpers';
-import { TeamActionError, TeamService } from './service';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import { normalizePairingCode } from '@ai-office/shared';
+import { freePort } from '../test-helpers';
+import { TeamActionError } from './service';
+import { SECRET, cleanup, clock, host, member, node, people, rawSession, until } from './service-kit';
 
-const SECRET = ['SECRET_PATH_91', 'SECRET_PROMPT_27', 'SECRET_CMD_55', 'SECRET_BRANCH_08'] as const;
-
-function office(prefix: string, names: string[]): { projects: Project[]; agents: Agent[] } {
-  const projects: Project[] = [
-    { id: `/${SECRET[0]}/${prefix}-a`, name: `${prefix}-alpha`, path: `/${SECRET[0]}/${prefix}-a`, seed: 1, order: 0 },
-  ];
-  const agents = names.map((name, i): Agent => ({
-    id: `${prefix}-agent-${i}`,
-    kind: 'main',
-    sessionId: `${prefix}-sess-${i}`,
-    accountId: 'acc',
-    projectId: projects[0]?.id as string,
-    name,
-    role: 'Principal',
-    title: SECRET[1],
-    look: 'f',
-    seed: i,
-    status: 'working',
-    statusSince: Date.now() - 5000,
-    activity: { id: 'x', at: 1, kind: 'bash', icon: '💻', text: SECRET[2], detail: SECRET[2] },
-    recent: [],
-    tasks: [],
-    shells: [],
-    stats: { toolCalls: 1, tokensIn: 1, tokensOut: 1, linesAdded: 0, linesRemoved: 0, subagents: 0 },
-    gitBranch: SECRET[3],
-    startedAt: i,
-    lastEventAt: 1,
-  }));
-  return { projects, agents };
-}
-
-interface Node {
-  service: TeamService;
-  state: string;
-  changes: { n: number };
-  setOffice(names: string[]): void;
-}
-
-const dirs: string[] = [];
-const running: Node[] = [];
-
-async function node(
-  prefix: string,
-  names: string[],
-  options: { state?: string; disabled?: boolean } = {},
-): Promise<Node> {
-  const state = options.state ?? join(await makeTempDir(`ai-office-team-${prefix}-`), 'state');
-  if (options.state === undefined) dirs.push(join(state, '..'));
-  let current = office(prefix, names);
-  const changes = { n: 0 };
-  const service = new TeamService({
-    stateDir: state,
-    log: silentLogger,
-    now: Date.now,
-    disabled: options.disabled === true,
-    loopback: true,
-    source: () => current,
-    onChange: () => void changes.n++,
-    stretch: async (code, salt) => Buffer.concat([Buffer.from(code), salt]).subarray(0, 32),
-    delayScale: 0.02,
-  });
-  const result: Node = {
-    service,
-    state,
-    changes,
-    setOffice: (next) => {
-      current = office(prefix, next);
-      service.tick();
-    },
-  };
-  running.push(result);
-  await service.start();
-  return result;
-}
-
-async function until(check: () => boolean, label: string, timeoutMs = 6000): Promise<void> {
-  const end = Date.now() + timeoutMs;
-  while (!check()) {
-    if (Date.now() > end) throw new Error(`timed out waiting for: ${label}`);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-}
-
-async function host(prefix = 'host', names = ['Helena'], options: { state?: string } = {}) {
-  const n = await node(prefix, names, options);
-  const port = await freePort();
-  const pairing = await n.service.startHosting({ address: '127.0.0.1', port, name: 'Helena', teamName: 'Time Azul' });
-  n.service.tick();
-  return { n, port, code: normalizePairingCode(pairing.code) };
-}
-
-async function member(h: { port: number; code: string }, name = 'Bruno', names = ['Bia', 'Caio']) {
-  const m = await node(`m${name}`, names);
-  await m.service.join({ address: '127.0.0.1', port: h.port, code: h.code, name });
-  m.service.tick();
-  return m;
-}
-
-const people = (n: Node): TeamSnapshot['people'] => n.service.snapshot()?.people ?? [];
-
-beforeEach(() => undefined);
-afterEach(async () => {
-  for (const n of running.splice(0)) await n.service.stop();
-  for (const dir of dirs.splice(0)) await removeDir(dir);
-});
+afterEach(cleanup);
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
@@ -186,36 +76,46 @@ describe('hosting and joining over loopback', () => {
 });
 
 describe('pairing failures', () => {
-  test('a wrong code is refused, and five wrong codes lock the pairing', async () => {
+  test('wrong codes are refused with one generic error, then rate-limited per address; the code stays open for others', async () => {
     const h = await host();
     const stranger = await node('stranger', ['X']);
+    const join = (code: string) => stranger.service.join({ address: '127.0.0.1', port: h.port, code, name: 'Mallory' });
 
-    for (let i = 0; i < PAIRING_MAX_FAILURES; i++)
-      await expect(
-        stranger.service.join({ address: '127.0.0.1', port: h.port, code: 'ZZZZZZZZ', name: 'Mallory' }),
-      ).rejects.toMatchObject({ code: 'pairing-failed' });
-    const locked = h.n.service.status().host?.pairing;
-    await expect(
-      stranger.service.join({ address: '127.0.0.1', port: h.port, code: h.code, name: 'Mallory' }),
-    ).rejects.toMatchObject({ code: 'pairing-locked' });
+    await expect(join('ZZZZZZZZ')).rejects.toMatchObject({ code: 'pairing-failed' });
+    await expect(join('YYYYYYYY')).rejects.toMatchObject({ code: 'pairing-failed' });
+    await expect(join('XXXXXXXX')).rejects.toMatchObject({ code: 'rate-limited' });
+    await expect(join(h.code)).rejects.toMatchObject({ code: 'rate-limited' });
 
-    expect(locked).toMatchObject({ locked: true, code: '' });
+    expect(h.n.service.status().host?.pairing).toMatchObject({
+      locked: false,
+      code: expect.stringMatching(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/),
+    });
     expect(h.n.service.status().host?.members).toEqual([]);
     expect(stranger.service.status().role).toBeNull();
   });
 
-  test('regenerating the code recovers from a lock and kills the old code', async () => {
+  test('after the wrong-proof window the right code still works: strangers cannot keep the pairing unusable', async () => {
     const h = await host();
     const stranger = await node('stranger', ['X']);
-    for (let i = 0; i < PAIRING_MAX_FAILURES; i++)
-      await stranger.service
-        .join({ address: '127.0.0.1', port: h.port, code: 'ZZZZZZZZ', name: 'M' })
-        .catch(() => undefined);
+    const join = (code: string) => stranger.service.join({ address: '127.0.0.1', port: h.port, code, name: 'M' });
+    await join('ZZZZZZZZ').catch(() => undefined);
+    await join('YYYYYYYY').catch(() => undefined);
+
+    clock.offset += 61_000;
+    await join(h.code);
+
+    expect(stranger.service.status().role).toBe('member');
+  });
+
+  test('regenerating the code kills the old one', async () => {
+    const h = await host();
+    const stranger = await node('stranger', ['X']);
 
     const fresh = await h.n.service.newCode();
     await expect(
       stranger.service.join({ address: '127.0.0.1', port: h.port, code: h.code, name: 'M' }),
     ).rejects.toBeInstanceOf(TeamActionError);
+    clock.offset += 61_000;
     await stranger.service.join({
       address: '127.0.0.1',
       port: h.port,
@@ -401,27 +301,6 @@ describe('the team listener', () => {
 });
 
 describe('attacks on an authenticated connection', () => {
-  async function rawSession(h: { port: number }, m: Node) {
-    const { readFile } = await import('node:fs/promises');
-    const file = JSON.parse(await readFile(join(m.state, 'team', 'member.json'), 'utf8')) as {
-      memberId: string;
-      identity: { pub: string; priv: string };
-      hostPub: string;
-    };
-    const { connectTcp } = await import('./member');
-    const { memberSession } = await import('./session');
-    const { importIdentity, fromB64 } = await import('./keys');
-    const { decode, encode } = await import('./wire');
-    const conn = await connectTcp('127.0.0.1', h.port);
-    const { channel, ready } = await memberSession(conn, {
-      memberId: file.memberId,
-      identity: importIdentity(file.identity),
-      hostPub: fromB64(file.hostPub, 32),
-    });
-    expect(decode(channel.open(ready)).t).toBe('ready');
-    return { conn, channel, ping: () => channel.seal(encode({ t: 'ping' })), decode, encode };
-  }
-
   async function paired() {
     const h = await host();
     const m = await member(h);

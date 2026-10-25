@@ -14,7 +14,7 @@ import {
 } from '@ai-office/shared';
 import type { Logger } from '../log';
 import { FrameError, FramedConn } from './conn';
-import { importIdentity, fromB64, type Identity } from './keys';
+import { fingerprint, fromB64, importIdentity, type Identity } from './keys';
 import {
   BACKOFF_FIRST_MS,
   BACKOFF_MAX_MS,
@@ -35,9 +35,20 @@ import type { JoinedFile } from './store';
 import { ProtocolError, decode, encode } from './wire';
 
 /** Errors after which trying again is pointless until the person acts. */
-const FATAL: ReadonlySet<TeamErrorCode> = new Set(['revoked', 'unknown-member', 'host-key-changed', 'ended']);
-/** Errors a stranger on the network could also produce (nothing is signed yet): retry, but slowly. */
-const SLOW: ReadonlySet<TeamErrorCode> = new Set(['version-mismatch', 'replaced', 'rate-limited', 'protocol-error']);
+const FATAL: ReadonlySet<TeamErrorCode> = new Set(['revoked', 'unknown-member', 'ended']);
+/**
+ * Errors a stranger on the network could also produce (nothing authentic yet): a forged answer must not be able to
+ * switch a member off for good, so it is shown as a warning and the member keeps checking, slowly. `host-key-changed`
+ * is in this list too: the member sends nothing but its id and a fresh ephemeral key before the host's signature is
+ * checked, so retrying leaks nothing.
+ */
+const SLOW: ReadonlySet<TeamErrorCode> = new Set([
+  'version-mismatch',
+  'replaced',
+  'rate-limited',
+  'protocol-error',
+  'host-key-changed',
+]);
 
 export function connectTcp(address: string, port: number, timeoutMs = CONNECT_TIMEOUT_MS): Promise<FramedConn> {
   return new Promise((resolve, reject) => {
@@ -117,6 +128,11 @@ export class TeamMember {
     return this.view?.msg.teamName ?? this.file.teamName;
   }
 
+  /** Fingerprint of the host key pinned at pairing, for people to compare out of band. */
+  get hostFingerprint(): string {
+    return fingerprint(this.hostPub);
+  }
+
   /** The others in the team (never this computer), with times on this computer's clock. */
   people(): TeamPerson[] {
     if (this.view === undefined || this.currentLink !== 'connected') return [];
@@ -170,7 +186,8 @@ export class TeamMember {
   private async loop(): Promise<void> {
     let attempt = 0;
     while (!this.stopped) {
-      this.setLink(attempt === 0 ? 'connecting' : this.currentLink, this.currentError);
+      // Between failed tries the state stays "offline" (no flicker back to "connecting").
+      if (this.currentLink !== 'offline') this.setLink('connecting');
       let code: TeamErrorCode = 'unreachable';
       try {
         await this.session(() => (attempt = 0));
@@ -187,7 +204,9 @@ export class TeamMember {
         return;
       }
       this.setLink('offline', code);
-      await this.sleep(SLOW.has(code) ? BACKOFF_SLOW_MS : this.backoff(attempt++));
+      await this.sleep(
+        SLOW.has(code) ? Math.round(BACKOFF_SLOW_MS * (this.deps.delayScale ?? 1)) : this.backoff(attempt++),
+      );
     }
   }
 

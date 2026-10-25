@@ -126,7 +126,10 @@ export type Translator = (locale: Locale, msg: Msg, fallback?: string) => string
  */
 export function createTranslator(catalogs: Catalogs): Translator {
   const translate: Translator = (locale, msg, fallback) => {
-    const template = catalogs[locale][msg.key] ?? catalogs.en[msg.key] ?? catalogs['pt-BR'][msg.key];
+    // Own keys only: a key such as `constructor` must never reach Object.prototype.
+    const own = (catalog: Catalog): string | undefined =>
+      Object.hasOwn(catalog, msg.key) ? catalog[msg.key] : undefined;
+    const template = own(catalogs[locale]) ?? own(catalogs.en) ?? own(catalogs['pt-BR']);
     if (template === undefined) return fallback ?? msg.key;
     const flat: Record<string, string | number> = {};
     for (const [name, value] of Object.entries(msg.params ?? {})) {

@@ -1,13 +1,42 @@
-// Cleaning of the texts that cross between machines: no control characters, no bidirectional overrides, bounded length.
-// eslint-disable-next-line no-control-regex -- stripping control characters is the point
-const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g;
-const BIDI = /[‎‏‪-‮⁦-⁩؜]/g;
+// Cleaning of the texts that cross between machines: no control, format, line-separator, variation-selector or tag
+// characters (so no bidirectional overrides, zero-width tricks or hidden text), normalized to NFC, runs of combining marks
+// cut short (no "zalgo"), bounded length.
+const BREAKS = /[\p{Cc}\p{Zl}\p{Zp}]/gu;
+const HIDDEN = /[\p{Cf}\u{FE00}-\u{FE0F}\u{E0100}-\u{E01EF}]/gu;
+const MARK_RUN = /(\p{M}{3})\p{M}+/gu;
 
-/** A single-line text without control or bidi characters, at most `max` characters (code points); undefined when empty. */
+/** A single-line text without hidden characters, at most `max` characters (code points); undefined when empty. */
 export function cleanLine(value: unknown, max: number): string | undefined {
   if (typeof value !== 'string') return undefined;
-  const text = value.replace(CONTROL, ' ').replace(BIDI, '').replace(/\s+/g, ' ').trim();
+  const text = value
+    .normalize('NFC')
+    .replace(BREAKS, ' ')
+    .replace(HIDDEN, '')
+    .replace(MARK_RUN, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (text.length === 0) return undefined;
   const points = Array.from(text);
   return points.length <= max ? text : points.slice(0, max).join('');
+}
+
+/** Keys and ids that would be dangerous as property names, whatever the characters allow. */
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+  'toString',
+  'valueOf',
+  'hasOwnProperty',
+]);
+
+/** An opaque key or id from another machine: plain characters, bounded, and never a special object property. */
+export function isSafeKey(value: unknown, min = 1, max = 32): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length >= min &&
+    value.length <= max &&
+    /^[A-Za-z0-9_-]+$/.test(value) &&
+    !FORBIDDEN_KEYS.has(value)
+  );
 }

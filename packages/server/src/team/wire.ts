@@ -50,5 +50,6 @@ const PEER_CODES: ReadonlySet<string> = new Set<TeamErrorCode>([
   'rate-limited',
   'version-mismatch',
   'team-full',
+  'save-failed',
   'protocol-error',
 ]);

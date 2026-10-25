@@ -25,7 +25,7 @@ Flags do not pass through `npm start --`; use environment variables with `npm st
 | `AI_OFFICE_CODEX` | none | on | Set to `0` or `false` to never read Codex sessions; **Settings → Show Codex sessions** then cannot turn it on. |
 | `AI_OFFICE_TEAM` | none | on | Set to `0` or `false` to remove [team mode](#team-mode): **Settings → Team mode** then cannot be turned on. |
 | `AI_OFFICE_TEAM_LOOPBACK` | none | off | Let a team use `127.0.0.1` (two AI Office instances on one computer, for tests and demos). Normally only LAN addresses are offered. |
-| `AI_OFFICE_TEAM_DEVICE` | none | the host name | The device name team mode shows for this computer (at most 32 characters). Set it if your host name contains your name. |
+| `AI_OFFICE_TEAM_DEVICE` | none | a neutral label (`PC-3f9a`) | The device name team mode shows for this computer (at most 32 characters; the dialog's own field wins). The computer's host name is never used. |
 | `CODEX_HOME` | none | `~/.codex` | The Codex CLI's own variable: where Codex keeps its sessions. AI Office honors it. |
 | `AI_OFFICE_STATE_DIR` | `--state-dir <dir>` | `~/.ai-office` | Where the server keeps its token, agent names and daily records. |
 | `AI_OFFICE_DEMO` | `--demo` | off | Start with demo mode on (`1`, or any value except empty, `0` or `false`). |
@@ -117,7 +117,7 @@ AI_OFFICE_CODEX=0 npm start
 
 Team mode connects computers of one local network. It is configured in **Settings → Team mode**, not with variables, and it is off until you use it. The mode never changes the main listener: `AI_OFFICE_HOST` and the loopback rules apply as before.
 
-- **Host a team.** Pick your name, the team's name, the network address (one of this computer's private IPv4 addresses) and a port (default `4849`). A separate listener opens on that address and port; the page shows the address and a pairing code. Open the port in your firewall only for your LAN if it asks. The listener comes back by itself when AI Office restarts, until you press **Stop listening** or **End the team**.
+- **Host a team.** Pick your name, the team's name, the network address (one of this computer's private IPv4 addresses; a shared 100.64.x.x address needs you to confirm a warning) and a port (default `4849`). The optional device name is what the others see for this computer. A separate listener opens on that address and port; the page shows the address and a pairing code. Open the port in your firewall only for your LAN if it asks. The listener comes back by itself when AI Office restarts, until you press **Stop listening** or **End the team**.
 - **Join a team.** Type the host's address (`192.168.0.12` or `192.168.0.12:4849`) and the code. The connection is kept and reconnects by itself (1 s, doubling up to 30 s) until the host removes you or ends the team.
 - **What you share** and **Pause sharing** live in the same dialog; see [privacy and security](05-privacy-and-security.md#team-mode).
 - **Files.** `<state dir>/team/` (below). **Environment.** `AI_OFFICE_TEAM=0` removes the mode; `AI_OFFICE_TEAM_DEVICE` sets the device name; `AI_OFFICE_TEAM_LOOPBACK=1` is for tests.

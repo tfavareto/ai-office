@@ -1413,7 +1413,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'team.error.unknown-member': 'The host does not recognize this computer (member not found or team recreated).',
   'team.error.unreachable': 'Could not connect. Check the address, the port and that the host is listening.',
   'team.error.timeout': 'The host did not answer in time.',
-  'team.error.not-pairing': 'The host has no open code (it expired or was already used). Ask for a new one.',
+  'team.error.not-pairing':
+    'The host did not answer the pairing: there is no open code (it expired or was already used) or it is not listening. Ask for a new code.',
   'team.error.pairing-failed': 'Wrong code. Check the 8 characters.',
   'team.error.pairing-locked': 'The code was locked after wrong attempts. Ask the host for a new one.',
   'team.error.rate-limited': 'Too many attempts. Wait a minute.',
@@ -1446,6 +1447,15 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'team.act.done': 'Finished',
   'team.act.other': 'Working',
   'team.status.waiting': 'Waiting for an answer',
+  'team.field.device': 'Name of this computer (optional)',
+  'team.field.device.placeholder': 'Leave empty for a neutral label',
+  'team.field.shared':
+    'This address (100.64.x.x) may be on a network shared with other subscribers of the provider, who could reach the port. Tick it to continue only if it is your own VPN, like Tailscale.',
+  'team.network.shared': '{name} · {address} (shared network)',
+  'team.fingerprint': 'Host key fingerprint',
+  'team.fingerprint.hint':
+    'Optional: whoever joins should see the same one. Compare it out loud to be sure you are talking to the right computer.',
+  'team.error.shared-address': 'That address may be shared with strangers. Confirm the warning to use it.',
   'team.room': 'Project {n}',
   'team.room.full': '{member} · {room}',
   'team.role.sub': 'Subagent',

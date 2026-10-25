@@ -36,12 +36,11 @@ interface HostWorld {
 async function hostWorld(
   options: { maxFailures?: number; real?: boolean } = {},
 ): Promise<{ world: HostWorld; code: string }> {
-  const gate = new PairingGate(
-    now,
-    options.maxFailures ?? PAIRING_MAX_FAILURES,
-    PAIRING_TTL_MS,
-    options.real ? undefined : fastStretch,
-  );
+  const gate = new PairingGate(now, {
+    perAddress: options.maxFailures ?? PAIRING_MAX_FAILURES,
+    monotonic: now,
+    ...(options.real ? {} : { stretch: fastStretch }),
+  });
   const status = await gate.open();
   const host = newIdentity();
   const members = new Map<string, NewMember>();
@@ -53,6 +52,7 @@ async function hostWorld(
     real: options.real === true,
     ctx: {
       gate,
+      address: '10.0.0.7',
       identity: host,
       teamId: 'team-0001-abcd',
       teamName: 'Time Azul',
@@ -163,17 +163,53 @@ describe('pairing handshake', () => {
     expect(world.members.size).toBe(0);
   });
 
-  test('five wrong proofs lock the code: even the right code is then refused', async () => {
+  test('five wrong proofs lock the code for that address only: the right code is refused there, and works elsewhere', async () => {
     const { world, code } = await hostWorld();
     for (let i = 0; i < PAIRING_MAX_FAILURES; i++) await attempt(world, 'ZZZZZZZZ');
 
-    const locked = world.gate.status();
+    const status = world.gate.status();
     const { result } = await attempt(world, code);
+    const elsewhere = { ...world, ctx: { ...world.ctx, address: '10.0.0.99' } };
+    const other = await attempt(elsewhere, code);
 
-    expect(locked?.locked).toBe(true);
-    expect(locked?.code).toBe('');
+    expect(status).toMatchObject({ locked: false });
+    expect(status?.code).not.toBe('');
     expect((result as { error: ProtocolError }).error.code).toBe('pairing-locked');
-    expect(world.members.size).toBe(0);
+    expect(other.result.ok).toBe(true);
+  });
+
+  test('a pairing that cannot be stored does not use the code up', async () => {
+    const { world, code } = await hostWorld();
+    const original = world.ctx.addMember;
+    let fail = true;
+    world.ctx.addMember = async (member) => (fail ? { error: 'team-full' } : original(member));
+
+    const first = await attempt(world, code);
+    fail = false;
+    const second = await attempt(world, code);
+
+    expect((first.result as { error: ProtocolError }).error.code).toBe('team-full');
+    expect(second.result.ok).toBe(true);
+  });
+
+  test('two right proofs at once: exactly one pairs, even while the first is still being stored', async () => {
+    const { world, code } = await hostWorld();
+    let release: () => void = () => undefined;
+    const original = world.ctx.addMember;
+    world.ctx.addMember = async (member) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return original(member);
+    };
+
+    const first = attempt(world, code);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const second = await attempt(world, code);
+    release();
+    const firstResult = await first;
+
+    expect(second.result.ok).toBe(false);
+    expect(firstResult.result.ok).toBe(true);
+    expect(world.members.size).toBe(1);
   });
 
   test('a host that does not know the code (man in the middle) cannot complete the handshake', async () => {
@@ -375,7 +411,7 @@ describe('session handshake', () => {
     const stale = edSign(world.member, Buffer.from('an old transcript'));
     pair.client.send(Buffer.from(JSON.stringify({ t: 'auth', sig: stale.toString('base64') })));
 
-    expect(await hostSide).toBeUndefined();
+    expect(await hostSide).toBe('bad-signature');
   });
 
   test('a hello of another protocol version is reported by the host', async () => {

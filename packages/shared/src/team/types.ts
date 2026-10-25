@@ -188,6 +188,7 @@ export type TeamErrorCode =
   | 'replaced'
   | 'protocol-error'
   | 'team-full'
+  | 'shared-address'
   | 'save-failed';
 
 export interface LanInterface {
@@ -195,6 +196,8 @@ export interface LanInterface {
   name: string;
   /** IPv4 address a team may listen on. */
   address: string;
+  /** A shared-address range (100.64.0.0/10: Tailscale, but also carrier-grade NAT): listening there needs a confirmation. */
+  shared?: boolean;
 }
 
 export interface HostMember {
@@ -221,6 +224,8 @@ export interface HostStatus {
   address?: string;
   port?: number;
   pairing?: PairingStatus;
+  /** Short fingerprint of the host's public key, for people to compare out of band. */
+  fingerprint: string;
   members: HostMember[];
   error?: TeamErrorCode;
 }
@@ -231,6 +236,8 @@ export interface MemberStatus {
   hostName?: string;
   hostAddress: string;
   hostPort: number;
+  /** Fingerprint of the host key this computer pinned when it joined. */
+  hostFingerprint: string;
   link: TeamLink;
   error?: TeamErrorCode;
 }
@@ -251,6 +258,10 @@ export interface TeamHostStartRequest {
   teamName?: string;
   /** How the host appears to the others. */
   name: string;
+  /** How this computer is called in the team (default: a neutral label, never the host name). */
+  device?: string;
+  /** The person confirmed the warning about listening on a shared address (100.64.0.0/10). */
+  allowShared?: boolean;
 }
 
 export interface TeamJoinRequest {
@@ -258,4 +269,6 @@ export interface TeamJoinRequest {
   port?: number;
   code: string;
   name: string;
+  /** How this computer is called in the team (default: a neutral label, never the host name). */
+  device?: string;
 }

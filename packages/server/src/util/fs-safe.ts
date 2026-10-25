@@ -1,6 +1,6 @@
 // Small filesystem helpers that never throw on missing or corrupt files.
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 /** Reads and parses a JSON file; undefined if it is missing or invalid. */
@@ -16,8 +16,14 @@ export async function readJsonFile(path: string): Promise<unknown> {
 export async function writeJsonAtomic(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   const temp = `${path}.${randomBytes(4).toString('hex')}.tmp`;
-  await writeFile(temp, JSON.stringify(value), { encoding: 'utf8', mode: 0o600 });
-  await rename(temp, path);
+  try {
+    await writeFile(temp, JSON.stringify(value), { encoding: 'utf8', mode: 0o600 });
+    await rename(temp, path);
+  } catch (error) {
+    // Do not leave a half-written temporary file next to the real one.
+    await rm(temp, { force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 /** Narrows an unknown value to a plain object. */

@@ -4,11 +4,19 @@
 //   M -> H  pair-proof      proofM = HMAC(kMac, "member" || tr || H(box)), box = AEAD(name, device, member public key)
 //   H -> M  pair-accept     proofH = HMAC(kMac, "host" || tr || proofM || H(box')), box' = AEAD(memberId, team, host key)
 // tr = H(eM, eH, nH, salt); kMac derives from scrypt(code, salt); the box keys derive from X25519(eM, eH) and the code key.
-// The host answers a wrong proof with one generic error and counts it; after 5 the code is destroyed. The host reveals
-// nothing keyed by the code before the member proved it, so connecting without the code yields nothing to test guesses on.
+// The host answers a wrong proof with one generic error and counts it per source address (5 lock the code for that
+// address; 60 in all destroy it). The host reveals nothing keyed by the code before the member proved it, and answers
+// nothing at all while no code is open. The code is used up only after the member is stored.
 import { randomBytes } from 'node:crypto';
-import { TEAM_DEVICE_MAX, TEAM_NAME_MAX, TEAM_PROTOCOL_VERSION, TEAM_TEAMNAME_MAX, cleanLine } from '@ai-office/shared';
-import type { FramedConn } from './conn';
+import {
+  TEAM_DEVICE_MAX,
+  TEAM_NAME_MAX,
+  TEAM_PROTOCOL_VERSION,
+  TEAM_TEAMNAME_MAX,
+  cleanLine,
+  isSafeKey,
+} from '@ai-office/shared';
+import { FrameError, type FramedConn } from './conn';
 import {
   type Identity,
   agree,
@@ -93,7 +101,11 @@ export async function memberPair(conn: FramedConn, input: PairInput): Promise<Pa
   const eMember = newEphemeral();
   sendPlain(conn, { t: 'pair-hello', v: TEAM_PROTOCOL_VERSION, e: toB64(eMember.publicRaw) });
 
-  const challenge = expect(decode(await conn.read(HANDSHAKE_TIMEOUT_MS)), 'pair-challenge');
+  // A host with no code open does not answer at all: a connection that closes now means "no code is open".
+  const first = await conn.read(HANDSHAKE_TIMEOUT_MS).catch((error: unknown) => {
+    throw error instanceof FrameError && error.code === 'closed' ? new ProtocolError('not-pairing') : error;
+  });
+  const challenge = expect(decode(first), 'pair-challenge');
   checkVersion(challenge);
   const eHost = fromB64(challenge.e, 32);
   const nonce = fromB64(challenge.n, 16);
@@ -114,8 +126,7 @@ export async function memberPair(conn: FramedConn, input: PairInput): Promise<Pa
   const teamId = typeof body.teamId === 'string' ? body.teamId : '';
   const teamName = cleanLine(body.teamName, TEAM_TEAMNAME_MAX);
   const hostName = cleanLine(body.hostName, TEAM_NAME_MAX);
-  if (!/^[A-Za-z0-9_-]{8,32}$/.test(memberId) || !/^[A-Za-z0-9_-]{8,32}$/.test(teamId))
-    throw new ProtocolError('protocol-error');
+  if (!isSafeKey(memberId, 8, 32) || !isSafeKey(teamId, 8, 32)) throw new ProtocolError('protocol-error');
   if (teamName === undefined || hostName === undefined) throw new ProtocolError('protocol-error');
   return { memberId, teamId, teamName, hostName, hostPub: fromB64(body.hostPub, 32) };
 }
@@ -130,12 +141,14 @@ export interface NewMember {
 
 export interface HostPairContext {
   gate: PairingGate;
+  /** The source address of the connection: wrong proofs lock the code for it alone. */
+  address: string;
   identity: Identity;
   teamId: string;
   teamName: string;
   hostName: string;
-  /** Stores the member (and the file) and returns its id; undefined when the team is full. */
-  addMember(member: NewMember): Promise<string | undefined>;
+  /** Stores the member (and the file) and returns its id, or why it could not (the team is full, the disk refused). */
+  addMember(member: NewMember): Promise<string | { error: 'team-full' | 'save-failed' }>;
   /** A wrong proof came from this connection (for the per-address limit). */
   onWrongProof(): void;
 }
@@ -149,7 +162,9 @@ export async function hostPair(conn: FramedConn, hello: WireMessage, ctx: HostPa
   try {
     checkVersion(hello);
     const eMember = fromB64(hello.e, 32);
-    const ticket = ctx.gate.ticket();
+    const ticket = ctx.gate.ticket(ctx.address);
+    // No code open: a stranger learns nothing, not even that pairing exists. Only a locked address is told.
+    if (ticket === 'not-pairing') return conn.destroy();
     if (typeof ticket === 'string') return refuse(ticket);
 
     const eHost = newEphemeral();
@@ -167,29 +182,35 @@ export async function hostPair(conn: FramedConn, hello: WireMessage, ctx: HostPa
     const keys = pairKeys(ticket.key, ticket.salt, eMember, eHost.publicRaw, nonce, agree(eHost.privateKey, eMember));
     const proofM = fromB64(proof.proof, 32);
     if (!safeEqual(proofM, memberProof(keys, box))) return wrongProof(ticket, ctx, refuse);
-    // From here the proof is right: the first connection to get here uses the code up.
-    if (!ctx.gate.consume(ticket)) return refuse('not-pairing');
+    // From here the proof is right: the first connection to get here holds the code while its member is stored; the
+    // code is used up only if that works.
+    if (!ctx.gate.claim(ticket)) return conn.destroy();
+    let stored = false;
+    try {
+      const channel = keys.channel('host');
+      const body = json(channel.open(box));
+      const name = cleanLine(body.name, TEAM_NAME_MAX);
+      const device = cleanLine(body.device, TEAM_DEVICE_MAX) ?? '';
+      const pub = fromB64(body.pub, 32);
+      if (name === undefined) return refuse('protocol-error');
+      const memberId = await ctx.addMember({ name, device, pub });
+      if (typeof memberId !== 'string') return refuse(memberId.error);
+      stored = true;
 
-    const channel = keys.channel('host');
-    const body = json(channel.open(box));
-    const name = cleanLine(body.name, TEAM_NAME_MAX);
-    const device = cleanLine(body.device, TEAM_DEVICE_MAX) ?? '';
-    const pub = fromB64(body.pub, 32);
-    if (name === undefined) return refuse('protocol-error');
-    const memberId = await ctx.addMember({ name, device, pub });
-    if (memberId === undefined) return refuse('team-full');
-
-    const boxH = channel.seal(
-      encode({
-        memberId,
-        teamId: ctx.teamId,
-        teamName: ctx.teamName,
-        hostName: ctx.hostName,
-        hostPub: toB64(ctx.identity.publicRaw),
-      }),
-    );
-    sendPlain(conn, { t: 'pair-accept', proof: toB64(hostProof(keys, proofM, boxH)), box: toB64(boxH) });
-    conn.close();
+      const boxH = channel.seal(
+        encode({
+          memberId,
+          teamId: ctx.teamId,
+          teamName: ctx.teamName,
+          hostName: ctx.hostName,
+          hostPub: toB64(ctx.identity.publicRaw),
+        }),
+      );
+      sendPlain(conn, { t: 'pair-accept', proof: toB64(hostProof(keys, proofM, boxH)), box: toB64(boxH) });
+      conn.close();
+    } finally {
+      ctx.gate.finish(ticket, stored);
+    }
   } catch (error) {
     refuse(error instanceof ProtocolError ? error.code : 'protocol-error');
   }
@@ -197,7 +218,7 @@ export async function hostPair(conn: FramedConn, hello: WireMessage, ctx: HostPa
 
 function wrongProof(ticket: PairingTicket, ctx: HostPairContext, refuse: (code: string) => void): void {
   ctx.onWrongProof();
-  ctx.gate.fail(ticket);
+  ctx.gate.fail(ticket, ctx.address);
   // One generic answer for every failure, so the reply says nothing about what was wrong.
   refuse('pairing-failed');
 }

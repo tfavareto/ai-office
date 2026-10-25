@@ -8,7 +8,7 @@ import { linkText, linkTone, teamCodeText } from '../model/team-text';
 import type { TeamData, TeamOutcome } from '../team-controller';
 import { button, liveText, sectionTitle } from '../widgets';
 import { Dialog, closeButton } from './overlay';
-import { HostForm, JoinForm, rememberName } from './team-forms';
+import { HostForm, JoinForm, rememberName, type HostValues, type JoinValues } from './team-forms';
 import { TeamSharing } from './team-sharing';
 
 type View = 'localOnly' | 'loading' | 'unavailable' | 'choose' | 'hosting' | 'member';
@@ -196,6 +196,7 @@ export class TeamDialog extends Dialog {
             onClick: () => this.ctx.copy(address, t('team.host.copied')),
           }),
         ),
+        this.fingerprint(host.fingerprint),
       );
     }
 
@@ -290,6 +291,17 @@ export class TeamDialog extends Dialog {
     );
   }
 
+  /** The key fingerprint, for people to compare out loud with what the member sees. */
+  private fingerprint(value: string): HTMLElement {
+    return h(
+      'div',
+      { class: 'ao-team-fingerprint' },
+      h('span', { class: 'ao-note' }, `${t('team.fingerprint')}: `),
+      h('code', null, value === '' ? '—' : value),
+      h('p', { class: 'ao-note' }, t('team.fingerprint.hint')),
+    );
+  }
+
   private memberRow(member: HostMember, busy: boolean): HTMLElement {
     const confirming = this.confirm === `remove:${member.id}`;
     const remove = button({
@@ -344,6 +356,7 @@ export class TeamDialog extends Dialog {
             { class: 'ao-note' },
             t('team.member.host', { host: member.hostName ?? '', address: `${member.hostAddress}:${member.hostPort}` }),
           ),
+          this.fingerprint(member.hostFingerprint),
         ),
       );
     }
@@ -366,7 +379,7 @@ export class TeamDialog extends Dialog {
 
   // ---- actions ------------------------------------------------------------------------------------------------------
 
-  private async startHosting(values: { name: string; teamName: string; address: string; port: number }): Promise<void> {
+  private async startHosting(values: HostValues): Promise<void> {
     rememberName(values.name);
     await this.run(
       this.ctx.team.hostStart({
@@ -374,15 +387,22 @@ export class TeamDialog extends Dialog {
         port: values.port,
         name: values.name,
         ...(values.teamName !== '' ? { teamName: values.teamName } : {}),
+        ...(values.device !== '' ? { device: values.device } : {}),
+        ...(values.allowShared ? { allowShared: true } : {}),
       }),
       () => this.ctx.notifyLocal('success', t('team.toast.hosting', { team: values.teamName || values.name })),
     );
   }
 
-  private async join(values: { name: string; address: string; code: string }): Promise<void> {
+  private async join(values: JoinValues): Promise<void> {
     rememberName(values.name);
     const outcome = await this.run(
-      this.ctx.team.join({ name: values.name, address: values.address, code: values.code }),
+      this.ctx.team.join({
+        name: values.name,
+        address: values.address,
+        code: values.code,
+        ...(values.device !== '' ? { device: values.device } : {}),
+      }),
     );
     this.joinForm.clearCode();
     if (outcome.ok)

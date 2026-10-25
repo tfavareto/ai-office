@@ -80,6 +80,40 @@ describe('parseTeamStatus', () => {
     expect(status.host?.error).toBeUndefined();
   });
 
+  test('keeps fingerprints of the right shape and the shared flag of an interface', () => {
+    const status = parseTeamStatus({
+      available: true,
+      role: 'member',
+      sharing: {},
+      interfaces: [
+        { name: 'utun3', address: '100.100.1.2', shared: true },
+        { name: 'en0', address: '192.168.0.2' },
+      ],
+      member: {
+        teamName: 'T',
+        name: 'Ana',
+        hostAddress: '192.168.0.1',
+        hostPort: 4849,
+        hostFingerprint: '1a2b-3c4d-5e6f-7a8b',
+        link: 'connected',
+      },
+      host: {
+        teamName: 'T',
+        hostName: 'H',
+        link: 'listening',
+        fingerprint: '<script>',
+        members: [],
+      },
+    });
+
+    expect(status.interfaces).toEqual([
+      { name: 'utun3', address: '100.100.1.2', shared: true },
+      { name: 'en0', address: '192.168.0.2' },
+    ]);
+    expect(status.member?.hostFingerprint).toBe('1a2b-3c4d-5e6f-7a8b');
+    expect(status.host?.fingerprint).toBe('');
+  });
+
   test('refuses what is not a status', () => {
     expect(() => parseTeamStatus({ role: 'host' })).toThrow();
   });

@@ -1,11 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { type IncomingHttpHeaders, request } from 'node:http';
+import { type IncomingHttpHeaders, createServer, request } from 'node:http';
 import { connect } from 'node:net';
 import { join } from 'node:path';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { DEMO_PROJECTS, normalizePairingCode, type TeamStatus } from '@ai-office/shared';
 import { type App, createApp } from '../app';
 import { loadConfig } from '../config';
+import { buildRouter } from './server';
 import { silentLogger } from '../log';
 import { freePort, makeFakeClaude, makeTempDir, removeDir, type FakeClaudeDir } from '../test-helpers';
 
@@ -239,5 +240,48 @@ describe('two real servers in one team', () => {
 
   test('the main server refuses to bind a non-loopback address even with team mode on', () => {
     expect(() => loadConfig({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_TEAM_LOOPBACK: '1' }, [], '/tmp')).toThrow();
+  });
+});
+
+describe('management endpoints refuse a request that is not local', () => {
+  test('every route answers 403 local-only when the request is not from this computer, and changes nothing', async () => {
+    const node = await boot();
+    const router = buildRouter(node.app.context);
+    const server = createServer((req, res) => {
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      const route = router.match(req.method ?? 'GET', url.pathname);
+      if (route === undefined) {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+      void Promise.resolve(route.handler({ req, res, url, params: route.params, local: false, authed: true }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address !== null ? address.port : 0;
+    const results: [string, number][] = [];
+    for (const [method, path] of [
+      ['GET', '/api/team'],
+      ['POST', '/api/team/host/start'],
+      ['POST', '/api/team/host/stop'],
+      ['POST', '/api/team/host/code'],
+      ['POST', '/api/team/host/revoke'],
+      ['POST', '/api/team/host/end'],
+      ['POST', '/api/team/join'],
+      ['POST', '/api/team/leave'],
+      ['POST', '/api/team/sharing'],
+    ] as const) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        ...(method === 'POST' ? { body: JSON.stringify({ address: '127.0.0.1', name: 'X' }) } : {}),
+      });
+      results.push([`${method} ${path}`, response.status]);
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    expect(results.filter(([, status]) => status !== 403)).toEqual([]);
+    expect(node.app.context.team.snapshot()).toBeUndefined();
   });
 });

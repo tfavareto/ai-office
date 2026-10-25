@@ -4,7 +4,7 @@
 //   settings.json  what this computer shares, and the salt that makes the opaque ids of its agents unguessable
 // The host keeps no secret of any member: it stores their public keys only.
 import { randomBytes } from 'node:crypto';
-import { chmod, mkdir, rm } from 'node:fs/promises';
+import { chmod, mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   DEFAULT_TEAM_SHARE,
@@ -12,6 +12,7 @@ import {
   TEAM_NAME_MAX,
   TEAM_TEAMNAME_MAX,
   cleanLine,
+  isSafeKey,
   parseSharePrefs,
   type TeamSharePrefs,
 } from '@ai-office/shared';
@@ -21,7 +22,7 @@ import { isTeamAddress, isValidPort } from './addresses';
 import { type StoredIdentity, fromB64 } from './keys';
 
 const VERSION = 1;
-const ID = /^[A-Za-z0-9_-]{8,32}$/;
+const isId = (value: unknown): value is string => isSafeKey(value, 8, 32);
 const MAX_REVOKED = 64;
 
 export interface StoredMember {
@@ -43,7 +44,7 @@ export interface HostFile {
   members: StoredMember[];
   revoked: string[];
   /** Where the listener was left: it comes back there when the app starts. */
-  listen?: { address: string; port: number };
+  listen?: { address: string; port: number; sharedOk?: true };
 }
 
 export interface JoinedFile {
@@ -78,7 +79,7 @@ function identityOf(raw: unknown): StoredIdentity | undefined {
 function memberOf(raw: unknown): StoredMember | undefined {
   const r = asRecord(raw);
   const name = cleanLine(r.name, TEAM_NAME_MAX);
-  if (typeof r.id !== 'string' || !ID.test(r.id) || name === undefined) return undefined;
+  if (typeof r.id !== 'string' || !isId(r.id) || name === undefined) return undefined;
   try {
     fromB64(r.pub, 32);
   } catch {
@@ -102,7 +103,7 @@ export function readHostFile(raw: unknown): HostFile | undefined {
   const hostName = cleanLine(r.hostName, TEAM_NAME_MAX);
   if (r.version !== VERSION || identity === undefined || teamName === undefined || hostName === undefined)
     return undefined;
-  if (typeof r.teamId !== 'string' || !ID.test(r.teamId)) return undefined;
+  if (typeof r.teamId !== 'string' || !isId(r.teamId)) return undefined;
   const listen = asRecord(r.listen);
   const members = (Array.isArray(r.members) ? r.members : []).flatMap((item) => memberOf(item) ?? []);
   return {
@@ -113,10 +114,16 @@ export function readHostFile(raw: unknown): HostFile | undefined {
     identity,
     members,
     revoked: (Array.isArray(r.revoked) ? r.revoked : [])
-      .filter((id): id is string => typeof id === 'string' && ID.test(id))
+      .filter((id): id is string => typeof id === 'string' && isId(id))
       .slice(-MAX_REVOKED),
     ...(typeof listen.address === 'string' && isTeamAddress(listen.address) && isValidPort(listen.port)
-      ? { listen: { address: listen.address, port: listen.port } }
+      ? {
+          listen: {
+            address: listen.address,
+            port: listen.port,
+            ...(listen.sharedOk === true ? { sharedOk: true as const } : {}),
+          },
+        }
       : {}),
   };
 }
@@ -129,7 +136,7 @@ export function readJoinedFile(raw: unknown): JoinedFile | undefined {
   const hostName = cleanLine(r.hostName, TEAM_NAME_MAX);
   if (r.version !== VERSION || identity === undefined || teamName === undefined || name === undefined) return undefined;
   if (hostName === undefined) return undefined;
-  if (typeof r.teamId !== 'string' || !ID.test(r.teamId) || typeof r.memberId !== 'string' || !ID.test(r.memberId))
+  if (typeof r.teamId !== 'string' || !isId(r.teamId) || typeof r.memberId !== 'string' || !isId(r.memberId))
     return undefined;
   if (typeof r.address !== 'string' || !isTeamAddress(r.address) || !isValidPort(r.port)) return undefined;
   try {
@@ -201,13 +208,22 @@ export class TeamStore {
   }
 
   async deleteHost(): Promise<void> {
-    await rm(join(this.dir, 'host.json'), { force: true });
+    await this.remove('host.json');
     this.host = undefined;
   }
 
   async deleteJoined(): Promise<void> {
-    await rm(join(this.dir, 'member.json'), { force: true });
+    await this.remove('member.json');
     this.joined = undefined;
+  }
+
+  /** Deletes a file and any temporary file a failed write left next to it. */
+  private async remove(file: string): Promise<void> {
+    await rm(join(this.dir, file), { force: true });
+    const leftovers = (await readdir(this.dir).catch(() => [])).filter(
+      (name) => name.startsWith(`${file}.`) && name.endsWith('.tmp'),
+    );
+    await Promise.all(leftovers.map((name) => rm(join(this.dir, name), { force: true })));
   }
 
   private async write(file: string, value: unknown): Promise<boolean> {

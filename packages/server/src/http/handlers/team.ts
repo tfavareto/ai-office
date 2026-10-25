@@ -20,6 +20,7 @@ const STATUS_OF: Partial<Record<TeamErrorCode, number>> = {
   timeout: 504,
   'save-failed': 500,
   'listen-failed': 500,
+  'shared-address': 409,
 };
 
 function fail(res: Parameters<typeof sendError>[0], code: TeamErrorCode): void {
@@ -57,6 +58,8 @@ export function registerTeamRoutes(router: Router, app: AppContext): void {
         name: body.name as string,
         ...(typeof body.port === 'number' ? { port: body.port } : {}),
         ...(typeof body.teamName === 'string' ? { teamName: body.teamName } : {}),
+        ...(typeof body.device === 'string' ? { device: body.device } : {}),
+        ...(body.allowShared === true ? { allowShared: true } : {}),
       });
     }),
   );
@@ -89,6 +92,7 @@ export function registerTeamRoutes(router: Router, app: AppContext): void {
         code: body.code as string,
         name: body.name as string,
         ...(typeof body.port === 'number' ? { port: body.port } : {}),
+        ...(typeof body.device === 'string' ? { device: body.device } : {}),
       }),
     ),
   );
