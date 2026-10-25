@@ -67,9 +67,11 @@ export function isSimulatedHire(snapshot: OfficeSnapshot | null, projectPath: st
   return snapshot?.meta.demo === true && !realRoomPaths(snapshot).includes(projectPath);
 }
 
-/** Accounts the dialog offers: the demo ones for a simulated hire, the real ones otherwise. */
+/** Accounts the dialog offers: the demo ones for a simulated hire, the real ones otherwise (Codex cannot be hired). */
 export function hireAccounts(snapshot: OfficeSnapshot | null, simulated: boolean): Account[] {
-  return (snapshot?.accounts ?? []).filter((account) => DEMO_ACCOUNT_IDS.has(account.id) === simulated);
+  return (snapshot?.accounts ?? []).filter(
+    (account) => account.source !== 'codex' && DEMO_ACCOUNT_IDS.has(account.id) === simulated,
+  );
 }
 
 /** The account to preselect: the one that worked most recently in the room, else the default account, else the first. */

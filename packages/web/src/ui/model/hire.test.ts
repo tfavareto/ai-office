@@ -47,6 +47,23 @@ const DEMO: Account = {
   isDefault: true,
 };
 
+const CODEX: Account = {
+  id: 'codex',
+  label: 'Codex',
+  initial: 'C',
+  color: '#d946ef',
+  dir: '/h/.codex',
+  source: 'codex',
+};
+
+describe('hireAccounts and Codex', () => {
+  it('never offers a Codex account: only Claude Code can be hired', () => {
+    const state = snapshot({ accounts: [PERSONAL, CODEX, DEMO, { ...CODEX, id: 'demo-codex' }] });
+    expect(hireAccounts(state, false).map((account) => account.id)).toEqual(['personal']);
+    expect(hireAccounts(state, true).map((account) => account.id)).toEqual(['demo-pessoal']);
+  });
+});
+
 describe('recentFolders', () => {
   it('lists the newest folders first, once each', () => {
     const folders = recentFolders([session('/w/a', 100), session('/w/b', 300), session('/w/a', 200)], []);

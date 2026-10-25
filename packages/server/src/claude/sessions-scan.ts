@@ -1,8 +1,11 @@
 // Recent sessions (last 7 days) from the projects directories, for the history popover.
 import { type FileHandle, open } from 'node:fs/promises';
 import { type Account, type RecentSession, basename, truncate } from '@ai-office/shared';
+import { listRollouts, readRolloutHead } from '../codex/rollouts';
+import { readThreadNames } from '../codex/thread-names';
+import { codexParser, parseClaudeLine } from '../sources';
 import { listMainTranscripts } from './paths';
-import { parseLine } from './line-parser';
+import type { LineParser } from './types';
 
 export const RECENT_WINDOW_MS = 7 * 24 * 3_600_000;
 const HEAD_BYTES = 128 * 1024;
@@ -25,7 +28,7 @@ async function readRange(handle: FileHandle, position: number, length: number): 
   return buffer.toString('utf8', 0, bytesRead);
 }
 
-async function readMeta(path: string, size: number): Promise<Meta> {
+async function readMeta(path: string, size: number, parse: LineParser): Promise<Meta> {
   const meta: Meta = {
     firstAt: 0,
     projectPath: undefined,
@@ -38,20 +41,22 @@ async function readMeta(path: string, size: number): Promise<Meta> {
     const head = (await readRange(handle, 0, Math.min(size, HEAD_BYTES))).split('\n');
     if (size > HEAD_BYTES) head.pop();
     for (const raw of head) {
-      const line = parseLine(raw);
-      if (line === undefined || !('at' in line)) continue;
-      if (meta.firstAt === 0) meta.firstAt = line.at;
-      meta.projectPath ??= line.cwd;
-      if (line.kind === 'prompt') meta.firstPrompt ??= line.text;
+      for (const line of parse(raw)) {
+        if (!('at' in line)) continue;
+        if (meta.firstAt === 0) meta.firstAt = line.at;
+        meta.projectPath ??= line.cwd;
+        if (line.kind === 'prompt') meta.firstPrompt ??= line.text;
+      }
       if (meta.firstPrompt !== undefined && meta.projectPath !== undefined) break;
     }
     const tailStart = Math.max(0, size - TAIL_BYTES);
     const tail = (await readRange(handle, tailStart, size - tailStart)).split('\n');
     if (tailStart > 0) tail.shift();
     for (const raw of tail) {
-      const line = parseLine(raw);
-      if (line?.kind === 'title') meta.customTitle = line.title;
-      else if (line?.kind === 'last-prompt') meta.lastPrompt = line.text;
+      for (const line of parse(raw)) {
+        if (line.kind === 'title') meta.customTitle = line.title;
+        else if (line.kind === 'last-prompt') meta.lastPrompt = line.text;
+      }
     }
   } finally {
     await handle.close();
@@ -67,12 +72,16 @@ export async function scanRecentSessions(
 ): Promise<RecentSession[]> {
   const sessions: RecentSession[] = [];
   for (const account of accounts) {
+    if (account.source === 'codex') {
+      sessions.push(...(await scanCodexSessions(account, now, open)));
+      continue;
+    }
     for (const file of await listMainTranscripts(account.dir, now - RECENT_WINDOW_MS)) {
       const stamp = `${file.mtimeMs}:${file.size}`;
       let entry = cache.get(file.path);
       if (entry?.stamp !== stamp) {
         try {
-          entry = { stamp, meta: await readMeta(file.path, file.size) };
+          entry = { stamp, meta: await readMeta(file.path, file.size, parseClaudeLine) };
         } catch {
           continue;
         }
@@ -97,4 +106,46 @@ export async function scanRecentSessions(
     }
   }
   return sessions.sort((a, b) => b.lastAt - a.lastAt).slice(0, MAX_SESSIONS);
+}
+
+/** Codex sessions of the window: main threads only (subagents and housekeeping threads are not sessions). */
+async function scanCodexSessions(
+  account: Account,
+  now: number,
+  open: (accountId: string, sessionId: string) => { agentId: string; title?: string } | undefined,
+): Promise<RecentSession[]> {
+  const sessions: RecentSession[] = [];
+  const names = await readThreadNames(account.dir);
+  for (const file of await listRollouts(account.dir, now - RECENT_WINDOW_MS)) {
+    const head = await readRolloutHead(file);
+    if (head.kind !== 'main') continue;
+    const stamp = `${file.mtimeMs}:${file.size}`;
+    let entry = cache.get(file.path);
+    if (entry?.stamp !== stamp) {
+      try {
+        entry = { stamp, meta: await readMeta(file.path, file.size, codexParser()) };
+      } catch {
+        continue;
+      }
+      cache.set(file.path, entry);
+    }
+    const { meta } = entry;
+    const firstAt = meta.firstAt > 0 ? meta.firstAt : (head.startedAt ?? 0);
+    if (firstAt === 0) continue;
+    const live = open(account.id, head.threadId);
+    const projectPath = meta.projectPath ?? head.cwd ?? '';
+    const title = live?.title ?? names.get(head.threadId) ?? meta.firstPrompt;
+    sessions.push({
+      accountId: account.id,
+      sessionId: head.threadId,
+      projectPath,
+      projectName: basename(projectPath) || head.threadId,
+      ...(title !== undefined ? { title: truncate(title, 80) } : {}),
+      firstAt,
+      lastAt: Math.round(file.mtimeMs),
+      open: live !== undefined,
+      ...(live !== undefined ? { agentId: live.agentId } : {}),
+    });
+  }
+  return sessions;
 }

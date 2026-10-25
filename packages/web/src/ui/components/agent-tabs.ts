@@ -16,6 +16,7 @@ import {
   percent,
 } from '../format';
 import { icon } from '../icons';
+import { messageBlockedBySource } from '../model/source';
 import { displayStatus, isLive, statusLabel } from '../model/status';
 import { mergeTimeline } from '../model/timeline';
 import { createAvatar, emptyNote, liveText, sectionTitle, setLive, setStatusDot, statusDot } from '../widgets';
@@ -243,7 +244,9 @@ export class MessagesTab implements AgentTab {
   }
 
   update(agent: Agent): void {
-    const blockedReason = !this.ctx.isLocal ? localOnlyHint() : !isLive(agent) ? t('agent.gone') : null;
+    const blockedReason = !this.ctx.isLocal
+      ? localOnlyHint()
+      : (messageBlockedBySource(agent) ?? (!isLive(agent) ? t('agent.gone') : null));
     this.composer.setTarget({
       key: agent.id,
       agentIds: [agent.id],

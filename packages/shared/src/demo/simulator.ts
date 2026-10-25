@@ -41,7 +41,10 @@ import { type Locale, type Msg, msg, sourceText } from '../i18n';
 import { pickName } from '../names';
 import {
   DEMO_ACCOUNTS,
+  DEMO_ALL_ACCOUNTS,
   DEMO_BRANCHES,
+  DEMO_CODEX_ACCOUNT,
+  DEMO_CODEX_MODELS,
   DEMO_COMMANDS,
   DEMO_COMMIT_COMMAND,
   DEMO_TEST_COMMAND,
@@ -86,6 +89,8 @@ const HIRE_ARRIVAL_MS = 4500;
 const ERROR_NOTICE_GAP_MS = 20_000;
 const MAX_DEMO_TASKS = 5;
 const MOODS = ['shell', 'subs', 'idle', 'blocked', 'blocked', 'busy', 'idle', 'busy'] as const;
+/** Opening sessions (by slot) that run in Codex: one shares a room with a Claude Code session and one has a room to itself. */
+const CODEX_SLOTS: ReadonlySet<number> = new Set([1, 5]);
 
 type Mood = (typeof MOODS)[number];
 type Phase = 'idle' | 'working' | 'blocked' | 'gone';
@@ -216,7 +221,7 @@ class Simulator implements DemoSimulator {
       rev: this.rev,
       serverTime: now,
       meta: { version: 'demo', startedAt: this.startedAt, local: true, demo: true },
-      accounts: DEMO_ACCOUNTS.map((account) => ({ ...account })),
+      accounts: DEMO_ALL_ACCOUNTS.map((account) => ({ ...account })),
       projects: this.projects(),
       agents: this.agents(),
       usage: this.usage(now),
@@ -242,7 +247,8 @@ class Simulator implements DemoSimulator {
 
   sendMessage(agentIds: readonly string[], text: string, now: number, locale?: Locale): BossMessage[] {
     this.advance(now);
-    const targets = agentIds.filter((id) => this.agentMap.has(id));
+    // Codex sessions are read-only: nothing delivers a message to them.
+    const targets = agentIds.filter((id) => this.agentMap.has(id) && this.agentMap.get(id)?.source !== 'codex');
     const group = targets.length > 1 ? this.nextId('demo-group') : undefined;
     return targets.map((agentId) => {
       const message: BossMessage = {
@@ -418,7 +424,7 @@ class Simulator implements DemoSimulator {
     at: number,
     visitor: boolean,
     turns: number,
-    overrides: { accountId?: string | undefined; title?: string | undefined } = {},
+    overrides: { accountId?: string | undefined; title?: string | undefined; codex?: boolean } = {},
   ): string {
     const accountIndex = projectIndex % DEMO_ACCOUNTS.length;
     this.ensureProject(spec, accountIndex);
@@ -430,6 +436,7 @@ class Simulator implements DemoSimulator {
       kind: 'main',
       sessionId: `demo-session-${id}`,
       accountId: overrides.accountId ?? (DEMO_ACCOUNTS[accountIndex] ?? DEMO_ACCOUNTS[0]).id,
+      ...(overrides.codex === true ? { source: 'codex' as const } : {}),
       projectId: spec.path,
       name: person.name,
       role: sourceText(msg('agent.role.main')),
@@ -443,9 +450,9 @@ class Simulator implements DemoSimulator {
       tasks: [],
       shells: [],
       stats: { toolCalls: 0, tokensIn: 0, tokensOut: 0, costUSD: 0, linesAdded: 0, linesRemoved: 0, subagents: 0 },
-      model: pick(rng, DEMO_MODELS),
+      model: pick(rng, overrides.codex === true ? DEMO_CODEX_MODELS : DEMO_MODELS),
       gitBranch: pick(rng, DEMO_BRANCHES),
-      permissionMode: 'default',
+      permissionMode: overrides.codex === true ? 'on-request · workspace-write' : 'default',
       startedAt: at,
       lastEventAt: at,
       demo: true,
@@ -471,7 +478,14 @@ class Simulator implements DemoSimulator {
 
   private addInitialMain(spec: DemoProjectSpec, projectIndex: number, mood: Mood, slot: number): void {
     const t0 = this.startedAt;
-    const id = this.createMain(spec, projectIndex, t0, false, Number.POSITIVE_INFINITY);
+    const id = this.createMain(
+      spec,
+      projectIndex,
+      t0,
+      false,
+      Number.POSITIVE_INFINITY,
+      CODEX_SLOTS.has(slot) ? { accountId: DEMO_CODEX_ACCOUNT.id, codex: true } : {},
+    );
     const runtime = this.runtimes.get(id) as Runtime;
     const sessionAge = randInt(runtime.rng, 5, 50) * 60_000;
     this.update(id, (agent) => ({
@@ -699,8 +713,11 @@ class Simulator implements DemoSimulator {
     this.scheduleStep(id, at + delay);
   }
 
+  /** Sessions held up by a request (Codex ones wait on their own terminal and do not count against the cap). */
   private blockedCount(): number {
-    return Array.from(this.runtimes.values()).filter((runtime) => runtime.phase === 'blocked').length;
+    return Array.from(this.runtimes.entries()).filter(
+      ([id, runtime]) => runtime.phase === 'blocked' && this.agentMap.get(id)?.source !== 'codex',
+    ).length;
   }
 
   /** Runs a shell command; slow ones show up as foreground shells. Returns how long the agent is busy. */
@@ -815,6 +832,10 @@ class Simulator implements DemoSimulator {
   private blockOnPermission(id: string, at: number): void {
     const runtime = this.runtimes.get(id);
     if (runtime === undefined || runtime.phase === 'gone') return;
+    if (this.agentMap.get(id)?.source === 'codex') {
+      this.blockOnApproval(id, at, pick(runtime.rng, DEMO_PERMISSIONS));
+      return;
+    }
     const spec = DEMO_PERMISSIONS[this.permissionCursor++ % DEMO_PERMISSIONS.length] as DemoPermissionSpec;
     const request: PermissionRequest = {
       id: this.nextId('demo-perm'),
@@ -845,6 +866,29 @@ class Simulator implements DemoSimulator {
       at,
     );
     this.queue.push(request.expiresAt, (when) => this.resolveBlock(id, episode, { behavior: 'terminal' }, when));
+  }
+
+  /** Codex asked for an approval: it is answered in Codex's own terminal, so the office only shows the wait. */
+  private blockOnApproval(id: string, at: number, spec: DemoPermissionSpec): void {
+    const runtime = this.runtimes.get(id);
+    if (runtime === undefined) return;
+    runtime.phase = 'blocked';
+    const episode = ++runtime.episode;
+    const waiting = msg('waiting.approve', { tool: spec.toolName });
+    this.setStatus(id, 'waiting', at, {
+      waitingFor: sourceText(waiting),
+      waitingForMsg: waiting,
+      permission: undefined,
+    });
+    this.noticeFor(
+      id,
+      'alert',
+      msg('notice.needs.detail', { name: this.nameOf(id), detail: spec.summaryMsg ?? spec.summary }),
+      at,
+    );
+    this.queue.push(at + this.dwell(runtime.rng, 18000, 40000), (when) =>
+      this.resolveBlock(id, episode, { behavior: 'terminal' }, when),
+    );
   }
 
   private blockOnQuestion(id: string, at: number): void {
@@ -914,6 +958,7 @@ class Simulator implements DemoSimulator {
       kind: 'sub',
       sessionId: parent.sessionId,
       accountId: parent.accountId,
+      ...(parent.source !== undefined ? { source: parent.source } : {}),
       projectId: parent.projectId,
       parentId: parent.id,
       name: person.name,
@@ -1048,7 +1093,7 @@ class Simulator implements DemoSimulator {
   }
 
   private usage(now: number): AccountUsage[] {
-    return demoAccountUsage(now, this.usageRows(now));
+    return demoAccountUsage(now, this.usageRows(now), DEMO_ALL_ACCOUNTS);
   }
 }
 

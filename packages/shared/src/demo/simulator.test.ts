@@ -139,7 +139,7 @@ describe('createDemoSimulator', () => {
     const sim = createDemoSimulator({ seed: 1, now: () => T0 });
     const ids = sim
       .agents()
-      .filter((a) => a.kind === 'main')
+      .filter((a) => a.kind === 'main' && a.source !== 'codex')
       .slice(0, 2)
       .map((a) => a.id);
     const messages = sim.sendMessage([...ids, 'fantasma'], 'Pessoal, atenção', T0);

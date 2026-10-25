@@ -4,7 +4,7 @@ This guide explains what AI Office is, the mental model behind the office metaph
 
 ## What AI Office is
 
-AI Office is a local web app that turns the Claude Code sessions running on your computer into a corporate office you can watch in real time. A small Node.js server reads the files Claude Code already writes under `~/.claude`, works out what every session is doing and streams that to a page in your browser. An optional Claude Code plugin adds two-way features: you can answer permission requests and send messages to agents from the office.
+AI Office is a local web app that turns the Claude Code sessions running on your computer into a corporate office you can watch in real time. A small Node.js server reads the files Claude Code already writes under `~/.claude`, works out what every session is doing and streams that to a page in your browser. An optional Claude Code plugin adds two-way features: you can answer permission requests and send messages to agents from the office. Sessions of the OpenAI **Codex CLI** (`~/.codex`) show up in the same rooms too, read-only: see [Codex sessions](#codex-sessions).
 
 The interface is available in English, Portuguese (Brazil) and Spanish, and follows your browser's language unless you pick one in **Settings → Language** (see [using the office](02-using-the-office.md#language)). This documentation is in English and quotes the English labels, for example **Needs you**. Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written, whatever language the interface is in.
 
@@ -19,6 +19,14 @@ The interface is available in English, Portuguese (Brazil) and Spanish, and foll
 | A Claude config directory (`~/.claude`, `~/.claude-work`, ...) | An **account** | Shown as a colored chip. Several accounts can share one office. |
 
 The building has fixed common areas (**Reception**, **Pantry**, **Meeting room**, **Restrooms**, **Lounge**) plus one room per project. People arrive and leave through the reception elevators. When nothing needs doing, idle people walk to the pantry or the lounge. The signs and labels inside the office follow the interface language too.
+
+## Codex sessions
+
+If you also use the Codex CLI, its open sessions appear as people in the office next to the Claude Code ones. A Codex session and a Claude Code session in the same folder share a room. Codex agents get a **Codex** badge and their own accent color, and "Codex" is an account chip you can filter by.
+
+They are **read-only**. Codex has no hooks like the Claude Code plugin's, so AI Office can watch a Codex session (what it is doing, whether it waits for an approval, its tasks, tokens and estimated cost, the day report and the time-lapse) but cannot answer its permission requests, send it messages or hire a new one. The interface disables those actions for Codex agents and says why. When a Codex agent waits for your approval, answer it in the terminal where Codex runs.
+
+There is no registry of running Codex processes, so a Codex session counts as open while its file was written in the last 30 minutes. See [configuration](04-configuration.md#codex-sessions) and [privacy and security](05-privacy-and-security.md#what-ai-office-reads).
 
 ## Statuses
 

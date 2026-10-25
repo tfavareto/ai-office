@@ -4,7 +4,9 @@
 AI_OFFICE_PORT (4848), AI_OFFICE_HOST (127.0.0.1), AI_OFFICE_CLAUDE_DIRS (comma-separated config dirs; default:
 every `~/.claude*` directory containing `projects/`, plus CLAUDE_CONFIG_DIR), AI_OFFICE_STATE_DIR (~/.ai-office),
 AI_OFFICE_DEMO=1 (start with demo on), AI_OFFICE_ALLOW_REMOTE=1 (accept a non-loopback AI_OFFICE_HOST; refused
-otherwise). CLI flags may mirror these (`--port`, `--demo`, `--allow-remote`). The state dir also holds `token`
+otherwise), AI_OFFICE_CODEX_DIRS (comma-separated extra Codex homes, read besides `CODEX_HOME` / `~/.codex`),
+AI_OFFICE_CODEX=0 (never read Codex sessions, whatever Settings says). CLI flags may mirror these (`--port`, `--demo`,
+`--allow-remote`, `--codex-dirs`). The state dir also holds `token`
 (random 32 bytes hex, mode 0600) that every `/api/*` route but `GET /api/health` requires (see 01-architecture Security).
 
 ## Claude Code data sources (public on-disk formats, per config dir `<dir>`)
@@ -27,6 +29,50 @@ otherwise). CLI flags may mirror these (`--port`, `--demo`, `--allow-remote`). T
 Tail files incrementally (keep byte offsets; handle partial last lines, truncation and rotation). Use fs.watch with a
 1 s polling fallback. On startup, load sessions active in the last 12 h (and all open ones) reading only the tail
 needed for state (last ~2 MB); long history is read lazily for `/api/history` and `/api/transcript`.
+
+## Codex data sources (OpenAI Codex CLI, read-only, `packages/server/src/codex/`)
+A Codex home is `CODEX_HOME` (default `~/.codex`) plus the folders of AI_OFFICE_CODEX_DIRS; each existing one is an
+**account** (`source: 'codex'`, id `codex`, label "Codex", `codex-<name>` for the others). Only this is read, and only
+this: `<home>/sessions/YYYY/MM/DD/rollout-<timestamp>-<thread id>.jsonl` and `<home>/session_index.jsonl` (the names Codex
+gives threads, tail only). `auth.json`, `config.toml`, the SQLite files, logs and every other file are never opened.
+- **Rollout lines**: `{ timestamp, type, payload }` with `type` in `session_meta` (first line: `id`, `cwd`, `git.branch`,
+  `source`, `cli_version`; a subagent has `source: { subagent: { thread_spawn: { parent_thread_id, agent_nickname,
+  agent_role } } }`, housekeeping threads such as approval reviews have `{ subagent: { other: "guardian_review" } }` or
+  `"review"`, `"compact"`, `"memory_consolidation"`), `turn_context` (`cwd`, `model`, `approval_policy`,
+  `sandbox_policy`), `event_msg`, `response_item`, `compacted`; everything else (`token_usage_record`, `world_state`...)
+  is skipped before JSON parsing. Unknown types and malformed, partial or oversized (> 6 MB) lines are ignored.
+- **Translation** (`translate.ts`): a per-file `RolloutTranslator` turns lines into the same `ParsedLine` events the Claude
+  parser makes (plus `turn-start`, `turn-end`, `approval` and `usage`), so the office model, the terminal view, the day
+  report and the time-lapse have one code path. Each fact has one source: prompts from `event_msg` `user_message` and the
+  app's `item_completed` `UserMessage` (injected context such as `<environment_context>` is dropped); replies and
+  thinking from `response_item` `message` (assistant) and `reasoning`; tool calls from `response_item` `function_call`,
+  `custom_tool_call`, `local_shell_call`, `web_search_call`, the app's `item_completed` items (`CommandExecution`,
+  `FileChange`, `McpToolCall`, `Extension`, `ImageView`) and the begin/end events of the CLI, deduplicated by `call_id`;
+  turns from `task_started` / `task_complete` / `turn_aborted`; usage from `token_count`.
+- **Tool mapping**: shell, `exec_command`, `container.exec`, `local_shell` and command items become `Bash`;
+  `apply_patch` and `FileChange` become one `Write` (add) or `Edit` (update, delete) per file, with the lines added and
+  removed; web searches `WebSearch`, opened pages `WebFetch`; MCP calls `mcp__<server>__<tool>`; `update_plan`
+  `TodoWrite` (the tasks); `request_user_input` `AskUserQuestion`; `spawn_agent` `Agent`; `view_image` `Read`.
+- **Open sessions** (no pid registry exists): a rollout counts as open while its file was modified in the last 30 minutes
+  (`CODEX_OPEN_WINDOW_MS`, the same window the Claude engine uses without a registry). New rollouts are found by listing
+  the day folders of the last window (every 4 s); files already followed are re-checked by `stat`. A session started
+  more than a day before the window and resumed since is not found until it is written in a recent folder.
+- **Status**: `working` from `task_started` (or a prompt) to `task_complete`; `waiting` while an approval request
+  (`exec_approval_request`, `apply_patch_approval_request`, `request_permissions`, `elicitation_request`) or a question
+  (`request_user_input`) is unanswered (waitingFor "Aprovar <ferramenta>" / the question text; there is no `permission`
+  object, nothing can be answered from the page); `idle` after the turn completes or is aborted.
+- **Agents**: one main agent per rollout whose first record is a plain session; `thread_spawn` threads whose parent is
+  open are subagents (role `agent_role`, title `agent_nickname`); housekeeping threads are never shown. The project is
+  the `cwd`, so a Codex and a Claude Code agent in the same folder share the room. The title is Codex's thread name
+  (`session_index.jsonl`), else the first prompt. Agents carry `source: 'codex'`; stable names come from the same store.
+- **Tokens and cost**: `token_count.info.total_token_usage` holds running totals; cached input is a cache read, the rest
+  of the input is fresh, output includes reasoning. The estimate uses the OpenAI table in `shared/src/usage/pricing.ts`
+  (standard tier, checked 2026-10-25); a model without a price (e.g. `codex-auto-review`) has tokens and no cost.
+- **Setting**: `GET/POST /api/codex/settings` (`{ sessions, available, locked }`, local-only, token-protected) turns the
+  reading on or off (stored in `<stateDir>/codex-settings.json`); `locked` means AI_OFFICE_CODEX=0. Off, the server does
+  not open the Codex folder at all.
+- **Read-only**: Codex has no hooks, so there are no permission requests, messages or hiring for it. `POST /api/messages`
+  answers 409 `codex-read-only` when every target is a Codex agent and skips Codex agents in a team message.
 
 ## Agents
 - One **main agent** per open session (sessionId + account). It enters when the session opens and leaves (`offline`)
@@ -91,6 +137,7 @@ A background indexer (`packages/server/src/usage/`) turns every transcript (main
 - **Backfill.** At startup, in the background, newest files first (so the 5 h window, today and the week are right early): everything from the start of the previous calendar month. Progress (`indexing` with a percentage by bytes, then `ready`) is exposed in `GET /api/usage/detail`.
 - **Persistence.** `<stateDir>/usage-index/` (mode 0700): one shard per UTC month, `YYYY-MM.json` (dictionary-coded rows, mode 0600), and `meta.json` (what was read of each transcript, relative to the account directory). Versioned (`v`), written atomically (temp file and rename), shards before `meta.json`, each carrying the generation of its save. A damaged or unknown-version file, a shard newer than `meta.json` (a save interrupted between the two) or a shard that lost rows means the index is ignored and rebuilt from the transcripts: it is only a cache. Saved at most every 15 s while dirty, after the first backfill and on stop. Rows older than 13 months (and their shards) are pruned.
 - **Cards.** `UsageIndexer.compute` replaces the former in-memory tracker: the 5 h block (opens at the hour of the first message after the previous block expired, lasts 5 h), the week (Monday 00:00 local) and today (local midnight) come from the hourly totals, plus `burn` (tokens and cost of the last 30 and 60 minutes, hours with activity this week) and `peaks` (highest completed 5 h block and week of the last 90 days, with how many there were) that feed the limit forecast.
+- **Codex rollouts** are indexed like transcripts (`usage/discover.ts` lists them per account). The usage of a moment is the growth of the running `total_token_usage` since the previous `token_count` of the file; the last total and its model live in the file's remembered messages, so a resumed scan counts only new growth. Subagent and housekeeping threads are rows of their parent session (agent = their thread id); housekeeping threads are left out of the day report and the time-lapse.
 - **Time zones.** Rows are keyed by UTC hour; day, week and month boundaries are local midnights built with the local calendar (23 and 25 hour days at daylight saving changes work). In zones with a half-hour offset the hour that straddles midnight is counted in the day it starts in.
 
 ## Progress (`/api/progress`)
@@ -243,7 +290,7 @@ Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD
 ## Demo
 Fake sessions (3-4 projects, 4-8 agents with subagents) driven by a script of realistic activities, statuses, shells,
 permission requests (answerable; decision simulated) and errors. The demo accounts also have ten weeks of synthesized hourly usage (working-day pattern, several projects, models and sessions; today's sessions are the demo agents; the last hours are always active); the cards and `GET /api/usage/detail` are computed from it with the same code as real data. The same simulator (pure, in shared) powers the
-client's `?mock=1`.
+client's `?mock=1`. It also opens two Codex sessions (account "Codex", `source: 'codex'`): one in a room shared with a Claude Code session, one alone; they wait on approvals (no permission to answer), take no messages and have their own usage history.
 
 ## Static web
 Serve packages/web/dist with correct MIME types, `index.html` no-cache, hashed assets immutable; SPA fallback.

@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import { API, type RecentSession, type TranscriptPage, truncate } from '@ai-office/shared';
 import { findTranscript, subagentsDir } from '../../claude/paths';
+import { findRollout } from '../../codex/rollouts';
 import { scanRecentSessions } from '../../claude/sessions-scan';
 import { isSafeSegment } from '../../util/ids';
 import type { AppContext } from '../context';
@@ -24,18 +25,24 @@ export function registerDataRoutes(router: Router, app: AppContext): void {
     const after = afterRaw === null ? undefined : Number(afterRaw);
     if (!isSafeSegment(sessionId) || (after !== undefined && (!Number.isInteger(after) || after < 0)))
       return sendError(res, 400, 'invalid-query');
-    const account = app.engine.accountList().find((candidate) => candidate.id === accountId);
+    const account = app.sourceAccounts().find((candidate) => candidate.id === accountId);
     if (account === undefined) return sendError(res, 404, 'account-not-found');
     const record = app.office.record(`${account.id}:${sessionId}`);
-    const main = await findTranscript(account.dir, sessionId, record?.registry?.cwd);
+    const codex = account.source === 'codex';
+    const main = codex
+      ? (app.codex.pathOf(account.id, sessionId) ?? (await findRollout(account.dir, sessionId)))
+      : await findTranscript(account.dir, sessionId, record?.registry?.cwd);
     if (main === undefined) return sendError(res, 404, 'session-not-found');
-    let path = main;
+    let path: string | undefined = main;
     if (agentParam !== null) {
       const agentId = rawAgentId(agentParam);
       if (!isSafeSegment(agentId)) return sendError(res, 400, 'invalid-agent');
-      path = join(subagentsDir(main), `agent-${agentId}.jsonl`);
+      path = codex
+        ? app.codex.pathOf(account.id, sessionId, agentId)
+        : join(subagentsDir(main), `agent-${agentId}.jsonl`);
+      if (path === undefined) return sendError(res, 404, 'transcript-not-found');
     }
-    const view = await app.transcripts.open(path);
+    const view = await app.transcripts.open(path, codex ? 'codex' : undefined);
     if (view === undefined) return sendError(res, 404, 'transcript-not-found');
     const page = view.page(after);
     const first = page.entries.find((entry) => entry.kind === 'user');
@@ -53,7 +60,7 @@ export function registerDataRoutes(router: Router, app: AppContext): void {
   router.add('GET', API.sessions, async ({ res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');
     const sessions: RecentSession[] = await scanRecentSessions(
-      app.engine.accountList(),
+      app.sourceAccounts(),
       app.now(),
       (accountId, sessionId) => {
         const record = app.office.record(`${accountId}:${sessionId}`);

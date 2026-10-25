@@ -69,6 +69,14 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'agent.action.follow': 'Seguir',
   'agent.action.center': 'Centrar',
   'agent.action.terminal': 'Terminal',
+  'codex.badge': 'Codex',
+  'codex.badge.title': 'Sesión de Codex CLI. AI Office solo observa: no responde permisos ni le envía mensajes.',
+  'codex.readonly.message': 'Codex es de solo lectura aquí: no recibe mensajes de AI Office.',
+  'codex.readonly.team':
+    'Solo hay agentes de Codex en esta sala, y Codex es de solo lectura: no recibe mensajes de AI Office.',
+  'codex.readonly.skipped':
+    '{n, plural, =1 {# agente de Codex no recibe el mensaje (solo lectura).} other {# agentes de Codex no reciben el mensaje (solo lectura).}}',
+  'codex.waiting.note': 'Codex espera tu respuesta en su propio terminal. AI Office solo observa.',
   'account.chip': 'Cuenta {label}',
   'account.unknown': 'Cuenta desconocida',
   // Top bar
@@ -609,7 +617,7 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'banner.retryIn': 'Nuevo intento en {time}',
   'empty.title': 'Ninguna sesión abierta',
   'empty.intro':
-    'Cada proyecto abierto en Claude Code se convierte en una sala, y cada sesión en una persona que trabaja en ella.',
+    'Cada proyecto abierto en Claude Code o en Codex se convierte en una sala, y cada sesión en una persona que trabaja en ella.',
   'empty.step1': 'Abre un terminal en la carpeta de un proyecto.',
   'empty.step2.before': 'Ejecuta ',
   'empty.step2.after': ' y pídele algo al agente.',
@@ -705,7 +713,7 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'help.title': 'Ayuda',
   'help.status.title': 'Estado de las personas',
   'help.status.note':
-    'Cada proyecto abierto es una sala; cada sesión de Claude Code es una persona. Los subagentes llegan, trabajan y se van.',
+    'Cada proyecto abierto es una sala; cada sesión de Claude Code o de Codex es una persona. Los subagentes llegan, trabajan y se van.',
   'help.icons.title': 'Iconos',
   'help.icon.fit': 'Vista general: encuadra toda la oficina',
   'help.icon.bell': 'Notificaciones y "No molestar"',
@@ -938,6 +946,10 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
     'Es la única parte de AI Office que usa internet, y solo a través de tu propio gh mientras esté activada.',
   'settings.gitPr.missing': 'No se encontró gh en este equipo.',
   'settings.gitPr.unauthenticated': 'gh no ha iniciado sesión. Ejecuta «gh auth login» en una terminal.',
+  'settings.codex': 'Mostrar sesiones de Codex',
+  'settings.codex.hint':
+    'Sigue, solo en lectura, las sesiones abiertas de Codex CLI (la carpeta ~/.codex o CODEX_HOME). Apagado, AI Office no lee esa carpeta.',
+  'settings.codex.locked': 'El servidor se inició con AI_OFFICE_CODEX=0; reinícialo sin eso para activarlo.',
   // Time-lapse
   'replay.badge': 'REPLAY',
   'replay.pill': 'REPLAY · {date}',

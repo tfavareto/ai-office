@@ -1,5 +1,8 @@
 // Everything the HTTP handlers need, assembled by the app.
 import type { Engine } from '../claude/engine';
+import type { CodexEngine } from '../codex/engine';
+import type { CodexSettingsStore } from '../codex/settings-store';
+import type { Account } from '@ai-office/shared';
 import type { TranscriptCache } from '../claude/transcript';
 import type { ServerConfig } from '../config';
 import type { Logger } from '../log';
@@ -28,6 +31,10 @@ export interface AppContext {
   now: () => number;
   office: Office;
   engine: Engine;
+  codex: CodexEngine;
+  codexSettings: CodexSettingsStore;
+  /** Every account whose sessions the office reads: Claude Code configuration dirs and Codex homes. */
+  sourceAccounts: () => Account[];
   hub: SseHub;
   snapshots: SnapshotPublisher;
   permissions: PermissionRegistry;

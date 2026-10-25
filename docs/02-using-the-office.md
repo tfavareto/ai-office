@@ -43,7 +43,7 @@ The browser tab title shows **(n) AI Office** while *n* agents need you.
 ## Sidebar
 
 - **Search** (`/` focuses it): filters agents, projects and accounts. Arrow keys move through results; `Esc` clears the search.
-- **Account chips**: filter the list by account when you have more than one.
+- **Account chips**: filter the list by account when you have more than one. Codex sessions have their own **Codex** chip.
 - **Rooms** list: each room can be collapsed and shows how many of its agents need you, and its Git branch (with a dot while work is uncommitted). Click a room to select it and move the camera there.
 - **Agent rows**: avatar with a status dot, name, account chip, role, current activity and how long ago the status changed. For an agent waiting on a shell, the time is the shell's elapsed time. Subagents are indented under their parent. Click selects and focuses; people who are leaving fade out.
 
@@ -297,6 +297,14 @@ When the office levels up or you earn a badge you get one toast and a few sparkl
 
 **Session history** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
 
+## Codex agents
+
+Codex CLI sessions are people in the office too, marked with a purple **Codex** badge (and a purple ring and name tag in the world). Everything that only watches works: status, activity, tasks, shells running, tokens and estimated cost, the terminal panel, session history, the day report, the time-lapse, the usage cards (an account of its own) and the progress counters.
+
+Everything that talks back does not, because Codex has no hooks: the **Message** action and the **Messages** tab say "Codex is read-only here", a room message goes only to the Claude Code agents of the room (a note says how many Codex agents were skipped), permission requests never appear for Codex, and **Hire agent** only offers Claude Code accounts. When a Codex agent waits for an approval or a question the card says so and points you to Codex's own terminal.
+
+Turn Codex off in **Settings → Show Codex sessions**; off, AI Office does not read the Codex folder.
+
 ## Terminal panel
 
 The terminal panel renders a session's conversation the way the terminal would: your prompts, the assistant's text, collapsed **Thinking…** blocks, and tool calls with a summary and result. It updates live (**Live · read-only**) and cannot send input.
@@ -328,6 +336,7 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Browser notifications** | Browser notifications for alerts (asks for permission). |
 | **Office evolution** | Decoration, achievements toasts and the level counter (on by default). Off shows the plain office and announces nothing. |
 | **Show the project in Employee of the month** | Add the project name next to the agent name in the achievements dialog (off by default). |
+| **Show Codex sessions** | Follow the open Codex CLI sessions, read-only. On by default when a Codex home exists (the row only shows then). Stored on the server: off, the Codex folder is not read. Needs a local page. See [Codex agents](#codex-agents). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |

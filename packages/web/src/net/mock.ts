@@ -11,6 +11,7 @@ import {
   hourMapsFromRows,
   withOfficeSessions,
   type DemoSimulator,
+  type CodexSettings,
   type GitSettings,
   type HireCheckResponse,
   type HireRequest,
@@ -240,6 +241,14 @@ class MockBackend implements Backend {
   async setGitPullRequests(on: boolean): Promise<GitSettings> {
     this.pullRequests.on = on;
     return this.gitSettings();
+  }
+
+  async codexSettings(): Promise<CodexSettings> {
+    return { sessions: true, available: true, locked: false };
+  }
+
+  async setCodexSessions(_on: boolean): Promise<CodexSettings> {
+    return this.codexSettings();
   }
 
   async rules() {

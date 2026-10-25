@@ -1,10 +1,11 @@
 // Drawer content for a selected agent: hero, status row with actions, urgent cards, tabs.
-import type { Agent } from '@ai-office/shared';
+import { isCodex, type Agent } from '@ai-office/shared';
 import { t, type UiKey } from '../../i18n';
 import { localOnlyHint, type AppContext, type Component } from '../context';
 import { agentKindLabel, agentTitle } from '../display';
 import { h, setText, toggleClass } from '../dom';
 import { icon, type IconName } from '../icons';
+import { messageBlockedBySource } from '../model/source';
 import { displayStatus, statusHint, statusLabel } from '../model/status';
 import type { DrawerTab } from '../state';
 import {
@@ -42,6 +43,7 @@ export class AgentView implements Component {
   private readonly dot = statusDot('idle');
   private readonly name = h('h2', { class: 'ao-hero-name', id: 'ao-drawer-title' });
   private readonly kindChip = h('span', { class: 'ao-tag' });
+  private readonly sourceChip = h('span', { class: 'ao-tag ao-tag--codex', hidden: true }, t('codex.badge'));
   private readonly account = accountChip(undefined);
   private readonly roomLink = h('button', { type: 'button', class: 'ao-link ao-room-link' });
   private readonly roomName = h('span');
@@ -92,7 +94,7 @@ export class AgentView implements Component {
         'div',
         { class: 'ao-hero-info' },
         this.name,
-        h('div', { class: 'ao-hero-tags' }, this.kindChip, this.account),
+        h('div', { class: 'ao-hero-tags' }, this.kindChip, this.sourceChip, this.account),
         this.roomLink,
       ),
       closeButton(t('drawer.close'), () => ctx.clearSelection()),
@@ -211,7 +213,11 @@ export class AgentView implements Component {
     setStatusDot(this.dot, ds);
     setText(this.name, agent.name);
     setText(this.kindChip, agentKindLabel(agent));
+    this.sourceChip.hidden = !isCodex(agent);
+    this.sourceChip.title = t('codex.badge.title');
     updateAccountChip(this.account, this.ctx.account(agent.accountId), true);
+    // The Codex tag already says which account this is.
+    this.account.hidden = isCodex(agent);
     setText(this.roomName, this.ctx.project(agent.projectId)?.name ?? t('agent.room'));
     const title = agentTitle(agent);
     this.title.hidden = !title;
@@ -228,7 +234,12 @@ export class AgentView implements Component {
 
     const local = this.ctx.isLocal;
     const live = ds !== 'offline' && ds !== 'done';
-    setDisabled(this.actions.message.el, !local || !live, !local ? localOnlyHint() : t('agent.gone'));
+    const readOnly = messageBlockedBySource(agent);
+    setDisabled(
+      this.actions.message.el,
+      !local || !live || readOnly !== null,
+      !local ? localOnlyHint() : (readOnly ?? t('agent.gone')),
+    );
     setDisabled(this.actions.terminal.el, !local, localOnlyHint());
     const ui = this.ctx.ui.get();
     setPressed(this.actions.follow.el, ui.following);

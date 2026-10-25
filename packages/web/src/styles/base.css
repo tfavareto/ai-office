@@ -184,6 +184,22 @@ body {
   white-space: nowrap;
 }
 
+.ao-tag--codex,
+.ao-source-badge {
+  background: color-mix(in srgb, #d946ef 18%, transparent);
+  color: color-mix(in srgb, #d946ef 70%, var(--text));
+}
+
+.ao-source-badge {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+
 .ao-tag--live {
   background: rgba(62, 207, 142, 0.14);
   color: var(--working);

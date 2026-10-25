@@ -20,6 +20,7 @@ import {
   statusDot,
 } from '../widgets';
 import { GitSection } from './git-section';
+import { splitTeam, skippedNote, teamBlockedBySource } from '../model/source';
 import { MessageComposer } from './message-composer';
 import { MessageHistory } from './message-history';
 import { closeButton } from './overlay';
@@ -37,6 +38,7 @@ export class RoomView implements Component {
   private readonly tasks = h('div', { class: 'ao-block' });
   private readonly activity = h('div', { class: 'ao-block' });
   private readonly composer: MessageComposer;
+  private readonly teamNote = h('p', { class: 'ao-note', hidden: true });
   private readonly hireBtn: HTMLButtonElement;
   private readonly history: MessageHistory;
   private readonly body = h('div', { class: 'ao-agent-body' });
@@ -78,7 +80,14 @@ export class RoomView implements Component {
       this.repo.el,
       this.agents,
       this.hireBtn,
-      h('div', { class: 'ao-block' }, sectionTitle(t('room.team.title')), this.composer.el, this.history.el),
+      h(
+        'div',
+        { class: 'ao-block' },
+        sectionTitle(t('room.team.title')),
+        this.composer.el,
+        this.teamNote,
+        this.history.el,
+      ),
       this.tasks,
       this.activity,
     );
@@ -190,8 +199,16 @@ export class RoomView implements Component {
   }
 
   private renderTeam(roomName: string, agents: Agent[]): void {
-    const blockedReason = !this.ctx.isLocal ? localOnlyHint() : agents.length === 0 ? t('room.team.nobody') : null;
-    const ids = agents.map((a) => a.id);
+    const split = splitTeam(agents);
+    const blockedReason = !this.ctx.isLocal
+      ? localOnlyHint()
+      : agents.length === 0
+        ? t('room.team.nobody')
+        : teamBlockedBySource(split);
+    const ids = split.reachable.map((a) => a.id);
+    const skipped = skippedNote(split);
+    this.teamNote.hidden = skipped === null;
+    setText(this.teamNote, skipped ?? '');
     this.composer.setTarget({
       key: `room:${this.roomId}`,
       agentIds: ids,

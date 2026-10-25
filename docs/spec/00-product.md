@@ -200,6 +200,16 @@ H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1
   wave when they cross in the corridor, chat at the pantry with icon-only bubbles and play ping-pong with a moving ball. Real work always wins: anything that needs you cancels it.
 - Settings: **Celebrations** (on by default) and the animation level (calm / normal / lively). With reduced motion there are no particles or jumps, only a still badge.
 
+## Codex support
+- Open **OpenAI Codex CLI** sessions (`~/.codex`, `CODEX_HOME`, `AI_OFFICE_CODEX_DIRS`) appear next to Claude Code ones: same rooms
+  (by folder), same statuses, activities, tasks, tokens, estimated cost, day report, time-lapse, usage cards and progress.
+  They are **read-only**: Codex has no hooks, so permissions, messages and hiring are Claude Code only; the UI disables
+  those actions for Codex agents and says why.
+- A "Codex" badge marks the agents (chip, plus a distinct accent ring and name tag in the worlds) and "Codex" is an account
+  filter chip. Settings has **Show Codex sessions** (on by default when a Codex home exists); off, the folder is not read.
+- Not supported: answering approvals from the page, messaging or hiring Codex, live "running" state of a command while it
+  runs (only on newer CLIs that log the begin), sessions resumed from more than a day-old folder until they are written.
+
 ## Non-goals
 Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a
 first prompt can be given when hiring an agent); Windows-specific work.

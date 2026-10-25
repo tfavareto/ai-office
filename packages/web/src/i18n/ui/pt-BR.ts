@@ -68,6 +68,15 @@ export const uiPtBR = {
   'agent.action.follow': 'Seguir',
   'agent.action.center': 'Centralizar',
   'agent.action.terminal': 'Terminal',
+  'codex.badge': 'Codex',
+  'codex.badge.title':
+    'Sessão do Codex CLI. O AI Office só acompanha: não responde permissões nem envia mensagens a ela.',
+  'codex.readonly.message': 'O Codex é somente leitura aqui: ele não recebe mensagens do AI Office.',
+  'codex.readonly.team':
+    'Só há agentes do Codex nesta sala, e o Codex é somente leitura: ele não recebe mensagens do AI Office.',
+  'codex.readonly.skipped':
+    '{n, plural, =1 {# agente do Codex não recebe a mensagem (somente leitura).} other {# agentes do Codex não recebem a mensagem (somente leitura).}}',
+  'codex.waiting.note': 'O Codex espera a resposta no terminal dele. O AI Office só acompanha.',
   'account.chip': 'Conta {label}',
   'account.unknown': 'Conta desconhecida',
   // Top bar
@@ -603,7 +612,8 @@ export const uiPtBR = {
   'banner.retry': 'Tentar agora',
   'banner.retryIn': 'Nova tentativa em {time}',
   'empty.title': 'Nenhuma sessão aberta',
-  'empty.intro': 'Cada projeto aberto no Claude Code vira uma sala, e cada sessão vira uma pessoa trabalhando nela.',
+  'empty.intro':
+    'Cada projeto aberto no Claude Code ou no Codex vira uma sala, e cada sessão vira uma pessoa trabalhando nela.',
   'empty.step1': 'Abra um terminal na pasta de um projeto.',
   'empty.step2.before': 'Rode ',
   'empty.step2.after': ' e peça algo ao agente.',
@@ -698,7 +708,7 @@ export const uiPtBR = {
   'help.title': 'Ajuda',
   'help.status.title': 'Status das pessoas',
   'help.status.note':
-    'Cada projeto aberto é uma sala; cada sessão do Claude Code é uma pessoa. Subagentes chegam, trabalham e saem.',
+    'Cada projeto aberto é uma sala; cada sessão do Claude Code ou do Codex é uma pessoa. Subagentes chegam, trabalham e saem.',
   'help.icons.title': 'Ícones',
   'help.icon.fit': 'Visão geral: enquadra todo o escritório',
   'help.icon.bell': 'Notificações e "Não perturbe"',
@@ -931,6 +941,10 @@ export const uiPtBR = {
     'É a única parte do AI Office que usa a internet, e só pelo seu próprio gh, enquanto estiver ligada.',
   'settings.gitPr.missing': 'O gh não foi encontrado neste computador.',
   'settings.gitPr.unauthenticated': 'O gh não está autenticado. Rode “gh auth login” no terminal.',
+  'settings.codex': 'Mostrar sessões do Codex',
+  'settings.codex.hint':
+    'Acompanha, só para leitura, as sessões abertas do Codex CLI (a pasta ~/.codex ou CODEX_HOME). Desligado, o AI Office não lê essa pasta.',
+  'settings.codex.locked': 'O servidor foi iniciado com AI_OFFICE_CODEX=0; reinicie sem isso para ligar.',
   // Time-lapse
   'replay.badge': 'REPLAY',
   'replay.pill': 'REPLAY · {date}',

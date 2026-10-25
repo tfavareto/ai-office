@@ -8,7 +8,7 @@ import { type UsageRow, rowTokens } from '../usage/types';
 import { type HourMap, activeHoursInWeek, computeAccountUsage, computePeaks } from '../usage/windows';
 import type { AccountUsage } from '../model';
 import { hourMapsFromRows } from '../usage/aggregate';
-import { DEMO_ACCOUNTS, DEMO_PROJECTS } from './content';
+import { DEMO_ALL_ACCOUNTS, DEMO_PROJECTS } from './content';
 
 /** A session of the demo office; today's history is attributed to them so the usage tables link to real people. */
 export interface DemoSessionAnchor {
@@ -25,6 +25,9 @@ const FORCED_ACTIVE_HOURS = 4;
 const OPUS = 'claude-opus-5-5';
 const SONNET = 'claude-sonnet-5-5';
 const HAIKU = 'claude-haiku-4-5';
+const GPT_SOL = 'gpt-5.6-sol';
+const GPT_TERRA = 'gpt-5.6-terra';
+const CODEX_ACCOUNT = 'demo-codex';
 
 interface Profile {
   /** Billable tokens of a full-intensity hour. */
@@ -37,6 +40,7 @@ interface Profile {
 const PROFILES: Readonly<Record<string, Profile>> = {
   'demo-pessoal': { scale: 230_000, weekday: 0.8, weekend: 0.4, evening: 1.5 },
   'demo-trabalho': { scale: 360_000, weekday: 1, weekend: 0.06, evening: 0.3 },
+  [CODEX_ACCOUNT]: { scale: 150_000, weekday: 0.7, weekend: 0.3, evening: 0.9 },
 };
 
 /** Intensity of a local hour of the day on a working day (0..1). */
@@ -75,7 +79,7 @@ function slotsFor(
 ): Slot[] {
   const dayIndex = Math.round(dayStart / DAY_MS);
   const count = 1 + (rng() < 0.45 ? 1 : 0) + (rng() < 0.15 ? 1 : 0);
-  const models = [OPUS, SONNET, SONNET];
+  const models = account === CODEX_ACCOUNT ? [GPT_SOL, GPT_SOL, GPT_TERRA] : [OPUS, SONNET, SONNET];
   const slots: Slot[] = [];
   for (let k = 0; k < count; k++) {
     const anchor = anchors.length > 0 ? anchors[(k + Math.floor(hour / HOUR_MS)) % anchors.length] : undefined;
@@ -98,10 +102,12 @@ function makeRow(
   billable: number,
   rng: () => number,
 ): UsageRow {
-  const input = Math.round(billable * 0.03);
+  // Codex has no cache writes: whatever is not cached is fresh input.
+  const codex = account === CODEX_ACCOUNT;
+  const input = Math.round(billable * (codex ? 0.78 : 0.03));
   const output = Math.round(billable * 0.22);
-  const cacheWrite = Math.round(billable * 0.75);
-  const cacheRead = Math.round(billable * 14 * (0.8 + rng() * 0.4));
+  const cacheWrite = codex ? 0 : Math.round(billable * 0.75);
+  const cacheRead = Math.round(billable * (codex ? 9 : 14) * (0.8 + rng() * 0.4));
   const costUSD =
     tokensCostUSD(model, {
       input,
@@ -162,7 +168,7 @@ function hourRows(
           account,
           slot,
           `ag${Math.floor(hour / HOUR_MS) % 7}`,
-          rng() < 0.6 ? HAIKU : SONNET,
+          account === CODEX_ACCOUNT ? GPT_TERRA : rng() < 0.6 ? HAIKU : SONNET,
           share * sub,
           rng,
         ),
@@ -182,7 +188,7 @@ function pastRows(todayStart: number, now: number): UsageRow[] {
   historyCache.clear();
   const rows: UsageRow[] = [];
   const from = addDays(todayStart, -HISTORY_DAYS);
-  DEMO_ACCOUNTS.forEach((account, index) => {
+  DEMO_ALL_ACCOUNTS.forEach((account, index) => {
     for (let hour = from; hour < todayStart; hour += HOUR_MS) rows.push(...hourRows(account.id, index, hour, now, []));
   });
   historyCache.set(todayStart, rows);
@@ -195,7 +201,7 @@ export function demoUsageRows(at: number, anchors: readonly DemoSessionAnchor[] 
   const todayStart = startOfDay(now);
   const rows = [...pastRows(todayStart, now)];
   const end = floorToHour(now);
-  DEMO_ACCOUNTS.forEach((account, index) => {
+  DEMO_ALL_ACCOUNTS.forEach((account, index) => {
     const mine = anchors.filter((anchor) => anchor.account === account.id);
     for (let hour = Math.ceil(todayStart / HOUR_MS) * HOUR_MS; hour <= end; hour += HOUR_MS)
       rows.push(...hourRows(account.id, index, hour, now, mine));
@@ -238,7 +244,7 @@ function demoBurn(rows: readonly UsageRow[], account: string, now: number, hours
 export function demoAccountUsage(
   at: number,
   rows: readonly UsageRow[],
-  accounts: readonly Account[] = DEMO_ACCOUNTS,
+  accounts: readonly Account[] = DEMO_ALL_ACCOUNTS,
 ): AccountUsage[] {
   const now = quantize(at);
   const maps = demoHourMaps(rows);

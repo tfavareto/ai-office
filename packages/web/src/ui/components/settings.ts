@@ -1,5 +1,5 @@
 // Settings popover: language, visual, day/night, names, bubbles, animation, sounds, browser notifications, demo mode, about.
-import { LOCALES, LOCALE_NAMES, type GitSettings } from '@ai-office/shared';
+import { LOCALES, LOCALE_NAMES, type CodexSettings, type GitSettings } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
 import type { LanguagePref } from '../../prefs/prefs';
@@ -92,6 +92,8 @@ export class Settings extends Popover {
   );
   private readonly repo = createSwitch(t('settings.git'), (on) => ctxPrefs(this.ctx, { showGit: on }));
   private readonly pullRequests = createSwitch(t('settings.gitPr'), (on) => void this.togglePullRequests(on));
+  private readonly codex = createSwitch(t('settings.codex'), (on) => void this.toggleCodex(on));
+  private readonly codexRow = row(t('settings.codex'), this.codex.el, t('settings.codex.hint'));
   private readonly celebrationsRow = row(
     t('settings.celebrations'),
     this.celebrations.el,
@@ -122,6 +124,8 @@ export class Settings extends Popover {
   private busy = false;
   /** What the server says about the pull request lookup (read when the popover opens). */
   private gitSettings: GitSettings | null = null;
+  /** What the server says about the Codex integration (read when the popover opens). */
+  private codexSettings: CodexSettings | null = null;
 
   constructor(ctx: AppContext) {
     super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
@@ -147,6 +151,7 @@ export class Settings extends Popover {
         this.employeeProjectRow.el,
         this.repoRow.el,
         this.pullRequestsRow.el,
+        this.codexRow.el,
         this.rulesRow.el,
         this.demoRow.el,
         h(
@@ -173,6 +178,30 @@ export class Settings extends Popover {
 
   protected onOpen(): void {
     void this.loadGitSettings();
+    void this.loadCodexSettings();
+  }
+
+  private async loadCodexSettings(): Promise<void> {
+    if (!this.ctx.isLocal) return;
+    try {
+      this.codexSettings = await this.ctx.codexSettings();
+    } catch {
+      this.codexSettings = null;
+    }
+    this.ctx.refresh();
+  }
+
+  private async toggleCodex(on: boolean): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      this.codexSettings = await this.ctx.setCodexSessions(on);
+    } catch (error) {
+      this.ctx.notifyLocal('warn', describeError(error));
+    } finally {
+      this.busy = false;
+      this.ctx.refresh();
+    }
   }
 
   private async loadGitSettings(): Promise<void> {
@@ -231,6 +260,13 @@ export class Settings extends Popover {
     setText(this.ghHint, gh === 'unauthenticated' ? t('settings.gitPr.unauthenticated') : t('settings.gitPr.missing'));
     this.pullRequestsRow.hint.hidden = false;
     setText(this.pullRequestsRow.hint, this.ctx.isLocal ? t('settings.gitPr.hint') : localOnlyHint());
+
+    const codex = this.codexSettings;
+    this.codexRow.el.hidden = codex?.available !== true;
+    this.codex.set(codex?.sessions === true);
+    this.codex.el.disabled = !this.ctx.isLocal || this.busy || codex?.locked === true;
+    setText(this.codexRow.hint, codex?.locked === true ? t('settings.codex.locked') : t('settings.codex.hint'));
+    this.codexRow.hint.hidden = false;
 
     this.rulesButton.disabled = !this.ctx.isLocal;
     setAttr(this.rulesButton, 'title', this.ctx.isLocal ? null : localOnlyHint());

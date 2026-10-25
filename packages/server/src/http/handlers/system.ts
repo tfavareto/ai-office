@@ -15,14 +15,14 @@ export function registerSystemRoutes(router: Router, app: AppContext): void {
       const proof = app.auth.proof(url.searchParams.get(HEALTH_CHALLENGE_PARAM));
       return sendJson(res, 200, { ok: true, ...(proof !== undefined ? { proof } : {}) } satisfies PublicHealthResponse);
     }
-    const counts = app.engine.sessionCounts();
+    const counts = new Map([...app.engine.sessionCounts(), ...app.codex.sessionCounts()]);
     const body: HealthResponse = {
       ok: true,
       version: app.version,
       local,
       demo: app.isDemo(),
-      accounts: app.engine
-        .accountList()
+      accounts: app
+        .sourceAccounts()
         .map((account) => ({ id: account.id, dir: account.dir, sessions: counts.get(account.id) ?? 0 })),
     };
     sendJson(res, 200, body);

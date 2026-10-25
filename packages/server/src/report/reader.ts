@@ -3,7 +3,9 @@
 // previous read stopped, and hands the event loop back between slices.
 import { type FileHandle, open } from 'node:fs/promises';
 import { JsonlTailer } from '../claude/jsonl-tailer';
-import { parseLine } from '../claude/line-parser';
+import type { AgentSource } from '@ai-office/shared';
+import type { LineParser } from '../claude/types';
+import { parserFor } from '../sources';
 import { asRecord, asString } from '../util/fs-safe';
 import { TraceRecorder } from '../timelapse/recorder';
 import { type DayWindow, FileDayAccumulator, type FileRole } from './accumulator';
@@ -33,6 +35,8 @@ export interface ReadState extends FileStamp {
   acc: FileDayAccumulator;
   /** The moments of the day (time-lapse), kept up to date alongside `acc` once someone asked for them. */
   trace?: TraceRecorder;
+  /** The line parser, kept so a read that resumes continues with what it remembers (Codex tool calls span lines). */
+  parser?: LineParser;
 }
 
 export interface ReadBudget {
@@ -137,6 +141,8 @@ export function isResumable(previous: ReadState, stamp: FileStamp): boolean {
 export interface ReadOptions {
   /** Also record the moments of the day. A cached read without them is read again from the start of the day. */
   trace?: boolean;
+  /** The CLI that wrote the file; absent means Claude Code. */
+  source?: AgentSource;
 }
 
 /**
@@ -167,6 +173,7 @@ export async function readFileDay(
     trace = options.trace === true ? new TraceRecorder(window, role === 'sub') : undefined;
     startOffset = seek.offset;
   }
+  const parser = resume?.parser ?? (await parserFor(options.source, path));
   const tailer = new JsonlTailer(path, { startOffset, maxBytesPerRead: SLICE_BYTES });
   let done = false;
   let truncated = false;
@@ -174,9 +181,11 @@ export async function readFileDay(
     const read = await tailer.read();
     if (read === undefined || read.reset) break;
     for (let i = 0; i < read.lines.length && !done; i++) {
-      const line = parseLine(read.lines[i] as string);
-      if (line !== undefined && 'at' in line && line.at >= window.end) done = true;
-      else if (line !== undefined) {
+      for (const line of parser(read.lines[i] as string)) {
+        if ('at' in line && line.at >= window.end) {
+          done = true;
+          break;
+        }
         acc.ingest(line);
         trace?.ingest(line);
       }
@@ -189,5 +198,5 @@ export async function readFileDay(
     }
     await budget.yieldTurn();
   }
-  return { ...stamp, offset: tailer.position, done, truncated, acc, ...(trace !== undefined ? { trace } : {}) };
+  return { ...stamp, offset: tailer.position, done, truncated, acc, parser, ...(trace !== undefined ? { trace } : {}) };
 }

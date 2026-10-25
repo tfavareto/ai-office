@@ -58,10 +58,21 @@ export type ParsedLine =
       apiError: boolean;
     } & LineMeta)
   | ({ kind: 'notification'; toolUseId?: string; taskId?: string; status: string; summary?: string } & LineMeta)
-  | ({ kind: 'system'; subtype: string; text?: string } & LineMeta)
+  | ({ kind: 'system'; subtype: string; text?: string; model?: string } & LineMeta)
+  /** A turn began without a user prompt line (Codex: `task_started`). */
+  | ({ kind: 'turn-start' } & LineMeta)
+  /** The turn finished (Codex: `task_complete`). */
+  | ({ kind: 'turn-end' } & LineMeta)
+  /** The CLI asked the user to approve a tool call (Codex), or the request was answered. */
+  | ({ kind: 'approval'; state: 'requested' | 'resolved'; tool?: string } & LineMeta)
+  /** Session-wide usage so far (Codex reports running totals); replaces the previous one under the same id. */
+  | ({ kind: 'usage'; id: string; model?: string; usage: UsageInfo } & LineMeta)
   | { kind: 'title'; title: string }
   | { kind: 'last-prompt'; text: string }
   | { kind: 'mode'; mode: string }
   | { kind: 'cost-state'; costUSD: number; linesAdded: number; linesRemoved: number };
 
 export const END_STOP_REASONS: ReadonlySet<string> = new Set(['end_turn', 'stop_sequence', 'max_tokens', 'refusal']);
+
+/** Turns one raw transcript line into events. Stateful parsers (Codex) keep what spans lines, so one per file. */
+export type LineParser = (raw: string) => ParsedLine[];

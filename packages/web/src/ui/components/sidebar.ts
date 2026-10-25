@@ -1,5 +1,5 @@
 // Sidebar: search, account filter chips, rooms with their agents and subagents.
-import type { Agent } from '@ai-office/shared';
+import { isCodex, type Agent } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { localOnlyHint, type AppContext, type Component } from '../context';
 import { accountLabel, activityText, agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../display';
@@ -285,6 +285,11 @@ export class Sidebar implements Component {
     const dot = statusDot('idle');
     const name = h('span', { class: 'ao-row-name' });
     const account = h('span', { class: 'ao-account' });
+    const source = h(
+      'span',
+      { class: 'ao-source-badge', hidden: true, title: t('codex.badge.title') },
+      t('codex.badge'),
+    );
     const role = h('span', { class: 'ao-row-role' });
     const activity = h('span', { class: 'ao-row-activity' });
     const status = h('span', { class: 'ao-row-status' });
@@ -294,7 +299,7 @@ export class Sidebar implements Component {
       'button',
       { type: 'button', class: 'ao-agent-row' },
       h('span', { class: 'ao-row-avatar' }, avatar.el, dot),
-      h('span', { class: 'ao-row-body' }, h('span', { class: 'ao-row-line' }, name, account, role), activity),
+      h('span', { class: 'ao-row-body' }, h('span', { class: 'ao-row-line' }, name, account, source, role), activity),
       h('span', { class: 'ao-row-meta' }, status, h('span', { class: 'ao-row-timeline' }, shellIcon, time)),
     );
     let agentId = initial.agent.id;
@@ -311,6 +316,9 @@ export class Sidebar implements Component {
         setStatusDot(dot, ds);
         setText(name, agent.name);
         updateAccountChip(account, this.ctx.account(agent.accountId));
+        // The Codex badge says what the account chip would: keep the room for the name.
+        source.hidden = !isCodex(agent);
+        account.hidden = isCodex(agent);
         setText(role, agent.kind === 'sub' ? agentRole(agent) : this.mainRole(agent));
         setText(activity, this.activityText(agent));
         setText(status, statusLabel(ds));

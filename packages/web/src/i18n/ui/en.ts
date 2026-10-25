@@ -69,6 +69,15 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'agent.action.follow': 'Follow',
   'agent.action.center': 'Center',
   'agent.action.terminal': 'Terminal',
+  'codex.badge': 'Codex',
+  'codex.badge.title':
+    'Codex CLI session. AI Office only watches: it cannot answer permissions or send messages to it.',
+  'codex.readonly.message': 'Codex is read-only here: it does not receive messages from AI Office.',
+  'codex.readonly.team':
+    'Only Codex agents are in this room, and Codex is read-only: it does not receive messages from AI Office.',
+  'codex.readonly.skipped':
+    '{n, plural, =1 {# Codex agent does not receive the message (read-only).} other {# Codex agents do not receive the message (read-only).}}',
+  'codex.waiting.note': 'Codex is waiting for your answer in its own terminal. AI Office only watches.',
   'account.chip': 'Account {label}',
   'account.unknown': 'Unknown account',
   // Top bar
@@ -603,7 +612,8 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'banner.retry': 'Retry now',
   'banner.retryIn': 'Retrying in {time}',
   'empty.title': 'No open sessions',
-  'empty.intro': 'Every project open in Claude Code becomes a room, and every session becomes a person working in it.',
+  'empty.intro':
+    'Every project open in Claude Code or Codex becomes a room, and every session becomes a person working in it.',
   'empty.step1': 'Open a terminal in a project folder.',
   'empty.step2.before': 'Run ',
   'empty.step2.after': ' and ask the agent for something.',
@@ -698,7 +708,7 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'help.title': 'Help',
   'help.status.title': 'People status',
   'help.status.note':
-    'Each open project is a room; each Claude Code session is a person. Subagents arrive, work and leave.',
+    'Each open project is a room; each Claude Code or Codex session is a person. Subagents arrive, work and leave.',
   'help.icons.title': 'Icons',
   'help.icon.fit': 'Overview: frames the whole office',
   'help.icon.bell': 'Notifications and "Do not disturb"',
@@ -929,6 +939,10 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
     'This is the only part of AI Office that uses the internet, and only through your own gh while it is on.',
   'settings.gitPr.missing': 'gh was not found on this computer.',
   'settings.gitPr.unauthenticated': 'gh is not signed in. Run “gh auth login” in a terminal.',
+  'settings.codex': 'Show Codex sessions',
+  'settings.codex.hint':
+    'Follows, read-only, the open Codex CLI sessions (the ~/.codex folder or CODEX_HOME). When off, AI Office does not read that folder.',
+  'settings.codex.locked': 'The server was started with AI_OFFICE_CODEX=0; restart it without that to turn this on.',
   // Time-lapse
   'replay.badge': 'REPLAY',
   'replay.pill': 'REPLAY · {date}',

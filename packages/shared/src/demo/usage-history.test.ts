@@ -11,11 +11,11 @@ describe('demo usage history', () => {
     expect(demoUsageRows(NOW)).toEqual(demoUsageRows(NOW));
   });
 
-  test('covers several weeks for both demo accounts, with several models and projects', () => {
+  test('covers several weeks for the demo accounts, Codex included, with several models and projects', () => {
     const rows = demoUsageRows(NOW);
     const first = Math.min(...rows.map((row) => row.hour));
     expect(NOW - first).toBeGreaterThan(8 * 7 * 24 * HOUR_MS);
-    expect(new Set(rows.map((row) => row.account))).toEqual(new Set(['demo-pessoal', 'demo-trabalho']));
+    expect(new Set(rows.map((row) => row.account))).toEqual(new Set(['demo-pessoal', 'demo-trabalho', 'demo-codex']));
     expect(new Set(rows.map((row) => row.model)).size).toBeGreaterThanOrEqual(3);
     expect(new Set(rows.map((row) => row.project)).size).toBeGreaterThanOrEqual(4);
   });

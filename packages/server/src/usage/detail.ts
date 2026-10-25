@@ -2,7 +2,7 @@
 // aggregation; sessions the office knows get their title and a link to the person.
 import {
   type Agent,
-  DEMO_ACCOUNTS,
+  DEMO_ALL_ACCOUNTS,
   type HourMap,
   type UsageDetail,
   type UsagePeriod,
@@ -26,7 +26,7 @@ export interface DetailRequest {
   demoRows?: readonly UsageRow[];
 }
 
-const DEMO_IDS: ReadonlySet<string> = new Set(DEMO_ACCOUNTS.map((account) => account.id));
+const DEMO_IDS: ReadonlySet<string> = new Set(DEMO_ALL_ACCOUNTS.map((account) => account.id));
 
 function* chain<T>(...lists: Iterable<T>[]): Generator<T> {
   for (const list of lists) yield* list;

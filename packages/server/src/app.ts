@@ -5,6 +5,7 @@ import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  type Account,
   autoAnswer,
   createDemoSimulator,
   dayRange,
@@ -17,6 +18,8 @@ import {
   type Progress,
 } from '@ai-office/shared';
 import { Engine } from './claude/engine';
+import { CodexEngine } from './codex/engine';
+import { CodexSettingsStore } from './codex/settings-store';
 import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
 import { TranscriptCache } from './claude/transcript';
@@ -123,14 +126,15 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   const auth = new TokenAuth();
   const names = NameStore.forStateDir(config.stateDir, log);
   const day = new DayRecorder(config.stateDir, log);
-  const indexer = new UsageIndexer({ stateDir: config.stateDir, accounts: () => engine.accountList(), log, now });
+  const sourceAccounts = (): Account[] => [...engine.accountList(), ...codex.accountList()];
+  const indexer = new UsageIndexer({ stateDir: config.stateDir, accounts: sourceAccounts, log, now });
   const rules = new RulesStore(config.stateDir, log, now);
   const gitSettings = new GitSettingsStore(config.stateDir, log);
 
   /** One finished (or current) local day of every account, read like the day report but without filling its cache. */
   const readProgressDay = async (date: string): Promise<DayReading> => {
     const range = dayRange(date);
-    const accounts = engine.accountList();
+    const accounts = sourceAccounts();
     if (range === undefined || accounts.length === 0) return { complete: true };
     const dayReport = await report.report({ range, accounts, label: 'all', includeRequests: false, transient: true });
     const facts = factsFromReport(dayReport);
@@ -263,6 +267,15 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     ...(options.pidAlive !== undefined ? { pidAlive: options.pidAlive } : {}),
   });
 
+  const codexSettings = new CodexSettingsStore(config.stateDir, log, config.codexDisabled);
+  const codex: CodexEngine = new CodexEngine({
+    discover: { homeDir: config.homeDir, envDir: config.codexHomeEnv, extraDirs: config.codexDirs },
+    office,
+    settings: codexSettings,
+    log,
+    now,
+  });
+
   const setDemo = (on: boolean): void => {
     demoOn = on;
     office.setDemo(
@@ -328,6 +341,9 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     now,
     office,
     engine,
+    codex,
+    codexSettings,
+    sourceAccounts,
     hub,
     snapshots,
     permissions,
@@ -393,6 +409,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await names.load();
       await rules.load();
       await gitSettings.load();
+      await codexSettings.load();
       setDemo(config.demo);
       await refreshBuild();
       await new Promise<void>((resolveListen, rejectListen) => {
@@ -406,6 +423,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
         http.server.listen(config.port, config.host, resolveListen);
       });
       await engine.start();
+      await codex.start();
       await indexer.start();
       await progress.start();
       ticker = setInterval(tick, TICK_MS);
@@ -416,6 +434,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
       engine.stop();
+      codex.stop();
       git.stop();
       await progress.stop();
       await indexer.stop();

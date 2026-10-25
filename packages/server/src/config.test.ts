@@ -37,6 +37,22 @@ describe('loadConfig', () => {
     });
   });
 
+  test('Codex: no extra homes and Codex on by default', () => {
+    expect(load({})).toMatchObject({ codexDirs: [], codexHomeEnv: undefined, codexDisabled: false });
+  });
+
+  test('Codex: CODEX_HOME, extra homes and the switch that turns it off', () => {
+    expect(load({ CODEX_HOME: '~/work-codex', AI_OFFICE_CODEX_DIRS: '~/.codex-b, /tmp/c3 ,' })).toMatchObject({
+      codexHomeEnv: '/home/u/work-codex',
+      codexDirs: ['/home/u/.codex-b', '/tmp/c3'],
+    });
+    expect(load({ AI_OFFICE_CODEX: '0' }).codexDisabled).toBe(true);
+    expect(load({ AI_OFFICE_CODEX: 'false' }).codexDisabled).toBe(true);
+    expect(load({ AI_OFFICE_CODEX: '1' }).codexDisabled).toBe(false);
+    expect(load({}, ['--codex-dirs', '/tmp/x']).codexDirs).toEqual(['/tmp/x']);
+    expect(load({ CODEX_HOME: '  ' }).codexHomeEnv).toBeUndefined();
+  });
+
   test('flags win over the environment', () => {
     const config = load({ AI_OFFICE_PORT: '1111' }, ['--port', '2222', '--demo', '--quiet', '--state-dir=/tmp/x']);
     expect(config).toMatchObject({ port: 2222, demo: true, logLevel: 'quiet', stateDir: '/tmp/x' });

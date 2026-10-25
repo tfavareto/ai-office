@@ -70,6 +70,11 @@ function statusFields(
   };
 }
 
+/** Codex sessions are marked; Claude Code ones stay unmarked (the field is optional and additive). */
+function sourceField(record: SessionRecord): Pick<Agent, 'source'> {
+  return record.account.source === 'codex' ? { source: 'codex' } : {};
+}
+
 export function buildMainAgent(
   record: SessionRecord,
   projectId: string,
@@ -102,6 +107,7 @@ export function buildMainAgent(
     kind: 'main',
     sessionId: record.sessionId,
     accountId: record.account.id,
+    ...sourceField(record),
     projectId,
     name: person.name,
     role: sourceText(msg('agent.role.main')),
@@ -150,6 +156,7 @@ export function buildSubAgent(
     kind: 'sub',
     sessionId: record.sessionId,
     accountId: record.account.id,
+    ...sourceField(record),
     projectId,
     parentId,
     name: person.name,

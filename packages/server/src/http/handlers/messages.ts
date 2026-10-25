@@ -13,9 +13,13 @@ export function registerMessageRoutes(router: Router, app: AppContext): void {
     if (!local) return sendError(res, 403, 'local-only');
     const { agents, text, locale } = parseSendMessage(await readJsonBody(req), MAX_TEAM_SIZE, MAX_MESSAGE_LENGTH);
     const demoIds = new Set((app.office.demoSimulator?.agents() ?? []).map((agent) => agent.id));
-    const known = new Set(app.office.state().agents.map((agent) => agent.id));
-    const realTargets = agents.filter((id) => known.has(id) && !demoIds.has(id));
-    const demoTargets = agents.filter((id) => demoIds.has(id));
+    const agentsNow = app.office.state().agents;
+    const known = new Set(agentsNow.map((agent) => agent.id));
+    // Codex sessions are read-only: no hook exists to deliver a message to them.
+    const codexIds = new Set(agentsNow.filter((agent) => agent.source === 'codex').map((agent) => agent.id));
+    if (agents.length > 0 && agents.every((id) => codexIds.has(id))) return sendError(res, 409, 'codex-read-only');
+    const realTargets = agents.filter((id) => known.has(id) && !demoIds.has(id) && !codexIds.has(id));
+    const demoTargets = agents.filter((id) => demoIds.has(id) && !codexIds.has(id));
     if (realTargets.length === 0 && demoTargets.length === 0) return sendError(res, 404, 'no-agents');
     const messages: BossMessage[] = [
       ...(realTargets.length > 0 ? app.messages.send(realTargets, text, locale) : []),

@@ -2,6 +2,7 @@
 // Generated human text is a `DemoText`: the pt-BR rendering (kept in the `text` fields) plus the shared message key.
 import type { Account } from '../model';
 import { accountColor } from '../colors';
+import { CODEX_COLOR, CODEX_LABEL } from '../sources';
 import { type Msg, msg, sourceText } from '../i18n';
 import type { SharedMessageKey } from '../i18n/messages/pt-BR';
 
@@ -183,6 +184,19 @@ export const DEMO_ACCOUNTS: readonly Account[] = [
   },
 ];
 
+/** The demo's Codex account: it is not part of the rotation above, only the Codex sessions the simulator opens use it. */
+export const DEMO_CODEX_ACCOUNT: Account = {
+  id: 'demo-codex',
+  label: CODEX_LABEL,
+  initial: 'C',
+  color: CODEX_COLOR,
+  dir: '~/.codex',
+  source: 'codex',
+};
+
+/** Every account of the demo office. */
+export const DEMO_ALL_ACCOUNTS: readonly Account[] = [...DEMO_ACCOUNTS, DEMO_CODEX_ACCOUNT];
+
 export interface DemoCommand {
   command: string;
   description: DemoText;
@@ -350,3 +364,5 @@ export const DEMO_QUESTION: DemoText = localized('waiting.answerQuestion');
 
 export const DEMO_BRANCHES: readonly string[] = ['main', 'feat/cupom', 'fix/frete', 'feat/perfil', 'chore/deps'];
 export const DEMO_MODELS: readonly string[] = ['claude-opus-5-5', 'claude-sonnet-5-5'];
+/** Models of the demo's Codex sessions. */
+export const DEMO_CODEX_MODELS: readonly string[] = ['gpt-5.6-sol', 'gpt-5.6-terra'];

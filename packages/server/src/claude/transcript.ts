@@ -4,8 +4,9 @@
 import { type Msg, type TranscriptEntry, describeToolUse, msg, sourceText, truncate } from '@ai-office/shared';
 import { trimInput } from '../registries/permission-text';
 import { JsonlTailer } from './jsonl-tailer';
-import { parseLine } from './line-parser';
-import type { ParsedLine } from './types';
+import type { AgentSource } from '@ai-office/shared';
+import { parserFor } from '../sources';
+import type { LineParser, ParsedLine } from './types';
 
 const INITIAL_BYTES = 8 * 1024 * 1024;
 const MAX_ENTRIES = 4000;
@@ -39,7 +40,12 @@ export class TranscriptView {
   private readonly toolIndex = new Map<string, number>();
   private readonly unresolved = new Set<number>();
 
-  constructor(readonly path: string) {
+  private parse: LineParser | undefined;
+
+  constructor(
+    readonly path: string,
+    private readonly source: AgentSource | undefined = undefined,
+  ) {
     this.tailer = new JsonlTailer(path, { initialTailBytes: INITIAL_BYTES });
   }
 
@@ -48,10 +54,8 @@ export class TranscriptView {
     const result = await this.tailer.read();
     if (result === undefined) return false;
     if (result.reset) this.clear();
-    for (const raw of result.lines) {
-      const line = parseLine(raw);
-      if (line !== undefined) this.render(line);
-    }
+    if (this.parse === undefined || result.reset) this.parse = await parserFor(this.source, this.path);
+    for (const raw of result.lines) for (const line of this.parse(raw)) this.render(line);
     this.trim();
     return true;
   }
@@ -182,10 +186,10 @@ export class TranscriptCache {
 
   constructor(private readonly capacity = 6) {}
 
-  async open(path: string): Promise<TranscriptView | undefined> {
+  async open(path: string, source?: AgentSource): Promise<TranscriptView | undefined> {
     let view = this.views.get(path);
     if (view === undefined) {
-      view = new TranscriptView(path);
+      view = new TranscriptView(path, source);
       if (this.views.size >= this.capacity) {
         const oldest = this.views.keys().next().value;
         if (oldest !== undefined) this.views.delete(oldest);

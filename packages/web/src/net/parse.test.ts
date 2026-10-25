@@ -63,6 +63,30 @@ describe('parseSnapshot', () => {
   });
 });
 
+describe('parseSnapshot: session sources', () => {
+  it('keeps the Codex source of agents and accounts', () => {
+    const base = snapshot({ agents: [agent({ source: 'codex' })] });
+    const raw = JSON.parse(JSON.stringify({ ...base, accounts: [{ ...base.accounts[0], source: 'codex' }] }));
+    const parsed = parseSnapshot(raw);
+    expect(parsed?.agents[0]?.source).toBe('codex');
+    expect(parsed?.accounts[0]?.source).toBe('codex');
+  });
+
+  it('drops a source this build does not know', () => {
+    const raw = JSON.parse(JSON.stringify(snapshot({ agents: [agent()] })));
+    raw.agents[0].source = 'gemini';
+    raw.accounts[0].source = 'gemini';
+    const parsed = parseSnapshot(raw);
+    expect(parsed?.agents[0]).not.toHaveProperty('source');
+    expect(parsed?.accounts[0]).not.toHaveProperty('source');
+  });
+
+  it('leaves Claude Code agents unmarked', () => {
+    const parsed = parseSnapshot(JSON.parse(JSON.stringify(snapshot())));
+    expect(parsed?.agents[0]).not.toHaveProperty('source');
+  });
+});
+
 describe('list parsers', () => {
   it('keeps only well-formed items', () => {
     const activity = { id: 'a', at: 1, kind: 'read', icon: 'x', text: 't' };

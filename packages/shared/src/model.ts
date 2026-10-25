@@ -9,7 +9,13 @@ import type { ProjectGit } from './git';
 import type { ProgressSummary } from './progress/types';
 import type { UsageBurn, UsagePeaks } from './usage/types';
 
-/** A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... */
+/** Which CLI a session comes from. Absent means Claude Code (every field of this kind is optional and additive). */
+export type AgentSource = 'claude' | 'codex';
+
+/**
+ * A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... A Codex
+ * home (CODEX_HOME, ~/.codex) is an account too, with `source: 'codex'`.
+ */
 export interface Account {
   id: string;
   /** Short label shown in chips ("Pessoal", or the folder name). */
@@ -24,6 +30,8 @@ export interface Account {
   isDefault?: boolean;
   /** Localizable label (demo accounts). */
   labelMsg?: Msg;
+  /** The CLI whose sessions live in `dir`; absent means Claude Code. */
+  source?: AgentSource;
 }
 
 /** A project = a working directory. Each open project becomes a room in the office. */
@@ -195,6 +203,8 @@ export interface Agent {
   waitingForMsg?: Msg;
   startedAt: number;
   lastEventAt: number;
+  /** The CLI this session runs in; absent means Claude Code. Codex agents are read-only (no hooks to answer through). */
+  source?: AgentSource;
   /** Demo agent (not a real session). */
   demo?: boolean;
 }

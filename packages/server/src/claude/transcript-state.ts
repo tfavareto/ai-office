@@ -73,6 +73,12 @@ export interface TranscriptStateOptions {
 
 export type TurnState = 'working' | 'idle';
 
+/** An approval the CLI is waiting for (Codex has no hook to answer it from the office, so it is only shown). */
+interface PendingApproval {
+  tool: string;
+  at: number;
+}
+
 function emptyEffects(): ApplyEffects {
   return { activities: [], promptSeen: false, interrupted: false, newAssistantMessage: false, toolResults: [] };
 }
@@ -88,6 +94,7 @@ export class TranscriptState {
   private seq = 0;
   private lastMessageId: string | undefined;
   private tasksList: TaskItem[] = [];
+  private approval: PendingApproval | undefined;
 
   turn: TurnState = 'idle';
   turnStartedAt = 0;
@@ -143,7 +150,17 @@ export class TranscriptState {
       const waitingForMsg = USER_TOOLS[tool.name];
       if (waitingForMsg !== undefined) return { tool, waitingFor: sourceText(waitingForMsg), waitingForMsg };
     }
-    return undefined;
+    const approval = this.approval;
+    if (approval === undefined) return undefined;
+    const waitingForMsg = msg('waiting.approve', { tool: approval.tool });
+    const tool: PendingTool = {
+      id: `approval:${approval.at}`,
+      name: approval.tool,
+      at: approval.at,
+      input: {},
+      background: false,
+    };
+    return { tool, waitingFor: sourceText(waitingForMsg), waitingForMsg };
   }
 
   /** Oldest pending tool that would normally finish quickly (excludes delegation and user tools). */
@@ -208,6 +225,10 @@ export class TranscriptState {
       case 'cost-state':
         this.stats.setBaseline(line.costUSD, line.linesAdded, line.linesRemoved);
         return effects;
+      case 'usage':
+        if (line.model !== undefined) this.model = line.model;
+        this.stats.addUsage(line.id, line.model, line.usage);
+        return effects;
       default:
         break;
     }
@@ -231,6 +252,19 @@ export class TranscriptState {
       case 'notification':
         this.onNotification(line.toolUseId, line.taskId, line.at);
         break;
+      case 'system':
+        if (line.model !== undefined) this.model = line.model;
+        break;
+      case 'turn-start':
+        this.onTurnStart(line.at);
+        break;
+      case 'turn-end':
+        this.approval = undefined;
+        this.endTurn(line.at, effects);
+        break;
+      case 'approval':
+        this.approval = line.state === 'requested' ? { tool: line.tool ?? 'Bash', at: line.at } : undefined;
+        break;
       default:
         break;
     }
@@ -253,6 +287,7 @@ export class TranscriptState {
   private onPrompt(text: string, at: number, effects: ApplyEffects): void {
     this.firstPrompt ??= text;
     this.lastPrompt = text;
+    this.approval = undefined;
     effects.promptSeen = true;
     this.turn = 'working';
     this.turnStartedAt = at;
@@ -260,7 +295,14 @@ export class TranscriptState {
     if (!this.options.isSub) this.push(promptDraft(text), at, effects);
   }
 
+  private onTurnStart(at: number): void {
+    if (this.turn === 'working') return;
+    this.turn = 'working';
+    this.turnStartedAt = at;
+  }
+
   private onInterrupt(effects: ApplyEffects): void {
+    this.approval = undefined;
     this.turn = 'idle';
     effects.interrupted = true;
     this.dropForegroundTools();

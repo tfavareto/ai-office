@@ -6,6 +6,7 @@ import type {
   BossMessage,
   DayReport,
   DayStats,
+  CodexSettings,
   GitSettings,
   HireCheckResponse,
   HireRequest,
@@ -76,6 +77,10 @@ export interface Backend {
   gitSettings(): Promise<GitSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
   setGitPullRequests(on: boolean): Promise<GitSettings>;
+  /** Settings of the Codex integration that live on the server (local access only). */
+  codexSettings(): Promise<CodexSettings>;
+  /** Turns the reading of Codex sessions on or off. */
+  setCodexSessions(on: boolean): Promise<CodexSettings>;
   rules(): Promise<Rule[]>;
   createRule(draft: RuleDraft): Promise<Rule>;
   /** Fields named in `patch` replace the rule's; `note: null` removes the note. */

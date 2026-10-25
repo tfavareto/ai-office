@@ -14,6 +14,8 @@ The server reads files that Claude Code already writes in each account's config 
 | `<dir>/projects/<project>/<session>.jsonl` | The session transcript: prompts, replies, tool calls and results, token usage and model. Tailed incrementally. At startup only the last 2 MB of each transcript is read; after that, only new lines. |
 | `<dir>/projects/<project>/<session>/subagents/agent-<id>.jsonl` and `.meta.json` | Subagent activity, type and description. |
 
+**Codex.** When a Codex home exists (`CODEX_HOME`, `~/.codex`, or a folder of `AI_OFFICE_CODEX_DIRS`) the server also reads, read-only, `<home>/sessions/YYYY/MM/DD/rollout-*.jsonl` (the session records: prompts, replies, commands, patches, token counts, the working directory) and `<home>/session_index.jsonl` (the names Codex gave threads). It **never opens** `auth.json`, `config.toml`, the databases, logs, plugins or any other file in that folder, and it makes no request to OpenAI. Codex rollouts go through the same rules as Claude transcripts: tailed incrementally (2 MB at startup), lines over 6 MB ignored, text capped, the usage index keeps only numbers, nothing is written to disk. **Settings → Show Codex sessions** (or `AI_OFFICE_CODEX=0`) stops the server from reading that folder at all.
+
 Beyond live tailing, three features read more on request:
 
 - **Terminal panel and session history** read a transcript on demand to show the conversation, and scan the last 7 days of transcripts for titles. Entries keep at most 4 KB of text each, a view pages at 500 entries, and the cached view is capped at about 8 MB.
@@ -25,7 +27,7 @@ Beyond live tailing, three features read more on request:
 
 - **Time-lapse** (**Watch the day** in **My day**) reads the same slice of the same transcripts as the day report, through the same reader and cache, and builds a list of moments (arrivals, status changes, what each agent was doing, task lists, commits, test outcomes). It never includes anything said: a prompt becomes the words "New task", replies and error details are dropped, the parameters of an activity (a command, a file, a query) are masked for credentials like the report's commands and cut to 80 characters, and an agent's title is only the title the session itself set. The list is kept in memory, sent only to a page opened on this computer (local-only, token and `Sec-Fetch-Site` checks like the other session endpoints) and never written to disk. While it plays, the page cannot send messages, answer permissions or open terminals.
 
-It does not read your credentials, your Claude Code settings, your API keys or your project source files. Statistics only cover what it has read: the tail at startup plus everything new.
+It does not read your credentials, your Claude Code or Codex settings, your API keys or your project source files. Statistics only cover what it has read: the tail at startup plus everything new.
 
 ## What AI Office stores
 

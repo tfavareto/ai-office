@@ -1,5 +1,5 @@
 // Urgent cards at the top of the agent drawer: permission request, "Precisa de você", "Esperando o shell".
-import type { Agent, PermissionRequest } from '@ai-office/shared';
+import { isCodex, type Agent, type PermissionRequest } from '@ai-office/shared';
 import { t } from '../../i18n';
 import type { AppContext } from '../context';
 import { agentWaitingFor, permissionSuggestion, permissionSummary, shellLabel } from '../display';
@@ -225,6 +225,11 @@ export class PermissionCard {
 export class WaitingCard {
   readonly el = h('section', { class: 'ao-urgent ao-waiting', 'aria-label': t('waiting.title') });
   private readonly text = h('p', { class: 'ao-urgent-text' });
+  private readonly codexNote = h(
+    'p',
+    { class: 'ao-urgent-text ao-urgent-note', hidden: true },
+    t('codex.waiting.note'),
+  );
   private readonly since = liveText('ago', 0);
   private agent: Agent | null = null;
 
@@ -245,12 +250,14 @@ export class WaitingCard {
         h('span', { class: 'ao-urgent-sub' }, this.since),
       ),
       this.text,
+      this.codexNote,
       h('div', { class: 'ao-row-actions' }, terminal),
     );
   }
 
   update(agent: Agent): void {
     this.agent = agent;
+    this.codexNote.hidden = !isCodex(agent);
     setText(this.text, agentWaitingFor(agent) ?? t('waiting.default'));
     setLive(this.since, 'ago', agent.statusSince);
   }

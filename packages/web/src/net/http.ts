@@ -37,6 +37,7 @@ import {
   parseSessions,
   parseTranscriptPage,
 } from './parse';
+import { parseCodexSettings } from './parse-codex';
 import { parseGitSettings } from './parse-git';
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -193,6 +194,15 @@ export class HttpBackend implements Backend {
   async setGitPullRequests(on: boolean) {
     const { body } = await this.post(API.gitSettings, { pullRequests: on });
     return parseGitSettings(body);
+  }
+
+  async codexSettings() {
+    return parseCodexSettings(await this.get(API.codexSettings));
+  }
+
+  async setCodexSessions(on: boolean) {
+    const { body } = await this.post(API.codexSettings, { sessions: on });
+    return parseCodexSettings(body);
   }
 
   async rules() {

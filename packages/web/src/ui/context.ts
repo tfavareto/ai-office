@@ -3,6 +3,7 @@ import type {
   Account,
   Agent,
   BossMessage,
+  CodexSettings,
   FeedItem,
   GitSettings,
   HireRequest,
@@ -127,6 +128,8 @@ export interface AppContext {
   setDemo(on: boolean): Promise<void>;
   /** Server settings of the git integration (local access only). */
   gitSettings(): Promise<GitSettings>;
+  codexSettings(): Promise<CodexSettings>;
+  setCodexSessions(on: boolean): Promise<CodexSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
   setGitPullRequests(on: boolean): Promise<GitSettings>;
 }

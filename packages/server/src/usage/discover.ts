@@ -1,6 +1,9 @@
 // Finds the transcript files of an account: main transcripts and subagent transcripts, with their size and mtime.
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { AgentSource } from '@ai-office/shared';
+import type { SubagentMeta } from '../claude/paths';
+import { discoverCodexTranscripts } from '../codex/transcripts';
 import { isSafeSegment } from '../util/ids';
 
 export interface TranscriptFile {
@@ -14,6 +17,12 @@ export interface TranscriptFile {
   size: number;
   mtimeMs: number;
   ino: number;
+  /** The CLI that wrote the file; absent means Claude Code. */
+  source?: AgentSource;
+  /** Housekeeping thread of the CLI (Codex approval reviews...): its tokens count, it is not work to report. */
+  internal?: boolean;
+  /** What the file itself says about a subagent (Codex has no `.meta.json` beside it). */
+  meta?: SubagentMeta;
 }
 
 export interface Discovery {
@@ -93,4 +102,14 @@ export async function discoverTranscripts(account: string, accountDir: string): 
     }
   }
   return { files, ok: true };
+}
+
+/** The transcripts of one account, whichever CLI wrote them. `since` bounds the Codex day folders that are listed. */
+export function discoverForAccount(
+  account: { id: string; dir: string; source?: AgentSource },
+  since: number,
+): Promise<Discovery> {
+  return account.source === 'codex'
+    ? discoverCodexTranscripts(account.id, account.dir, since)
+    : discoverTranscripts(account.id, account.dir);
 }

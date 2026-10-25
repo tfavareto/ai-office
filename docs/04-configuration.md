@@ -21,6 +21,9 @@ Flags do not pass through `npm start --`; use environment variables with `npm st
 | `AI_OFFICE_HOST` | `--host <addr>` | `127.0.0.1` | Address to bind. Anything that is not a loopback address is refused unless remote access is allowed (below). |
 | `AI_OFFICE_ALLOW_REMOTE` | `--allow-remote` | off | Accept a non-loopback `AI_OFFICE_HOST`. Even then, browsers cannot sign in remotely. See [privacy and security](05-privacy-and-security.md#remote-access). |
 | `AI_OFFICE_CLAUDE_DIRS` | `--claude-dirs <list>` | auto-discovery | Comma-separated Claude config directories to watch. Replaces auto-discovery entirely. `~` is expanded. |
+| `AI_OFFICE_CODEX_DIRS` | `--codex-dirs <list>` | none | Comma-separated extra Codex homes to follow, besides `CODEX_HOME` (or `~/.codex`). `~` is expanded. See [Codex sessions](#codex-sessions). |
+| `AI_OFFICE_CODEX` | none | on | Set to `0` or `false` to never read Codex sessions; **Settings → Show Codex sessions** then cannot turn it on. |
+| `CODEX_HOME` | none | `~/.codex` | The Codex CLI's own variable: where Codex keeps its sessions. AI Office honors it. |
 | `AI_OFFICE_STATE_DIR` | `--state-dir <dir>` | `~/.ai-office` | Where the server keeps its token, agent names and daily records. |
 | `AI_OFFICE_DEMO` | `--demo` | off | Start with demo mode on (`1`, or any value except empty, `0` or `false`). |
 | `AI_OFFICE_WEB_DIR` | `--web-dir <dir>` | `packages/web/dist` | Folder with the built web app to serve. |
@@ -92,6 +95,20 @@ Accounts are re-discovered about every 10 seconds, so a new one shows up without
 The plugin installer uses the same rules (including `AI_OFFICE_CLAUDE_DIRS`) and also honors `--account <dir>` (repeatable, replaces detection). Name extra accounts `~/.claude-<name>`, or list them explicitly in `AI_OFFICE_CLAUDE_DIRS`.
 
 To see what the server found, open the usage cards in the top bar (one per account) or call the authenticated health endpoint described in [troubleshooting](08-troubleshooting.md#how-to-collect-diagnostics). [Prompt 04](prompts/04-multiple-accounts.md) walks through the setup.
+
+## Codex sessions
+
+AI Office follows the sessions of the [OpenAI Codex CLI](https://github.com/openai/codex) read-only. The server looks in `CODEX_HOME` (default `~/.codex`) and in every folder of `AI_OFFICE_CODEX_DIRS`; each existing folder is an account (the first is labeled **Codex**, the others `Codex <folder name>`). Inside a Codex home it reads only `sessions/YYYY/MM/DD/rollout-*.jsonl` and `session_index.jsonl`.
+
+- **Open sessions.** Codex keeps no registry of running processes, so a session counts as open while its rollout file was written in the last 30 minutes; it is working from the start to the end of a turn, waiting while an approval or question is unanswered, idle after. A session that was quiet for 30 minutes leaves the office and comes back when it is written again. New files are found in the day folders of the last window and the day before, so a very old session resumed today may not appear until Codex starts a new file.
+- **Turning it off.** **Settings → Show Codex sessions** (stored in `<state dir>/codex-settings.json`) or `AI_OFFICE_CODEX=0`.
+- **Costs** use OpenAI's public list prices for the Codex models (see [evidence and limits](06-validation.md#known-limits)); a model without a known price shows tokens and no cost.
+
+```sh
+# A second Codex home, and no Codex at all
+AI_OFFICE_CODEX_DIRS=~/.codex-work npm start
+AI_OFFICE_CODEX=0 npm start
+```
 
 ## State directory
 

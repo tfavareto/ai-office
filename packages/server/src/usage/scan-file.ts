@@ -6,6 +6,7 @@ import { mergeUsage, usageCostUSD } from '../claude/cost';
 import type { UsageInfo } from '../claude/types';
 import type { TranscriptFile } from './discover';
 import type { FileState, RecentMessage } from './index-file';
+import { applyCodexLine } from './codex-usage';
 import { parseUsageLine, type UsageSample } from './usage-line';
 import type { UsageStore } from './usage-store';
 
@@ -170,8 +171,12 @@ export async function scanTranscript(
     if (read === undefined) break;
     if (read.reset) return { state, bytes: 0, replaced: true };
     for (let i = 0; i < read.lines.length; i++) {
-      const sample = parseUsageLine(read.lines[i] as string);
-      if (sample !== undefined && sample.at >= context.floor) applySample(state, sample, memory, context);
+      const line = read.lines[i] as string;
+      if (file.source === 'codex') applyCodexLine(line, state, memory, context);
+      else {
+        const sample = parseUsageLine(line);
+        if (sample !== undefined && sample.at >= context.floor) applySample(state, sample, memory, context);
+      }
       if (i % LINES_PER_TURN === LINES_PER_TURN - 1) await context.yieldTurn();
     }
     if (tailer.atEnd || context.stopped()) break;

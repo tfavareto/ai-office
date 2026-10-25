@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AppContext } from './context';
 import { API } from '@ai-office/shared';
 import { registerDataRoutes } from './handlers/data';
+import { registerCodexRoutes } from './handlers/codex';
 import { registerGitRoutes } from './handlers/git';
 import { registerHireRoutes } from './handlers/hire';
 import { registerMessageRoutes } from './handlers/messages';
@@ -57,6 +58,7 @@ export function buildRouter(app: AppContext): Router {
   registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
   registerGitRoutes(router, app);
+  registerCodexRoutes(router, app);
   registerProgressRoutes(router, app);
   return router;
 }

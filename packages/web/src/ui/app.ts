@@ -6,6 +6,7 @@ import {
   type Agent,
   type BossMessage,
   type FeedItem,
+  type CodexSettings,
   type GitSettings,
   type HireRequest,
   type Msg,
@@ -643,6 +644,14 @@ export class App implements AppContext {
 
   setGitPullRequests(on: boolean): Promise<GitSettings> {
     return this.store.backend.setGitPullRequests(on);
+  }
+
+  codexSettings(): Promise<CodexSettings> {
+    return this.store.backend.codexSettings();
+  }
+
+  setCodexSessions(on: boolean): Promise<CodexSettings> {
+    return this.store.backend.setCodexSessions(on);
   }
 
   // --- wiring --------------------------------------------------------------------------------------------------------

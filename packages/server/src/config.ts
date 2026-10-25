@@ -11,6 +11,12 @@ export interface ServerConfig {
   allowRemote: boolean;
   /** Explicit Claude config dirs (AI_OFFICE_CLAUDE_DIRS); undefined means auto-discovery. */
   claudeDirs: string[] | undefined;
+  /** Extra Codex homes (AI_OFFICE_CODEX_DIRS), read besides CODEX_HOME / ~/.codex. */
+  codexDirs: string[];
+  /** Value of CODEX_HOME, if any. */
+  codexHomeEnv: string | undefined;
+  /** AI_OFFICE_CODEX=0: Codex sessions are never read, whatever Settings says. */
+  codexDisabled: boolean;
   stateDir: string;
   demo: boolean;
   /** Directory with the built web app. */
@@ -27,6 +33,7 @@ const FLAG_NAMES = new Set([
   '--demo',
   '--state-dir',
   '--claude-dirs',
+  '--codex-dirs',
   '--web-dir',
   '--quiet',
   '--debug',
@@ -79,6 +86,12 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
     .map((dir) => dir.trim())
     .filter((dir) => dir.length > 0)
     .map((dir) => expandHome(dir, homeDir));
+  const codexRaw = flags.get('--codex-dirs') ?? env.AI_OFFICE_CODEX_DIRS;
+  const codexDirs = (codexRaw?.split(',') ?? [])
+    .map((dir) => dir.trim())
+    .filter((dir) => dir.length > 0)
+    .map((dir) => expandHome(dir, homeDir));
+  const codexHome = env.CODEX_HOME?.trim();
   let logLevel: LogLevel = 'info';
   if (isTruthy(flags.get('--quiet')) || env.AI_OFFICE_LOG === 'quiet') logLevel = 'quiet';
   if (isTruthy(flags.get('--debug')) || env.AI_OFFICE_LOG === 'debug') logLevel = 'debug';
@@ -96,6 +109,9 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
     host,
     allowRemote,
     claudeDirs: claudeDirs !== undefined && claudeDirs.length > 0 ? claudeDirs : undefined,
+    codexDirs,
+    codexHomeEnv: codexHome !== undefined && codexHome.length > 0 ? expandHome(codexHome, homeDir) : undefined,
+    codexDisabled: env.AI_OFFICE_CODEX !== undefined && !isTruthy(env.AI_OFFICE_CODEX),
     stateDir: expandHome(flags.get('--state-dir') ?? env.AI_OFFICE_STATE_DIR ?? join(homeDir, '.ai-office'), homeDir),
     demo: flags.has('--demo') ? isTruthy(flags.get('--demo')) : isTruthy(env.AI_OFFICE_DEMO),
     webDir: expandHome(flags.get('--web-dir') ?? env.AI_OFFICE_WEB_DIR ?? defaultWebDir, homeDir),

@@ -23,6 +23,7 @@ import {
   type TranscriptPage,
 } from '@ai-office/shared';
 import { t } from '../i18n';
+import { normalizeAccount, withValidSource } from './parse-codex';
 import { parseProjectGit } from './parse-git';
 import { parseProgressSummary } from './parse-progress';
 
@@ -117,7 +118,7 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
         suggestions: arr(raw.permission.suggestions, (s): s is string => typeof s === 'string'),
       } as unknown as Agent['permission'])
     : undefined;
-  return {
+  return withValidSource({
     ...(raw as unknown as Agent),
     kind: raw.kind === 'sub' ? 'sub' : 'main',
     recent: arr(raw.recent, isActivity),
@@ -125,7 +126,7 @@ function normalizeAgent(raw: Record<string, unknown>): Agent {
     shells: Array.isArray(raw.shells) ? (raw.shells as Agent['shells']) : [],
     stats,
     permission,
-  };
+  });
 }
 
 /** A project as the snapshot carries it, with its optional repository state validated (or dropped). */
@@ -189,7 +190,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
       build: typeof meta.build === 'string' ? meta.build : undefined,
       ...(meta.gitPullRequests === true ? { gitPullRequests: true } : {}),
     },
-    accounts: data.accounts.filter(isRecord) as unknown as OfficeSnapshot['accounts'],
+    accounts: data.accounts.filter(isRecord).map(normalizeAccount),
     projects: data.projects.filter(isRecord).map(normalizeProject),
     agents: data.agents.filter(isAgentLike).map(normalizeAgent),
     usage: Array.isArray(data.usage) ? (data.usage.filter(isRecord) as unknown as OfficeSnapshot['usage']) : [],

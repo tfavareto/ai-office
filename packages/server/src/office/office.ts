@@ -4,13 +4,14 @@ import {
   type Activity,
   type ActivityDraft,
   type Agent,
+  type AgentSource,
   type AccountUsage,
   type DemoSimulator,
   type FeedItem,
   type Msg,
   type Notice,
   type NoticeLevel,
-  DEMO_ACCOUNTS,
+  DEMO_ALL_ACCOUNTS,
   type PendingHire,
   type PermissionRequest,
   type Project,
@@ -79,6 +80,7 @@ interface StatusMemo {
 
 export class Office {
   private accounts: Account[] = [];
+  private codexAccounts: Account[] = [];
   private readonly records = new Map<string, SessionRecord>();
   private readonly memo = new Map<string, StatusMemo>();
   private readonly projectOrders = new Map<string, number>();
@@ -93,8 +95,14 @@ export class Office {
 
   // ---- inputs -------------------------------------------------------------------------------------------------
 
-  setAccounts(accounts: Account[]): void {
-    this.accounts = accounts;
+  /** The accounts of one source: each engine owns its list (Claude Code configuration dirs, Codex homes). */
+  setAccounts(accounts: Account[], source: AgentSource = 'claude'): void {
+    if (source === 'codex') this.codexAccounts = accounts;
+    else this.accounts = accounts;
+  }
+
+  private allAccounts(): Account[] {
+    return [...this.accounts, ...this.codexAccounts];
   }
 
   setDemo(simulator: DemoSimulator | undefined): void {
@@ -277,13 +285,13 @@ export class Office {
     const agents = real.map((agent) => this.withStatusSince(agent, now, memoIds));
     for (const id of this.memo.keys()) if (!memoIds.has(id)) this.memo.delete(id);
     if (this.demo === undefined)
-      return { accounts: this.accounts, projects: realProjects, agents, demoUsage: [], demoHires: [] };
+      return { accounts: this.allAccounts(), projects: realProjects, agents, demoUsage: [], demoHires: [] };
     // One snapshot: it advances the simulator first, so agents, projects and usage describe the same instant.
     const demo = this.demo.snapshot(now);
     const nextOrder = realProjects.reduce((max, project) => Math.max(max, project.order + 1), 0);
     const demoProjects = demo.projects.map((project): Project => ({ ...project, order: project.order + nextOrder }));
     return {
-      accounts: [...this.accounts, ...DEMO_ACCOUNTS],
+      accounts: [...this.allAccounts(), ...DEMO_ALL_ACCOUNTS],
       projects: [...realProjects, ...demoProjects],
       agents: [...agents, ...demo.agents],
       demoUsage: demo.usage,

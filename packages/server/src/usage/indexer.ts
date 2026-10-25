@@ -16,7 +16,7 @@ import {
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Logger } from '../log';
-import { type TranscriptFile, discoverTranscripts } from './discover';
+import { type TranscriptFile, discoverForAccount } from './discover';
 import { type FileState, loadIndex, saveIndex } from './index-file';
 import { RECENT_PERSISTED, type ScanContext, scanTranscript } from './scan-file';
 import { UsageStore } from './usage-store';
@@ -180,7 +180,7 @@ export class UsageIndexer {
     const since = addMonths(startOfMonth(now), -1);
     const result: Candidate[] = [];
     for (const account of accounts) {
-      const { files } = await discoverTranscripts(account.id, account.dir);
+      const { files } = await discoverForAccount(account, since);
       for (const file of files) {
         const state = this.files.get(fileKey(file.account, file.rel));
         if (state === undefined ? file.mtimeMs >= since : file.size !== state.offset || file.ino !== state.ino)
@@ -211,6 +211,7 @@ export class UsageIndexer {
               size: info.size,
               mtimeMs: info.mtimeMs,
               ino: info.ino,
+              ...(account.source === 'codex' ? { source: 'codex' as const } : {}),
             },
             state,
           });

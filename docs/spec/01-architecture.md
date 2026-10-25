@@ -12,8 +12,10 @@ docs/spec/  this specification
 ```
 
 ## Data flow
-Claude Code files, server watchers/parsers, `Office` model (agents, projects, activities), change events, snapshot
+Claude Code files and, read-only, Codex CLI rollouts (`~/.codex/sessions`, translated by `server/src/codex` into the same
+events), server watchers/parsers, `Office` model (agents, projects, activities), change events, snapshot
 builder (throttled), SSE `/api/stream`, web `Store`, UI components + `World` (2D or 3D).
+Codex has no hooks: its agents (`source: 'codex'`) are shown and totaled but never answered or messaged.
 Hooks (plugin) call REST (`/api/permissions`, `/api/messages`), registries update the Office, SSE carries it to the
 page, page decisions go back to the hooks.
 

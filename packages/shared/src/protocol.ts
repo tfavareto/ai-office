@@ -77,6 +77,8 @@ export const API = {
   usageDetail: '/api/usage/detail',
   /** GET → GitSettings · POST { pullRequests: boolean } → GitSettings. Local access only. */
   gitSettings: '/api/git/settings',
+  /** GET → CodexSettings · POST { sessions: boolean } → CodexSettings. Local access only. */
+  codexSettings: '/api/codex/settings',
   /** POST { on: boolean } → { demo } */
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */

@@ -420,6 +420,9 @@
 .ao-usage-family--fable {
   background: var(--shell);
 }
+.ao-usage-family--gpt {
+  background: #d946ef;
+}
 
 .ao-usage-link {
   max-width: 100%;

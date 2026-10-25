@@ -22,7 +22,7 @@ import type { Logger } from '../log';
 import { type SessionTrace, buildTimelapse } from '../timelapse/build';
 import { asRecord } from '../util/fs-safe';
 import type { UsageIndexer } from '../usage/indexer';
-import { type TranscriptFile, discoverTranscripts } from '../usage/discover';
+import { type TranscriptFile, discoverForAccount } from '../usage/discover';
 import type { FileDay } from './accumulator';
 import { buildDayReport } from './build';
 import { type ReadBudget, type ReadState, readFileDay } from './reader';
@@ -213,8 +213,8 @@ export class ReportService {
   private async candidates(request: { range: DayRange; accounts: readonly Account[] }): Promise<TranscriptFile[]> {
     const found: TranscriptFile[] = [];
     for (const account of request.accounts) {
-      const { files } = await discoverTranscripts(account.id, account.dir);
-      for (const file of files) if (file.mtimeMs >= request.range.start) found.push(file);
+      const { files } = await discoverForAccount(account, request.range.start);
+      for (const file of files) if (file.mtimeMs >= request.range.start && file.internal !== true) found.push(file);
     }
     return found.sort((a, b) => b.mtimeMs - a.mtimeMs);
   }
@@ -236,7 +236,7 @@ export class ReportService {
         file.agent === '' ? 'main' : 'sub',
         previous,
         budget,
-        { trace },
+        { trace, ...(file.source !== undefined ? { source: file.source } : {}) },
       );
       if (transient) return state;
       this.cache.delete(key);
@@ -282,6 +282,7 @@ export class ReportService {
 
   /** The `agent-<id>.meta.json` next to a subagent transcript (type, description, the tool call that spawned it). */
   private async metaOf(file: TranscriptFile): Promise<SubagentMeta | undefined> {
+    if (file.meta !== undefined) return file.meta;
     const known = this.metas.get(file.path);
     if (known !== undefined) return known;
     try {
