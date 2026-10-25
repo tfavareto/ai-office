@@ -49,7 +49,7 @@ function quadGeometry(w: number, h: number, uv: [number, number, number, number]
 }
 
 /** A static decor image as a merged quad (no extra draw call). */
-function decorQuad(
+export function decorQuad(
   c: PartCollector,
   out: WallScreens,
   x: number,

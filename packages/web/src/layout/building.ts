@@ -2,6 +2,7 @@ import { AreaBuilder } from './builder';
 import { BUILDING_H, CORE_W, WALL_ROWS } from './constants';
 import { layoutCorridor } from './corridor';
 import { layoutBathrooms, layoutCopa, layoutLounge, layoutMeeting, layoutReception } from './core';
+import { attachDecor } from './decor';
 import { createGrid, fillRect } from './grid';
 import { layoutProjectRoom } from './project';
 import { rowEnds } from './slots';
@@ -91,7 +92,7 @@ export function computeBuilding(rooms: readonly RoomSpec[]): BuildingLayout {
   for (const item of corridor.furniture) for (const block of item.blocks) fillRect(grid, block, 0);
   for (const area of areas) markArea(grid, area);
 
-  return {
+  const building: BuildingLayout = {
     width,
     height: BUILDING_H,
     endNorth: ends.north,
@@ -102,6 +103,8 @@ export function computeBuilding(rooms: readonly RoomSpec[]): BuildingLayout {
     elevators: elevatorsOf(core[0]),
     grid,
   };
+  attachDecor(building);
+  return building;
 }
 
 export function allSpots(building: BuildingLayout): Spot[] {

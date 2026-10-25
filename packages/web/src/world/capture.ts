@@ -111,6 +111,8 @@ export function captureSnapshot(snapshot: OfficeSnapshot, privacy: CapturePrivac
     projects,
     agents,
     usage: [],
+    // The level (the decoration it unlocked) shows; the employee of the month's name and the unlock list do not.
+    ...(snapshot.progress !== undefined ? { progress: { ...snapshot.progress, recent: [], employee: undefined } } : {}),
   };
 }
 

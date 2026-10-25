@@ -66,6 +66,27 @@ describe('captureSnapshot', () => {
     expect(safe.projects.map((p) => p.name)).toEqual(['Room 1', 'Room 2']);
   });
 
+  it('keeps the office level, so the picture shows its decoration, but not who is the employee of the month', () => {
+    const source = {
+      ...sensitiveOffice(),
+      progress: {
+        level: 6,
+        xp: 5200,
+        from: 5000,
+        to: 9000,
+        achievements: 9,
+        total: 22,
+        recent: [{ id: 'tasks100' as const, at: 5 }],
+        employee: 'Zeferina',
+      },
+    };
+
+    const safe = captureSnapshot(source, { showProjectNames: false, roomLabel });
+
+    expect(safe.progress).toMatchObject({ level: 6, achievements: 9, recent: [] });
+    expect(JSON.stringify(safe)).not.toContain('Zeferina');
+  });
+
   it('numbers the rooms in order of arrival and keeps each agent in its room', () => {
     const safe = captureSnapshot(sensitiveOffice(), { showProjectNames: false, roomLabel });
 

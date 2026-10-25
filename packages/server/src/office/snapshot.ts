@@ -1,5 +1,13 @@
 // Builds OfficeSnapshots and publishes them at most 4 times per second.
-import type { AccountUsage, OfficeMeta, OfficeSnapshot, PendingHire, Project, ProjectGit } from '@ai-office/shared';
+import type {
+  AccountUsage,
+  OfficeMeta,
+  OfficeSnapshot,
+  PendingHire,
+  Project,
+  ProjectGit,
+  ProgressSummary,
+} from '@ai-office/shared';
 import type { Office } from './office';
 
 export const SNAPSHOT_MIN_INTERVAL_MS = 250;
@@ -14,6 +22,8 @@ export interface SnapshotDeps {
   hires: (now: number) => PendingHire[];
   /** Git state of a real room (the demo's rooms bring their own). */
   git?: (projectId: string) => ProjectGit | undefined;
+  /** The office level and recent unlocks (the demo's own while demo mode is on). */
+  progress?: () => ProgressSummary | undefined;
   emit: (snapshot: OfficeSnapshot) => void;
   minIntervalMs?: number;
 }
@@ -39,6 +49,7 @@ export class SnapshotPublisher {
       now,
     );
     const hires = [...this.deps.hires(now), ...state.demoHires];
+    const progress = this.deps.progress?.();
     return {
       rev: this.rev,
       serverTime: now,
@@ -48,6 +59,7 @@ export class SnapshotPublisher {
       agents: state.agents,
       usage: [...realUsage, ...state.demoUsage],
       ...(hires.length > 0 ? { hires } : {}),
+      ...(progress !== undefined ? { progress } : {}),
     };
   }
 

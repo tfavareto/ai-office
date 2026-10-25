@@ -25,6 +25,7 @@ import { OverlayPass } from './overlayPass';
 import { pickCharacter, pickRoom, pickWhiteboard } from './picking';
 import { EMPTY_TASK_BOARD, summarizeTaskBoard, type TaskBoardSummary } from '../world/taskBoard';
 import { Renderer, type FrameState } from './renderer';
+import { evolutionOf } from '../world/evolution';
 import { EMPTY_CAPTURE_SNAPSHOT, type CaptureOptions } from '../world/capture';
 import { type RoomInfo, summarizeRoom, withRoomGit } from './runtime/boards';
 import { type TickerStats, type TickerStrip, renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
@@ -136,7 +137,13 @@ export class World2D implements WorldApi {
     this.roomInfo = withRoomGit(rooms, snapshot.projects);
     this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.updateTicker(snapshot);
+    this.syncEvolution();
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
+  }
+
+  /** The decoration follows the snapshot's level and the "evolution" setting. */
+  private syncEvolution(): void {
+    this.renderer.setEvolution(evolutionOf(this.lastSnapshot?.snapshot.progress, this.options.evolution));
   }
 
   private updateTicker(snapshot: OfficeSnapshot): void {
@@ -177,6 +184,7 @@ export class World2D implements WorldApi {
   setOptions(options: Partial<WorldOptions>): void {
     const previous = this.options.locale;
     this.options = { ...this.options, ...options };
+    if (options.evolution !== undefined) this.syncEvolution();
     this.applyOptions();
     if (this.options.locale !== previous) this.onLocaleChanged();
   }

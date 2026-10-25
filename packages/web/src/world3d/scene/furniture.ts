@@ -1,9 +1,12 @@
 // Dispatches layout furniture items to their procedural / glTF builders.
 import { Matrix4, Vector3 } from 'three';
+import { isDrawn } from '../../layout/decor';
 import type { AreaLayout, Dir, FurnitureItem, FurnitureKind } from '../../layout/types';
+import { BASE_EVOLUTION, type Evolution } from '../../world/evolution';
 import { TILE_M as T } from '../units';
 import { PartCollector, transform } from '../util/parts';
 import type { FurnCtx } from './furnitureContext';
+import * as decor from './furnitureDecor';
 import * as office from './furnitureOffice';
 import * as social from './furnitureSocial';
 import type { Materials } from './materials';
@@ -67,6 +70,11 @@ const BUILDERS: Partial<Record<FurnitureKind, Builder>> = {
   deckChair: social.buildDeckChair,
   deckTable: social.buildDeckTable,
   railing: social.buildRailing,
+  aquarium: decor.buildAquarium,
+  trophyCabinet: decor.buildTrophyCabinet,
+  lights: decor.buildLights,
+  // the plaque is a picture on the desk (decorScreens.ts)
+  plaque: () => undefined,
 };
 
 /** Rooms' second-row fixtures face the room centre instead of south. */
@@ -75,10 +83,18 @@ function facingOf(item: FurnitureItem, area: AreaLayout): Dir {
   return item.facing;
 }
 
-export function buildFurniture(c: PartCollector, area: AreaLayout, m: Materials, models: Models): FurnitureOutput {
+export function buildFurniture(
+  c: PartCollector,
+  area: AreaLayout,
+  m: Materials,
+  models: Models,
+  evolution: Evolution = BASE_EVOLUTION,
+): FurnitureOutput {
   const out: FurnitureOutput = { screens: [], glows: [] };
   for (const item of area.furniture) {
-    const builder = BUILDERS[item.kind];
+    if (!isDrawn(item, evolution.decor)) continue;
+    // the extra arcade machines of the lounge have their own colours
+    const builder = item.kind === 'arcade' && item.decor !== undefined ? decor.buildDecorArcade : BUILDERS[item.kind];
     const facing = facingOf(item, area);
     const sideways = facing === 'e' || facing === 'w';
     const cx = (item.x + item.w / 2) * T;
@@ -91,6 +107,7 @@ export function buildFurniture(c: PartCollector, area: AreaLayout, m: Materials,
       models,
       item,
       area,
+      evolution,
       w: (sideways ? item.h : item.w) * T,
       d: (sideways ? item.w : item.h) * T,
       toWorld,

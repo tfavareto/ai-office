@@ -13,6 +13,7 @@ import type {
   PermissionDecision,
   PermissionRequest,
   Project,
+  ProgressEventName,
   RecentSession,
 } from '@ai-office/shared';
 import { t } from '../i18n';
@@ -20,6 +21,7 @@ import type { Store } from '../net/store';
 import type { PrefsStore } from '../prefs/prefs';
 import type { BoardStore } from './board-store';
 import type { InboxController } from './inbox-controller';
+import type { ProgressController } from './progress-controller';
 import type { MessageCenter } from './message-center';
 import type { HireTarget } from './model/hire';
 import type { NotificationsStore, ToastStore } from './notification-stores';
@@ -60,6 +62,7 @@ export interface AppContext {
   readonly inbox: InboxController;
   readonly rules: RulesController;
   readonly replay: ReplayController;
+  readonly progress: ProgressController;
 
   /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
   readonly snapshot: OfficeSnapshot | null;
@@ -119,6 +122,8 @@ export interface AppContext {
   openRules(tab?: RulesTab): void;
   /** "Create rule…": opens the rule editor pre-filled from a permission request of an agent. */
   openRuleEditor(agent: Agent, permission: PermissionRequest): Promise<void>;
+  /** Tells the server the person did something only the page can see (the first time counts). Never fails visibly. */
+  noteProgress(event: ProgressEventName): void;
   setDemo(on: boolean): Promise<void>;
   /** Server settings of the git integration (local access only). */
   gitSettings(): Promise<GitSettings>;

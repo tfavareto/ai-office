@@ -1,5 +1,6 @@
 // Application shell: owns the stores, builds the panels, batches rendering per animation frame and wires the world.
 import {
+  DECOR_LEVELS,
   suggestRule,
   type Account,
   type Agent,
@@ -13,6 +14,8 @@ import {
   type OfficeSnapshot,
   type PendingHire,
   type PermissionDecision,
+  type ProgressEventName,
+  type ProgressSummary,
   type PermissionRequest,
   type Project,
   type RecentSession,
@@ -24,7 +27,9 @@ import type { Store } from '../net/store';
 import { toWorldOptions, type PrefsStore } from '../prefs/prefs';
 import type { Selection } from '../world/api';
 import { notifyPermission, showBrowserNotification } from './browser-notify';
+import { AchievementsDialog } from './components/achievements-dialog';
 import { BoardDialog } from './components/board-dialog';
+import { celebrate } from './components/celebrate';
 import { Drawer } from './components/drawer';
 import { RulesDialog } from './components/rules-dialog';
 import { ShareDialog } from './components/share-dialog';
@@ -56,6 +61,9 @@ import { computeInsets, layoutVariables, sameInsets } from './layout';
 import { InboxController } from './inbox-controller';
 import { BIG_SKIP_MS, SKIP_MS } from '../timelapse/clock';
 import { ReplayController } from './replay-controller';
+import { ProgressController } from './progress-controller';
+import { announcements, loadSeen, saveSeen, type Seen } from './model/progress-seen';
+import { achievementNameKey, decorNameKey, levelTitleKey } from './model/progress-view';
 import { RulesController, type RulesTab } from './rules-controller';
 import { MessageCenter } from './message-center';
 import { agentsWithPermission, agentsWithShells, computeCounters, nextAfter } from './model/counters';
@@ -118,6 +126,8 @@ export class App implements AppContext {
   readonly inbox: InboxController;
   readonly rules: RulesController;
   readonly replay: ReplayController;
+  readonly progress: ProgressController;
+  private seen: Seen | null = loadSeen();
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
@@ -158,6 +168,7 @@ export class App implements AppContext {
     this.ui = new UiState(initialUiData({ sidebarOpen: initial.sidebarOpen, feedOpen: initial.feedOpen, narrow }));
     this.notifications.setDnd(initial.dnd);
     this.rules = new RulesController(() => this.store.backend);
+    this.progress = new ProgressController(() => this.store.backend);
     // The inbox is about the live office, whatever the panels show.
     this.inbox = new InboxController({
       snapshot: () => this.liveSnapshot,
@@ -233,6 +244,7 @@ export class App implements AppContext {
       new HireDialog(this),
       new RulesDialog(this),
       new ShareDialog(this),
+      new AchievementsDialog(this),
     ];
     const empty = new EmptyState(this);
     const replayBar = new ReplayBar(this);
@@ -469,7 +481,10 @@ export class App implements AppContext {
       this.world.select(null);
     }
     void this.replay.start(day).then(() => {
-      if (this.replay.active) this.announce(t('announce.replay.on', { date: formatDateKey(day) }));
+      if (this.replay.active) {
+        this.announce(t('announce.replay.on', { date: formatDateKey(day) }));
+        this.noteProgress('timelapse');
+      }
     });
     this.refresh();
   }
@@ -613,6 +628,11 @@ export class App implements AppContext {
     return hire;
   }
 
+  noteProgress(event: ProgressEventName): void {
+    if (this.store.mode === 'mock' || !this.store.isLocal) return;
+    this.store.backend.progressEvent(event).catch(() => undefined);
+  }
+
   async setDemo(on: boolean): Promise<void> {
     await this.store.backend.setDemo(on);
   }
@@ -643,6 +663,7 @@ export class App implements AppContext {
       this.inbox,
       this.board,
       this.rules,
+      this.progress,
     ])
       observable.subscribe(() => this.refresh());
     this.ui.subscribe((data) => {
@@ -729,6 +750,7 @@ export class App implements AppContext {
     if (!this.replay.engaged) this.dropGoneSelection(snapshot);
     this.checkBuild(snapshot.meta.build);
     this.checkUsageForecast(snapshot);
+    this.announceProgress(snapshot.progress);
   }
 
   /** Clears the selection when its agent or room is not in the snapshot any more. */
@@ -738,6 +760,40 @@ export class App implements AppContext {
       this.clearSelection();
     if (selection?.type === 'room' && !snapshot.projects.some((project) => project.id === selection.id))
       this.clearSelection();
+  }
+
+  /**
+   * A level up or a new achievement gets one toast and a few sparkles, once: what was announced is remembered, and the
+   * history counted before the page opened is never announced. With the setting off nothing is shown, but it is
+   * remembered all the same, so turning it on does not bring the past back as news.
+   */
+  private announceProgress(summary: ProgressSummary | undefined): void {
+    if (summary === undefined || summary.demo === true || this.replay.engaged) return;
+    const result = announcements(this.seen, summary);
+    this.seen = result.next;
+    if (JSON.stringify(result.next) !== JSON.stringify(loadSeen())) saveSeen(result.next);
+    if (!this.prefs.get().evolution || (result.level === undefined && result.count === 0)) return;
+    if (result.level !== undefined) {
+      const thing = Object.entries(DECOR_LEVELS).find(([, level]) => level === result.level)?.[0];
+      const title = t(levelTitleKey(result.level));
+      this.notifyLocal(
+        'success',
+        thing === undefined
+          ? t('progress.toast.level', { level: result.level, title })
+          : t('progress.toast.levelDecor', {
+              level: result.level,
+              title,
+              thing: t(decorNameKey(thing as Parameters<typeof decorNameKey>[0])),
+            }),
+      );
+    }
+    const first = result.unlocked[0];
+    if (result.count === 1 && first !== undefined)
+      this.notifyLocal('success', t('progress.toast.achievement', { name: t(achievementNameKey(first)) }));
+    else if (result.count > 1) this.notifyLocal('success', t('progress.toast.achievements', { n: result.count }));
+    if (this.prefs.get().celebrations)
+      celebrate(this.root, this.root.querySelector<HTMLElement>('.ao-progress-btn'), this.reducedMotion.matches);
+    this.cue('success');
   }
 
   /** One notification per account and window when the limit is about to be reached (the toast respects "Do not disturb"). */
@@ -931,6 +987,9 @@ export class App implements AppContext {
         return;
       case 'usage':
         this.openDialog('usage');
+        return;
+      case 'achievements':
+        this.openDialog('achievements');
         return;
       case 'board':
         this.openDialog('board');

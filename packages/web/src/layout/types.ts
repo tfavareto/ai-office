@@ -1,6 +1,8 @@
 // Renderer-agnostic floor-plan data: rects, furniture items, spots, doors and the walkable grid.
 // Used by the 2D renderer, the simulation and (later) the 3D renderer. Coordinates are tile units, y grows south.
 
+import type { DecorId } from '@ai-office/shared';
+
 export type Dir = 'n' | 'e' | 's' | 'w';
 
 export interface Rect {
@@ -61,7 +63,12 @@ export type FurnitureKind =
   // terrace
   | 'deckChair'
   | 'deckTable'
-  | 'railing';
+  | 'railing'
+  // unlockable decoration (see decor.ts)
+  | 'aquarium'
+  | 'trophyCabinet'
+  | 'plaque'
+  | 'lights';
 
 export interface FurnitureItem {
   id: string;
@@ -79,6 +86,8 @@ export interface FurnitureItem {
   blocks: Rect[];
   /** Can hide a character standing behind it (drawn again in front of characters by the renderer). */
   tall: boolean;
+  /** Unlockable decoration: present in every layout, drawn only once the office has unlocked it. */
+  decor?: DecorId;
 }
 
 export type WallKind =
@@ -93,7 +102,9 @@ export type WallKind =
   | 'mirror'
   | 'poster'
   | 'clock'
-  | 'glassDoor';
+  | 'glassDoor'
+  | 'frame'
+  | 'neon';
 export type WallSide = 'north' | 'west' | 'east';
 
 /** Decoration mounted on a wall face. `x`/`w` are tile columns (or rows when side is west/east). */
@@ -104,6 +115,8 @@ export interface WallItem {
   x: number;
   w: number;
   variant: number;
+  /** Unlockable decoration: present in every layout, drawn only once the office has unlocked it. */
+  decor?: DecorId;
 }
 
 export type SpotKind =

@@ -28,6 +28,10 @@ export interface Prefs {
   feedOpen: boolean;
   /** Show the repository state (branch, changes, pull request) of each room. */
   showGit: boolean;
+  /** The office grows with use: decoration unlocked by the level, achievements and their toasts. */
+  evolution: boolean;
+  /** Name the project in "Employee of the month" (agent names are always shown). */
+  employeeProject: boolean;
   /** Confetti and cheering when something goes well (tests fixed, tasks done, commits...). */
   celebrations: boolean;
   /** Plan limits the user typed in per account id (the reference of the usage forecast). */
@@ -48,6 +52,8 @@ export const DEFAULT_PREFS: Prefs = {
   sidebarOpen: true,
   feedOpen: false,
   showGit: true,
+  evolution: DEFAULT_WORLD_OPTIONS.evolution,
+  employeeProject: false,
   celebrations: true,
   usageLimits: {},
 };
@@ -118,6 +124,8 @@ export function parsePrefs(raw: unknown): Prefs {
     sidebarOpen: bool(data.sidebarOpen, DEFAULT_PREFS.sidebarOpen),
     feedOpen: bool(data.feedOpen, DEFAULT_PREFS.feedOpen),
     showGit: bool(data.showGit, DEFAULT_PREFS.showGit),
+    evolution: bool(data.evolution, DEFAULT_PREFS.evolution),
+    employeeProject: bool(data.employeeProject, DEFAULT_PREFS.employeeProject),
     celebrations: bool(data.celebrations, DEFAULT_PREFS.celebrations),
     usageLimits: parseUsageLimits(data.usageLimits),
   };
@@ -180,6 +188,7 @@ export function toWorldOptions(
     reducedMotion: extra.reducedMotion,
     hireEnabled: extra.hireEnabled ?? false,
     showGit: prefs.showGit,
+    evolution: prefs.evolution,
     celebrations: prefs.celebrations,
   };
 }

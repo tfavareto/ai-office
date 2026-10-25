@@ -24,6 +24,7 @@ import {
 } from '@ai-office/shared';
 import { t } from '../i18n';
 import { parseProjectGit } from './parse-git';
+import { parseProgressSummary } from './parse-progress';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -176,6 +177,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
   if (!Array.isArray(data.accounts) || !Array.isArray(data.projects) || !Array.isArray(data.agents)) return null;
   const meta = data.meta;
   const hires = parseHires(data.hires);
+  const progress = parseProgressSummary(data.progress);
   return {
     rev: data.rev,
     serverTime: data.serverTime,
@@ -192,6 +194,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
     agents: data.agents.filter(isAgentLike).map(normalizeAgent),
     usage: Array.isArray(data.usage) ? (data.usage.filter(isRecord) as unknown as OfficeSnapshot['usage']) : [],
     ...(hires.length > 0 ? { hires } : {}),
+    ...(progress !== undefined ? { progress } : {}),
   };
 }
 

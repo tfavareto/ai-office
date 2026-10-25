@@ -168,8 +168,25 @@ the source catalog the other two are translated from. Code, comments and docs in
     **Show project names** is on. Works in demo mode, in pt-BR, English and Spanish. Details in [04-ui.md](04-ui.md#share-card-dialog) and
     [03-world-2d.md](03-world-2d.md#world-api).
 
+22. **An office that grows** ("Conquistas"): the office gains levels, achievements and decoration with the work the agents really do,
+    counted from the session transcripts and the usage index, locally, and shown with charm rather than noise. An XP formula over lifetime
+    counters (sessions, work hours, tasks completed, commits, passing test runs, tokens, subagents, days worked) gives ten levels
+    (Garage, Startup, Team, Office, Branch, Headquarters, Campus, Tower, Holding, Legend); the level never goes down. Each level from
+    the second unlocks one piece of decoration, drawn in both worlds: framed wall art (2), the **Employee of the month** plaque on the
+    reception desk (3), an aquarium in the lounge (4), a trophy cabinet in the reception that shows the cups earned (5), the office cat
+    that wanders between the rooms (6), a neon "AI Office" sign (7), two more arcade machines (8), garland lights along the corridor (9)
+    and a gold finish (10). Twenty-two achievements (first session, first commit, 100 tasks, 1,000 tasks, a 7-day streak, night owl,
+    early bird, five agents at once, ten subagents in a day, the first time-lapse watched...) have a date and a how-to-earn text; the
+    locked ones show their progress. "Employee of the month" is the agent with most completed tasks this month (the agent name only;
+    the project name appears only if **Show the project in Employee of the month** is on). The **Conquistas** dialog (trophy button, `C`)
+    shows the level and XP bar, the next unlock, the decoration, the employee of the month, the badges and the lifetime numbers; a level up
+    or a new achievement gets one toast and a few sparkles. **Settings → Office evolution** turns decoration and toasts off (the plain
+    office, nothing announced). Demo mode shows a believable level-six office with many badges and the cat. Details in
+    [02-server.md](02-server.md#progress-apiprogress), [03-world-2d.md](03-world-2d.md#unlockable-decoration),
+    [04-ui.md](04-ui.md#achievements-dialog-conquistas) and [06-world-3d.md](06-world-3d.md).
+
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
-Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
+Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, C achievements, K task board (on a focused card: M moves it), O overview,
 H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1 min, Shift+arrows 10 min), [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection, then the time-lapse).
 
 ## Alive office: work animations, celebrations and encounters

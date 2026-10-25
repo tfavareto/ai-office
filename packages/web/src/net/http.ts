@@ -1,5 +1,12 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import { API, type HireRequest, type PermissionDecision, type RuleDraft, type UsagePeriod } from '@ai-office/shared';
+import {
+  API,
+  type HireRequest,
+  type PermissionDecision,
+  type ProgressEventName,
+  type RuleDraft,
+  type UsagePeriod,
+} from '@ai-office/shared';
 import { locale, t } from '../i18n';
 import {
   BackendError,
@@ -11,6 +18,7 @@ import {
   type TranscriptQuery,
 } from './backend';
 import { parseDayReport } from './parse-report';
+import { parseProgress } from './parse-progress';
 import { parseTimelapse } from './parse-timelapse';
 import { parseUsageDetail } from './parse-usage';
 import {
@@ -222,6 +230,14 @@ export class HttpBackend implements Backend {
 
   async checkFolder(path: string) {
     return parseFolderCheck(await this.get(API.hireCheck, { path }));
+  }
+
+  async progress(includeProject: boolean) {
+    return parseProgress(await this.get(API.progress, { project: includeProject ? 1 : undefined }));
+  }
+
+  async progressEvent(event: ProgressEventName): Promise<void> {
+    await this.post(`${API.progress}/event`, { event });
   }
 
   async setDemo(on: boolean): Promise<boolean> {

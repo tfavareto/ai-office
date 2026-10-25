@@ -8,6 +8,7 @@ import { registerGitRoutes } from './handlers/git';
 import { registerHireRoutes } from './handlers/hire';
 import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
+import { registerProgressRoutes } from './handlers/progress';
 import { registerReportRoutes } from './handlers/report';
 import { registerRuleRoutes } from './handlers/rules';
 import { registerSystemRoutes } from './handlers/system';
@@ -56,6 +57,7 @@ export function buildRouter(app: AppContext): Router {
   registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
   registerGitRoutes(router, app);
+  registerProgressRoutes(router, app);
   return router;
 }
 

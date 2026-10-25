@@ -7,6 +7,7 @@ import { intersects } from './blit';
 import { PLAZA, tileRect } from './paint/exteriorUtil';
 import type { AreaCanvas } from './layers/areaLayer';
 import type { CarDraw } from './runtime/cars';
+import { drawDecorGlow } from './runtime/decorAnim';
 import type { FrameState, Renderer } from './renderer';
 
 let warm: HTMLCanvasElement | null = null;
@@ -87,6 +88,7 @@ export function drawLighting(
       ctx.fillRect(x - 2, y + 2, 4, 1);
     }
   }
+  drawDecorGlow(ctx, ordered, renderer.evolutionNow(), night, vis, s.time, s.options.reducedMotion);
   const plaza = tileRect(PLAZA);
   pool(ctx, warm, plaza.x + plaza.w / 2, plaza.y + plaza.h / 2, 46, night * 0.55);
   for (const car of cars) {

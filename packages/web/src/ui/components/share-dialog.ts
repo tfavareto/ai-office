@@ -353,6 +353,7 @@ export class ShareDialog extends Dialog {
       const name = cardFilename(this.report.date);
       downloadBlob(await canvasToBlob(this.preview), name);
       this.setFeedback(t('share.downloaded', { name }), 'ok');
+      this.ctx.noteProgress('share');
     } catch {
       this.setFeedback(t('share.error'), 'bad');
     } finally {
@@ -365,8 +366,10 @@ export class ShareDialog extends Dialog {
     this.busy = true;
     try {
       const result = await copyImage(await canvasToBlob(this.preview));
-      if (result === 'copied') this.setFeedback(t('share.copyImage.done'), 'ok');
-      else
+      if (result === 'copied') {
+        this.setFeedback(t('share.copyImage.done'), 'ok');
+        this.ctx.noteProgress('share');
+      } else
         this.setFeedback(t(result === 'unsupported' ? 'share.copyImage.unsupported' : 'share.copyImage.failed'), 'bad');
     } catch {
       this.setFeedback(t('share.copyImage.failed'), 'bad');

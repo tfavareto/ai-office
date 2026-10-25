@@ -13,6 +13,7 @@ import { StaticBatcher } from './staticBatcher';
 import { TickerStrip, type BoardInfo, type DeskState } from './screens';
 import type { TaskBoardSummary } from '../../world/taskBoard';
 import { buildOuterFacades } from './shell';
+import { BASE_EVOLUTION, type Evolution, evolutionKey } from '../../world/evolution';
 
 interface Entry {
   scene: AreaScene;
@@ -33,15 +34,24 @@ export interface AreaInputs {
   occupied: (areaId: string) => boolean;
   tickerText: string;
   isVisible: (box: Box3) => boolean;
+  /** Reduced motion: the fish of the aquarium rest. */
+  still: boolean;
 }
 
 const BUILD_BUDGET_MS = 9;
 
 const emptyInfo: BoardInfo = { agents: 0, working: 0, waiting: 0, tasksTotal: 0, tasksDone: 0, current: null };
 
-function signatureOf(area: AreaLayout, building: BuildingLayout): string {
+function hasDecor(area: AreaLayout): boolean {
+  return (
+    area.furniture.some((item) => item.decor !== undefined) || area.wallItems.some((item) => item.decor !== undefined)
+  );
+}
+
+function signatureOf(area: AreaLayout, building: BuildingLayout, evolution: Evolution): string {
   const r = area.rect;
-  const base = `${area.kind}|${r.x},${r.y},${r.w},${r.h}|${area.label}|${area.theme.carpet}|${area.furniture.length}`;
+  const decor = hasDecor(area) ? evolutionKey(evolution) : '';
+  const base = `${area.kind}|${r.x},${r.y},${r.w},${r.h}|${area.label}|${area.theme.carpet}|${area.furniture.length}|${decor}`;
   if (area.kind === 'terrace' || area.kind === 'corridor') return `${base}|${building.width}|${area.doors.length}`;
   return base;
 }
@@ -59,6 +69,7 @@ export class AreaManager {
   private builtVersion = -1;
   private lastBuilding: BuildingLayout | null = null;
   private text: WorldText = worldText('pt-BR');
+  private evolution: Evolution = BASE_EVOLUTION;
 
   constructor(
     private readonly deps: SceneDeps,
@@ -72,6 +83,16 @@ export class AreaManager {
     if (text.locale === this.text.locale) return;
     this.text = text;
     for (const entry of this.entries.values()) entry.scene.setText(text);
+  }
+
+  /**
+   * The decoration the office has unlocked. The areas that hold decoration are built again (in the same budgeted way as
+   * any other area) the next time `sync` runs; the others are left alone.
+   */
+  setEvolution(evolution: Evolution): void {
+    if (evolutionKey(evolution) === evolutionKey(this.evolution)) return;
+    this.evolution = evolution;
+    this.builtVersion = -1;
   }
 
   get pending(): number {
@@ -91,7 +112,7 @@ export class AreaManager {
       const wanted = new Map(this.desired(building).map((a) => [a.id, a]));
       for (const [id, entry] of this.entries) {
         const area = wanted.get(id);
-        if (!area || entry.signature !== signatureOf(area, building)) {
+        if (!area || entry.signature !== signatureOf(area, building, this.evolution)) {
           entry.scene.dispose();
           this.entries.delete(id);
           this.batcher.reset();
@@ -115,10 +136,10 @@ export class AreaManager {
 
   private build(area: AreaLayout, building: BuildingLayout): void {
     const room = this.sim.rooms.byArea(area.id);
-    const scene = new AreaScene(area, building, this.deps, this.text);
+    const scene = new AreaScene(area, building, this.deps, this.text, this.evolution);
     scene.setBuild(room ? room.progress : 1);
     this.group.add(scene.group);
-    this.entries.set(area.id, { scene, signature: signatureOf(area, building), lit: 0 });
+    this.entries.set(area.id, { scene, signature: signatureOf(area, building, this.evolution), lit: 0 });
     this.batcher.reset();
     this.stableFrames = 0;
   }
@@ -197,6 +218,7 @@ export class AreaManager {
         elevatorOpen: (i) => this.sim.elevatorOpenness(i),
         refreshScreens: inputs.refreshScreens,
         visible: inputs.isVisible(entry.scene.bounds),
+        still: inputs.still,
       };
       entry.scene.update(frame);
     }

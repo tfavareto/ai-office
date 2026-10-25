@@ -66,11 +66,13 @@ The interface settings in **Settings** are saved by the page in your browser's `
 | `language` | `auto`, `pt-BR`, `en`, `es` | `auto` |
 | `visual` | `2d`, `3d` | `2d` |
 | `daylight` | `auto`, `day`, `night` | `auto` |
-| `showNames`, `sounds`, `browserNotifications`, `dnd`, `showGit` | `true` or `false` | names on, sounds on, Git status on, the rest off |
+| `showNames`, `sounds`, `browserNotifications`, `dnd`, `showGit`, `evolution`, `employeeProject` | `true` or `false` | names on, sounds on, Git status on, evolution on, the rest off |
 | `bubbles` | `all`, `important`, `none` | `important` |
 | `animation` | `calm`, `normal`, `lively` | `normal` |
 | `volume` | 0 to 1 | `0.5` |
 | `usageLimits` | Object keyed by account id: `{ "unit": "usd" \| "tokens", "window5h"?: number, "week"?: number }` | none |
+
+**Office evolution.** `evolution` (default on) is what **Settings → Office evolution** edits: the decoration unlocked by the level, the level counter and the achievement toasts; off shows the plain office. `employeeProject` (default off) adds the project name to the Employee of the month in the achievements dialog. Both only change what the page shows; the server keeps counting.
 
 **Git status.** `showGit` is what **Settings → Show Git status** edits. It only hides the branch, changes and pull request in the page: the server keeps reading each repository (read-only, a few short `git` commands every 30 seconds to 5 minutes, at most two at a time). The other Git setting, the `gh` pull request lookup, is a server setting kept in `git-settings.json` in the [state directory](#state-directory), not in the browser.
 
@@ -100,6 +102,7 @@ The server keeps its own files in the state directory, `~/.ai-office` by default
 | `token` | The access token: 32 random bytes as 64 hex characters, mode 0600. Created on first start and reused afterwards. See [privacy and security](05-privacy-and-security.md#access-token). |
 | `names.json` | The name given to each agent, keyed by account, session and subagent, so a person keeps the same name across restarts. At most 3000 entries are kept. |
 | `usage-index/` | The usage history behind **Consumo** and the usage cards, mode 0700: `meta.json` (what was read of each transcript) and one `YYYY-MM.json` shard per UTC month with hourly token counts and estimated cost per account, project, model and session. It is a cache of your transcripts: delete the folder while the server is stopped (or let AI Office do it when it finds a damaged file) and it is rebuilt from the previous month onwards. Months older than 13 are dropped. See [privacy and security](05-privacy-and-security.md#what-ai-office-stores). |
+| `progress.json` | Mode 0600: the office level, achievements and lifetime counters per day (see [privacy](05-privacy-and-security.md#the-office-that-grows)). Delete it and the history is counted again. |
 | `git-settings.json` | `{ "version": 1, "pullRequests": false }`, mode 0600: whether the server may ask your `gh` CLI for the pull request of each room's branch (**Settings → Look up pull requests with gh**). Off by default; a missing or unreadable file means off. |
 | `days/YYYY-MM-DD.json` | The **My day** record for that day: per agent, milliseconds in each status. Written every 5 seconds, flushed to disk every 30 seconds. Demo agents are not recorded. |
 

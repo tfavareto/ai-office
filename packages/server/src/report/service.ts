@@ -60,6 +60,8 @@ export interface ReportRequest {
   /** The value reported as `account`: an id or "all". */
   label: string;
   includeRequests: boolean;
+  /** Read without touching the per-file cache (a long look into the past must not push out the days the page shows). */
+  transient?: boolean;
 }
 
 export interface TimelapseRequest {
@@ -96,8 +98,9 @@ export class ReportService {
 
   /** The report of a day. Concurrent requests for the same report share one scan; scans run one at a time. */
   report(request: ReportRequest): Promise<DayReport> {
-    return this.enqueue(`report|${request.range.date}|${request.label}|${request.includeRequests}`, () =>
-      this.scan(request),
+    return this.enqueue(
+      `report|${request.range.date}|${request.label}|${request.includeRequests}|${request.transient === true}`,
+      () => this.scan(request),
     );
   }
 
@@ -118,7 +121,7 @@ export class ReportService {
 
   /** Reads the day's slice of every transcript written that day, within the file, byte and time limits. */
   private async readDay(
-    request: { range: DayRange; accounts: readonly Account[] },
+    request: { range: DayRange; accounts: readonly Account[]; transient?: boolean },
     trace: boolean,
   ): Promise<{ files: ScannedFile[]; truncated: boolean }> {
     const started = this.deps.now();
@@ -136,7 +139,7 @@ export class ReportService {
         truncated = true;
         break;
       }
-      const state = await this.read(file, request.range, budget, trace);
+      const state = await this.read(file, request.range, budget, trace, request.transient === true);
       if (state === undefined) continue;
       if (state.truncated) truncated = true;
       files.push({ file, state });
@@ -221,9 +224,10 @@ export class ReportService {
     range: DayRange,
     budget: ReadBudget,
     trace: boolean,
+    transient = false,
   ): Promise<ReadState | undefined> {
     const key = `${file.account}|${file.rel}|${range.date}`;
-    const previous = this.cache.get(key);
+    const previous = transient ? undefined : this.cache.get(key);
     try {
       const state = await readFileDay(
         file.path,
@@ -234,6 +238,7 @@ export class ReportService {
         budget,
         { trace },
       );
+      if (transient) return state;
       this.cache.delete(key);
       this.cache.set(key, state);
       if (this.cache.size > MAX_CACHED_FILES) this.cache.delete(this.cache.keys().next().value as string);

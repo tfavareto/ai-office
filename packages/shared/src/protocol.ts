@@ -67,6 +67,12 @@ export const API = {
    * bodies. Local access only.
    */
   timelapse: '/api/timelapse',
+  /**
+   * GET [?project=1] → Progress: the office level, lifetime numbers, achievements and the employee of the month (the
+   * project only with `project=1`). POST `/event` { event: "timelapse" | "share" } → { ok } records a first time that
+   * only the page can see. Local access only.
+   */
+  progress: '/api/progress',
   /** GET ?account=<id|all>&period=today|week|month → UsageDetail (usage history index). Local access only. */
   usageDetail: '/api/usage/detail',
   /** GET → GitSettings · POST { pullRequests: boolean } → GitSettings. Local access only. */

@@ -6,6 +6,7 @@
 // no `Msg` and are shown as they are.
 import type { Locale, Msg } from './i18n/i18n';
 import type { ProjectGit } from './git';
+import type { ProgressSummary } from './progress/types';
 import type { UsageBurn, UsagePeaks } from './usage/types';
 
 /** A Claude Code configuration directory (one per account): ~/.claude, ~/.claude-work, CLAUDE_CONFIG_DIR... */
@@ -255,6 +256,8 @@ export interface OfficeSnapshot {
   usage: AccountUsage[];
   /** Agents being hired right now (a terminal is open, the session has not appeared). Absent when there are none. */
   hires?: PendingHire[];
+  /** The office level, its recent unlocks and the employee of the month (see `progress/`). Absent until known. */
+  progress?: ProgressSummary;
 }
 
 export interface FeedItem {

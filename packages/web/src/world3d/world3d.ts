@@ -41,6 +41,9 @@ import { stepWalker, RUN_FACTOR } from './camera/walker';
 import { Character3D } from './characters/character3d';
 import { FEMALE_MODELS, MALE_MODELS } from './characters/outfits';
 import { Crowd } from './characters/crowd';
+import { PetModel3D } from './characters/pet3d';
+import { OfficePet } from '../world/pet';
+import { BASE_EVOLUTION, evolutionOf, type Evolution } from '../world/evolution';
 import { Confetti3D } from './fx/confetti3d';
 import { PingPongBall3D } from './fx/pingpongBall';
 import { emitCelebration } from '../world/celebration-bus';
@@ -104,6 +107,9 @@ export class World3D implements WorldApi {
   private readonly modeListeners = new Set<(m: CameraMode) => void>();
   private readonly deskListeners = new Set<(desk: DeskRef) => void>();
   private readonly deskHint = new DeskHint3D();
+  private readonly pet = new OfficePet();
+  private readonly petModel = new PetModel3D();
+  private evolution: Evolution = BASE_EVOLUTION;
   private readonly deskPlane = new Plane(new Vector3(0, 1, 0), -DESK_H);
   private hoverDesk: DeskTarget | null = null;
   private readonly tmpA = new Vector3();
@@ -181,6 +187,7 @@ export class World3D implements WorldApi {
       this.deskHint.group,
       this.confetti.group,
       this.ball.group,
+      this.petModel.group,
     );
     this.stage.scene.add(this.world);
     this.applyOptions();
@@ -262,7 +269,25 @@ export class World3D implements WorldApi {
     this.taskBoard = summarizeTaskBoard(snapshot.agents, snapshot.projects);
     this.tickerStats = tickerFromSnapshot(snapshot);
     this.refreshTicker();
+    this.syncEvolution();
     if (this.selection?.type === 'agent' && !this.agents.has(this.selection.id)) this.selection = null;
+  }
+
+  /** The decoration follows the snapshot's level and the "evolution" setting. */
+  private syncEvolution(): void {
+    this.evolution = evolutionOf(this.lastSnapshot?.snapshot.progress, this.options.evolution);
+    this.areas.setEvolution(this.evolution);
+  }
+
+  /** The cat wanders while the office has unlocked it; it is only drawn, the simulation never sees it. */
+  private updatePet(dt: number): void {
+    if (!this.evolution.decor.has('pet')) {
+      this.petModel.hide();
+      return;
+    }
+    this.pet.sync(this.sim.building);
+    this.pet.update(dt, this.options.reducedMotion);
+    this.petModel.update(this.pet.pose, dt, this.clock);
   }
 
   resetScene(): void {
@@ -276,6 +301,7 @@ export class World3D implements WorldApi {
   setOptions(options: Partial<WorldOptions>): void {
     const previous = this.options.locale;
     this.options = { ...this.options, ...options };
+    if (options.evolution !== undefined) this.syncEvolution();
     this.applyOptions();
     if (this.options.locale !== previous) this.onLocaleChanged();
   }
@@ -504,6 +530,7 @@ export class World3D implements WorldApi {
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlur);
     this.areas.dispose();
+    this.petModel.dispose();
     this.crowd.dispose();
     this.confetti.dispose();
     this.ball.dispose();
@@ -562,8 +589,10 @@ export class World3D implements WorldApi {
       namesIn: (areaId) => this.sim.characters.filter((c) => c.areaId === areaId && c.alpha > 0.5).map((c) => c.name),
       desksIn: (area) => this.desksIn(area),
       isVisible: (box) => this.inView(box),
+      still: this.options.reducedMotion,
       occupied: (areaId) => this.sim.characters.some((c) => c.areaId === areaId),
     });
+    this.updatePet(dt);
     this.updateCamera(dt);
     const cam = this.rig.active;
     this.frustum.setFromProjectionMatrix(

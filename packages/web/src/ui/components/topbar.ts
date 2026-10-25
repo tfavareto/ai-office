@@ -61,6 +61,8 @@ export class TopBar implements Component {
   private readonly popoverButtons = new Map<PopoverId, HTMLButtonElement>();
   private readonly boardBtn: HTMLButtonElement;
   private readonly dayBtn: HTMLButtonElement;
+  private readonly progressBtn: HTMLButtonElement;
+  private readonly progressLevel: HTMLElement;
   private readonly helpBtn: HTMLButtonElement;
 
   constructor(private readonly ctx: AppContext) {
@@ -109,6 +111,14 @@ export class TopBar implements Component {
     this.bellBtn.appendChild(this.bellBadge);
     this.boardBtn = iconButton({ icon: 'board', label: t('topbar.board'), onClick: () => ctx.openDialog('board') });
     this.dayBtn = iconButton({ icon: 'calendar', label: t('topbar.day'), onClick: () => ctx.openDay('time') });
+    this.progressBtn = iconButton({
+      icon: 'trophy',
+      label: t('topbar.progress'),
+      onClick: () => ctx.openDialog('achievements'),
+    });
+    this.progressBtn.classList.add('ao-progress-btn');
+    this.progressLevel = h('span', { class: 'ao-topbar-level', hidden: true });
+    this.progressBtn.append(this.progressLevel);
     this.helpBtn = iconButton({
       icon: 'help',
       label: t('topbar.help'),
@@ -135,6 +145,7 @@ export class TopBar implements Component {
         this.bellBtn,
         this.boardBtn,
         this.dayBtn,
+        this.progressBtn,
         this.popoverButton('sessions', 'history', t('topbar.sessions')),
         this.feedBtn,
         this.popoverButton('settings', 'settings', t('topbar.settings')),
@@ -296,6 +307,10 @@ export class TopBar implements Component {
     setPressed(this.boardBtn, ui.dialog === 'board');
     setPressed(this.dayBtn, ui.dialog === 'day');
     setPressed(this.helpBtn, ui.dialog === 'help');
+    setPressed(this.progressBtn, ui.dialog === 'achievements');
+    const level = this.ctx.liveSnapshot?.progress?.level;
+    this.progressLevel.hidden = level === undefined || !this.ctx.prefs.get().evolution;
+    if (level !== undefined) setText(this.progressLevel, String(level));
 
     const unread = unreadCount(this.ctx.notifications.get());
     this.bellBadge.hidden = unread === 0;

@@ -8,6 +8,8 @@ import type { Office } from '../office/office';
 import type { AttentionRegistry } from '../registries/attention';
 import type { MessageRegistry } from '../registries/messages';
 import type { PermissionRegistry } from '../registries/permissions';
+import type { Progress } from '@ai-office/shared';
+import type { ProgressService } from '../progress/service';
 import type { ReportService } from '../report/service';
 import type { UsageIndexer } from '../usage/indexer';
 import type { RulesStore } from '../rules/rules-store';
@@ -37,6 +39,9 @@ export interface AppContext {
   gitSettings: GitSettingsStore;
   day: DayRecorder;
   usage: UsageIndexer;
+  progress: ProgressService;
+  /** The progress the page sees: the demo's while demo mode is on, else the real one. */
+  progressView: (includeProject: boolean) => Progress;
   report: ReportService;
   transcripts: TranscriptCache;
   isDemo: () => boolean;

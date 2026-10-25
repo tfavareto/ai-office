@@ -22,6 +22,9 @@ import { SCREEN_H, SCREEN_W, desksScreens, screenSprite } from './runtime/screen
 import { type TickerStrip } from './runtime/ticker';
 import { drawElevators } from './dynamic';
 import { drawAreaAnimated } from './animation';
+import { BASE_EVOLUTION, type Evolution } from '../world/evolution';
+import { OfficePet } from '../world/pet';
+import { drawAquariumLife, drawPet } from './runtime/decorAnim';
 import { drawLighting } from './night';
 import { drawCharacters } from './characters';
 import { ConfettiSystem } from './fx/confetti';
@@ -77,6 +80,8 @@ export class Renderer {
   private seenVersion = -1;
   private trafficKey = '';
   private lookCache = new Map<string, Look>();
+  private evolution: Evolution = BASE_EVOLUTION;
+  private readonly pet = new OfficePet();
 
   constructor() {
     this.skyDay = this.makeSky(false);
@@ -119,9 +124,18 @@ export class Renderer {
     return look;
   }
 
+  /** The decoration the office has unlocked; the static layers that hold it are redrawn on the next sync. */
+  setEvolution(evolution: Evolution): void {
+    this.evolution = evolution;
+  }
+
+  evolutionNow(): Evolution {
+    return this.evolution;
+  }
+
   /** Make sure static layers match the simulation's layout. */
   sync(sim: OfficeSim, locale: Locale = 'pt-BR'): void {
-    this.layers.sync(sim.building, locale);
+    this.layers.sync(sim.building, locale, this.evolution);
     if (this.layers.version !== this.seenVersion) {
       this.seenVersion = this.layers.version;
       this.refreshDynamic();
@@ -174,6 +188,7 @@ export class Renderer {
     this.drawGrounds(ctx, s, ordered, vis);
     this.drawFurniture(ctx, s, ordered, vis);
     this.drawDynamic(ctx, s, ordered, vis);
+    this.drawDecorLife(ctx, s, ordered, vis);
     drawCharacters(ctx, this, s, ordered, vis);
     if (s.night > 0.004) drawLighting(ctx, this, s, ordered, vis, this.cars);
     this.confetti.draw(ctx, vis, cam.zoom);
@@ -254,6 +269,28 @@ export class Renderer {
       if (room && room.progress < 1) continue;
       blit(ctx, ac.furn, ac.x, ac.y - ac.furnMargin, vis);
     }
+  }
+
+  /** The fish of the aquarium and the cat: drawn before the people, so anyone passing by is in front of them. */
+  private drawDecorLife(ctx: Ctx, s: FrameState, ordered: AreaCanvas[], vis: Rect): void {
+    const evolution = this.evolution;
+    if (evolution.decor.size === 0) return;
+    const still = s.options.reducedMotion;
+    for (const ac of ordered) {
+      if (!intersects(ac.x, ac.y - ac.furnMargin, ac.w, ac.h + ac.furnMargin, vis)) continue;
+      drawAquariumLife(ctx, ac, evolution, s.time, still);
+    }
+    if (!evolution.decor.has('pet')) return;
+    this.pet.sync(s.sim.building);
+    this.pet.update(s.dt, still);
+    const pose = this.pet.pose;
+    if (
+      pose.x * TILE > vis.x - 24 &&
+      pose.x * TILE < vis.x + vis.w + 24 &&
+      pose.y * TILE > vis.y - 24 &&
+      pose.y * TILE < vis.y + vis.h + 24
+    )
+      drawPet(ctx, pose);
   }
 
   private roomInfoOf(s: FrameState, area: AreaLayout): RoomInfo | undefined {

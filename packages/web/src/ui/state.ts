@@ -7,7 +7,7 @@ export type DrawerTab = 'summary' | 'messages' | 'activity' | 'data';
 export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'inbox';
 /** The tabs of the "Meu dia" dialog. */
 export type DayTab = 'time' | 'report';
-export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share';
+export type DialogId = 'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'achievements';
 
 /** What the terminal panel shows: a live agent, or a closed session opened read-only from the history. */
 export interface TerminalTarget {

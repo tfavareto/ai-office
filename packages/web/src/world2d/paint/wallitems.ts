@@ -3,6 +3,8 @@ import { type WorldText, worldText } from '../../i18n/world/translate';
 import { drawPixelText, textWidth } from '../font';
 import { rgba, shade } from '../color';
 import { BRASS, EBONY, GRAPHITE, LED, MARBLE, WALNUT } from '../palette';
+import { BASE_EVOLUTION, type Evolution } from '../../world/evolution';
+import { frame as artFrame, neon as neonSign } from './furnDecor';
 import { type Ctx, bevel, disc, hline, pixel, rect, vline } from './ctx';
 
 const T = 16;
@@ -190,6 +192,7 @@ export function paintWallItem(
   label: string,
   accent: string,
   text: WorldText = worldText('pt-BR'),
+  evolution: Evolution = BASE_EVOLUTION,
 ): WallItemFrame {
   switch (item.kind) {
     case 'sign':
@@ -218,6 +221,12 @@ export function paintWallItem(
       return { screen: null };
     case 'clock':
       clock(ctx, localX, item.w);
+      return { screen: null };
+    case 'frame':
+      artFrame(ctx, localX, item, evolution.decor.has('goldFinish'));
+      return { screen: null };
+    case 'neon':
+      neonSign(ctx, localX, item, evolution.decor.has('goldFinish'));
       return { screen: null };
     default:
       return { screen: null };

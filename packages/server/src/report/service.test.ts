@@ -153,6 +153,19 @@ describe('ReportService', () => {
     expect((await reports.report(request())).projects[0]?.agents[0]?.prompts).toBe(2);
   });
 
+  test('a transient read gives the same report without filling the cache the page relies on', async () => {
+    await seedSession();
+    const reports = service();
+    const cacheSize = (): number => (reports as unknown as { cache: Map<string, unknown> }).cache.size;
+
+    const transient = await reports.report({ ...request(), transient: true });
+    expect(cacheSize()).toBe(0);
+    const normal = await reports.report(request());
+
+    expect(cacheSize()).toBeGreaterThan(0);
+    expect(transient.projects).toEqual(normal.projects);
+  });
+
   test('ignores transcripts that were not touched on the day', async () => {
     const path = await fake.writeTranscript('old', jsonl(userLine('antigo', -3 * 24 * 60 * MIN)));
     const { utimes } = await import('node:fs/promises');

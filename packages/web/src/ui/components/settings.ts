@@ -83,6 +83,10 @@ export class Settings extends Popover {
   });
   private readonly browser = createSwitch(t('settings.browser'), (on) => void this.toggleBrowser(on));
   private readonly demo = createSwitch(t('settings.demo'), (on) => void this.toggleDemo(on));
+  private readonly evolution = createSwitch(t('settings.evolution'), (on) => ctxPrefs(this.ctx, { evolution: on }));
+  private readonly employeeProject = createSwitch(t('settings.employeeProject'), (on) =>
+    ctxPrefs(this.ctx, { employeeProject: on }),
+  );
   private readonly celebrations = createSwitch(t('settings.celebrations'), (on) =>
     ctxPrefs(this.ctx, { celebrations: on }),
   );
@@ -98,6 +102,12 @@ export class Settings extends Popover {
   private readonly soundRow: Row;
   private readonly browserRow = row(t('settings.browser'), this.browser.el);
   private readonly demoRow = row(t('settings.demo'), this.demo.el);
+  private readonly evolutionRow = row(t('settings.evolution'), this.evolution.el, t('settings.evolution.hint'));
+  private readonly employeeProjectRow = row(
+    t('settings.employeeProject'),
+    this.employeeProject.el,
+    t('settings.employeeProject.hint'),
+  );
   private readonly repoRow = row(t('settings.git'), this.repo.el);
   private readonly pullRequestsRow = row(t('settings.gitPr'), this.pullRequests.el, t('settings.gitPr.hint'));
   private readonly ghHint = h('p', { class: 'ao-setting-hint ao-setting-hint--warn', hidden: true });
@@ -133,6 +143,8 @@ export class Settings extends Popover {
         this.celebrationsRow.el,
         this.soundRow.el,
         this.browserRow.el,
+        this.evolutionRow.el,
+        this.employeeProjectRow.el,
         this.repoRow.el,
         this.pullRequestsRow.el,
         this.rulesRow.el,
@@ -208,6 +220,8 @@ export class Settings extends Popover {
       permission === 'denied' ? t('settings.browser.blocked') : t('settings.browser.unsupported'),
     );
 
+    this.evolution.set(prefs.evolution);
+    this.employeeProject.set(prefs.employeeProject);
     this.repo.set(prefs.showGit);
     const lookup = this.gitSettings?.pullRequests ?? this.ctx.snapshot?.meta.gitPullRequests === true;
     this.pullRequests.set(lookup);

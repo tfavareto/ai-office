@@ -27,6 +27,7 @@ import type { HumanLibrary } from './characters/humanLibrary';
 import { renderStill } from './render/stillRender';
 import type { Stage } from './render/stage';
 import { AreaManager } from './scene/areaManager';
+import { evolutionOf } from '../world/evolution';
 import type { SceneDeps } from './scene/areaScene';
 import type { BoardInfo, DeskState } from './scene/screens';
 import { SLAB_H, TILE_M, WALL_H } from './units';
@@ -136,6 +137,7 @@ export function capture3d(input: Capture3DInput): HTMLCanvasElement {
 
   const areas = new AreaManager(input.deps, sim);
   areas.setText(text);
+  areas.setEvolution(evolutionOf(safe.progress, input.options.evolution));
   areas.sync(true);
   const crowd = new Crowd(input.library, sim);
   crowd.sync();
@@ -157,6 +159,7 @@ export function capture3d(input: Capture3DInput): HTMLCanvasElement {
       namesIn: (areaId) => sim.characters.filter((c) => c.areaId === areaId && c.alpha > 0.5).map((c) => c.name),
       desksIn: (area) => desksIn(sim, area),
       isVisible: () => true,
+      still: true,
       occupied: (areaId) => sim.characters.some((c) => c.areaId === areaId),
     });
     crowd.update({

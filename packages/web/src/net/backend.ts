@@ -12,6 +12,8 @@ import type {
   PendingHire,
   PermissionDecision,
   PermissionRequest,
+  Progress,
+  ProgressEventName,
   RecentSession,
   Rule,
   RuleDraft,
@@ -65,6 +67,10 @@ export interface Backend {
   timelapse(query: TimelapseQuery): Promise<Timelapse>;
   /** Usage history of an account (`all` for every account) over today, this week or this month. */
   usageDetail(account: string, period: UsagePeriod): Promise<UsageDetail>;
+  /** The office level, lifetime numbers and achievements (local access only); the project of the employee of the month only on request. */
+  progress(includeProject: boolean): Promise<Progress>;
+  /** Tells the server the person did something only the page can see, for the first time (local access only). */
+  progressEvent(event: ProgressEventName): Promise<void>;
   setDemo(on: boolean): Promise<boolean>;
   /** Settings of the git integration that live on the server (local access only). */
   gitSettings(): Promise<GitSettings>;

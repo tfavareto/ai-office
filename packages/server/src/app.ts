@@ -4,7 +4,18 @@ import { tmpdir } from 'node:os';
 import type { Server } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { autoAnswer, createDemoSimulator, messageDraft, msg, sourceText } from '@ai-office/shared';
+import {
+  autoAnswer,
+  createDemoSimulator,
+  dayRange,
+  demoProgress,
+  factsFromReport,
+  localDateKey,
+  messageDraft,
+  msg,
+  sourceText,
+  type Progress,
+} from '@ai-office/shared';
 import { Engine } from './claude/engine';
 import type { PidCheck } from './claude/registry';
 import type { ApplyEffects } from './claude/transcript-state';
@@ -33,6 +44,8 @@ import { SnapshotPublisher } from './office/snapshot';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
+import { ProgressService, type DayReading } from './progress/service';
+import { ProgressStore } from './progress/store';
 import { ReportService } from './report/service';
 import { UsageIndexer } from './usage/indexer';
 import { RulesStore } from './rules/rules-store';
@@ -114,6 +127,43 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   const rules = new RulesStore(config.stateDir, log, now);
   const gitSettings = new GitSettingsStore(config.stateDir, log);
 
+  /** One finished (or current) local day of every account, read like the day report but without filling its cache. */
+  const readProgressDay = async (date: string): Promise<DayReading> => {
+    const range = dayRange(date);
+    const accounts = engine.accountList();
+    if (range === undefined || accounts.length === 0) return { complete: true };
+    const dayReport = await report.report({ range, accounts, label: 'all', includeRequests: false, transient: true });
+    const facts = factsFromReport(dayReport);
+    return {
+      ...(facts !== undefined ? { facts } : {}),
+      complete: dayReport.truncated !== true && dayReport.usageIndexing !== true,
+    };
+  };
+  const progress = new ProgressService({
+    now,
+    log,
+    store: new ProgressStore(config.stateDir, log, now),
+    readDay: readProgressDay,
+    onChange: () => snapshots.markDirty(),
+  });
+  // The demo office has its own, fixed progress (level six); it never touches the real one.
+  let demoMemo: { key: string; value: ReturnType<typeof demoProgress> } | undefined;
+  const demoView = (): ReturnType<typeof demoProgress> => {
+    const simulator = office.demoSimulator;
+    const agentNames = (simulator?.agents() ?? []).filter((agent) => agent.kind === 'main').map((agent) => agent.name);
+    const projectNames = (simulator?.projects() ?? []).map((project) => project.name);
+    const key = `${localDateKey(now())}|${agentNames.join(',')}|${projectNames.join(',')}`;
+    if (demoMemo?.key !== key) demoMemo = { key, value: demoProgress({ now: now(), agentNames, projectNames }) };
+    return demoMemo.value;
+  };
+  const progressView = (includeProject: boolean): Progress => {
+    if (!demoOn) return progress.progress(includeProject);
+    const view = demoView().progress;
+    return includeProject || view.employee === undefined
+      ? view
+      : { ...view, employee: { name: view.employee.name, tasks: view.employee.tasks } };
+  };
+
   // The registries and the office reference each other through callbacks; `office` is assigned before any call.
   const refresh = (): void => office.refresh(now());
   const attention = new AttentionRegistry(now, refresh);
@@ -181,6 +231,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     }),
     hires: (time) => hireRegistry.list(time),
     git: (projectId) => git.get(projectId),
+    progress: () => (demoOn ? demoView().summary : progress.summary()),
     emit: (snapshot) => hub.broadcastSnapshot(snapshot),
   });
   // One cap for every program started on the user's repositories, whoever asks (the watcher or the day report).
@@ -259,6 +310,16 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     refresh,
   });
 
+  const report = new ReportService({
+    now,
+    log,
+    usage: indexer,
+    dayStats: (date) => day.get(date),
+    agents: () => office.state().agents,
+    storedName: (key) => names.peek(key),
+    gitCommits: (projectPath, range) => readDayCommits(runGit, projectPath, range),
+  });
+
   const context: AppContext = {
     config,
     version,
@@ -278,15 +339,9 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     gitSettings,
     day,
     usage: indexer,
-    report: new ReportService({
-      now,
-      log,
-      usage: indexer,
-      dayStats: (date) => day.get(date),
-      agents: () => office.state().agents,
-      storedName: (key) => names.peek(key),
-      gitCommits: (projectPath, range) => readDayCommits(runGit, projectPath, range),
-    }),
+    progress,
+    progressView,
+    report,
     transcripts: new TranscriptCache(),
     isDemo: () => demoOn,
     setDemo,
@@ -304,6 +359,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     if (++ticks % SLOW_TICK_EVERY !== 0) return;
     permissions.sweep();
     messages.expire();
+    if (!demoOn) progress.observeAgents(office.state().agents.filter((agent) => agent.demo !== true).length);
     hireRegistry.sweep(office.state().agents, time);
     git.tick();
     if (time - lastDayRecord >= RECORD_INTERVAL_MS) {
@@ -351,6 +407,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       });
       await engine.start();
       await indexer.start();
+      await progress.start();
       ticker = setInterval(tick, TICK_MS);
       buildTimer = setInterval(() => void refreshBuild(), BUILD_CHECK_MS);
       log.info(`AI Office em http://${config.host}:${this.port()}`);
@@ -360,6 +417,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (buildTimer !== undefined) clearInterval(buildTimer);
       engine.stop();
       git.stop();
+      await progress.stop();
       await indexer.stop();
       snapshots.stop();
       hub.closeAll();

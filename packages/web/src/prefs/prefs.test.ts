@@ -113,6 +113,21 @@ describe('PrefsStore', () => {
     expect(parsePrefs({ showGit: false }).showGit).toBe(false);
   });
 
+  it('lets the office evolve by default, hides the project of the employee of the month, and validates both', () => {
+    const base = { followSelected: false, reducedMotion: false };
+    expect(DEFAULT_PREFS).toMatchObject({ evolution: true, employeeProject: false });
+    expect(toWorldOptions(DEFAULT_PREFS, base).evolution).toBe(true);
+    expect(toWorldOptions({ ...DEFAULT_PREFS, evolution: false }, base).evolution).toBe(false);
+    expect(parsePrefs({ evolution: 'no', employeeProject: 1 })).toMatchObject({
+      evolution: true,
+      employeeProject: false,
+    });
+    expect(parsePrefs({ evolution: false, employeeProject: true })).toMatchObject({
+      evolution: false,
+      employeeProject: true,
+    });
+  });
+
   it('keeps empty desks inert unless the page can hire', () => {
     const base = { followSelected: false, reducedMotion: false };
     expect(toWorldOptions(DEFAULT_PREFS, base).hireEnabled).toBe(false);

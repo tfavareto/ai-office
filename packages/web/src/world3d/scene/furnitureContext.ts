@@ -1,5 +1,6 @@
 import type { Matrix4 } from 'three';
 import type { AreaLayout, FurnitureItem } from '../../layout/types';
+import type { Evolution } from '../../world/evolution';
 import type { PartCollector } from '../util/parts';
 import type { Materials } from './materials';
 import type { Models } from './models';
@@ -11,6 +12,8 @@ export interface FurnCtx {
   models: Models;
   item: FurnitureItem;
   area: AreaLayout;
+  /** What the office has unlocked: the cups in the cabinet, the finish of the metal. */
+  evolution: Evolution;
   /** Local footprint size in metres (x across, z deep). */
   w: number;
   d: number;

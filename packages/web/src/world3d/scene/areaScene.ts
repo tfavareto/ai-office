@@ -28,6 +28,9 @@ import { paintTaskBoard } from './taskBoardScreen';
 import { paintPlaque } from './plaqueScreen';
 import { roomGitKey, type RoomGit } from '../../world/roomGit';
 import { buildWallItems, disposeScreens, mountPlaque, type WallScreens } from './wallItems';
+import { buildDecorWall } from './decorScreens';
+import { AquariumLife } from './aquariumLife';
+import { BASE_EVOLUTION, type Evolution } from '../../world/evolution';
 
 export interface SceneDeps {
   m: Materials;
@@ -51,6 +54,8 @@ export interface AreaFrame {
   refreshScreens: boolean;
   /** Whether the area is inside the camera view (off-screen areas skip texture updates). */
   visible: boolean;
+  /** Reduced motion: the fish rest. */
+  still: boolean;
 }
 
 function screenQuadGeometry(w: number, h: number, uv: [number, number, number, number]): BufferGeometry {
@@ -82,6 +87,7 @@ export class AreaScene {
   private build = 1;
   private plaqueMounted = false;
   private plaqueMesh: Mesh | null = null;
+  private life: AquariumLife | null = null;
 
   private text: WorldText;
 
@@ -90,20 +96,28 @@ export class AreaScene {
     building: BuildingLayout,
     private readonly deps: SceneDeps,
     text: WorldText = worldText('pt-BR'),
+    evolution: Evolution = BASE_EVOLUTION,
   ) {
     this.text = text;
     const { m, models } = deps;
     const shellParts = new PartCollector();
     buildAreaShell(shellParts, area, building, m);
     const propParts = new PartCollector();
-    const furniture = buildFurniture(propParts, area, m, models);
+    const furniture = buildFurniture(propParts, area, m, models, evolution);
     buildWallItems(propParts, area, m, this.dynamic, this.screens, area.theme.accent, area.label, text);
+    buildDecorWall(propParts, area, m, this.screens, evolution, text);
     if (furniture.screens.length) this.addMonitors(propParts, furniture.screens);
     this.atlas?.setText(text);
     this.shell = shellParts.build(shadowOf);
     this.props = propParts.build(shadowOf);
     this.group.add(this.shell, this.props, this.dynamic);
     this.addGlow(area);
+    const life = new AquariumLife(area, evolution);
+    if (life.isEmpty) life.dispose();
+    else {
+      this.life = life;
+      this.dynamic.add(life.group);
+    }
     const r = area.rect;
     this.bounds.set(new Vector3(r.x * T, 0, r.y * T), new Vector3((r.x + r.w) * T, 3, (r.y + r.h) * T));
   }
@@ -211,6 +225,7 @@ export class AreaScene {
 
   update(f: AreaFrame): void {
     const screens = this.screens;
+    this.life?.update(f.time, f.still);
     if (screens.board) {
       const key = `${this.text.locale}|${roomInfoKey(f.info)}`;
       if (key !== this.lastInfoKey) {
@@ -254,6 +269,7 @@ export class AreaScene {
 
   dispose(): void {
     disposeObject(this.group);
+    this.life?.dispose();
     this.atlas?.dispose();
     disposeScreens(this.screens);
     this.glowMaterial?.dispose();

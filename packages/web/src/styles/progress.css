@@ -1,0 +1,355 @@
+/* "Conquistas": the level card, the decoration chips, the badges, the numbers, and the sparkles of a celebration. */
+.ao-dialog--progress {
+  width: min(760px, 100%);
+}
+
+.ao-prog-body {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ao-prog-status {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.ao-prog-level {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(242, 201, 76, 0.1), rgba(79, 134, 247, 0.08));
+}
+
+.ao-prog-badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #ffe9a6, #d9a82a 70%);
+  box-shadow:
+    0 0 0 3px rgba(242, 201, 76, 0.25),
+    0 6px 16px rgba(0, 0, 0, 0.35);
+  color: #3b2a05;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.ao-prog-badge.is-gold {
+  background: radial-gradient(circle at 30% 25%, #fff6c8, #f0c030 60%, #b8860b);
+}
+
+.ao-prog-level-main {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ao-prog-level-main h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.ao-prog-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.ao-prog-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d9a82a, #ffe08a);
+  transition: width var(--t-base) var(--ease);
+}
+
+.ao-prog-bar--small {
+  flex: 1;
+  height: 6px;
+}
+
+.ao-prog-xp,
+.ao-prog-next {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.ao-prog-next {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.ao-prog-next svg {
+  flex: none;
+  color: #f2c94c;
+}
+
+.ao-prog-note {
+  margin: -6px 0 0;
+}
+
+.ao-prog-section {
+  display: grid;
+  gap: 8px;
+}
+
+.ao-prog-employee {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.ao-prog-employee strong {
+  font-size: 15px;
+}
+
+.ao-prog-employee span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.ao-prog-decor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-prog-chip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
+.ao-prog-chip.is-on {
+  border-style: solid;
+  border-color: rgba(242, 201, 76, 0.4);
+  background: rgba(242, 201, 76, 0.08);
+  color: var(--text);
+}
+
+.ao-prog-chip-level {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-prog-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-prog-badgecard {
+  --tier: #c9824a;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.ao-prog-badgecard.is-silver {
+  --tier: #c9d2dc;
+}
+
+.ao-prog-badgecard.is-gold {
+  --tier: #f2c94c;
+}
+
+.ao-prog-badgecard.is-earned {
+  border-color: color-mix(in srgb, var(--tier) 45%, transparent);
+  background: color-mix(in srgb, var(--tier) 9%, transparent);
+}
+
+.ao-prog-badgecard.is-locked {
+  opacity: 0.72;
+}
+
+.ao-prog-medal {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tier) 24%, transparent);
+  color: var(--tier);
+}
+
+.ao-prog-badgecard.is-locked .ao-prog-medal {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--faint);
+}
+
+.ao-prog-badgetext {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ao-prog-how {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-prog-date {
+  color: var(--tier);
+  font-size: 11.5px;
+}
+
+.ao-prog-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.ao-prog-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.ao-prog-stats > div {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.ao-prog-stats dt {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.ao-prog-stats dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-progress-btn {
+  position: relative;
+}
+
+/* the level counter next to the trophy button of the top bar */
+.ao-topbar-level {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f2c94c;
+  color: #2b1f05;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* celebration: sparkles fly out of the trophy button and fade */
+.ao-celebrate {
+  position: fixed;
+  z-index: 90;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ao-spark {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--c);
+  opacity: 0;
+  animation: ao-spark 1.3s var(--ease) var(--d) both;
+}
+
+@keyframes ao-spark {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) + 16px)) scale(1) rotate(200deg);
+  }
+}
+
+.ao-root.is-reduced-motion .ao-celebrate,
+.ao-root.is-reduced-motion .ao-prog-bar > span {
+  display: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-celebrate {
+    display: none;
+  }
+
+  .ao-prog-bar > span {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .ao-prog-level {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ao-prog-badge {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .ao-prog-badges {
+    grid-template-columns: 1fr;
+  }
+}

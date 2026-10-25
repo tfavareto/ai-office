@@ -37,6 +37,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `names.json` | The name picked for each agent, keyed by account, session and agent id. |
 | `days/YYYY-MM-DD.json` | Per agent, per day, time spent in each status (for **My day**). |
 | `usage-index/` | Mode 0700, files 0600. `YYYY-MM.json` shards: per hour, account, project (working directory path), model, session id and subagent id, the counts of input, output, cache-write and cache-read tokens and the estimated cost. `meta.json`: for each transcript, its path relative to the account directory, session and subagent ids, how many bytes were read, its size, modification time, inode, a hash of its first bytes and the ids and counts of the last 16 messages. Numbers and identifiers only: no conversation text. Up to 13 months are kept; delete the folder at any time and it is rebuilt. |
+| `progress.json` | The office level and achievements (mode 0600, written atomically): per local day, counters (sessions, work time, tasks completed, commits, passing test runs, tokens, subagents), the agents with most completed tasks that day (name and the project folder's name, never a path), a folded total of older days, the unlock dates and the first time you watched a time-lapse or shared the card. Numbers and names only: no prompt, reply, task title or file content. Delete it and the history is counted again. |
 | `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
@@ -112,6 +113,10 @@ The page cannot be framed, cannot load scripts from other origins and cannot con
 ## The share card
 
 The picture and caption of **My day → Share** are made in your browser from the day report numbers and a throwaway copy of the office; nothing is uploaded, and AI Office does not post anywhere (you download or copy the image yourself). By default the card holds counts and totals only: it draws no project names (rooms are "Room 1", "Room 2"…), agent titles, task texts, branches, file paths, commands or prompts, and the day report it uses is requested without the user's requests. **Show project names** adds the project names to the room signs and the highlight; **Show cost and tokens** adds the estimated cost and tokens of the day; both are off every time the dialog opens. Look at the picture before you post it: the card follows these rules, but it cannot know what is private to you.
+
+## The office that grows
+
+Levels, achievements and the "Employee of the month" are computed on your computer from the same transcripts and usage index as the day report, and nothing is sent anywhere. `GET /api/progress` and `POST /api/progress/event` are local-only, token-protected and origin-guarded like the report. The snapshot carries the level and, for the plaque, the **agent's name only**; the project name leaves the server only when the page asks for it (`?project=1`) because you turned on **Show the project in Employee of the month**, and it is the folder's name, not a path. The share card draws the decoration of your level but never the employee's name. Demo mode has its own fixed progress and never touches the real one. **Settings → Office evolution** hides everything visible about it.
 
 ## Hiring an agent
 

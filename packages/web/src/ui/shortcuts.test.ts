@@ -28,6 +28,14 @@ describe('resolveShortcut', () => {
     expect(resolveShortcut(key('r', { metaKey: true }), false, false)).toBeNull();
   });
 
+  it('maps C to the achievements, but not while typing or when copying', () => {
+    expect(resolveShortcut(key('c'), false, false)).toBe('achievements');
+    expect(resolveShortcut(key('C'), false, false)).toBe('achievements');
+    expect(resolveShortcut(key('c'), true, false)).toBeNull();
+    expect(resolveShortcut(key('c', { metaKey: true }), false, false)).toBeNull();
+    expect(resolveShortcut(key('c', { ctrlKey: true }), false, false)).toBeNull();
+  });
+
   it('keeps the other shortcuts', () => {
     expect(resolveShortcut(key('n'), false, false)).toBe('message');
     expect(resolveShortcut(key('Escape'), true, false)).toBe('escape');

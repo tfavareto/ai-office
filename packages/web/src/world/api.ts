@@ -24,6 +24,8 @@ export interface WorldOptions {
   hireEnabled: boolean;
   /** Draw the repository state of each room (the plaque under the sign and the branch on the pill). */
   showGit: boolean;
+  /** Draw the decoration the office has unlocked (off: the base office only). */
+  evolution: boolean;
   /** Confetti, cheering and the sound of a celebration (settings: "Comemorações"). */
   celebrations: boolean;
 }
@@ -119,5 +121,6 @@ export const DEFAULT_WORLD_OPTIONS: WorldOptions = {
   reducedMotion: false,
   hireEnabled: false,
   showGit: true,
+  evolution: true,
   celebrations: true,
 };

@@ -1,8 +1,11 @@
 import type { Locale } from '@ai-office/shared';
 import { type WorldText, worldText } from '../../i18n/world/translate';
+import { isDrawn } from '../../layout/decor';
+import { BASE_EVOLUTION, type Evolution, evolutionKey } from '../../world/evolution';
 import type { AreaLayout, FurnitureItem, Rect } from '../../layout/types';
 import { TILE } from '../../layout/constants';
 import { type Ctx, context2d, ellipse, makeCanvas } from '../paint/ctx';
+import { decorRise, decorSprite } from '../paint/furnDecor';
 import { furnitureSprite, spriteRise } from '../paint/furniture';
 import { rugFill } from '../paint/furnOffice';
 import { paintFloorTile } from '../paint/floors';
@@ -51,18 +54,31 @@ function hasLocalizedWallText(area: AreaLayout): boolean {
   return area.wallItems.some((item) => item.kind === 'menu');
 }
 
+/** Whether the area holds unlockable decoration (only those areas are redrawn when the office grows). */
+function hasDecor(area: AreaLayout): boolean {
+  return (
+    area.furniture.some((item) => item.decor !== undefined) || area.wallItems.some((item) => item.decor !== undefined)
+  );
+}
+
 /**
  * Cache key of an area's static layers. The locale only takes part for areas that paint translated text, so a language
  * change redraws just those and leaves the other canvases alone.
  */
-export function areaKey(area: AreaLayout, extra = '', locale: Locale = 'pt-BR'): string {
+export function areaKey(
+  area: AreaLayout,
+  extra = '',
+  locale: Locale = 'pt-BR',
+  evolution: Evolution = BASE_EVOLUTION,
+): string {
   const furn = area.furniture.map((f) => `${f.kind}${f.x},${f.y},${f.variant}`).join(';');
   const lang = hasLocalizedWallText(area) ? locale : '';
-  return `${area.id}|${area.rect.x},${area.rect.y},${area.rect.w}|${area.label}|${JSON.stringify(area.theme)}|${furn}|${area.doors.length}|${extra}|${lang}`;
+  const decor = hasDecor(area) ? evolutionKey(evolution) : '';
+  return `${area.id}|${area.rect.x},${area.rect.y},${area.rect.w}|${area.label}|${JSON.stringify(area.theme)}|${furn}|${area.doors.length}|${extra}|${lang}|${decor}`;
 }
 
 function drawShadow(ctx: Ctx, item: FurnitureItem, ox: number, oy: number): void {
-  if (item.kind === 'rug' || item.kind === 'railing') return;
+  if (item.kind === 'rug' || item.kind === 'railing' || item.kind === 'plaque' || item.kind === 'lights') return;
   const x = (item.x - ox) * TILE;
   const y = (item.y - oy) * TILE;
   const w = item.w * TILE;
@@ -101,6 +117,7 @@ function buildGround(
   area: AreaLayout,
   corridorTheme: AreaLayout['theme'],
   text: WorldText,
+  evolution: Evolution,
 ): { canvas: HTMLCanvasElement; panes: Rect[]; screens: ScreenRect[] } {
   const w = area.rect.w * TILE;
   const h = area.rect.h * TILE;
@@ -129,8 +146,8 @@ function buildGround(
   const panes = paintWall(ctx, area);
   const screens: ScreenRect[] = [];
   for (const wi of area.wallItems) {
-    if (wi.side !== 'north') continue;
-    const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent, text);
+    if (wi.side !== 'north' || !isDrawn(wi, evolution.decor)) continue;
+    const frame: WallItemFrame = paintWallItem(ctx, wi, wi.x - ox, area.label, area.theme.accent, text, evolution);
     if (frame.screen)
       screens.push({
         ...frame.screen,
@@ -153,17 +170,17 @@ function sortItems(items: PlacedItem[]): PlacedItem[] {
   return [...items].sort((a, b) => a.bottom - b.bottom || a.x - b.x);
 }
 
-function placeItems(area: AreaLayout): PlacedItem[] {
+function placeItems(area: AreaLayout, evolution: Evolution): PlacedItem[] {
   const placed: PlacedItem[] = [];
   for (const item of area.furniture) {
-    if (item.kind === 'rug') continue;
-    const sprite = furnitureSprite(item);
+    if (item.kind === 'rug' || !isDrawn(item, evolution.decor)) continue;
+    const sprite = item.decor === undefined ? furnitureSprite(item) : decorSprite(item, evolution);
     if (!sprite) continue;
     placed.push({
       item,
       sprite: sprite.canvas,
       x: item.x * TILE,
-      y: item.y * TILE - spriteRise(item.kind),
+      y: item.y * TILE - (item.decor === undefined ? spriteRise(item.kind) : decorRise(item.kind)),
       bottom: (item.y + item.h) * TILE,
     });
   }
@@ -177,16 +194,18 @@ export function buildAreaCanvas(
   corridorTheme: AreaLayout['theme'],
   furnMargin = 0,
   text: WorldText = worldText('pt-BR'),
+  evolution: Evolution = BASE_EVOLUTION,
 ): AreaCanvas {
-  const { canvas: ground, panes, screens } = buildGround(area, corridorTheme, text);
-  const items = placeItems(area);
+  const { canvas: ground, panes, screens } = buildGround(area, corridorTheme, text, evolution);
+  const items = placeItems(area, evolution);
   const x = area.rect.x * TILE;
   const y = area.rect.y * TILE;
   const furn = makeCanvas(ground.width, ground.height + furnMargin);
   const fctx = context2d(furn);
   fctx.save();
   fctx.translate(0, furnMargin);
-  for (const item of area.furniture) drawShadow(fctx, item, area.rect.x, area.rect.y);
+  for (const item of area.furniture)
+    if (isDrawn(item, evolution.decor)) drawShadow(fctx, item, area.rect.x, area.rect.y);
   fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + furnMargin);
   return {
@@ -231,7 +250,12 @@ function facade(ctx: Ctx, x: number, h: number, east: boolean): void {
 }
 
 /** The corridor (and its two glass façades) as one strip spanning the whole building width. */
-export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number, key: string): AreaCanvas {
+export function buildCorridorCanvas(
+  corridor: AreaLayout,
+  buildingWidth: number,
+  key: string,
+  evolution: Evolution = BASE_EVOLUTION,
+): AreaCanvas {
   const h = corridor.rect.h * TILE;
   const w = buildingWidth * TILE;
   const ground = makeCanvas(w, h);
@@ -264,14 +288,14 @@ export function buildCorridorCanvas(corridor: AreaLayout, buildingWidth: number,
   facade(ctx, 0, h, false);
   facade(ctx, (buildingWidth - 1) * TILE, h, true);
 
-  const items = placeItems(corridor);
+  const items = placeItems(corridor, evolution);
   const furn = makeCanvas(w, h + CORRIDOR_OVERHANG);
   const fctx = context2d(furn);
   const x = 0;
   const y = corridor.rect.y * TILE;
   fctx.save();
   fctx.translate(0, CORRIDOR_OVERHANG);
-  for (const item of corridor.furniture) drawShadow(fctx, item, 0, corridor.rect.y);
+  for (const item of corridor.furniture) if (isDrawn(item, evolution.decor)) drawShadow(fctx, item, 0, corridor.rect.y);
   fctx.restore();
   for (const p of items) fctx.drawImage(p.sprite, p.x - x, p.y - y + CORRIDOR_OVERHANG);
   return {

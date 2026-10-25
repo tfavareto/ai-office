@@ -32,6 +32,7 @@ When no session is open, a card says **No open sessions** with the steps to star
 | Bell | **Notifications** with an unread badge. |
 | Board | **Task board** (`K`). |
 | Calendar | **My day** (M). |
+| Trophy | **Achievements** (`C`): your office level, badges and decoration. A small gold number is the level. |
 | History | **Session history**. |
 | Feed | **Office activity** (`]`). |
 | Gear | **Settings**. |
@@ -282,6 +283,16 @@ Token and cost figures are estimates. If the usage index is still being built yo
 - **It is the past.** The top bar turns violet and says `REPLAY`, and the page is read-only: you cannot message, approve, hire or open terminals until you go back to live. If agents need you in the live office, a note above the controls says how many and takes you back.
 - **How the day is rebuilt.** From the session transcripts, the same way the day report is. There is no registry in a transcript, so some things are inferred: a person is "in the office" while their events are less than 30 minutes apart, and a wait for permission is only detected for file edits and writes and for questions. Nothing you or the agents wrote is shown, only what they were doing (reading a file, running a command). A busy day is thinned to fit, and the controls say so.
 
+## An office that grows
+
+The office grows with the work your agents really do. AI Office counts, on your computer and from the session transcripts, your sessions, work time, completed tasks, commits, passing test runs, tokens and days worked, turns them into XP and gives the office a **level** from 1 to 10 (Garage, Startup, Team, Office, Branch, Headquarters, Campus, Tower, Holding, Legend). The level never goes down. The first time, it reads up to 60 days of history in the background, so a busy computer starts above level 1.
+
+Each level unlocks one piece of decoration, in 2D and in 3D: **2** framed art on the walls, **3** the **Employee of the month** plaque on the reception desk, **4** an aquarium in the lounge, **5** a trophy cabinet in the reception that fills with cups as you earn achievements, **6** the office cat, who wanders between the rooms and naps on the rugs (it never takes a seat or blocks anyone), **7** a neon "AI Office" sign in the pantry, **8** two more arcade machines, **9** garland lights along the corridor, **10** a gold finish. At night the neon, the aquarium, the arcade and the garland glow.
+
+Press `C` (or the trophy button) to open **Achievements**: the level and XP bar, what the next level brings, the Employee of the month, all 22 badges with the date you earned them or how to earn them (locked ones show their progress) and your lifetime numbers. The **Employee of the month** is the agent that completed the most tasks this month; only the agent's name is shown, and the project too if you turn on **Show the project in Employee of the month** in Settings.
+
+When the office levels up or you earn a badge you get one toast and a few sparkles. **Settings → Office evolution** turns this off: the office goes back to the plain one, with no decoration and no toasts (the counting goes on). In demo mode you see a level 6 office with many badges and the cat; demo numbers never count for your real office.
+
 ## Session history
 
 **Session history** lists sessions from the last 7 days, grouped by day, searchable by project or title. Opening one shows its conversation in the terminal panel, read-only, even if the session has closed.
@@ -315,6 +326,8 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Celebrations** | Confetti, jumping and a short sound when something goes well. On by default. See [Celebrations](#celebrations). |
 | **Sounds** | On or off, with a **Sound volume** slider. |
 | **Browser notifications** | Browser notifications for alerts (asks for permission). |
+| **Office evolution** | Decoration, achievements toasts and the level counter (on by default). Off shows the plain office and announces nothing. |
+| **Show the project in Employee of the month** | Add the project name next to the agent name in the achievements dialog (off by default). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
@@ -385,6 +398,7 @@ Plain keys are ignored while you type in a field.
 | `R` | Open the **day report** (the Report tab of **My day**). |
 | `M` | Open **My day**. On the task board, with a card focused: move the task. |
 | `U` | Open the detailed **Consumo** (usage) view. |
+| `C` | Open the **Achievements** of the office. |
 | `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
 | `L` | Watch the day as a [time-lapse](#watch-the-day-time-lapse), or go back to live. In it: `Space` plays or pauses, `←` `→` skip a minute (`Shift`: ten), `PgUp` `PgDn` previous or next mark. |

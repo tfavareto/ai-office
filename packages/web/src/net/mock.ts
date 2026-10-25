@@ -6,6 +6,7 @@ import {
   createDemoSimulator,
   dayRange,
   demoDayReport,
+  demoProgress,
   demoTimelapse,
   hourMapsFromRows,
   withOfficeSessions,
@@ -15,6 +16,7 @@ import {
   type HireRequest,
   type OfficeSnapshot,
   type PermissionDecision,
+  type ProgressEventName,
   type RuleDraft,
   type RuleResult,
   type UsagePeriod,
@@ -35,9 +37,45 @@ import type { Transport, TransportHandlers } from './transport';
 const TICK_MS = 250;
 const SNAPSHOT_EVERY_MS = 1000;
 
+/** `?demoLevel=` pins the level of the simulated office (to preview the decoration of every level). */
+function pinnedLevel(): number | undefined {
+  if (typeof location === 'undefined') return undefined;
+  const value = Number(new URLSearchParams(location.search).get('demoLevel'));
+  return Number.isInteger(value) && value >= 1 ? value : undefined;
+}
+
+/** The simulated office's progress, rebuilt only when the people or the day change. */
+class MockProgress {
+  private memo: { key: string; value: ReturnType<typeof demoProgress> } | undefined;
+  private readonly level = pinnedLevel();
+
+  of(snapshot: OfficeSnapshot, now: number): ReturnType<typeof demoProgress> {
+    const agentNames = snapshot.agents.filter((agent) => agent.kind === 'main').map((agent) => agent.name);
+    const projectNames = snapshot.projects.map((project) => project.name);
+    const key = `${new Date(now).toDateString()}|${agentNames.join(',')}|${projectNames.join(',')}`;
+    if (this.memo?.key !== key)
+      this.memo = {
+        key,
+        value: demoProgress({
+          now,
+          agentNames,
+          projectNames,
+          ...(this.level !== undefined ? { level: this.level } : {}),
+        }),
+      };
+    return this.memo.value;
+  }
+}
+
+const mockProgress = new MockProgress();
+
 /** Mock mode is "local" and "demo" by definition, so every feature is enabled. */
-function asMockSnapshot(snapshot: OfficeSnapshot): OfficeSnapshot {
-  return { ...snapshot, meta: { ...snapshot.meta, local: true, demo: true } };
+function asMockSnapshot(snapshot: OfficeSnapshot, now: number): OfficeSnapshot {
+  return {
+    ...snapshot,
+    meta: { ...snapshot.meta, local: true, demo: true },
+    progress: mockProgress.of(snapshot, now).summary,
+  };
 }
 
 class MockTransport implements Transport {
@@ -71,7 +109,7 @@ class MockTransport implements Transport {
   private push(handlers: TransportHandlers): void {
     const now = Date.now();
     this.lastSnapshotAt = now;
-    const snapshot = asMockSnapshot(this.sim.snapshot(now));
+    const snapshot = asMockSnapshot(this.sim.snapshot(now), now);
     this.log.observe(snapshot);
     this.onSnapshot(snapshot);
     handlers.onSnapshot(snapshot);
@@ -178,6 +216,17 @@ class MockBackend implements Backend {
       agents: this.sim.agents(),
       account: query.account,
     });
+  }
+
+  async progress(includeProject: boolean) {
+    const view = mockProgress.of(this.snapshot(), Date.now()).progress;
+    return includeProject || view.employee === undefined
+      ? view
+      : { ...view, employee: { name: view.employee.name, tasks: view.employee.tasks } };
+  }
+
+  async progressEvent(_event: ProgressEventName): Promise<void> {
+    // The simulated office is not the user's: nothing done in it counts.
   }
 
   async setDemo(on: boolean): Promise<boolean> {

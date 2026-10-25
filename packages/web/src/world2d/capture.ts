@@ -18,6 +18,7 @@ import { Camera, type Point } from './camera';
 import { currentFraming, keepInside, overviewFraming, type CaptureFraming, type Size } from './captureFraming';
 import { makeCanvas } from './paint/ctx';
 import { Renderer, type FrameState } from './renderer';
+import { evolutionOf } from '../world/evolution';
 import { summarizeRoom, withRoomGit, type RoomInfo } from './runtime/boards';
 import { renderTicker, tickerFromSnapshot, tickerText } from './runtime/ticker';
 
@@ -103,6 +104,7 @@ export function capture2d(input: Capture2DInput): HTMLCanvasElement {
   sim.runFor(CAPTURE_SETTLE_SECONDS);
 
   const renderer = new Renderer();
+  renderer.setEvolution(evolutionOf(safe.progress, input.options.evolution));
   renderer.sync(sim, input.options.locale);
   const exterior = renderer.layers.exterior;
   const world = exterior ? { x: exterior.x, y: exterior.y, w: exterior.canvas.width, h: exterior.canvas.height } : null;
