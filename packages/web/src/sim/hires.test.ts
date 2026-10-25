@@ -74,7 +74,7 @@ describe('a pending hire in the simulation', () => {
     expect(person.hiring).toBe(true);
     expect(person.moving || person.alpha < 1).toBe(true);
 
-    office.runFor(30);
+    office.runFor(36);
 
     const desk = office.building.areas
       .flatMap((area) => area.spots)
@@ -86,7 +86,7 @@ describe('a pending hire in the simulation', () => {
 
   it('stays at its desk instead of wandering off', () => {
     const office = officeWithHire();
-    office.runFor(30);
+    office.runFor(36);
     const person = office.character('hire:h1')!;
     const home = { x: person.x, y: person.y };
 
@@ -115,7 +115,7 @@ describe('a pending hire in the simulation', () => {
 
   it('is handed over to the real agent: same person, same desk, no second trip', () => {
     const office = officeWithHire();
-    office.runFor(30);
+    office.runFor(36);
     const person = office.character('hire:h1')!;
     const where = { x: person.x, y: person.y };
 

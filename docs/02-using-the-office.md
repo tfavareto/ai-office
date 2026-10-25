@@ -60,7 +60,7 @@ The browser tab title shows **(n) AI Office** while *n* agents need you.
 | `O` | **Overview**: fit the whole office. |
 | `F` | **Follow**: keep the camera on the selected agent. |
 
-People react to their status. **Working** people sit and type at their desk; subagents work at the meeting table. **Needs you** people stand with a raised hand and a bubble reading "Needs you". Idle people walk to the pantry or the lounge and chat. People waiting for a shell lean back and watch their screen. Finished or offline people walk to the elevator and leave. Speech bubbles show what an agent is doing; you can limit them in settings.
+People react to their status and to what their agent is doing. **Working** people sit at their desk: they read a page when the agent reads files, type fast with tiny code glyphs when it edits, lean back at a glowing screen while a shell command runs (and stretch and yawn if it takes long), show a pulsing globe on the web, a thought bubble while it thinks, point toward the meeting room while it delegates to subagents, and scratch their head with a "?" after repeated errors. Good moments are celebrated with confetti (see [Celebrations](#celebrations)); people also greet each other, wave in the corridor, chat at the pantry with icon-only bubbles and play ping-pong. Anything that needs you cancels these breaks at once. Subagents work at the meeting table. **Needs you** people stand with a raised hand and a bubble reading "Needs you". Idle people walk to the pantry or the lounge and chat. People waiting for a shell lean back and watch their screen. Finished or offline people walk to the elevator and leave. Speech bubbles show what an agent is doing; you can limit them in settings.
 
 ## Details drawer: an agent
 
@@ -312,6 +312,7 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Names above people** | Show or hide name tags. |
 | **Bubbles** | **All**, **Important** (the default), **None**. |
 | **Animation** | **Calm**, **Normal**, **Lively**. Sets how fast people walk and how many speech bubbles a room may show at once. If your system asks for reduced motion, the office also stops pulsing and idle wandering. |
+| **Celebrations** | Confetti, jumping and a short sound when something goes well. On by default. See [Celebrations](#celebrations). |
 | **Sounds** | On or off, with a **Sound volume** slider. |
 | **Browser notifications** | Browser notifications for alerts (asks for permission). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
@@ -319,6 +320,14 @@ The settings popover. Everything except the demo switch is stored in your browse
 | **Approval rules** | **Manage…** opens the [approval rules](#approval-rules) dialog. Needs a local page. |
 | **Demo mode** | Fictitious agents alongside real ones. Needs a local page and a live server. |
 | **About** | Version and build. |
+
+## Celebrations
+
+The office celebrates when: tests pass after a failure, an agent's task list becomes fully completed, a `git commit` succeeds (or a room's repository gets a new commit), a pull request is merged (needs the pull request lookup), a subagent finishes well, or a work turn of several minutes ends. The person jumps with raised arms, a green bubble says what happened ("Tudo pronto!", "Commitado!"...), confetti bursts, and idle colleagues in the same room clap. When the last open task of a whole room is done, confetti showers over the room. Two colleagues who celebrate within a few seconds of each other meet halfway for a high five.
+
+Celebrations are rationed so they stay special: a person celebrates at most every 14 to 60 seconds depending on **Animation** (calm, normal, lively), and only a few happen at once across the office. The animation level also scales the amount of confetti. The sound is a short synthesized arpeggio, played only when **Sounds** is on and **Do not disturb** is off. Turn the whole thing off with **Settings → Celebrations**. With reduced motion (your system setting) there is no confetti or jumping: a still star badge shows over the person instead.
+
+In demo mode the demo agents run failing and passing tests, commit and finish their task lists, so you see celebrations within a couple of minutes.
 
 ## Language
 

@@ -270,7 +270,6 @@ export function pingpong(ctx: Ctx, it: FurnitureItem): void {
   rect(ctx, w / 2 - 1, 0, 2, h - 2, 'rgba(235,240,250,0.9)');
   vline(ctx, w / 2, 0, h - 2, GRAPHITE.light);
   rect(ctx, w / 2 - 1, -2, 2, 2, GRAPHITE.mid);
-  pixel(ctx, w / 2 + 9, h / 2, '#ffffff');
 }
 
 export function arcade(ctx: Ctx, it: FurnitureItem): void {

@@ -6,7 +6,9 @@ import { rgba } from './color';
 import type { AreaCanvas, PlacedItem } from './layers/areaLayer';
 import { type Ctx, context2d, ellipse, makeCanvas } from './paint/ctx';
 import { FOOT_OFFSET } from './picking';
+import type { Character } from '../sim/types';
 import type { FrameState, Renderer } from './renderer';
+import { drawActivityFx, type FxContext } from './fx/activityFx';
 
 const rings = new Map<string, HTMLCanvasElement>();
 let shadow: HTMLCanvasElement | null = null;
@@ -89,5 +91,20 @@ export function drawCharacters(ctx: Ctx, renderer: Renderer, s: FrameState, orde
       if (p.bottom <= fy - 1 || !overlapsTall(p, left, top, right, bottom)) continue;
       ctx.drawImage(p.sprite, p.x, p.y);
     }
+  }
+  drawEffects(ctx, s, people);
+}
+
+/** What each person is up to, drawn above everything: code glyphs, thought bubbles, pulses, sparkles. */
+function drawEffects(ctx: Ctx, s: FrameState, people: readonly Character[]): void {
+  const meeting = s.sim.building.areas.find((a) => a.id === 'meeting');
+  const f: FxContext = {
+    time: s.time,
+    reducedMotion: s.options.reducedMotion,
+    meetingX: meeting ? (meeting.rect.x + meeting.rect.w / 2) * TILE : null,
+  };
+  for (const c of people) {
+    if (c.alpha < 0.6) continue;
+    drawActivityFx(ctx, c, Math.round(c.x * TILE), Math.round(c.y * TILE + FOOT_OFFSET), f);
   }
 }

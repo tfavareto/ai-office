@@ -56,7 +56,7 @@ export class Crowd {
       if (!this.people.has(c.id)) {
         const person = new Character3D(this.library, c);
         this.people.set(c.id, person);
-        this.group.add(person.root);
+        this.group.add(person.root, person.fx.root);
       }
     }
     for (const [id, person] of this.people) {
@@ -67,6 +67,8 @@ export class Crowd {
   }
 
   update(f: CrowdFrame): void {
+    const meeting = this.sim.building.areas.find((a) => a.id === 'meeting');
+    const meetingX = meeting ? meeting.rect.x + meeting.rect.w / 2 : null;
     for (const c of this.sim.characters) {
       const person = this.people.get(c.id);
       if (!person) continue;
@@ -78,6 +80,7 @@ export class Crowd {
         selected: c.id === f.selectedId,
         hovered: c.id === f.hoveredId,
         still: f.still,
+        meetingSide: meetingX === null || meetingX >= c.x ? 1 : -1,
       });
     }
     this.updateRings();

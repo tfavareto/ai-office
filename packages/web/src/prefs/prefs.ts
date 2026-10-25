@@ -28,6 +28,8 @@ export interface Prefs {
   feedOpen: boolean;
   /** Show the repository state (branch, changes, pull request) of each room. */
   showGit: boolean;
+  /** Confetti and cheering when something goes well (tests fixed, tasks done, commits...). */
+  celebrations: boolean;
   /** Plan limits the user typed in per account id (the reference of the usage forecast). */
   usageLimits: Readonly<Record<string, AccountLimits>>;
 }
@@ -46,6 +48,7 @@ export const DEFAULT_PREFS: Prefs = {
   sidebarOpen: true,
   feedOpen: false,
   showGit: true,
+  celebrations: true,
   usageLimits: {},
 };
 
@@ -115,6 +118,7 @@ export function parsePrefs(raw: unknown): Prefs {
     sidebarOpen: bool(data.sidebarOpen, DEFAULT_PREFS.sidebarOpen),
     feedOpen: bool(data.feedOpen, DEFAULT_PREFS.feedOpen),
     showGit: bool(data.showGit, DEFAULT_PREFS.showGit),
+    celebrations: bool(data.celebrations, DEFAULT_PREFS.celebrations),
     usageLimits: parseUsageLimits(data.usageLimits),
   };
 }
@@ -176,6 +180,7 @@ export function toWorldOptions(
     reducedMotion: extra.reducedMotion,
     hireEnabled: extra.hireEnabled ?? false,
     showGit: prefs.showGit,
+    celebrations: prefs.celebrations,
   };
 }
 

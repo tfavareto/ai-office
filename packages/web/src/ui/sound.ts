@@ -1,5 +1,5 @@
 // Tiny WebAudio cues (no audio files). The context is created lazily, after a user gesture, as browsers require.
-export type CueKind = 'alert' | 'info' | 'success' | 'sent';
+export type CueKind = 'alert' | 'info' | 'success' | 'sent' | 'celebrate' | 'celebrateBig';
 
 interface Tone {
   freq: number;
@@ -20,6 +20,23 @@ const CUES: Record<CueKind, readonly Tone[]> = {
     { freq: 784, start: 0.1, duration: 0.18, gain: 0.6, type: 'triangle' },
   ],
   sent: [{ freq: 440, start: 0, duration: 0.09, gain: 0.45, type: 'triangle' }],
+  // a short rising arpeggio with a sparkle on top; the big one is longer and ends on a chord
+  celebrate: [
+    { freq: 523, start: 0, duration: 0.09, gain: 0.5, type: 'triangle' },
+    { freq: 659, start: 0.08, duration: 0.09, gain: 0.5, type: 'triangle' },
+    { freq: 784, start: 0.16, duration: 0.12, gain: 0.5, type: 'triangle' },
+    { freq: 1568, start: 0.22, duration: 0.2, gain: 0.25, type: 'sine' },
+  ],
+  celebrateBig: [
+    { freq: 523, start: 0, duration: 0.1, gain: 0.55, type: 'triangle' },
+    { freq: 659, start: 0.09, duration: 0.1, gain: 0.55, type: 'triangle' },
+    { freq: 784, start: 0.18, duration: 0.1, gain: 0.55, type: 'triangle' },
+    { freq: 1047, start: 0.27, duration: 0.14, gain: 0.55, type: 'triangle' },
+    { freq: 784, start: 0.42, duration: 0.5, gain: 0.35, type: 'sine' },
+    { freq: 1047, start: 0.42, duration: 0.5, gain: 0.35, type: 'sine' },
+    { freq: 1319, start: 0.42, duration: 0.5, gain: 0.35, type: 'sine' },
+    { freq: 2093, start: 0.5, duration: 0.3, gain: 0.18, type: 'sine' },
+  ],
 };
 
 type AudioContextCtor = typeof AudioContext;

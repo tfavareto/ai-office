@@ -83,8 +83,16 @@ export class Settings extends Popover {
   });
   private readonly browser = createSwitch(t('settings.browser'), (on) => void this.toggleBrowser(on));
   private readonly demo = createSwitch(t('settings.demo'), (on) => void this.toggleDemo(on));
+  private readonly celebrations = createSwitch(t('settings.celebrations'), (on) =>
+    ctxPrefs(this.ctx, { celebrations: on }),
+  );
   private readonly repo = createSwitch(t('settings.git'), (on) => ctxPrefs(this.ctx, { showGit: on }));
   private readonly pullRequests = createSwitch(t('settings.gitPr'), (on) => void this.togglePullRequests(on));
+  private readonly celebrationsRow = row(
+    t('settings.celebrations'),
+    this.celebrations.el,
+    t('settings.celebrations.hint'),
+  );
   private readonly languageRow = row(t('settings.language'), this.language);
   private readonly visualRow = row(t('settings.visual'), this.visual.el);
   private readonly soundRow: Row;
@@ -122,6 +130,7 @@ export class Settings extends Popover {
         row(t('settings.names'), this.names.el).el,
         row(t('settings.bubbles'), this.bubbles.el).el,
         row(t('settings.animation'), this.animation.el).el,
+        this.celebrationsRow.el,
         this.soundRow.el,
         this.browserRow.el,
         this.repoRow.el,
@@ -185,6 +194,7 @@ export class Settings extends Popover {
     this.names.set(prefs.showNames);
     this.bubbles.set(prefs.bubbles);
     this.animation.set(prefs.animation);
+    this.celebrations.set(prefs.celebrations);
     this.sounds.set(prefs.sounds);
     this.volume.value = String(Math.round(prefs.volume * 100));
     this.volume.disabled = !prefs.sounds;

@@ -24,9 +24,20 @@ type ArmPose =
   | 'out'
   | 'mouth'
   | 'gesture'
-  | 'raised';
+  | 'raised'
+  | 'chin'
+  | 'scratch'
+  | 'point'
+  | 'waveA'
+  | 'waveB'
+  | 'clapA'
+  | 'clapB'
+  | 'shakeA'
+  | 'shakeB'
+  | 'doc'
+  | 'tap';
 type LegPose = 'stand' | 'stepL' | 'stepR' | 'sit' | 'hidden';
-type Prop = 'cup' | 'popcorn' | 'book' | 'paddle' | 'stick' | null;
+type Prop = 'cup' | 'popcorn' | 'book' | 'paddle' | 'stick' | 'doc' | 'docFlip' | null;
 
 interface Rig {
   bob: number;
@@ -37,6 +48,8 @@ interface Rig {
   headDx: number;
   headDy: number;
   eyesClosed: boolean;
+  /** Mouth wide open (a yawn). */
+  yawn: boolean;
   prop: Prop;
 }
 
@@ -47,10 +60,10 @@ const FRAMES: Record<Pose, number> = {
   type: 2,
   hand: 2,
   coffee: 3,
-  celebrate: 2,
+  celebrate: 4,
   sleep: 2,
-  lean: 1,
-  stretch: 2,
+  lean: 2,
+  stretch: 3,
   popcorn: 2,
   talk: 3,
   listen: 2,
@@ -58,6 +71,15 @@ const FRAMES: Record<Pose, number> = {
   arcade: 2,
   read: 1,
   wash: 2,
+  readDoc: 4,
+  typeFast: 2,
+  think: 2,
+  point: 2,
+  scratch: 2,
+  wave: 2,
+  clap: 2,
+  highfive: 2,
+  shake: 2,
 };
 const FRAME_SECONDS: Partial<Record<Pose, number>> = {
   type: 0.16,
@@ -69,7 +91,17 @@ const FRAME_SECONDS: Partial<Record<Pose, number>> = {
   stretch: 0.9,
   listen: 0.9,
   hand: 0.35,
-  celebrate: 0.22,
+  celebrate: 0.17,
+  lean: 0.3,
+  readDoc: 0.55,
+  typeFast: 0.07,
+  think: 0.9,
+  point: 0.5,
+  scratch: 0.16,
+  wave: 0.2,
+  clap: 0.12,
+  highfive: 0.3,
+  shake: 0.22,
 };
 
 export function poseFrames(pose: Pose): number {
@@ -93,6 +125,7 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
     headDx: 0,
     headDy: 0,
     eyesClosed: false,
+    yawn: false,
     prop: null,
   };
   const back = dir === 'n';
@@ -131,7 +164,14 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
     case 'coffee':
       return { ...base, armR: 'cup', armL: 'down', prop: 'cup', headDy: frame === 1 ? 1 : 0, bob: 0 };
     case 'celebrate':
-      return { ...base, armL: 'up', armR: 'up', bob: frame === 1 ? -2 : 0 };
+      return {
+        ...base,
+        armL: frame === 2 ? 'raised' : 'up',
+        armR: frame === 0 ? 'raised' : 'up',
+        legs: frame % 2 === 1 ? 'stepL' : frame === 2 ? 'stepR' : 'stand',
+        bob: frame % 2 === 1 ? -3 : 0,
+        headDx: frame === 0 ? -1 : frame === 2 ? 1 : 0,
+      };
     case 'sleep':
       return {
         ...base,
@@ -144,9 +184,65 @@ function rigFor(pose: Pose, frame: number, dir: Dir): Rig {
         eyesClosed: true,
       };
     case 'lean':
-      return { ...base, sit: 5, legs: 'hidden', armL: 'head', armR: 'head', headDy: -1 };
+      return { ...base, sit: 5, legs: 'hidden', armL: 'head', armR: frame === 0 ? 'lap' : 'tap', headDy: -1 };
     case 'stretch':
-      return { ...base, sit: 3, legs: 'hidden', armL: 'up', armR: 'up', headDy: frame === 1 ? -1 : 0 };
+      return {
+        ...base,
+        sit: 3,
+        legs: 'hidden',
+        armL: 'up',
+        armR: 'up',
+        headDy: frame === 1 ? -1 : 0,
+        yawn: frame >= 1,
+        eyesClosed: frame === 1,
+      };
+    case 'readDoc':
+      return {
+        ...base,
+        sit: 3,
+        legs: 'hidden',
+        armL: 'doc',
+        armR: 'doc',
+        headDx: [0, 1, 0, -1][frame] ?? 0,
+        headDy: 1,
+        prop: frame === 3 ? 'docFlip' : 'doc',
+      };
+    case 'typeFast':
+      return {
+        ...base,
+        sit: 3,
+        legs: 'hidden',
+        armL: frame === 0 ? 'typeA' : 'typeB',
+        armR: frame === 0 ? 'typeB' : 'typeA',
+        headDy: 1,
+      };
+    case 'think':
+      return {
+        ...base,
+        sit: 3,
+        legs: 'hidden',
+        armL: 'forward',
+        armR: 'chin',
+        headDy: frame === 1 ? 1 : 0,
+        headDx: frame,
+      };
+    case 'point':
+      return { ...base, sit: 3, legs: 'hidden', armL: 'forward', armR: 'point', headDy: frame === 1 ? -1 : 0 };
+    case 'scratch':
+      return { ...base, sit: 3, legs: 'hidden', armL: 'forward', armR: 'scratch', headDy: 1, headDx: frame };
+    case 'wave':
+      return { ...base, armR: frame === 0 ? 'waveA' : 'waveB', bob: 0 };
+    case 'clap':
+      return {
+        ...base,
+        armL: frame === 0 ? 'clapA' : 'clapB',
+        armR: frame === 0 ? 'clapA' : 'clapB',
+        bob: frame === 1 ? -1 : 0,
+      };
+    case 'highfive':
+      return { ...base, armR: 'raised', armL: 'down', bob: frame === 1 ? -1 : 0 };
+    case 'shake':
+      return { ...base, armR: frame === 0 ? 'shakeA' : 'shakeB', armL: 'down' };
     case 'popcorn':
       return {
         ...base,
@@ -254,7 +350,8 @@ function headFront(p: Pen, look: Look, hx: number, hy: number, rig: Rig): void {
     p.r(hx + 2, hy + 5, w - 4, 1, look.skin);
     p.r(hx + 3, hy + 3, 2, 1, look.skin);
   } else {
-    p.r(hx + 3, hy + 6, 2, 1, mix(look.skin, '#8a3a3a', 0.4));
+    if (rig.yawn) p.r(hx + 3, hy + 5, 2, 3, '#5a1f24');
+    else p.r(hx + 3, hy + 6, 2, 1, mix(look.skin, '#8a3a3a', 0.4));
   }
   if (rig.eyesClosed) {
     p.r(hx + 1, hy + 4, 2, 1, '#2a2320');
@@ -432,6 +529,60 @@ function arm(
       p.r(px(out(3), 2), y, 2, 3, hand);
       break;
     }
+    case 'chin': {
+      p.r(px(ax, 2), y, 2, 3, sleeve);
+      p.r(px(out(-1), 3), y - 3, 2, 4, sleeve);
+      p.r(px(out(-1), 3), y - 5, 3, 2, hand);
+      break;
+    }
+    case 'scratch': {
+      p.r(px(ax, 2), y - 1, 2, 4, sleeve);
+      p.r(px(out(0), 2), y - 9, 2, 8, sleeve);
+      p.r(px(out(-1), 4), y - 12, 4, 2, hand);
+      break;
+    }
+    case 'point': {
+      p.r(px(ax, 2), y, 2, 3, sleeve);
+      p.r(px(out(1), 6), y - 1, 6, 2, sleeve);
+      p.r(px(out(7), 3), y - 2, 3, 2, hand);
+      break;
+    }
+    case 'waveA':
+    case 'waveB': {
+      const sway = kind === 'waveA' ? 0 : 2;
+      p.r(px(ax, 2), y - 1, 2, 4, sleeve);
+      p.r(px(out(0), 2), y - 9, 2, 9, sleeve);
+      p.r(px(out(sway - 1), 4), y - 12, 4, 3, hand);
+      break;
+    }
+    case 'clapA':
+    case 'clapB': {
+      const gap = kind === 'clapA' ? 3 : 0;
+      p.r(px(ax, 2), y, 2, 3, sleeve);
+      p.r(px(out(-1 - gap), 3), y + 1, 3, 2, sleeve);
+      p.r(px(out(-3 - gap), 2), y, 2, 3, hand);
+      break;
+    }
+    case 'shakeA':
+    case 'shakeB': {
+      const lift = kind === 'shakeA' ? 0 : 1;
+      p.r(px(ax, 2), y, 2, 3, sleeve);
+      p.r(px(out(1), 5), y + 1 - lift, 5, 2, sleeve);
+      p.r(px(out(6), 3), y - lift, 3, 3, hand);
+      break;
+    }
+    case 'doc': {
+      p.r(px(ax, 2), y, 2, 4, sleeve);
+      p.r(px(out(-2), 3), y + 1, 3, 2, sleeve);
+      p.r(px(out(-4), 2), y - 1, 2, 3, hand);
+      break;
+    }
+    case 'tap': {
+      p.r(px(ax, 2), y, 2, 5, sleeve);
+      p.r(px(out(-1), 3), y + 5, 3, 2, sleeve);
+      p.r(px(out(-3), 2), y + 4, 2, 2, hand);
+      break;
+    }
     case 'gesture': {
       p.r(px(ax, 2), y, 2, 3, sleeve);
       p.r(px(out(1), 3), y - 2, 3, 3, sleeve);
@@ -539,6 +690,11 @@ function props(p: Pen, rig: Rig, view: 'front' | 'back' | 'side'): void {
   } else if (rig.prop === 'paddle') {
     p.r(18, 14, 1, 5, '#7a4a26');
     p.r(17, 11, 3, 3, '#d8433f');
+  } else if ((rig.prop === 'doc' || rig.prop === 'docFlip') && view !== 'back') {
+    const flip = rig.prop === 'docFlip';
+    p.r(flip ? 7 : 8, 15 + rig.sit - 1, flip ? 10 : 8, 8, '#f4efe2');
+    p.r(flip ? 7 : 8, 15 + rig.sit - 1, flip ? 10 : 8, 1, '#c9c2b0');
+    for (let line = 0; line < 3; line++) p.r(10, 17 + rig.sit + line * 2, flip ? 5 : 4, 1, '#8a8473');
   } else if (rig.prop === 'book') {
     p.r(9, 20, 6, 4, '#8a5a2b');
     p.r(10, 21, 4, 2, '#f4efe2');

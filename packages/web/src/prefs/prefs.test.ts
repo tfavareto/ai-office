@@ -45,6 +45,16 @@ describe('parsePrefs', () => {
     expect(prefs.sounds).toBe(false);
   });
 
+  it('celebrates by default and validates the setting', () => {
+    expect(DEFAULT_PREFS.celebrations).toBe(true);
+    expect(parsePrefs({ celebrations: false }).celebrations).toBe(false);
+    expect(parsePrefs({ celebrations: 'no' }).celebrations).toBe(true);
+    expect(
+      toWorldOptions({ ...DEFAULT_PREFS, celebrations: false }, { followSelected: false, reducedMotion: false })
+        .celebrations,
+    ).toBe(false);
+  });
+
   it('survives broken JSON', () => {
     expect(parsePrefsJson('{oops')).toEqual(DEFAULT_PREFS);
     expect(parsePrefsJson(null)).toEqual(DEFAULT_PREFS);

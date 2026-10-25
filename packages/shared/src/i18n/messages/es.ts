@@ -157,6 +157,7 @@ export const es: Readonly<Record<SharedMessageKey, string>> = {
   'demo.task.10.title': 'Preparar el changelog',
   'demo.task.10.active': 'Preparando el changelog',
   'demo.cmd.test': 'Ejecutando las pruebas',
+  'demo.cmd.commit': 'Guardando los cambios (commit)',
   'demo.cmd.build': 'Compilando el proyecto',
   'demo.cmd.types': 'Comprobando los tipos',
   'demo.cmd.status': 'Viendo qué cambió',

@@ -41,6 +41,9 @@ import { stepWalker, RUN_FACTOR } from './camera/walker';
 import { Character3D } from './characters/character3d';
 import { FEMALE_MODELS, MALE_MODELS } from './characters/outfits';
 import { Crowd } from './characters/crowd';
+import { Confetti3D } from './fx/confetti3d';
+import { PingPongBall3D } from './fx/pingpongBall';
+import { emitCelebration } from '../world/celebration-bus';
 import { HumanLibrary } from './characters/humanLibrary';
 import { PortraitRenderer } from './characters/portrait';
 import { CityScene } from './exterior/city';
@@ -86,6 +89,8 @@ export class World3D implements WorldApi {
   private readonly overlay = new LabelOverlay();
   private readonly areas: AreaManager;
   private readonly crowd: Crowd;
+  private readonly confetti = new Confetti3D();
+  private readonly ball = new PingPongBall3D();
   private readonly city: CityScene;
   private readonly portraits: PortraitRenderer;
   private readonly world = new Group();
@@ -167,7 +172,14 @@ export class World3D implements WorldApi {
     this.crowd = new Crowd(parts.library, this.sim);
     this.city = new CityScene(parts.materials, parts.city);
     this.portraits = new PortraitRenderer(this.stage.renderer, parts.library);
-    this.world.add(this.areas.group, this.crowd.group, this.city.group, this.deskHint.group);
+    this.world.add(
+      this.areas.group,
+      this.crowd.group,
+      this.city.group,
+      this.deskHint.group,
+      this.confetti.group,
+      this.ball.group,
+    );
     this.stage.scene.add(this.world);
     this.applyOptions();
     this.stage.setPixelRatio(clamp(window.devicePixelRatio || 1, MIN_DPR, MAX_DPR));
@@ -301,6 +313,7 @@ export class World3D implements WorldApi {
       liveliness: this.options.liveliness,
       reducedMotion: this.options.reducedMotion,
       bubbles: this.options.bubbles,
+      celebrations: this.options.celebrations,
     });
     this.dayNight.setMode(this.options.daylight);
   }
@@ -490,6 +503,8 @@ export class World3D implements WorldApi {
     window.removeEventListener('blur', this.onBlur);
     this.areas.dispose();
     this.crowd.dispose();
+    this.confetti.dispose();
+    this.ball.dispose();
     this.city.dispose();
     this.stage.dispose();
     this.parts.materials.dispose();
@@ -521,6 +536,7 @@ export class World3D implements WorldApi {
     const t0 = performance.now();
 
     this.sim.advance(dt);
+    this.playEffects(dt);
     this.dayNight.update(dt);
     const night = this.dayNight.night;
     if (Math.abs(night - this.lastNight) > 0.002) {
@@ -567,6 +583,16 @@ export class World3D implements WorldApi {
     this.stage.render(this.rig.active as never, true);
     this.drawOverlay();
     this.drawMs += (performance.now() - t0 - this.drawMs) * 0.1;
+  }
+
+  /** Hands the effects the simulation asked for to the confetti pool and the page (sound), then moves the particles. */
+  private playEffects(dt: number): void {
+    for (const effect of this.sim.takeEffects()) {
+      if (effect.type === 'sound') emitCelebration(effect.big);
+      else this.confetti.apply(effect);
+    }
+    this.confetti.update(dt);
+    this.ball.update(this.sim.pingPongTables(), this.clock);
   }
 
   private onLayoutChanged(): void {
@@ -789,7 +815,7 @@ export class World3D implements WorldApi {
         emphasis,
         alert: c.alert && !b,
         arriving: c.hiring,
-        bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky } : null,
+        bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky, tone: b.tone } : null,
       });
     }
     items.sort((p, q) => p.sy - q.sy);

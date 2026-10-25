@@ -132,7 +132,8 @@ export function planWander(actor: Actor, ctx: WanderContext, rng: Rng): WanderRe
     { weight: 0.5, build: single('sink', 'bathrooms', 'wash', 4, 6) },
     { weight: 0.8, build: single('sofa', 'reception', 'sit', 10, 20) },
     { weight: 0.7, build: single('bench', 'corridor', 'sit', 8, 16) },
-    { weight: 3, build: pair('talk', null, 'talk', 9, 20) },
+    { weight: 2.4, build: pair('talk', 'copa-talk', 'talk', 10, 22) },
+    { weight: 2.4, build: pair('talk', null, 'talk', 9, 20) },
     { weight: 1.6, build: pair('pingpong', 'pingpong', 'play', 14, 26) },
   ];
 

@@ -43,6 +43,8 @@ import {
   DEMO_ACCOUNTS,
   DEMO_BRANCHES,
   DEMO_COMMANDS,
+  DEMO_COMMIT_COMMAND,
+  DEMO_TEST_COMMAND,
   DEMO_ERRORS,
   DEMO_GENERIC_PROMPT,
   DEMO_LONG_SHELLS,
@@ -103,6 +105,8 @@ interface Runtime {
   visitor: boolean;
   spec: DemoProjectSpec;
   lastErrorAt: number;
+  /** The last test run failed: the next one passes. */
+  testsFailing: boolean;
 }
 
 interface ProjectEntry {
@@ -460,6 +464,7 @@ class Simulator implements DemoSimulator {
       visitor,
       spec,
       lastErrorAt: 0,
+      testsFailing: false,
     });
     return id;
   }
@@ -700,7 +705,7 @@ class Simulator implements DemoSimulator {
 
   /** Runs a shell command; slow ones show up as foreground shells. Returns how long the agent is busy. */
   private runCommand(id: string, runtime: Runtime, at: number): number {
-    const command = pick(runtime.rng, DEMO_COMMANDS);
+    const command = this.pickCommand(runtime);
     this.emit(id, commandDraft(command), at);
     const duration = this.scale(command.durationMs);
     if (command.durationMs > 10_000) {
@@ -716,11 +721,34 @@ class Simulator implements DemoSimulator {
       this.update(id, (agent) => ({ ...agent, shells: [...agent.shells, job] }));
       this.queue.push(at + duration, () => this.removeShell(id, job.id));
     }
-    if (runtime.rng() < 0.22) {
-      const failure = pick(runtime.rng, DEMO_ERRORS);
-      this.queue.push(at + duration, (when) => this.fail(id, runtime, failure, when));
-    }
+    const failure = this.commandFailure(runtime, command);
+    if (failure !== null) this.queue.push(at + duration, (when) => this.fail(id, runtime, failure, when));
     return duration;
+  }
+
+  /** Tests and commits come up often enough that the office has something to celebrate within a couple of minutes. */
+  private pickCommand(runtime: Runtime): DemoCommand {
+    const roll = runtime.rng();
+    const byCommand = (text: string): DemoCommand => DEMO_COMMANDS.find((c) => c.command === text) ?? DEMO_COMMANDS[0]!;
+    if (roll < 0.46) return byCommand(DEMO_TEST_COMMAND);
+    if (roll < 0.58) return byCommand(DEMO_COMMIT_COMMAND);
+    const others = DEMO_COMMANDS.filter((c) => c.command !== DEMO_TEST_COMMAND && c.command !== DEMO_COMMIT_COMMAND);
+    return pick(runtime.rng, others);
+  }
+
+  /** A test run fails once, then passes; commits always work; other commands now and then break. */
+  private commandFailure(runtime: Runtime, command: DemoCommand): DemoError | null {
+    if (command.command === DEMO_TEST_COMMAND) {
+      if (runtime.testsFailing) {
+        runtime.testsFailing = false;
+        return null;
+      }
+      if (runtime.rng() >= 0.7) return null;
+      runtime.testsFailing = true;
+      return DEMO_ERRORS[0] as DemoError;
+    }
+    if (command.command === DEMO_COMMIT_COMMAND || runtime.rng() >= 0.14) return null;
+    return pick(runtime.rng, DEMO_ERRORS.slice(1));
   }
 
   private fail(id: string, runtime: Runtime, failure: DemoError, at: number): void {

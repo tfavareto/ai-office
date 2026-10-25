@@ -24,6 +24,8 @@ import { drawElevators } from './dynamic';
 import { drawAreaAnimated } from './animation';
 import { drawLighting } from './night';
 import { drawCharacters } from './characters';
+import { ConfettiSystem } from './fx/confetti';
+import { ballAt } from '../sim/pingpong';
 
 import type { DeskTarget } from '../sim/desks';
 
@@ -65,6 +67,7 @@ interface BoardCache {
 export class Renderer {
   readonly layers = new LayerCache();
   readonly traffic = new Traffic();
+  readonly confetti = new ConfettiSystem();
   private cars: CarDraw[] = [];
   private lit = new Map<string, number>();
   private boards = new Map<string, BoardCache>();
@@ -173,6 +176,7 @@ export class Renderer {
     this.drawDynamic(ctx, s, ordered, vis);
     drawCharacters(ctx, this, s, ordered, vis);
     if (s.night > 0.004) drawLighting(ctx, this, s, ordered, vis, this.cars);
+    this.confetti.draw(ctx, vis);
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -277,7 +281,22 @@ export class Renderer {
       this.drawPlaque(ctx, s, ac);
     }
     drawElevators(ctx, s.sim, vis);
+    this.drawPingPong(ctx, s, vis);
     this.drawTicker(ctx, s, vis);
+  }
+
+  /** The ping-pong ball: resting on the table, or flying between the players during a rally. */
+  private drawPingPong(ctx: Ctx, s: FrameState, vis: Rect): void {
+    for (const table of s.sim.pingPongTables()) {
+      const ball = ballAt(table, s.time);
+      const px = Math.round(ball.x * TILE);
+      const py = Math.round(ball.y * TILE);
+      if (px < vis.x - 4 || px > vis.x + vis.w + 4 || py < vis.y - 24 || py > vis.y + vis.h + 4) continue;
+      ctx.fillStyle = 'rgba(8,16,40,0.35)';
+      ctx.fillRect(px - 1, py + 1, 3, 1);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px - 1, py - Math.round(ball.z * TILE) - 1, 2, 2);
+    }
   }
 
   /** The branch plaque under a project room's sign (nothing for a folder that is not a repository). */

@@ -199,7 +199,11 @@ export class OverlayPass {
       const bubble = bubbles.get(c.agentId);
       const bubbleAlphaNow = bubble ? bubbleAlpha(bubble, sim.time) * c.alpha : 0;
       if (bubble && bubbleAlphaNow > 0.02 && (cam.zoom >= BUBBLE_MIN_ZOOM || bubble.sticky)) {
-        const tone = bubble.sticky ? 'alert' : bubble.importance >= 60 && bubble.icon === '✅' ? 'good' : 'normal';
+        const tone = bubble.sticky
+          ? 'alert'
+          : bubble.tone === 'good' || (bubble.importance >= 60 && bubble.icon === '✅')
+            ? 'good'
+            : 'normal';
         const sprite = sprites.bubble(bubbleText(bubble, text.tm), bubble.icon, tone);
         const priority = bubble.sticky
           ? Priority.AlertBubble
@@ -250,6 +254,22 @@ export class OverlayPass {
           spots: [
             { x: head.x + side, y: head.y + 2 - badge.h / 2 },
             { x: head.x - side - badge.w, y: head.y + 2 - badge.h / 2 },
+          ],
+          required: true,
+        });
+      } else if (c.celebrationBadge) {
+        const badge = sprites.badge('★', '#ffd23f');
+        const id = `badge:${c.agentId}`;
+        payloads.set(id, { sprite: badge, alpha: c.alpha, rise: 0, layer: 'badge' });
+        items.push({
+          id,
+          priority: Priority.Bubble,
+          w: badge.w,
+          h: badge.h,
+          spots: [
+            { x: head.x + 12 - badge.w / 2, y: head.y - 6 },
+            { x: head.x - 12 - badge.w / 2, y: head.y - 6 },
+            { x: head.x - badge.w / 2, y: head.y - 26 },
           ],
           required: true,
         });

@@ -198,7 +198,13 @@ export const DEMO_COMMANDS: readonly DemoCommand[] = [
   { command: 'npm run lint', description: localized('demo.cmd.lint'), durationMs: 4000 },
   { command: 'git diff --stat', description: localized('demo.cmd.diff'), durationMs: 1500 },
   { command: 'ls -la src', description: localized('demo.cmd.ls'), durationMs: 900 },
+  { command: 'git commit -am "feat: cart coupon"', description: localized('demo.cmd.commit'), durationMs: 1400 },
 ];
+
+/** The demo's test run: it fails the first time and passes the next, so the office gets its celebration. */
+export const DEMO_TEST_COMMAND = 'npm test';
+/** The demo's commit. */
+export const DEMO_COMMIT_COMMAND = 'git commit -am "feat: cart coupon"';
 
 export const DEMO_LONG_SHELLS: readonly { command: string; label: DemoText }[] = [
   { command: 'npm run dev', label: localized('demo.shell.dev') },

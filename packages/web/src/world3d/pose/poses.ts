@@ -107,13 +107,107 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   celebrate(w, c) {
-    const b = Math.abs(s(c.t, 1.8, c.phase));
-    w.offset(0, b * 0.07, 0);
-    w.pair('upperarm', -20, 0, 160).pair('lowerarm', -18);
-    w.pair('thigh', 0, 0, 0);
-    w.rot('head', -10);
+    // a jump on every beat, arms thrown up and swapping sides, a little sway of the shoulders
+    const beat = s(c.t, 2.2, c.phase);
+    const jump = Math.abs(beat);
+    const sway = s(c.t, 1.1, c.phase);
+    w.offset(0, jump * 0.13, 0);
+    w.pair('upperarm', -14, 0, 132 + sway * 14).pair('lowerarm', -10 + beat * 10);
+    w.pair('thigh', -jump * 10, 0, 0).pair('calf', jump * 16);
+    w.rot('spine_02', 0, sway * 10).rot('pelvis', 0, -sway * 8);
+    w.rot('head', -10, sway * 10);
     w.rot('spine_03', -4);
     w.curl(0.2);
+  },
+
+  typeFast(w, c) {
+    const k = s(c.t, 7.5, c.phase);
+    const k2 = s(c.t, 6.1, c.phase + 1.9);
+    w.rot('spine_01', 4).rot('spine_02', 5).rot('spine_03', 4);
+    w.reach('l', 0.13 + k * 0.014, 0.79 + k * 0.012, 0.36).reach('r', -0.13 - k2 * 0.014, 0.79 + k2 * 0.012, 0.36);
+    w.rot('hand_l', 12, 0, 0).rot('hand_r', 12, 0, 0);
+    w.rot('head', 10 + s(c.t, 0.3, c.phase) * 2, s(c.t, 0.11, c.phase) * 6);
+    w.curl(0.6 + k * 0.15, 0.6 + k2 * 0.15);
+  },
+
+  readDoc(w, c) {
+    // a page held up in both hands, the head sweeping along the lines
+    const scan = s(c.t, 0.55, c.phase);
+    const turn = Math.max(0, s(c.t, 0.14, c.phase)) * 0.03;
+    w.rot('spine_03', 5).rot('head', 14, scan * 14);
+    w.reach('l', 0.1, 1.0 + turn, 0.34).reach('r', -0.1, 1.0 + turn, 0.34);
+    w.rot('hand_l', -20, 0, 0).rot('hand_r', -20, 0, 0);
+    w.curl(0.5);
+  },
+
+  think(w, c) {
+    // one hand on the desk, the other at the chin, a slow tilt of the head
+    const tilt = s(c.t, 0.25, c.phase);
+    w.rot('spine_02', 3);
+    w.reach('l', 0.16, 0.79, 0.34);
+    w.reach('r', -0.05, 1.06 + tilt * 0.005, 0.15);
+    w.rot('head', 8 + tilt * 3, 8 + tilt * 6, tilt * 4);
+    w.curl(0.5, 0.35);
+  },
+
+  point(w, c) {
+    // an arm out toward the meeting room, with a nod every now and then
+    const nudge = s(c.t, 0.9, c.phase);
+    w.reach('l', 0.16, 0.79, 0.34);
+    w.rot('upperarm_r', -78 + nudge * 4, -26, -40).rot('lowerarm_r', -8);
+    w.rot('head', -2 + Math.max(0, nudge) * 6, -14);
+    w.curl(0.5, 0.0);
+  },
+
+  scratch(w, c) {
+    // a hand scratching the back of the head
+    const rub = s(c.t, 3.4, c.phase);
+    w.rot('spine_02', 2);
+    w.reach('l', 0.15, 0.79, 0.34);
+    w.reach('r', -0.12 + rub * 0.012, 1.3 + rub * 0.01, -0.02);
+    w.rot('head', 8, rub * 3, 4);
+    w.curl(0.5, 0.3);
+  },
+
+  wave(w, c) {
+    armsRelaxed(w);
+    breathe(w, c);
+    const hello = s(c.t, 2.6, c.phase);
+    w.rot('upperarm_r', -20, 0, -150 - 30).rot('lowerarm_r', -35 + hello * 14, 0, 0);
+    w.rot('hand_r', 0, 0, -hello * 22);
+    w.rot('head', 0, 8, 0);
+    w.curl(0.05, 0.4);
+  },
+
+  clap(w, c) {
+    armsRelaxed(w);
+    breathe(w, c);
+    const hit = Math.max(0, s(c.t, 3.6, c.phase));
+    w.rot('upperarm_l', -50, 0, 14 - hit * 10).rot('upperarm_r', -50, 0, -14 + hit * 10);
+    w.pair('lowerarm', -22 - hit * 6);
+    w.offset(0, hit * 0.012, 0);
+    w.rot('head', -4);
+    w.curl(0.15);
+  },
+
+  highfive(w, c) {
+    armsRelaxed(w);
+    breathe(w, c);
+    const slap = Math.max(0, s(c.t, 2.2, c.phase));
+    w.rot('upperarm_r', -95 - slap * 6, 0, -70).rot('lowerarm_r', -12);
+    w.rot('spine_02', 0, -8).rot('head', -4, -8);
+    w.curl(0.05, 0.0);
+  },
+
+  shake(w, c) {
+    armsRelaxed(w);
+    breathe(w, c);
+    const pump = s(c.t, 3.2, c.phase);
+    w.rot('upperarm_r', -48, 0, -34)
+      .rot('lowerarm_r', -42 + pump * 9)
+      .rot('hand_r', pump * 6, 0, 0);
+    w.rot('spine_02', 4).rot('head', 5, -6);
+    w.curl(0.3, 0.55);
   },
 
   sleep(w, c) {
@@ -127,10 +221,13 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
   },
 
   lean(w, c) {
+    // leaning back, one hand behind the head and the fingers of the other drumming on the armrest
     breathe(w, c);
+    const drum = s(c.t, 3.3, c.phase);
     w.rot('spine_01', -8).rot('spine_02', -8).rot('head', 6);
     w.pair('upperarm', 10, 55, -40).pair('lowerarm', -95);
-    w.curl(0.3);
+    w.rot('hand_r', drum * 8, 0, 0);
+    w.curl(0.3, 0.3 + Math.max(0, drum) * 0.4);
   },
 
   stretch(w, c) {
@@ -228,6 +325,16 @@ export function newTargetPose(): PoseVec {
 /** Poses in which the lower body is seated (no walking blend, hips lowered). */
 export function isSeatedPose(pose: Pose): boolean {
   return (
-    pose === 'sit' || pose === 'type' || pose === 'sleep' || pose === 'lean' || pose === 'stretch' || pose === 'popcorn'
+    pose === 'sit' ||
+    pose === 'type' ||
+    pose === 'typeFast' ||
+    pose === 'readDoc' ||
+    pose === 'think' ||
+    pose === 'point' ||
+    pose === 'scratch' ||
+    pose === 'sleep' ||
+    pose === 'lean' ||
+    pose === 'stretch' ||
+    pose === 'popcorn'
   );
 }

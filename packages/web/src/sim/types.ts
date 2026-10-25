@@ -19,7 +19,21 @@ export type Pose =
   | 'play'
   | 'arcade'
   | 'read'
-  | 'wash';
+  | 'wash'
+  // work, reactions and encounters (see `work.ts` and `encounters.ts`)
+  | 'readDoc'
+  | 'typeFast'
+  | 'think'
+  | 'point'
+  | 'scratch'
+  | 'wave'
+  | 'clap'
+  | 'highfive'
+  | 'shake';
+
+/** What the person is busy with, derived from the agent's activity: it picks the work pose and the little effects. */
+export type WorkMood =
+  'idle' | 'reading' | 'typing' | 'terminal' | 'web' | 'thinking' | 'delegating' | 'waiting' | 'frustrated';
 
 /** What the character is sitting on (renderers lower the body accordingly); null when standing. */
 export type SeatKind = SpotKind | null;
@@ -59,15 +73,28 @@ export interface Character {
   readonly alert: boolean;
   /** A placeholder for an agent being hired: not selectable, tagged "arriving". */
   readonly hiring: boolean;
+  /** What the person is doing at work (reading, typing, shell...); `idle` when not working. */
+  readonly mood: WorkMood;
+  /** A celebration is on: the person jumps and cheers (renderers add sparkles). */
+  readonly celebrating: boolean;
+  /** Reduced motion: a still badge stands in for the jumping and the confetti while a celebration lasts. */
+  readonly celebrationBadge: boolean;
 }
 
 export interface SimOptions {
   liveliness: 'calm' | 'normal' | 'lively';
   reducedMotion: boolean;
   bubbles: 'all' | 'important' | 'none';
+  /** Confetti, cheering and the interactions between people (settings: "Comemorações"). */
+  celebrations: boolean;
 }
 
-export const DEFAULT_SIM_OPTIONS: SimOptions = { liveliness: 'normal', reducedMotion: false, bubbles: 'important' };
+export const DEFAULT_SIM_OPTIONS: SimOptions = {
+  liveliness: 'normal',
+  reducedMotion: false,
+  bubbles: 'important',
+  celebrations: true,
+};
 
 /** Fixed simulation step: 30 Hz. */
 export const TICK = 1 / 30;

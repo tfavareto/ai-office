@@ -65,7 +65,7 @@ the source catalog the other two are translated from. Code, comments and docs in
 11. **Settings**: language (Automatic (system) / English / Português (Brasil) / Español; switches live, keeping
     selection, panels and camera; "Automatic" resolves from the browser languages: pt → Português, es → Español,
     otherwise English), visual (2D/3D; applies immediately), day and night (automatic/day/night), names above people,
-    bubbles (all/important/none), animation (calm/normal/lively), sounds (on/off + volume), browser notifications,
+    bubbles (all/important/none), animation (calm/normal/lively), celebrations (on/off), sounds (on/off + volume), browser notifications,
     demo mode (fake agents), about (version). Preferences live in the browser.
 12. **Help**: legend (statuses, icons), shortcuts, how to install the plugin.
 13. **Demo mode**: fake sessions that behave realistically (screenshots, first run with no sessions); the demo accounts also get ten weeks of believable hourly usage history. `?mock=1` runs a
@@ -171,6 +171,17 @@ the source catalog the other two are translated from. Code, comments and docs in
 Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
 Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, K task board (on a focused card: M moves it), O overview,
 H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1 min, Shift+arrows 10 min), [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection, then the time-lapse).
+
+## Alive office: work animations, celebrations and encounters
+- People look like what their agent is doing: reading a page, typing fast with tiny code glyphs, leaning back at a glowing terminal (and yawning during a long one),
+  a pulsing globe on the web, a thought bubble while thinking, pointing toward the meeting room when delegating, a raised hand and an amber pulse when waiting for you,
+  scratching the head with a "?" after repeated errors, stretching when idle.
+- Good moments are celebrated, tastefully and in both worlds: tests that pass after a failure, a finished task list, a successful `git commit`, a merged pull request, a
+  subagent that finishes well and a long work turn that ends. A confetti burst, a jumping person, a localized bubble ("Tudo pronto!"), clapping colleagues, an optional short
+  synthesized sound (only when sounds are on) and, when the last task of a room is done, a confetti shower over the whole room. Celebrations are rationed per person and for the whole office.
+- People interact: a main agent greets its subagent with a handshake in the meeting room and checks on it now and then, colleagues high-five when they celebrate together,
+  wave when they cross in the corridor, chat at the pantry with icon-only bubbles and play ping-pong with a moving ball. Real work always wins: anything that needs you cancels it.
+- Settings: **Celebrations** (on by default) and the animation level (calm / normal / lively). With reduced motion there are no particles or jumps, only a still badge.
 
 ## Non-goals
 Remote multi-user access; editing files; sending prompts to running sessions other than through the message feature (a

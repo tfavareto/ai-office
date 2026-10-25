@@ -15,6 +15,16 @@ pose blending (walk cycle, sit/type, raise hand, talk gestures, look at speaker)
 plants: CC0 glTF models under `public/assets/3d/{furniture,plants}` (Poly Haven CC0) plus procedural parts; textures
 under `public/assets/3d/textures` (Poly Haven CC0). City: Kenney CC0 kits under `public/assets/3d/city`.
 
+Work animations, celebrations and encounters come from the same simulation as in 2D (see [03-world-2d.md](03-world-2d.md#work-animations-celebrations-and-encounters)). In 3D each new `Pose`
+has a procedural solver in `pose/poses.ts` (`typeFast`, `readDoc` with a page held in both hands via two-bone IK, `think` and `scratch` with a hand reaching the chin or the head,
+`point`, `wave`, `clap`, `highfive`, `shake`; `celebrate` is a jump on every beat with arms thrown up and a sway; `lean` drums its fingers). `characters/personFx.ts` gives each person a few
+camera-facing sprites that are not rotated with the body: code glyphs rising from the desk, the thought bubble with animated dots, the pulsing globe, the "?" and the arrow toward the
+meeting room (placed on the meeting side in world x), sparkles, a green additive glow at the screen for the terminal, and an amber ring at the feet while waiting. The glyph textures are the
+2D bitmaps, nearest-filtered. `fx/confetti3d.ts` is the same confetti as 2D in one `InstancedMesh` of flat quads (1500-particle pool, CPU physics, floor at the carpet, colours per instance,
+unlit and not tone-mapped so it stays bright at night): bursts from the chest, showers from 3.3 m over a room, sparks for a high five. `fx/pingpongBall.ts` moves one small sphere per
+table with `ballAt`. With reduced motion the marks are still, particles and jumps are off, and a star badge shows instead. Bubbles of celebrations use the green "good" look; icon-only chat bubbles
+are narrow.
+
 Performance rules (must not regress visual quality): merge static geometry per material once a room stops animating,
 instancing for repeated parts, shader warm-up with `compileAsync` before showing new content, textures decoded off the
 main thread (ImageBitmap) and uploaded progressively, no empty draw calls, frustum culling, shadow map updated every

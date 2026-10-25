@@ -65,6 +65,7 @@ import { shouldInterrupt } from './model/notifications';
 import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
 import { SoundPlayer, type CueKind } from './sound';
+import { onCelebration } from '../world/celebration-bus';
 import {
   NARROW_BREAKPOINT,
   UiState,
@@ -668,6 +669,10 @@ export class App implements AppContext {
       if (changed.includes('visual')) void this.switchVisual(prefs.visual);
       this.applyWorldOptions();
       this.refresh();
+    });
+    // The sound of a celebration: only when sounds are on and the person did not ask not to be disturbed.
+    onCelebration(({ big }) => {
+      if (!this.prefs.get().dnd) this.cue(big ? 'celebrateBig' : 'celebrate');
     });
     this.reducedMotion.addEventListener('change', () => {
       this.applyWorldOptions();

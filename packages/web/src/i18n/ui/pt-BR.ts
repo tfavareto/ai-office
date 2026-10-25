@@ -923,6 +923,9 @@ export const uiPtBR = {
   'sidebar.room.branchDirty': 'Branch {branch}: alterações ainda não commitadas',
   'hover.room.branch': 'Branch {branch}',
   'settings.git': 'Mostrar status do Git',
+  'settings.celebrations': 'Comemorações',
+  'settings.celebrations.hint':
+    'Confete, pulinhos e um som curto quando algo dá certo (testes passando, tarefas prontas, commits).',
   'settings.gitPr': 'Consultar pull requests com o gh (usa a internet)',
   'settings.gitPr.hint':
     'É a única parte do AI Office que usa a internet, e só pelo seu próprio gh, enquanto estiver ligada.',

@@ -8,3 +8,7 @@ export { findPath, smoothPath, segmentClear } from './path';
 export type { Vec } from './path';
 export { TICK, DEFAULT_SIM_OPTIONS } from './types';
 export type { Character, Pose, SeatKind, SimOptions } from './types';
+export { ballAt, pingPongTables } from './pingpong';
+export type { Ball, PingPongTable } from './pingpong';
+export type { SimEffect, TileRect } from './effects';
+export type { WorkMood } from './types';

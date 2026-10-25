@@ -12,6 +12,7 @@ import {
 } from 'three';
 import type { Dir } from '../../layout/types';
 import type { Character, SeatKind } from '../../sim/types';
+import { PersonFx } from './personFx';
 import { Rig } from '../pose/rig';
 import { blendFactor, createPose, lerpPose } from '../pose/poseVec';
 import { solvePose } from '../pose/poses';
@@ -64,12 +65,16 @@ export interface PersonFrame {
   hovered: boolean;
   /** prefers-reduced-motion: no pulsing or bobbing. */
   still: boolean;
+  /** -1 / 1: on which side of the person (world x) the meeting room is. */
+  meetingSide: number;
 }
 
 const tmp = new Vector3();
 
 export class Character3D {
   readonly root = new Group();
+  /** Marks above the person (not rotated with it): code glyphs, thought bubble, pulses, sparkles. */
+  readonly fx: PersonFx;
   readonly choice: LookChoice;
   private readonly instance: HumanInstance;
   private readonly rig: Rig;
@@ -98,6 +103,7 @@ export class Character3D {
     this.root.add(this.instance.root);
     this.instance.root.scale.setScalar(this.choice.scale);
     this.rig = new Rig(this.instance.root);
+    this.fx = new PersonFx(1.85 * this.choice.scale, character.seed);
     this.selectRing = new Mesh(selectGeo, selectMaterial);
     this.selectRing.position.y = 0.025;
     this.selectRing.visible = false;
@@ -126,6 +132,9 @@ export class Character3D {
     const z = c.y * TILE_M;
     this.root.position.set(x, 0, z);
     this.root.visible = c.alpha > 0.12;
+    this.fx.root.position.set(x, 0, z);
+    this.fx.root.visible = this.root.visible;
+    if (this.root.visible) this.fx.update(c, f.time, f.still, f.meetingSide);
     this.ringVisible = false;
     if (!this.root.visible) return;
     this.updateYaw(c, x, z, f.dt);
@@ -192,7 +201,7 @@ export class Character3D {
     }
     this.cup.visible = c.carrying === 'cup';
     this.bucket.visible = c.pose === 'popcorn';
-    this.book.visible = c.pose === 'read';
+    this.book.visible = c.pose === 'read' || c.pose === 'readDoc';
     if (this.cup.visible) this.attach(this.cup, 'hand_r', 0.02, 0.0, 0.04);
     if (this.bucket.visible) this.attach(this.bucket, 'hand_l', 0.0, 0.0, 0.06);
     if (this.book.visible) this.attach(this.book, 'hand_l', 0.05, 0.0, 0.08);
@@ -223,6 +232,7 @@ export class Character3D {
   }
 
   dispose(): void {
+    this.fx.dispose();
     this.root.removeFromParent();
   }
 }

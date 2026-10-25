@@ -17,7 +17,14 @@ export interface BubbleCandidate {
   sticky: boolean;
   /** Seconds on screen for non-sticky bubbles. */
   ttl: number;
+  /** Shown with the happy look (a celebration). */
+  tone?: 'good';
+  /** Small talk between people (icons only): shown unless bubbles are off, and never in calm mode. */
+  ambient?: boolean;
 }
+
+/** A bubble as the simulation offers it for a person (the manager adds who and where). */
+export type BubbleSpec = Omit<BubbleCandidate, 'agentId' | 'roomId'>;
 
 export interface Bubble extends BubbleCandidate {
   /** Sim time (s) when the bubble became visible; fades are computed from it. */
@@ -169,6 +176,7 @@ export class BubbleManager {
 
   private allows(c: BubbleCandidate): boolean {
     if (this.mode === 'none') return false;
+    if (c.ambient) return this.liveliness !== 'calm';
     if (this.mode === 'important') return c.importance >= IMPORTANT_THRESHOLD;
     return true;
   }

@@ -157,6 +157,7 @@ export const ptBR = {
   'demo.task.10.title': 'Preparar o changelog',
   'demo.task.10.active': 'Preparando o changelog',
   'demo.cmd.test': 'Rodando os testes',
+  'demo.cmd.commit': 'Salvando as mudanças (commit)',
   'demo.cmd.build': 'Compilando o projeto',
   'demo.cmd.types': 'Checando os tipos',
   'demo.cmd.status': 'Vendo o que mudou',

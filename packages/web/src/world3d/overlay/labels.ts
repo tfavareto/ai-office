@@ -15,7 +15,7 @@ export interface TagItem {
   alert: boolean;
   /** A placeholder for an agent being hired: its tag ("arriving…") shows even when names are off. */
   arriving: boolean;
-  bubble: { text: string; icon: string; sticky: boolean } | null;
+  bubble: { text: string; icon: string; sticky: boolean; tone?: 'good' } | null;
 }
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -135,20 +135,22 @@ export class LabelOverlay {
   private bubble(b: NonNullable<TagItem['bubble']>): Sprite {
     const font = `500 12px ${FONT}`;
     const textW = Math.ceil(this.measure(font, b.text));
-    const w = Math.min(230, textW + 40);
+    const w = b.text === '' ? 36 : Math.min(230, textW + 40);
     const h = 26;
-    return this.sprite(`bub|${b.text}|${b.icon}|${b.sticky}`, w, h + 7, (ctx) => {
+    const fill = b.sticky ? '#ffd23c' : b.tone === 'good' ? '#dff7e8' : '#f7f4ec';
+    const edge = b.sticky ? '#c28a00' : b.tone === 'good' ? '#4fb583' : 'rgba(0,0,0,0.18)';
+    return this.sprite(`bub|${b.text}|${b.icon}|${b.sticky}|${b.tone ?? ''}`, w, h + 7, (ctx) => {
       roundRect(ctx, 0.5, 0.5, w - 1, h - 1, 9);
-      ctx.fillStyle = b.sticky ? '#ffd23c' : '#f7f4ec';
+      ctx.fillStyle = fill;
       ctx.fill();
-      ctx.strokeStyle = b.sticky ? '#c28a00' : 'rgba(0,0,0,0.18)';
+      ctx.strokeStyle = edge;
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(w / 2 - 5, h - 1);
       ctx.lineTo(w / 2, h + 6);
       ctx.lineTo(w / 2 + 5, h - 1);
       ctx.closePath();
-      ctx.fillStyle = b.sticky ? '#ffd23c' : '#f7f4ec';
+      ctx.fillStyle = fill;
       ctx.fill();
       ctx.font = `13px ${FONT}`;
       ctx.textBaseline = 'middle';

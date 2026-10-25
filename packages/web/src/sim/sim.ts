@@ -1,23 +1,29 @@
-import type { Agent, Msg, OfficeSnapshot } from '@ai-office/shared';
+import type { Agent, OfficeSnapshot } from '@ai-office/shared';
 import { computeBuilding } from '../layout/building';
 import { isWalkable, nearestWalkable } from '../layout/grid';
 import { clamp, hash32 } from '../layout/rng';
 import type { AreaLayout, BuildingLayout, RoomSpec, Spot, TilePos } from '../layout/types';
-import { Actor, approach, dirFromVector, type ActivityPlan } from './actor';
+import { Actor, approach, dirFromVector } from './actor';
 import { type DeskTarget, emptyDeskAt } from './desks';
 import { hireAgentId, placeholderAgent, waitingHires, withHireProjects } from './hires';
-import { activityImportance, BubbleManager, clipText, ALERT_IMPORTANCE, type Bubble } from './bubbles';
+import { activityImportance, BubbleManager, clipText, ALERT_IMPORTANCE, type Bubble, type BubbleSpec } from './bubbles';
 import { findPath, smoothPath, type Vec } from './path';
 import { RoomManager, type RoomMove, type RoomState } from './rooms';
 import { SpotBook } from './spots';
 import { DEFAULT_SIM_OPTIONS, TICK, type Character, type SimOptions } from './types';
-import { planWander, restDuration, type WanderResult } from './wander';
+import { Activities } from './activities';
+import { Party } from './party';
+import { EncounterRunner } from './runner';
+import { SHELL_STAGE_POSES, hasForegroundShell, meetingTiles, scheduleStretch, shellStage, startWave } from './social';
+import type { SimEffect } from './effects';
+import { seatedPoseFor, workMood } from './work';
+import { pingPongTables, type PingPongTable } from './pingpong';
 
 const SPEED: Record<SimOptions['liveliness'], number> = { calm: 1.6, normal: 2.0, lively: 2.5 };
 const ROOM_READY = 0.7;
+/** Seconds a departing subagent waits for the farewell handshake. */
+const FAREWELL_PATIENCE = 10;
 const MAX_STEPS_PER_ADVANCE = 12;
-/** Shell wait stages: lean back, stretch (1 min), popcorn (3 min), nap (8 min). */
-const SHELL_STAGE_SECONDS = [0, 60, 180, 480];
 
 interface ElevatorState {
   hold: number;
@@ -60,11 +66,55 @@ export class OfficeSim {
   private tickCount = 0;
   /** What the current building was computed from. */
   private builtKey = '';
+  private readonly party: Party;
+  private readonly runner: EncounterRunner;
+  private readonly activities: Activities;
+  /** Main agents with at least one subagent working (they look like they are delegating). */
+  private parentsWithWork = new Set<string>();
 
   constructor(seed = 1) {
     this.seed = seed;
     this.building = computeBuilding([]);
     this.relayout();
+    this.party = new Party(seed, {
+      now: () => this.time,
+      options: () => this.options,
+      actor: (id) => this.actors.get(id),
+      actors: () => this.list,
+      areaRect: (areaId) => this.building.areas.find((x) => x.id === areaId)?.rect ?? null,
+      bubble: (a, b) => this.offerBubble(a, b),
+    });
+    this.activities = new Activities({
+      now: () => this.time,
+      options: () => this.options,
+      spots: this.spots,
+      actors: () => this.list,
+      actor: (id) => this.actors.get(id),
+      walk: (a, tile) => this.startWalk(a, tile),
+      goHome: (a) => this.goHome(a),
+      walkToExit: (a) => this.walkToExit(a),
+      bubble: (a, spec) => this.offerBubble(a, spec),
+    });
+    this.runner = new EncounterRunner({
+      now: () => this.time,
+      actor: (id) => this.actors.get(id),
+      walk: (a, tile) => this.startWalk(a, tile),
+      goHome: (a) => this.goHome(a),
+      meetingTiles: (x, y) => meetingTiles(this.building.grid, x, y),
+      bubble: (a, icon, ttl) =>
+        this.offerBubble(a, { text: '', icon, importance: 40, sticky: false, ttl, ambient: true }),
+      spark: (x, y) => this.party.effects.push({ type: 'spark', x, y, seed: this.tickCount }),
+    });
+  }
+
+  /** Ping-pong tables and whether a rally is on (the renderers animate the ball). */
+  pingPongTables(): PingPongTable[] {
+    return pingPongTables(this.spots, (id) => this.actors.get(id));
+  }
+
+  /** Effects (confetti, sparks, sounds) requested since the last call. The world that owns this sim draws them. */
+  takeEffects(): readonly SimEffect[] {
+    return this.party.effects.take();
   }
 
   get characters(): readonly Character[] {
@@ -100,6 +150,7 @@ export class OfficeSim {
   setOptions(options: Partial<SimOptions>): void {
     this.options = { ...this.options, ...options };
     this.bubbleManager.configure(this.options.bubbles, this.options.liveliness);
+    this.party?.configure(this.options);
   }
 
   /** Area id containing a tile position, or null outside the building. */
@@ -126,6 +177,11 @@ export class OfficeSim {
     this.firstSnapshot = false;
     this.handOverHires(snapshot);
     const present = new Set<string>();
+    this.parentsWithWork = new Set(
+      snapshot.agents
+        .filter((a) => a.kind === 'sub' && a.status === 'working' && a.parentId)
+        .map((a) => a.parentId as string),
+    );
     for (const agent of snapshot.agents) {
       present.add(agent.id);
       const existing = this.actors.get(agent.id);
@@ -144,6 +200,7 @@ export class OfficeSim {
         this.updateAgent(actor, { ...actor.agent, status: 'offline' });
       }
     }
+    this.party.observe(snapshot);
   }
 
   /** Forgets everybody and every room; the next snapshot is placed at once (see `WorldApi.resetScene`). */
@@ -156,6 +213,7 @@ export class OfficeSim {
     this.list = [];
     this.bubbleList = [];
     this.rooms.reset();
+    this.party.reset();
     this.firstSnapshot = true;
   }
 
@@ -228,12 +286,13 @@ export class OfficeSim {
   }
 
   private onLayoutChanged(actor: Actor): void {
+    if (actor.encounter) this.runner.cancel(actor);
     if (actor.home) actor.home = this.spots.get(actor.home.id) ?? null;
-    if (actor.activity && actor.activity.steps.some((s) => !this.spots.get(s.spot.id))) this.cancelActivity(actor);
+    if (actor.activity && actor.activity.steps.some((s) => !this.spots.get(s.spot.id))) this.activities.cancel(actor);
     if (actor.leaving || actor.phase === 'arriving' || actor.phase === 'exiting') return;
     if (actor.phase === 'toExit') this.walkToExit(actor);
     else if (actor.phase === 'toHome' || actor.phase === 'waitRoom' || !actor.home) this.goHome(actor);
-    else if (actor.phase === 'toActivity' && actor.activity) this.walkToStep(actor);
+    else if (actor.phase === 'toActivity' && actor.activity) this.activities.walkToStep(actor);
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -313,10 +372,7 @@ export class OfficeSim {
       this.beginLeave(actor, agent.status === 'done');
   }
 
-  private offerBubble(
-    actor: Actor,
-    b: { text: string; msg?: Msg; icon: string; importance: number; sticky: boolean; ttl: number },
-  ): void {
+  private offerBubble(actor: Actor, b: BubbleSpec): void {
     this.bubbleManager.offer({ agentId: actor.id, roomId: actor.areaId ?? 'corridor', ...b }, this.time);
   }
 
@@ -379,6 +435,7 @@ export class OfficeSim {
       this.relayout();
       for (const move of update.moves) this.onRoomMoved(move);
     }
+    if (this.tickCount % 15 === 0) this.planSocial();
     if (this.tickCount % 3 === 0) {
       this.bubbleList = this.bubbleManager.update(this.time, (id) => {
         const a = this.actors.get(id);
@@ -401,18 +458,25 @@ export class OfficeSim {
   private updateActor(a: Actor, dt: number): void {
     a.poseT += dt;
     if (a.phase !== 'arriving') a.areaId = this.areaAt(a.x, a.y);
+    a.celebrating = this.time < a.partyUntil && !this.options.reducedMotion;
+    a.celebrationBadge = this.options.reducedMotion && this.time < a.badgeUntil;
+    if (a.phase !== 'atHome') a.mood = 'idle';
+    if (a.encounter && this.runner.update(a)) return;
     switch (a.phase) {
       case 'arriving':
         return this.tickArriving(a, dt);
       case 'toHome':
       case 'waitRoom':
       case 'toActivity':
+      case 'toMeet':
       case 'toExit':
         return this.tickWalking(a, dt);
+      case 'meeting':
+        return;
       case 'atHome':
         return this.tickAtHome(a, dt);
       case 'doing':
-        return this.tickDoing(a, dt);
+        return this.activities.tick(a, dt);
       case 'exiting':
         return this.tickExiting(a, dt);
     }
@@ -488,13 +552,25 @@ export class OfficeSim {
       }
       return;
     }
+    if (this.time < a.pauseUntil) {
+      a.moving = false;
+      a.setPose(a.pausePose);
+      return;
+    }
+    if (a.pauseUntil > 0) {
+      a.pauseUntil = 0;
+      a.moving = true;
+      a.setPose('walk');
+    }
     if (!this.stepPath(a, dt)) return;
     a.moving = false;
     a.setPose('stand');
     if (a.phase === 'toHome') {
       a.phase = 'atHome';
       a.leaveTile = a.home?.approach ?? a.tile();
-    } else if (a.phase === 'toActivity') this.arriveAtStep(a);
+      if (a.kind === 'sub' && a.home?.kind === 'meeting') this.party.director.noteArrival(a.id, this.time);
+    } else if (a.phase === 'toMeet') this.runner.arrived(a);
+    else if (a.phase === 'toActivity') this.activities.arriveAtStep(a);
     else if (a.phase === 'toExit') {
       a.phase = 'exiting';
       a.exitT = 0;
@@ -553,37 +629,79 @@ export class OfficeSim {
     if (!home || !this.spots.get(home.id)) return this.goHome(a);
 
     const status = a.agent.status;
-    const celebrating = this.time < a.celebrateUntil;
-    const standing = status === 'waiting' || celebrating || !home.seat;
+    const celebrating = this.time < a.celebrateUntil || a.celebrating;
+    const meeting = a.encounter?.endsAt != null;
+    const reacting = this.time < a.reactUntil && status === 'idle';
+    const stretching = this.time < a.microUntil && status === 'idle';
+    const standing = status === 'waiting' || celebrating || meeting || reacting || !home.seat;
     const tx = home.x;
     const ty = home.y + (home.seat && standing ? 0.34 : 0);
     if (Math.hypot(a.x - home.x, a.y - home.y) > 2.5) return this.goHome(a);
     a.moving = approach(a, tx, ty, 2.4, dt) ? false : true;
-    a.dir = a.moving ? dirFromVector(tx - a.x, ty - a.y, a.dir) : home.dir;
+    const face = meeting ? a.encounter?.face : reacting ? a.reactFace : undefined;
+    a.dir = a.moving ? dirFromVector(tx - a.x, ty - a.y, a.dir) : (face ?? home.dir);
     a.seat = home.seat && !standing ? home.kind : null;
     a.alert = status === 'waiting';
     a.shellStage = 0;
     a.carrying = null;
+    a.mood = workMood(a.agent, {
+      now: this.serverNow(),
+      foregroundShell: hasForegroundShell(a.agent),
+      workingSubagents: this.parentsWithWork.has(a.id),
+    });
     if (a.moving) {
       a.setPose(standing ? 'stand' : 'sit');
       return;
     }
+    if (meeting) return;
     if (status === 'waiting') a.setPose('hand');
     else if (celebrating) a.setPose('celebrate');
-    else if (status === 'working') {
-      a.shellStage = this.shellStage(a.agent);
-      const stagePose = ['lean', 'stretch', 'popcorn', 'sleep'] as const;
-      if (a.shellStage >= 0 && this.hasForegroundShell(a.agent) && home.seat) a.setPose(stagePose[a.shellStage]);
-      else a.setPose(home.seat ? 'type' : 'stand');
-    } else a.setPose(home.seat ? 'sit' : 'stand');
+    else if (reacting) a.setPose('clap');
+    else if (status === 'working') this.workPose(a, home);
+    else if (stretching) a.setPose('stretch');
+    else {
+      a.setPose(home.seat ? 'sit' : 'stand');
+      if (!a.hiring && home.seat && !this.options.reducedMotion) scheduleStretch(a, this.time, this.options.liveliness);
+    }
 
-    if (status === 'idle' && !a.hiring && !this.options.reducedMotion && !celebrating && this.time >= a.idleDue)
-      this.tryWander(a);
+    if (
+      status === 'idle' &&
+      !a.hiring &&
+      !a.encounter &&
+      !this.options.reducedMotion &&
+      !celebrating &&
+      !reacting &&
+      !stretching &&
+      this.time >= a.idleDue
+    )
+      this.activities.tryWander(a);
     if ((home.kind === 'wait' || home.kind === 'overflow' || home.kind === 'talk') && (a.stageTimer += dt) > 2) {
       a.stageTimer = 0;
       const better = this.assignBetterHome(a);
       if (better) this.goHome(a);
     }
+  }
+
+  /** The pose of a working person: shell stages first, then the pose of what the agent is busy with. */
+  private workPose(a: Actor, home: Spot): void {
+    a.shellStage = shellStage(a.agent, this.serverNow());
+    if (!home.seat) return a.setPose('stand');
+    if (hasForegroundShell(a.agent)) return a.setPose(SHELL_STAGE_POSES[a.shellStage] ?? 'lean');
+    a.setPose(seatedPoseFor(a.mood, a.agent.activity?.kind));
+  }
+
+  /** Once a second: orders new encounters, waves in the corridor and farewells. */
+  private planSocial(): void {
+    if (this.options.reducedMotion || this.list.length < 2) return;
+    const views = this.party.views();
+    for (const order of this.party.director.plan(views, this.time)) this.runner.start(order);
+    for (const pair of this.party.director.waves(views, this.time)) this.waveAt(pair.a, pair.b);
+  }
+
+  private waveAt(idA: string, idB: string): void {
+    const a = this.actors.get(idA);
+    const b = this.actors.get(idB);
+    if (a && b) startWave(a, b, this.time);
   }
 
   private assignBetterHome(a: Actor): boolean {
@@ -600,179 +718,52 @@ export class OfficeSim {
     return false;
   }
 
-  private hasForegroundShell(agent: Agent): boolean {
-    return agent.shells.some((s) => !s.background && s.kind === 'shell');
-  }
-
-  private shellStage(agent: Agent): number {
-    const started = agent.shells.filter((s) => !s.background && s.kind === 'shell').map((s) => s.startedAt);
-    if (started.length === 0) return 0;
-    const elapsed = (this.serverNow() - Math.min(...started)) / 1000;
-    let stage = 0;
-    SHELL_STAGE_SECONDS.forEach((threshold, i) => {
-      if (elapsed >= threshold) stage = i;
-    });
-    return stage;
-  }
-
   private tickLeavingAtHome(a: Actor, dt: number): void {
     const home = a.home;
-    if (home && this.time < a.celebrateUntil) {
+    const hosting = a.encounter !== null;
+    if (home && (hosting || this.time < a.celebrateUntil)) {
       approach(a, home.x, home.y + (home.seat ? 0.34 : 0), 2.4, dt);
-      a.setPose('celebrate');
+      if (!hosting) a.setPose('celebrate');
+      else if (a.encounter?.endsAt === null) a.setPose('stand');
       a.seat = null;
     }
-    if (this.time < a.leaveAt) return;
+    if (a.holdLeaveUntil > 0 && !hosting) {
+      a.holdLeaveUntil = 0;
+      a.leaveAt = Math.min(a.leaveAt, this.time + 0.5);
+    }
+    if (hosting || this.time < a.leaveAt) return;
     this.walkToExit(a);
-  }
-
-  // ---------------------------------------------------------------------------------------------------------------
-  // activities
-
-  private tryWander(a: Actor): void {
-    const result = planWander(a, { spots: this.spots, actors: this.list, now: this.time }, a.rng);
-    if (!result) {
-      a.idleDue = this.time + 6 + a.rng.range(0, 6);
-      return;
-    }
-    this.beginPlan(a, result);
-  }
-
-  private beginPlan(a: Actor, result: WanderResult): void {
-    const claimAll = (actor: Actor, plan: ActivityPlan): boolean => {
-      const first = plan.steps[0].spot;
-      return this.spots.claim(first.id, actor.id);
-    };
-    if (!claimAll(a, result.plan)) return;
-    if (result.partner && !claimAll(result.partner.actor, result.partner.plan)) {
-      this.spots.release(result.plan.steps[0].spot.id, a.id);
-      return;
-    }
-    this.startPlan(a, result.plan);
-    if (result.partner) this.startPlan(result.partner.actor, result.partner.plan);
-  }
-
-  private startPlan(a: Actor, plan: ActivityPlan): void {
-    a.activity = plan;
-    a.phase = 'toActivity';
-    a.leaveTile = a.home?.approach ?? a.leaveTile;
-    this.walkToStep(a);
-  }
-
-  private walkToStep(a: Actor): void {
-    const step = a.activity?.steps[a.activity.index];
-    if (!step) return this.goHome(a);
-    if (!this.startWalk(a, step.spot.approach)) {
-      this.cancelActivity(a);
-      this.goHome(a);
-    }
-  }
-
-  private arriveAtStep(a: Actor): void {
-    const plan = a.activity;
-    const step = plan?.steps[plan.index];
-    if (!plan || !step) return this.goHome(a);
-    a.phase = 'doing';
-    a.moving = false;
-    plan.ready = false;
-    plan.endsAt = null;
-    a.setPose('stand');
-  }
-
-  private tickDoing(a: Actor, dt: number): void {
-    const plan = a.activity;
-    const step = plan?.steps[plan.index];
-    if (!plan || !step) return this.goHome(a);
-    if (a.leaving) return this.walkToExit(a);
-    const interrupted = a.agent.status !== 'idle' || this.options.reducedMotion;
-    if (interrupted) {
-      this.cancelActivity(a);
-      return this.goHome(a);
-    }
-    const spot = step.spot;
-    if (!plan.ready) {
-      if (approach(a, spot.x, spot.y, 2.4, dt)) {
-        plan.ready = true;
-        a.dir = spot.dir;
-        a.seat = spot.seat ? spot.kind : null;
-        a.carrying = step.carry ?? null;
-        a.leaveTile = spot.approach;
-        a.setPose(step.pose);
-      } else {
-        a.dir = dirFromVector(spot.x - a.x, spot.y - a.y, a.dir);
-        return;
-      }
-    }
-    const partner = plan.partnerId ? this.actors.get(plan.partnerId) : undefined;
-    if (plan.partnerId) {
-      const theirs = partner?.activity;
-      if (!partner || !theirs || partner.leaving || (partner.phase !== 'doing' && partner.phase !== 'toActivity')) {
-        this.finishActivity(a);
-        return;
-      }
-      if (plan.endsAt === null) {
-        if (!(partner.phase === 'doing' && theirs.ready)) return;
-        const endsAt = this.time + step.dur;
-        plan.endsAt = endsAt;
-        theirs.endsAt = endsAt;
-      }
-    } else if (plan.endsAt === null) plan.endsAt = this.time + step.dur;
-
-    if (step.pose === 'talk' || step.pose === 'listen') {
-      const turn = Math.floor((this.time + (step.pose === 'talk' ? 0 : 3.4)) / 3.4) % 2;
-      a.setPose(turn === 0 ? 'talk' : 'listen');
-    }
-    if (plan.endsAt !== null && this.time >= plan.endsAt) this.nextStep(a);
-  }
-
-  private nextStep(a: Actor): void {
-    const plan = a.activity;
-    if (!plan) return;
-    const nextIndex = plan.index + 1;
-    const next = plan.steps[nextIndex];
-    if (next && this.spots.claim(next.spot.id, a.id)) {
-      this.spots.release(plan.steps[plan.index].spot.id, a.id);
-      plan.index = nextIndex;
-      a.phase = 'toActivity';
-      this.walkToStep(a);
-      return;
-    }
-    this.finishActivity(a);
-  }
-
-  private finishActivity(a: Actor): void {
-    this.cancelActivity(a);
-    a.idleDue = this.time + restDuration(a.rng, this.options.liveliness);
-    this.goHome(a);
-  }
-
-  private cancelActivity(a: Actor): void {
-    const plan = a.activity;
-    if (!plan) return;
-    for (const step of plan.steps) this.spots.release(step.spot.id, a.id);
-    a.activity = null;
-    a.carrying = null;
-    a.seat = null;
   }
 
   // ---------------------------------------------------------------------------------------------------------------
   // leaving
 
   private beginLeave(a: Actor, celebrate: boolean): void {
+    if (a.encounter) this.runner.cancel(a);
     a.leaving = true;
     a.celebrateUntil = celebrate && a.phase === 'atHome' ? this.time + 1.8 : 0;
     a.leaveAt = this.time + a.rng.range(0.4, 2.2) + (a.celebrateUntil > 0 ? 1.8 : 0);
     this.bubbleManager.withdrawSticky(a.id);
     if (a.phase === 'doing' || a.phase === 'toActivity') {
-      this.cancelActivity(a);
+      this.activities.cancel(a);
       a.leaveAt = this.time + 0.2;
     }
     if (a.phase === 'arriving' || a.phase === 'waitRoom' || a.phase === 'toHome') a.leaveAt = this.time + 0.2;
     if (a.phase === 'arriving' && this.time < a.arriveAt) a.remove = true;
     if (a.phase !== 'atHome') this.walkToExit(a);
+    else if (celebrate && a.kind === 'sub' && !this.options.reducedMotion) this.tryFarewell(a);
+  }
+
+  /** A subagent that finished well says goodbye to its main agent with a handshake, if the main agent can come. */
+  private tryFarewell(a: Actor): void {
+    a.holdLeaveUntil = this.time + FAREWELL_PATIENCE;
+    const order = this.party.director.farewell(this.party.views(), a.id, this.time);
+    if (order && this.runner.start(order)) a.leaveAt = Math.max(a.leaveAt, this.time + FAREWELL_PATIENCE);
+    else a.holdLeaveUntil = 0;
   }
 
   private walkToExit(a: Actor): void {
+    if (a.encounter) this.runner.cancel(a);
     this.spots.releaseAll(a.id);
     a.activity = null;
     a.home = null;

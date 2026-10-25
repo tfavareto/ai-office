@@ -3,7 +3,8 @@ import type { Dir, Spot, TilePos } from '../layout/types';
 import { Rng } from '../layout/rng';
 import { isHireAgentId } from './hires';
 import type { Vec } from './path';
-import type { Character, Pose, SeatKind } from './types';
+import type { EncounterState } from './runner';
+import type { Character, Pose, SeatKind, WorkMood } from './types';
 
 export type Phase =
   | 'arriving' // waiting for / stepping out of the elevator
@@ -11,6 +12,8 @@ export type Phase =
   | 'waitRoom' // room still being built: waiting in front of its door
   | 'atHome'
   | 'toActivity'
+  | 'toMeet' // walking to an encounter (handshake, check-in, high five)
+  | 'meeting' // arrived: performing the greeting
   | 'doing'
   | 'toExit'
   | 'exiting';
@@ -52,6 +55,13 @@ export class Actor implements Character {
   shellStage = 0;
   carrying: 'cup' | null = null;
   alert = false;
+  mood: WorkMood = 'idle';
+  celebrating = false;
+  celebrationBadge = false;
+  /** A celebration (confetti) lasts until this time: the person jumps and cheers. */
+  partyUntil = 0;
+  /** Reduced motion: the still badge shows until this time. */
+  badgeUntil = 0;
 
   phase: Phase = 'arriving';
   path: Vec[] = [];
@@ -73,6 +83,21 @@ export class Actor implements Character {
   prevStatus: AgentStatus;
   /** Time spent waiting for a room to be built (re-check throttle). */
   waitCheck = 0;
+  /** The encounter this person is part of (greeting, check-in, high five), if any. */
+  encounter: EncounterState | null = null;
+  /** While walking, stop and hold `pausePose` until this time (a wave in the corridor). */
+  pauseUntil = 0;
+  pausePose: Pose = 'wave';
+  /** Colleagues react to a celebration until this time (clapping, facing `reactFace`). */
+  reactUntil = 0;
+  reactFace: Dir = 's';
+  /** Next idle stretch at the desk, and when the current one ends. */
+  microDue = 0;
+  microUntil = 0;
+  /** A subagent about to leave waits for its farewell handshake until this time. */
+  holdLeaveUntil = 0;
+  /** Turn counter of a chat, so each new turn gets one bubble. */
+  chatTurn = -1;
   /** Desk (index in the room) this person was asked to sit at: a hire placeholder, and the agent that takes it over. */
   preferredDesk: number | undefined;
 

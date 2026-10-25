@@ -4,6 +4,7 @@ import { TILE } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import type { DeskTarget } from '../sim/desks';
 import { OfficeSim } from '../sim/sim';
+import { emitCelebration } from '../world/celebration-bus';
 import {
   DEFAULT_WORLD_OPTIONS,
   type CameraMode,
@@ -195,6 +196,7 @@ export class World2D implements WorldApi {
       liveliness: this.options.liveliness,
       reducedMotion: this.options.reducedMotion,
       bubbles: this.options.bubbles,
+      celebrations: this.options.celebrations,
     });
     this.dayNight.setMode(this.options.daylight);
   }
@@ -403,6 +405,7 @@ export class World2D implements WorldApi {
     if (dt > 0) this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;
 
     this.sim.advance(dt);
+    this.playEffects(dt);
     this.dayNight.update(dt);
     this.updateCamera(dt);
     const t0 = performance.now();
@@ -412,6 +415,15 @@ export class World2D implements WorldApi {
     this.overlay.draw(this.ctx, this.sprites, state);
     this.ctx.restore();
     this.drawMs += (performance.now() - t0 - this.drawMs) * 0.1;
+  }
+
+  /** Hands the effects the simulation asked for to the confetti pool and the page (sound), then moves the particles. */
+  private playEffects(dt: number): void {
+    for (const effect of this.sim.takeEffects()) {
+      if (effect.type === 'sound') emitCelebration(effect.big);
+      else this.renderer.confetti.apply(effect);
+    }
+    this.renderer.confetti.update(dt);
   }
 
   private frameState(dt: number): FrameState {

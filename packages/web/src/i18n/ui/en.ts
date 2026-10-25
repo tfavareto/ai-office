@@ -921,6 +921,9 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'sidebar.room.branchDirty': 'Branch {branch}: uncommitted changes',
   'hover.room.branch': 'Branch {branch}',
   'settings.git': 'Show Git status',
+  'settings.celebrations': 'Celebrations',
+  'settings.celebrations.hint':
+    'Confetti, cheering and a short sound when something goes well (tests fixed, tasks done, commits).',
   'settings.gitPr': 'Look up pull requests with gh (uses the internet)',
   'settings.gitPr.hint':
     'This is the only part of AI Office that uses the internet, and only through your own gh while it is on.',

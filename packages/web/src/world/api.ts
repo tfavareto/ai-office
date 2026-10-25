@@ -24,6 +24,8 @@ export interface WorldOptions {
   hireEnabled: boolean;
   /** Draw the repository state of each room (the plaque under the sign and the branch on the pill). */
   showGit: boolean;
+  /** Confetti, cheering and the sound of a celebration (settings: "Comemorações"). */
+  celebrations: boolean;
 }
 
 /** Free area (CSS px) not covered by panels: camera focus and overview fit inside it. */
@@ -117,4 +119,5 @@ export const DEFAULT_WORLD_OPTIONS: WorldOptions = {
   reducedMotion: false,
   hireEnabled: false,
   showGit: true,
+  celebrations: true,
 };
