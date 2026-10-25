@@ -13,9 +13,9 @@
 
 **Your Claude Code agents, at work in a live office.**
 
-AI Office turns the Claude Code sessions running on your computer into a corporate office you can watch in real time. Every project becomes a room, every session is a person at a desk, and subagents are colleagues who walk into the meeting room, work and leave.
+AI Office turns the Claude Code sessions running on your computer (and your Codex sessions) into a corporate office you can watch in real time. Every project becomes a room, every session is a person at a desk, and subagents are colleagues who walk into the meeting room, work and leave.
 
-You see who is working, who needs you and who is waiting on a shell. You answer permission requests, send instructions and review your day without switching terminals. **Everything runs on `127.0.0.1`; nothing leaves your computer.**
+You see who is working, who needs you and who is waiting on a shell. You answer permission requests, send instructions and review your day without switching terminals. **Everything runs on `127.0.0.1`; nothing leaves your computer unless you turn on an opt-in feature.**
 
 <p align="center">
   <a href="#install"><strong>INSTALL WITH ONE PROMPT →</strong></a>
@@ -38,7 +38,7 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 </p>
 
 <p align="center">
-  <strong>Claude Code</strong> CLI + desktop / several accounts / <strong>macOS + Linux</strong>
+  <strong>Claude Code</strong> CLI + desktop / <strong>Codex</strong> / several accounts / <strong>macOS + Linux</strong>
   <br />
   <strong>2D pixel art</strong> by default / optional <strong>3D</strong> / 100% local
   <br />
@@ -59,10 +59,12 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 | **I use more than one Claude account** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Every account in the same office, plugin installed in each one |
 | **I want to start agents from the office** | [Run your team](#team) | Hire agents at empty desks, triage the inbox, follow the task board, automate approvals |
 | **I want to know where my tokens and time go** | [Usage, reports and Git](#insights) | Usage by day, week and month, limit forecast, day report, Git state per room, time-lapse |
+| **I want the office to feel alive and mine** | [An office with personality](#delight) | Celebrations, interactions, levels and decor, customization, a share card |
+| **I use Codex too, or work with a team** | [Codex and team mode](#reach) | Codex sessions in the same office; several computers in one office over the local network |
 | **Something is not working** | [Troubleshooting](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | A read-only diagnosis first, then fixes you approve |
 | **I want to contribute** | [Contributing](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Dev setup, checks and conventions |
 
-**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [Insights](#insights) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
+**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [Insights](#insights) · [Personality](#delight) · [Codex and team](#reach) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
 
 <a id="install"></a>
 
@@ -237,9 +239,44 @@ Everything here is computed on your computer from the files Claude Code already 
 
 The [user guide](docs/02-using-the-office.md) details each view; the [privacy guide](docs/05-privacy-and-security.md) lists what the usage index and the report keep on disk (numbers per project and session, never conversation text).
 
+<a id="delight"></a>
+
+## 06 / An office with personality
+
+<p align="center">
+  <img src="docs/assets/readme/en/celebration.gif" alt="An agent finishes its tasks: confetti bursts from both sides, the person jumps with arms up and the colleagues in the room clap." width="1200" loading="lazy" />
+</p>
+
+The office reacts to the work, not only to the status, and it becomes yours over time.
+
+| What | How it shows up |
+|---|---|
+| **People act out their work** | Reading holds a page, editing types fast with tiny code glyphs, a long shell leans back and taps, thinking shows a bubble, waiting for you raises a hand, repeated errors scratch the head, idle agents take a coffee break |
+| **Celebrations** | Tests passing after a failure, a finished task list, a commit or a merged pull request set off confetti from both sides, a jump and colleagues clapping; a room that finishes everything gets a confetti shower. **Settings → Celebrations**; reduced motion shows a quiet star instead |
+| **Agents interact** | Handshakes with subagents in the meeting room, chats at the pantry, ping-pong in the lounge, high fives and waves in the corridor; real work always interrupts them |
+| **The office grows** | **Achievements** (`C`): ten office levels from your sessions, tasks, commits, tests and streaks, 22 badges, an employee of the month, and decor that unlocks level by level, from wall art and an aquarium to a trophy cabinet, a neon sign and an office cat |
+| **Make it yours** | **Customize** on any agent or room: names, skin, hair, outfit and accessories (the same in 2D and 3D), per agent, room or account; room alias, floor, walls, plants and sign; **Arrange rooms** to reorder, pin or hide them |
+| **Share your day** | **My day → Share**: a branded image of today's office with agents, active time, tasks, commits and tests, in 1200×630 or 1080×1080, light or dark, with a caption ready for LinkedIn or X. Project names and costs stay out unless you add them |
+
+<p align="center">
+  <img src="docs/assets/readme/en/share-card.png" alt="A share card: the office from above with the day's agents, active time, tasks done, commits and tests passed, and the repository link." width="900" loading="lazy" />
+</p>
+
+<a id="reach"></a>
+
+## 07 / Bring Codex and your team
+
+| What | How it works |
+|---|---|
+| **Codex sessions** | Sessions of the OpenAI Codex CLI and desktop app (`~/.codex`, or `CODEX_HOME`) appear in the same office with a **Codex** badge; agents working in the same folder share the room with Claude Code agents. Status, activity, usage, cost estimates, the day report and the time-lapse include them. Codex has no hooks, so permissions and messages stay Claude-only: Codex agents are read-only. **Settings → Show Codex sessions** |
+| **Team mode** | Several computers in one office over your local network. One computer **hosts a team** and shows a single-use code that expires in 10 minutes; the others **join** with the address and the code. Off by default, on a separate listener that speaks only the team protocol; pairing is authenticated, traffic is encrypted, and the host can remove members at any time |
+| **What a teammate sees** | Names, status and the kind of activity, in read-only rooms such as "Ana · Project 1". Project names, activity details, branches, tokens and cost are shared only when each person turns that category on |
+
+The [team mode spec](docs/spec/08-team-mode.md) documents the threat model, the protocol and its known limits; the [privacy guide](docs/05-privacy-and-security.md) summarizes what leaves your computer and when.
+
 <a id="views"></a>
 
-## 06 / 2D by default, 3D when you want it
+## 08 / 2D by default, 3D when you want it
 
 <table>
   <tr>
@@ -264,7 +301,7 @@ Both views share the same building, the same people and the same interface; only
 
 <a id="how-it-works"></a>
 
-## 07 / How it works
+## 09 / How it works
 
 <p align="center">
   <picture>
@@ -289,7 +326,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
 
 <a id="privacy"></a>
 
-## 08 / Private by design
+## 10 / Private by design
 
 <p align="center">
   <picture>
@@ -298,7 +335,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
   </picture>
 </p>
 
-AI Office was built for code you may not want to share. It sends nothing anywhere; the one exception is optional and off by default: looking up pull requests through your own `gh` CLI.
+AI Office was built for code you may not want to share. It sends nothing anywhere, except through two opt-in features that are off by default: looking up pull requests through your own `gh` CLI, and team mode, which shares a sanitized view with the computers you pair on your local network.
 
 | Protection | How |
 |---|---|
@@ -313,7 +350,7 @@ Read the [privacy and security guide](docs/05-privacy-and-security.md), and repo
 
 <a id="prompts"></a>
 
-## 09 / Prompts for every step
+## 11 / Prompts for every step
 
 Pick a task, open the prompt and paste the indicated block into an agent with terminal access. The [catalog](docs/prompts/README.md) explains each one.
 
@@ -329,7 +366,7 @@ Pick a task, open the prompt and paste the indicated block into an agent with te
 
 <a id="configuration"></a>
 
-## 10 / Configure it your way
+## 12 / Configure it your way
 
 Defaults work for most people. Set environment variables (or the matching flags) only when you need to:
 
@@ -354,7 +391,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 
 <a id="evidence"></a>
 
-## 11 / Evidence and limits
+## 13 / Evidence and limits
 
 | Check | How |
 |---|---|
@@ -376,7 +413,7 @@ Your screen caps what you see (usually 60 fps). The 3D night scene is the expens
 
 <a id="repository"></a>
 
-## 12 / Explore the repository
+## 14 / Explore the repository
 
 ```text
 ai-office/
@@ -416,7 +453,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 13 / Follow the project
+## 15 / Follow the project
 
 If AI Office made your agents easier to follow, a star helps other people find it.
 
