@@ -62,7 +62,6 @@ export interface PersonFrame {
   time: number;
   dt: number;
   accountColor: string;
-  detail: boolean;
   selected: boolean;
   hovered: boolean;
   /** prefers-reduced-motion: no pulsing or bobbing. */
@@ -96,7 +95,6 @@ export class Character3D {
   private lastX = 0;
   private lastZ = 0;
   private initialised = false;
-  private shownDetail = false;
 
   constructor(
     library: HumanLibrary,
@@ -130,13 +128,6 @@ export class Character3D {
     }
     this.root.add(this.selectRing);
     if (this.marker) this.root.add(this.marker);
-    this.setDetail(false);
-  }
-
-  private setDetail(on: boolean): void {
-    if (on === this.shownDetail) return;
-    this.shownDetail = on;
-    for (const m of this.instance.detail) m.visible = on;
   }
 
   update(c: Character, f: PersonFrame): void {
@@ -153,7 +144,6 @@ export class Character3D {
     this.root.rotation.y = this.yaw;
     this.updatePose(c, f);
     this.updateAccessories(c, f);
-    this.setDetail(f.detail);
   }
 
   private updateYaw(c: Character, x: number, z: number, dt: number): void {

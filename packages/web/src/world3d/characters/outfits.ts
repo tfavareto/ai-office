@@ -1,8 +1,9 @@
 // Deterministic looks: which model, outfit tint and size an agent gets from its seed. Pure, so it is unit tested.
 import { HAIR_COLORS, OUTFITS, SKIN_TONES, swatchHex, type AccessoryId, type AgentLook } from '@ai-office/shared';
 import { hash32 } from '../../layout/rng';
+import { lookFor } from '../../world2d/chars/looks';
 
-export const MALE_MODELS = ['humans/m1_lod', 'humans/m2_lod', 'humans/m3', 'humans/m4_lod'] as const;
+export const MALE_MODELS = ['humans/m1', 'humans/m2', 'humans/m3', 'humans/m4'] as const;
 export const FEMALE_MODELS = ['humans/f1', 'humans/f2', 'humans/f3', 'humans/f4'] as const;
 
 /** Tints multiplied on a neutral-grey suit texture. */
@@ -30,8 +31,8 @@ export interface LookChoice {
   phase: number;
   /** Skin color the person chose; the model keeps its own skin without one. */
   skin?: string;
-  /** Hair color the person chose; the model keeps its own hair without one. */
-  hair?: string;
+  /** Hair color: the person's choice, else the one the 2D sprites give the same seed (both worlds show the same hair). */
+  hair: string;
   /** Worn on the head; absent unless the person chose one. */
   accessory?: Exclude<AccessoryId, 'none'>;
   /** Cap color: the outfit's. */
@@ -46,7 +47,7 @@ export function chooseLook(look: 'f' | 'm', seed: number, appearance?: AgentLook
   const models = look === 'f' ? FEMALE_MODELS : MALE_MODELS;
   const outfit = swatchHex(OUTFITS, appearance?.outfit);
   const skin = swatchHex(SKIN_TONES, appearance?.skin);
-  const hair = swatchHex(HAIR_COLORS, appearance?.hairColor);
+  const hair = swatchHex(HAIR_COLORS, appearance?.hairColor) ?? lookFor(seed, look, false).hair;
   const accessory = appearance?.accessory;
   const chosenOutfit = outfit ?? OUTFIT_COLORS[hash32(seed, 2) % OUTFIT_COLORS.length];
   return {
@@ -55,12 +56,12 @@ export function chooseLook(look: 'f' | 'm', seed: number, appearance?: AgentLook
     scale: 0.97 + (hash32(seed, 3) % 7) / 100,
     phase: (hash32(seed, 4) % 1000) / 1000,
     ...(skin !== undefined ? { skin } : {}),
-    ...(hair !== undefined ? { hair } : {}),
+    hair,
     ...(accessory !== undefined && accessory !== 'none' ? { accessory, capColor: chosenOutfit } : {}),
   };
 }
 
 /** What makes two choices draw the same person (the portrait cache keys on it). */
 export function choiceKey(choice: LookChoice): string {
-  return [choice.model, choice.outfit, choice.skin ?? '', choice.hair ?? '', choice.accessory ?? ''].join('|');
+  return [choice.model, choice.outfit, choice.skin ?? '', choice.hair, choice.accessory ?? ''].join('|');
 }

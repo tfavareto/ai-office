@@ -609,7 +609,6 @@ export class World3D implements WorldApi {
       accountColor: (id) => this.accountColors.get(id) ?? '#8d99ad',
       selectedId: this.selection?.type === 'agent' ? this.selection.id : null,
       hoveredId: this.hover.agentId,
-      detail: true,
       still: this.options.reducedMotion,
     });
     this.city.update(this.clock, night);

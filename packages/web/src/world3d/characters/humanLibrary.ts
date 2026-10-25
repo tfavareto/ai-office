@@ -13,9 +13,10 @@ import {
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { canvas2d, ASSET_BASE } from '../scene/textures';
+import { facePartOf } from './facePart';
+import { warmRedIris } from './irisColor';
 import { FEMALE_MODELS, MALE_MODELS, type LookChoice } from './outfits';
 
-const DETAIL_MESHES = new Set(['eyebrow001', 'eyelashes02', 'low-poly']);
 /** The body (and with it the face) and the hair are told apart by their material. */
 const SKIN_MATERIAL = 'Human.body';
 const HAIR_MATERIAL = /^Human\.(short|bob|afro|long)\d+$/;
@@ -23,11 +24,12 @@ const HAIR_MATERIAL = /^Human\.(short|bob|afro|long)\d+$/;
 /** Mean brightness (0-255) the skin and hair textures are brought to before a color is multiplied on them. */
 const SKIN_BASE = 235;
 const HAIR_BASE = 175;
+const BROW_BASE = 150;
+/** The brows are a shade darker than the hair. */
+const BROW_DARKEN = 0.8;
 
 export interface HumanInstance {
   root: Object3D;
-  /** Eyes, eyebrows and lashes (only the full-detail models have them). */
-  detail: Mesh[];
   meshes: Mesh[];
 }
 
@@ -35,31 +37,13 @@ interface Template {
   scene: Object3D;
 }
 
-/**
- * Grey-scales a texture and normalises its brightness (to `base`, over the opaque pixels) so that a colour multiplied on
- * it gives a true tint.
- */
-function neutralTexture(source: Texture, base = 190): CanvasTexture {
+/** A texture of the same image after `edit` changed its RGBA pixels (a new array in, a new array out). */
+function editedTexture(source: Texture, edit: (pixels: Uint8ClampedArray) => Uint8ClampedArray): CanvasTexture {
   const image = source.image as ImageBitmap | HTMLImageElement;
-  const w = (image as ImageBitmap).width;
-  const h = (image as ImageBitmap).height;
-  const { canvas, ctx } = canvas2d(w, h);
+  const { canvas, ctx } = canvas2d((image as ImageBitmap).width, (image as ImageBitmap).height);
   ctx.drawImage(image, 0, 0);
-  const data = ctx.getImageData(0, 0, w, h);
-  let sum = 0;
-  let counted = 0;
-  const px = data.data;
-  for (let i = 0; i < px.length; i += 4) {
-    if (px[i + 3] < 128) continue;
-    sum += px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
-    counted++;
-  }
-  const mean = sum / counted || 1;
-  const gain = base / mean;
-  for (let i = 0; i < px.length; i += 4) {
-    const l = Math.min(255, (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) * gain);
-    px[i] = px[i + 1] = px[i + 2] = l;
-  }
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  data.data.set(edit(data.data));
   ctx.putImageData(data, 0, 0);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
@@ -68,6 +52,32 @@ function neutralTexture(source: Texture, base = 190): CanvasTexture {
   tex.wrapS = source.wrapS;
   tex.wrapT = source.wrapT;
   return tex;
+}
+
+/** The grey-scale of `px` with its brightness brought to `base` over the opaque pixels. */
+function neutralPixels(px: Uint8ClampedArray, base: number): Uint8ClampedArray {
+  let sum = 0;
+  let counted = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 128) continue;
+    sum += px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
+    counted++;
+  }
+  const gain = base / (sum / counted || 1);
+  const out = new Uint8ClampedArray(px);
+  for (let i = 0; i < out.length; i += 4) {
+    const l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) * gain;
+    out[i] = out[i + 1] = out[i + 2] = l;
+  }
+  return out;
+}
+
+/**
+ * Grey-scales a texture and normalises its brightness (to `base`, over the opaque pixels) so that a colour multiplied on
+ * it gives a true tint.
+ */
+function neutralTexture(source: Texture, base = 190): CanvasTexture {
+  return editedTexture(source, (px) => neutralPixels(px, base));
 }
 
 export class HumanLibrary {
@@ -89,6 +99,34 @@ export class HumanLibrary {
       lib.templates.set(n, { scene: loaded[i].scene });
     });
     return lib;
+  }
+
+  /** The eyeballs of a model: the same material, with the iris texture warmed when it is a red brown. */
+  private eyeMaterial(source: MeshStandardMaterial): MeshStandardMaterial {
+    const key = `eyes|${source.name}`;
+    let mat = this.tints.get(key);
+    if (mat) return mat;
+    mat = source.clone();
+    if (source.map && source.name === 'eyes_brown') mat.map = editedTexture(source.map, warmRedIris);
+    this.tints.set(key, mat);
+    return mat;
+  }
+
+  /** The brows in the hair color (a little darker), from the grey-scale brow texture. */
+  private browMaterial(source: MeshStandardMaterial, hex: string): MeshStandardMaterial {
+    const key = `brow|${hex}`;
+    let mat = this.tints.get(key);
+    if (mat) return mat;
+    let tex = this.neutral.get('brow');
+    if (!tex && source.map) {
+      tex = neutralTexture(source.map, BROW_BASE);
+      this.neutral.set('brow', tex);
+    }
+    mat = source.clone();
+    if (tex) mat.map = tex;
+    mat.color = new Color(hex).multiplyScalar(BROW_DARKEN);
+    this.tints.set(key, mat);
+    return mat;
   }
 
   private suitMaterial(modelName: string, source: MeshStandardMaterial, tint: string): MeshStandardMaterial {
@@ -136,12 +174,11 @@ export class HumanLibrary {
   }
 
   /** Skinned clone of a model with the outfit tint applied, and the skin and hair colors when they were chosen. */
-  create(modelName: string, outfit: string, colors: Pick<LookChoice, 'skin' | 'hair'> = {}): HumanInstance {
+  create(modelName: string, outfit: string, colors: Partial<Pick<LookChoice, 'skin' | 'hair'>> = {}): HumanInstance {
     const template = this.templates.get(modelName);
     if (!template) throw new Error(`human model not loaded: ${modelName}`);
     const root = SkeletonUtils.clone(template.scene);
     const meshes: Mesh[] = [];
-    const detail: Mesh[] = [];
     root.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
@@ -149,15 +186,18 @@ export class HumanLibrary {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       const mat = mesh.material as Material;
-      if (mat.name.includes('elegantsuit'))
+      const face = facePartOf(mesh.name, mat.name);
+      if (face === 'eyes') mesh.material = this.eyeMaterial(mat as MeshStandardMaterial);
+      else if (face === 'eyebrows' && colors.hair !== undefined)
+        mesh.material = this.browMaterial(mat as MeshStandardMaterial, colors.hair);
+      else if (mat.name.includes('elegantsuit'))
         mesh.material = this.suitMaterial(modelName, mat as MeshStandardMaterial, outfit);
       else if (colors.skin !== undefined && mat.name === SKIN_MATERIAL)
         mesh.material = this.tinted('skin', modelName, mat as MeshStandardMaterial, colors.skin);
       else if (colors.hair !== undefined && HAIR_MATERIAL.test(mat.name))
         mesh.material = this.tinted('hair', modelName, mat as MeshStandardMaterial, colors.hair);
-      if (DETAIL_MESHES.has(mesh.name)) detail.push(mesh);
     });
-    return { root, detail, meshes };
+    return { root, meshes };
   }
 
   /** Every texture the models use (for progressive GPU upload). */

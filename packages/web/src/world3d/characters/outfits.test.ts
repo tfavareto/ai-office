@@ -1,4 +1,6 @@
+import { HAIR_COLORS } from '@ai-office/shared';
 import { describe, expect, it } from 'vitest';
+import { lookFor } from '../../world2d/chars/looks';
 import { choiceKey, chooseLook, FEMALE_MODELS, MALE_MODELS, OUTFIT_COLORS } from './outfits';
 
 describe('chooseLook', () => {
@@ -37,6 +39,17 @@ describe('chooseLook with the choices of a person', () => {
     for (let style = 0 as 0 | 1 | 2 | 3; style < 4; style++) {
       expect(chooseLook('f', 5, { hairStyle: style }).model).toBe(FEMALE_MODELS[style]);
       expect(chooseLook('m', 5, { hairStyle: style }).model).toBe(MALE_MODELS[style]);
+    }
+  });
+
+  it('gives the hair the color the 2D sprites give the same seed, from the shared palette', () => {
+    const palette = HAIR_COLORS.map((swatch) => swatch.hex);
+    for (let seed = 0; seed < 40; seed++) {
+      for (const look of ['f', 'm'] as const) {
+        const { hair } = chooseLook(look, seed);
+        expect(hair).toBe(lookFor(seed, look, false).hair);
+        expect(palette).toContain(hair);
+      }
     }
   });
 

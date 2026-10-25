@@ -168,7 +168,6 @@ export function capture3d(input: Capture3DInput): HTMLCanvasElement {
       accountColor: (id) => colors.get(id) ?? '#8d99ad',
       selectedId: null,
       hoveredId: null,
-      detail: true,
       still: true,
     });
   };

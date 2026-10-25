@@ -1,5 +1,5 @@
 // Dev harness: every choice of the customization editor, drawn by the 2D sprites (left) and the 3D models (right).
-// Query: ?seed=12345&look=f|m (the person the choices are applied to).
+// Query: ?seed=12345&look=f|m (the person the choices are applied to) and size=96 (pixels of each picture).
 import { ACCESSORIES, HAIR_COLORS, HAIR_STYLE_COUNT, OUTFITS, SKIN_TONES, type AgentLook } from '@ai-office/shared';
 import { DEFAULT_WORLD_OPTIONS, type PreviewPerson, type WorldApi } from '../src/world/api';
 import { createWorld3D } from '../src/world3d';
@@ -9,10 +9,11 @@ const params = new URLSearchParams(location.search);
 const seed = Number(params.get('seed') ?? 123457);
 const gender = params.get('look') === 'm' ? 'm' : 'f';
 const person: PreviewPerson = { seed, look: gender, kind: 'main' };
-const SIZE = 96;
+const SIZE = Number(params.get('size') ?? 96);
 
 function picture(world: WorldApi, appearance: AgentLook | undefined): HTMLImageElement {
   const img = document.createElement('img');
+  img.style.width = img.style.height = `${SIZE}px`;
   img.src = world.previewPortrait(person, appearance, SIZE * 2) ?? '';
   return img;
 }

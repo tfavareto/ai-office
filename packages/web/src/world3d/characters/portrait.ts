@@ -51,7 +51,6 @@ export class PortraitRenderer {
 
   private render(choice: LookChoice, size: number): string {
     const person = this.library.create(choice.model, choice.outfit, choice);
-    for (const m of person.detail) m.visible = true;
     for (const m of person.meshes) {
       m.castShadow = false;
       m.receiveShadow = false;

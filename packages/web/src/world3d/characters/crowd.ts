@@ -12,7 +12,6 @@ export interface CrowdFrame {
   selectedId: string | null;
   hoveredId: string | null;
   /** Show eyes and eyebrows (close-up views). */
-  detail: boolean;
   still: boolean;
 }
 
@@ -83,7 +82,6 @@ export class Crowd {
         time: f.time,
         dt: f.dt,
         accountColor: f.accountColor(c.accountId),
-        detail: f.detail || c.id === f.selectedId,
         selected: c.id === f.selectedId,
         hovered: c.id === f.hoveredId,
         still: f.still,
