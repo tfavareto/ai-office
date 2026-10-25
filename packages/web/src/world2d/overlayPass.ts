@@ -31,6 +31,8 @@ const LABEL_GAP = 2;
 const KEEP_BONUS = 30;
 const MAX_BUBBLE_STACK = 3;
 const TAG_GAP = 4;
+/** Room for the raised arms of a celebrating person between the head and its bubble. */
+const ARMS_CLEARANCE = 18;
 const FREE_MARGIN = 40;
 const MIN_FREE = 120;
 
@@ -103,6 +105,31 @@ function bubbleSpots(head: Pos, w: number, h: number, anchor: Box | undefined): 
   const spots: Pos[] = [above(0), { x: head.x + 10, y: beside }, { x: head.x - w - 10, y: beside }];
   for (let k = 1; k <= MAX_BUBBLE_STACK; k++) spots.push(above(k));
   return spots;
+}
+
+/** Screen box of a room (the one the person is in), when a room-wide bubble belongs to it. */
+function roomBox(s: FrameState, areaId: string | null, wanted: boolean): Box | null {
+  if (!wanted || areaId === null) return null;
+  const area = s.sim.building.areas.find((a) => a.id === areaId);
+  if (!area) return null;
+  const topLeft = s.cam.worldToScreen(area.rect.x * TILE, area.rect.y * TILE);
+  return { x: topLeft.x, y: topLeft.y, w: area.rect.w * TILE * s.cam.zoom, h: area.rect.h * TILE * s.cam.zoom };
+}
+
+/**
+ * Where a celebration bubble goes: right above the person's head first (it must stay with them), then beside; a
+ * room-wide one hangs in the middle of the room, near its top. It is never pushed away into the corridor.
+ */
+function celebrationSpots(head: Pos, bubble: Sprite, room: Box | null, tagShown: boolean): Pos[] {
+  if (room) return [{ x: room.x + room.w / 2 - bubble.w / 2, y: room.y + room.h * 0.3 }];
+  const aboveHead = head.y - ARMS_CLEARANCE - bubble.h;
+  return [
+    { x: head.x - bubble.w / 2, y: tagShown ? aboveHead - 20 : aboveHead },
+    { x: head.x + 10, y: head.y - bubble.h },
+    { x: head.x - bubble.w - 10, y: head.y - bubble.h },
+    { x: head.x - bubble.w / 2, y: aboveHead },
+    { x: head.x - bubble.w / 2, y: head.y + 24 },
+  ];
 }
 
 /**
@@ -185,8 +212,12 @@ export class OverlayPass {
         continue;
       const selected = s.selection?.type === 'agent' && s.selection.id === c.agentId;
       const hovered = s.hover.agentId === c.agentId;
+      // the name tag steps aside while somebody celebrates: it would hide the raised arms
       const showTag =
-        selected || hovered || c.alert || ((s.options.showNames || c.hiring) && cam.zoom >= NAME_MIN_ZOOM);
+        selected ||
+        hovered ||
+        c.alert ||
+        ((s.options.showNames || c.hiring) && cam.zoom >= NAME_MIN_ZOOM && !c.celebrating);
       let tagPriority: number = selected
         ? Priority.Selected
         : hovered
@@ -210,6 +241,7 @@ export class OverlayPass {
           : selected
             ? Priority.Selected - 1
             : Priority.Bubble + bubble.importance;
+        const celebrating = bubble.tone === 'good' && !bubble.sticky;
         const id = `bub:${c.agentId}`;
         const rise = (1 - Math.min(1, (sim.time - bubble.shownAt) / FADE_IN)) * 5;
         payloads.set(id, { sprite, alpha: bubbleAlphaNow, rise, layer: 'bubble' });
@@ -219,9 +251,11 @@ export class OverlayPass {
           priority,
           w: sprite.w,
           h: sprite.h,
-          spots: (anchor) => bubbleSpots(head, sprite.w, sprite.h, anchor),
-          anchorId: showTag ? tagId : undefined,
-          required: bubble.sticky,
+          spots: celebrating
+            ? celebrationSpots(head, sprite, roomBox(s, c.areaId, bubble.anchor === 'room'), showTag)
+            : (anchor) => bubbleSpots(head, sprite.w, sprite.h, anchor),
+          anchorId: showTag && !celebrating ? tagId : undefined,
+          required: bubble.sticky || celebrating,
           group: c.areaId ?? 'outside',
         });
       }

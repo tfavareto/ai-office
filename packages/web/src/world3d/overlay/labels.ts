@@ -16,6 +16,10 @@ export interface TagItem {
   /** A placeholder for an agent being hired: its tag ("arriving…") shows even when names are off. */
   arriving: boolean;
   bubble: { text: string; icon: string; sticky: boolean; tone?: 'good' } | null;
+  /** Only the bubble is drawn (a room-wide celebration hanging in the middle of the room): no name tag, no alert. */
+  bubbleOnly?: boolean;
+  /** The person is celebrating: the name tag steps aside so the raised arms show. */
+  celebrating?: boolean;
 }
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -169,7 +173,7 @@ export class LabelOverlay {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (const item of items) {
       let y = item.sy - 6;
-      if (showNames || item.emphasis || item.arriving) {
+      if (!item.bubbleOnly && !item.celebrating && (showNames || item.emphasis || item.arriving)) {
         const t = this.tag(item);
         ctx.drawImage(
           t.canvas,
@@ -189,7 +193,7 @@ export class LabelOverlay {
           b.canvas.width,
           b.canvas.height,
         );
-      } else if (item.alert) {
+      } else if (item.alert && !item.bubbleOnly) {
         const b = this.bubble({ text: '!', icon: '', sticky: true });
         ctx.drawImage(
           b.canvas,

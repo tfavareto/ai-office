@@ -111,9 +111,9 @@ const solvers: Record<Pose, (w: PoseWriter, c: PoseContext) => void> = {
     const beat = s(c.t, 2.2, c.phase);
     const jump = Math.abs(beat);
     const sway = s(c.t, 1.1, c.phase);
-    w.offset(0, jump * 0.13, 0);
+    w.offset(0, jump * 0.26, 0);
     w.pair('upperarm', -14, 0, 132 + sway * 14).pair('lowerarm', -10 + beat * 10);
-    w.pair('thigh', -jump * 10, 0, 0).pair('calf', jump * 16);
+    w.pair('thigh', -jump * 22, 0, 0).pair('calf', jump * 34);
     w.rot('spine_02', 0, sway * 10).rot('pelvis', 0, -sway * 8);
     w.rot('head', -10, sway * 10);
     w.rot('spine_03', -4);

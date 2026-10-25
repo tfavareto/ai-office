@@ -27,6 +27,7 @@ export const worldPtBR = {
   'bubble.celebrate.merged': 'Merge feito!',
   'bubble.celebrate.sub': 'Missão cumprida!',
   'bubble.celebrate.streak': 'Sessão concluída!',
+  'bubble.celebrate.room': 'Sala toda em dia!',
   // room boards (2D pixel board and 3D board texture); the `.short` forms fit the narrow 2D board (9 letters)
   'board.waiting': 'Aguardando você',
   'board.waiting.short': 'Aguarda',

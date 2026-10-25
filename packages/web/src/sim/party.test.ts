@@ -39,8 +39,38 @@ describe('celebrations in the simulation', () => {
     const ana = sim.character('ana')!;
     expect(ana.pose).toBe('celebrate');
     expect(ana.celebrating).toBe(true);
-    expect(sim.bubbles.find((b) => b.agentId === 'ana')?.msg?.key).toBe('bubble.celebrate.tasks');
     expect(sim.takeEffects()).toEqual([]);
+  });
+
+  it('anchors the bubble above the person for a task list and in the middle of the room for a room milestone', () => {
+    const { sim, push } = office([
+      makeAgent('ana', 0, 'working', { tasks: open('a') }),
+      makeAgent('bia', 0, 'working', { tasks: open('b') }),
+    ]);
+    push([
+      makeAgent('ana', 0, 'working', { tasks: finished('a') }),
+      makeAgent('bia', 0, 'working', { tasks: open('b') }),
+    ]);
+    sim.runFor(0.5);
+    const personal = sim.bubbles.find((b) => b.agentId === 'ana');
+    expect(personal?.msg?.key).toBe('bubble.celebrate.tasks');
+    expect(personal?.anchor).toBeUndefined();
+
+    const room = office([makeAgent('cai', 0, 'working', { tasks: open('c') })]);
+    room.push([makeAgent('cai', 0, 'working', { tasks: finished('c') })]);
+    room.sim.runFor(0.5);
+    const shared = room.sim.bubbles.find((b) => b.agentId === 'cai');
+    expect(shared?.msg?.key).toBe('bubble.celebrate.room');
+    expect(shared?.anchor).toBe('room');
+  });
+
+  it('turns the celebrant to the camera and has the colleagues who clap turn to it as well', () => {
+    const { sim, push } = office([makeAgent('ana', 0, 'working', { tasks: open('a') }), makeAgent('bia', 0, 'idle')]);
+    push([makeAgent('ana', 0, 'working', { tasks: finished('a') }), makeAgent('bia', 0, 'idle')]);
+    sim.runFor(0.6);
+    expect(sim.character('ana')!.dir).toBe('s');
+    expect(sim.character('bia')!.pose).toBe('clap');
+    expect(sim.character('bia')!.dir).toBe('s');
   });
 
   it('showers the whole room when it was the last open task of the room', () => {

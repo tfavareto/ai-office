@@ -19,6 +19,8 @@ export interface BubbleCandidate {
   ttl: number;
   /** Shown with the happy look (a celebration). */
   tone?: 'good';
+  /** Shown at the middle of the person's room instead of above the person (a room-wide celebration). */
+  anchor?: 'room';
   /** Small talk between people (icons only): shown unless bubbles are off, and never in calm mode. */
   ambient?: boolean;
 }

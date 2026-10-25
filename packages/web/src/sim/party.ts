@@ -21,9 +21,9 @@ export interface PartyHost {
 
 const PARTY_SECONDS = 2.4;
 const BADGE_SECONDS = 3.5;
-const REACT_SECONDS = 2.2;
-const REACT_RADIUS = 9;
-const MAX_REACTORS = 3;
+const REACT_SECONDS = 2.4;
+const REACT_RADIUS = 12;
+const MAX_REACTORS = 4;
 const CELEBRATION_IMPORTANCE = 66;
 
 interface Words {
@@ -39,6 +39,8 @@ const WORDS: Record<TriggerKind, Words> = {
   'subagent-done': { text: 'Missão cumprida!', key: 'bubble.celebrate.sub' },
   'streak-end': { text: 'Sessão concluída!', key: 'bubble.celebrate.streak' },
 };
+
+const ROOM_WORDS: Words = { text: 'Sala toda em dia!', key: 'bubble.celebrate.room' };
 
 const BIG: readonly TriggerKind[] = ['pr-merged', 'tasks-done', 'streak-end'];
 
@@ -84,7 +86,7 @@ export class Party {
     if (!actor || actor.alpha < 0.5) return;
     const options = this.host.options();
     const big = grant.shower || BIG.includes(grant.kind);
-    const words = WORDS[grant.kind];
+    const words = grant.shower ? ROOM_WORDS : WORDS[grant.kind];
     this.effects.push({ type: 'sound', big });
     this.host.bubble(actor, {
       text: words.text,
@@ -94,6 +96,7 @@ export class Party {
       sticky: false,
       ttl: 3.6,
       tone: 'good',
+      ...(grant.shower ? { anchor: 'room' as const } : {}),
     });
     this.director.noteCelebration(actor.id, actor.projectId, this.host.now());
     if (options.reducedMotion) {
@@ -132,14 +135,8 @@ export class Party {
       .slice(0, MAX_REACTORS);
     for (const p of near) {
       p.reactUntil = this.host.now() + REACT_SECONDS;
-      p.reactFace =
-        Math.abs(celebrant.x - p.x) > Math.abs(celebrant.y - p.y) * 1.15
-          ? celebrant.x > p.x
-            ? 'e'
-            : 'w'
-          : celebrant.y > p.y
-            ? 's'
-            : 'n';
+      // they turn to the camera so the clapping reads
+      p.reactFace = 's';
     }
   }
 

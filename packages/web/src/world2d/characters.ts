@@ -6,9 +6,13 @@ import { rgba } from './color';
 import type { AreaCanvas, PlacedItem } from './layers/areaLayer';
 import { type Ctx, context2d, ellipse, makeCanvas } from './paint/ctx';
 import { FOOT_OFFSET } from './picking';
+import { jumpLift } from '../sim/confettiPlan';
 import type { Character } from '../sim/types';
 import type { FrameState, Renderer } from './renderer';
 import { drawActivityFx, type FxContext } from './fx/activityFx';
+
+/** Height (world px) of the jump of a celebrating person. */
+const JUMP_PX = 7;
 
 const rings = new Map<string, HTMLCanvasElement>();
 let shadow: HTMLCanvasElement | null = null;
@@ -81,7 +85,8 @@ export function drawCharacters(ctx: Ctx, renderer: Renderer, s: FrameState, orde
       ctx.drawImage(ringSprite(selected ? '#ffffff' : rgba('#ffffff', 0.8), 20), fx - 11, fy - 4);
       ctx.globalAlpha = c.alpha;
     }
-    ctx.drawImage(sprite, fx - ANCHOR_X, fy - ANCHOR_Y);
+    const lift = c.celebrating && c.pose === 'celebrate' ? Math.round(jumpLift(c.poseT, JUMP_PX)) : 0;
+    ctx.drawImage(sprite, fx - ANCHOR_X, fy - ANCHOR_Y - lift);
     ctx.globalAlpha = 1;
     const left = fx - ANCHOR_X;
     const top = fy - ANCHOR_Y;

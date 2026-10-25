@@ -638,7 +638,7 @@ export class OfficeSim {
     const ty = home.y + (home.seat && standing ? 0.34 : 0);
     if (Math.hypot(a.x - home.x, a.y - home.y) > 2.5) return this.goHome(a);
     a.moving = approach(a, tx, ty, 2.4, dt) ? false : true;
-    const face = meeting ? a.encounter?.face : reacting ? a.reactFace : undefined;
+    const face = meeting ? a.encounter?.face : reacting ? a.reactFace : celebrating ? 's' : undefined;
     a.dir = a.moving ? dirFromVector(tx - a.x, ty - a.y, a.dir) : (face ?? home.dir);
     a.seat = home.seat && !standing ? home.kind : null;
     a.alert = status === 'waiting';

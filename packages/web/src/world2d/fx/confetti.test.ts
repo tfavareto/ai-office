@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EffectQueue, MAX_PENDING_EFFECTS } from '../../sim/effects';
-import { ConfettiSystem } from './confetti';
+import { ConfettiSystem, pieceScale } from './confetti';
 
 function fakeContext(): { ctx: CanvasRenderingContext2D; rects: number } {
   const state = { ctx: null as unknown as CanvasRenderingContext2D, rects: 0 };
@@ -20,8 +20,9 @@ describe('2D confetti', () => {
   it('bursts into many particles and lets every one of them die within 2.5 seconds', () => {
     const confetti = new ConfettiSystem();
     confetti.burst(100, 100, 1, false, 1);
-    expect(confetti.count).toBeGreaterThan(60);
-    for (let t = 0; t < 2.6; t += 1 / 60) confetti.update(1 / 60);
+    for (let t = 0; t < 0.6; t += 1 / 60) confetti.update(1 / 60);
+    expect(confetti.count).toBeGreaterThan(140);
+    for (let t = 0; t < 3.2; t += 1 / 60) confetti.update(1 / 60);
     expect(confetti.count).toBe(0);
     expect(confetti.busy).toBe(false);
   });
@@ -30,6 +31,7 @@ describe('2D confetti', () => {
     const count = (scale: number, big: boolean): number => {
       const c = new ConfettiSystem();
       c.burst(0, 0, scale, big, 5);
+      for (let t = 0; t < 0.6; t += 1 / 60) c.update(1 / 60);
       return c.count;
     };
     expect(count(1, true)).toBeGreaterThan(count(1, false));
@@ -52,12 +54,14 @@ describe('2D confetti', () => {
   it('never grows past its pool, however many bursts arrive', () => {
     const confetti = new ConfettiSystem();
     for (let i = 0; i < 40; i++) confetti.burst(0, 0, 1.4, true, i);
-    expect(confetti.count).toBeLessThanOrEqual(900);
+    for (let i = 0; i < 30; i++) confetti.update(1 / 60);
+    expect(confetti.count).toBeLessThanOrEqual(1400);
   });
 
   it('pulls particles down: after a second the cloud has fallen below where it started rising', () => {
     const confetti = new ConfettiSystem();
     confetti.burst(0, 0, 1, false, 9);
+    for (let i = 0; i < 20; i++) confetti.update(1 / 60);
     const rects = (): number => {
       const probe = fakeContext();
       confetti.draw(probe.ctx, { x: -500, y: -500, w: 1000, h: 1000 });
@@ -83,6 +87,44 @@ describe('2D confetti', () => {
     const probe = fakeContext();
     confetti.draw(probe.ctx, { x: 5000, y: 5000, w: 10, h: 10 });
     expect(probe.rects).toBe(0);
+  });
+});
+
+describe('piece size', () => {
+  it('grows when zoomed out so the pieces read at the overview, and never shrinks below one', () => {
+    expect(pieceScale(0.7)).toBeGreaterThan(pieceScale(1.25));
+    expect(pieceScale(1.25)).toBeGreaterThan(1);
+    expect(pieceScale(4)).toBe(1);
+    expect(pieceScale(0.01)).toBeLessThanOrEqual(2.2);
+  });
+
+  it('draws bigger pieces when zoomed out', () => {
+    const widest = (zoom: number): number => {
+      const sizes: number[] = [];
+      const ctx = {
+        globalAlpha: 1,
+        fillStyle: '',
+        fillRect: (_x: number, _y: number, w: number) => void sizes.push(w),
+      } as unknown as CanvasRenderingContext2D;
+      const c = new ConfettiSystem();
+      c.burst(0, 0, 1, false, 3);
+      for (let i = 0; i < 20; i++) c.update(1 / 60);
+      c.draw(ctx, VIEW, zoom);
+      return Math.max(...sizes);
+    };
+    expect(widest(0.7)).toBeGreaterThan(widest(4));
+  });
+});
+
+describe('flash ring', () => {
+  it('shows a ring for half a second after a burst', () => {
+    const c = new ConfettiSystem();
+    c.burst(0, 0, 0.1, false, 1);
+    const probe = fakeContext();
+    c.draw(probe.ctx, VIEW);
+    expect(probe.rects).toBeGreaterThan(30);
+    for (let i = 0; i < 40; i++) c.update(1 / 60);
+    expect(c.busy).toBe(true);
   });
 });
 

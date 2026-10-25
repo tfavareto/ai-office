@@ -20,8 +20,9 @@ has a procedural solver in `pose/poses.ts` (`typeFast`, `readDoc` with a page he
 `point`, `wave`, `clap`, `highfive`, `shake`; `celebrate` is a jump on every beat with arms thrown up and a sway; `lean` drums its fingers). `characters/personFx.ts` gives each person a few
 camera-facing sprites that are not rotated with the body: code glyphs rising from the desk, the thought bubble with animated dots, the pulsing globe, the "?" and the arrow toward the
 meeting room (placed on the meeting side in world x), sparkles, a green additive glow at the screen for the terminal, and an amber ring at the feet while waiting. The glyph textures are the
-2D bitmaps, nearest-filtered. `fx/confetti3d.ts` is the same confetti as 2D in one `InstancedMesh` of flat quads (1500-particle pool, CPU physics, floor at the carpet, colours per instance,
-unlit and not tone-mapped so it stays bright at night): bursts from the chest, showers from 3.3 m over a room, sparks for a high five. `fx/pingpongBall.ts` moves one small sphere per
+2D bitmaps, nearest-filtered. `fx/confetti3d.ts` is the same party as 2D (the plan in `sim/confettiPlan.ts`: two cannons, a fountain, pieces, streamers, stars) in three `InstancedMesh`es (pieces, streamers, stars; CPU physics, floor at the carpet,
+colours per instance, unlit and not tone-mapped so it stays bright at night), a flash ring on the floor, showers from 3.3 m over a room and sparks for a high five. A celebrating person turns to the camera, jumps
+26 cm and loses the name tag while it lasts; a room-wide bubble hangs in the middle of the room (`TagItem.bubbleOnly`). `fx/pingpongBall.ts` moves one small sphere per
 table with `ballAt`. With reduced motion the marks are still, particles and jumps are off, and a star badge shows instead. Bubbles of celebrations use the green "good" look; icon-only chat bubbles
 are narrow.
 

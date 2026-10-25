@@ -21,6 +21,7 @@ export const worldEn: Readonly<Record<WorldKey, string>> = {
   'bubble.celebrate.merged': 'Merged!',
   'bubble.celebrate.sub': 'Mission done!',
   'bubble.celebrate.streak': 'Session done!',
+  'bubble.celebrate.room': 'Whole room done!',
   'board.waiting': 'Waiting for you',
   'board.waiting.short': 'Needs you',
   'board.working': 'Working',

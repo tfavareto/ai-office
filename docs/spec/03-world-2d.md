@@ -75,17 +75,21 @@ person celebrates again after 60 / 30 / 14 s (calm / normal / lively) unless the
 `tests-fixed`, `subagent-done` > `commit`), two celebrations anywhere are 3 / 1.6 / 0.9 s apart, a window of 12 s holds at most 2 / 4 / 6, and a room gets a shower once
 every 90 s. When the last open task of a room is completed (`roomMilestone`: at least three tasks, all done) the celebration is a **room-wide confetti shower**.
 
-**A celebration** (`sim/party.ts`): a "party" lasts 2.4 s: the person stands and jumps with raised arms (`celebrate`, 4 frames), a green bubble with 🎉 and a
-localized line (`bubble.celebrate.*`: "Testes passando!", "Tudo pronto!", "Commitado!", "Merge feito!", "Missão cumprida!", "Sessão concluída!"), a burst of pixel
-confetti, and up to three idle colleagues of the same room within 9 tiles stand, face them and clap. The simulation puts the burst, shower, spark and sound
+**A celebration** (`sim/party.ts`): a "party" lasts 2.4 s: the person stands, turns to the camera so the arms read and jumps with raised arms (`celebrate`, 4 frames plus a
+7 px lift drawn by the renderer, `jumpLift`), their name tag steps aside, a green bubble with 🎉 and a localized line (`bubble.celebrate.*`: "Testes passando!", "Tudo pronto!",
+"Commitado!", "Merge feito!", "Missão cumprida!", "Sessão concluída!") hangs right above their head (never pushed into the corridor), a flash ring runs out on the floor, confetti bursts, and up
+to four idle colleagues of the same room within 12 tiles stand, turn to the camera and clap (with little sparks between the hands). A room-wide milestone hangs its own bubble
+(`bubble.celebrate.room`, "Sala toda em dia!", `anchor: 'room'`) in the middle of the room. The simulation puts the burst, shower, spark and sound
 requests in an `EffectQueue` that the world takes once per frame (`takeEffects()`); the sound goes through `world/celebration-bus.ts` to the page, which plays a short
 Web Audio arpeggio (no files; a longer one for big events) only when sounds are on and Do not disturb is off. With **reduced motion** there are no particles, jumps
 or sparkles: a still star badge stays over the person for 3.5 s instead. **Settings → Celebrations** (`celebrations`, on by default) turns all of this off;
 the animation level scales the confetti (0.6 / 1 / 1.4).
 
-**Confetti** (`world2d/fx/confetti.ts`): a pool of 900 particles in typed arrays (no allocation while it runs), gravity, drag and flutter, 1.5–2.5 s of life with
-a fade, palette of eight colours, drawn as 3x1 to 5x3 px rectangles that tumble between thin and wide, batched by colour, in the world pass after the lighting so it
-stays bright at night. Bursts start at the chest and cone upward and outward; showers fall from the top of the room for 2.8 s. A high five throws a few sparks.
+**Confetti** (`sim/confettiPlan.ts` plans, `world2d/fx/confetti.ts` throws): a burst is two cannons at the person's sides firing inward and up plus a half-second fountain, about 190
+pieces at the normal level (more for milestones), made of tumbling pieces (2–4 px, a sliver edge-on and a square face-on), twirling streamers and twinkling stars; the pieces get up to
+2.2 times bigger when the camera is zoomed out (`pieceScale`) so they read at the overview. A pool of 1400 particles in typed arrays (no allocation while it runs), gravity, drag and flutter,
+1.5–2.5 s of life with a fade, eight colours, batched by colour, drawn in the world pass after the lighting so it stays bright at night. Showers fall from the top of the room for 2.8 s with the
+same mix. A high five throws a few sparks.
 
 **Encounters** (`sim/encounters.ts` decides, `sim/runner.ts` walks). `EncounterDirector` is pure and deterministic for its seed: a **handshake** between a main agent and its
 subagent when the subagent sits down in the meeting room and again, when the main agent is free and within 18 tiles, as it leaves; a **check-in** where a working main

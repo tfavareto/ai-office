@@ -15,7 +15,7 @@ import { BUILDING_H } from '../layout/constants';
 import { clamp } from '../layout/rng';
 import { nearestWalkable } from '../layout/grid';
 import { worldText } from '../i18n/world/translate';
-import { bubbleText } from '../sim/bubbles';
+import { type Bubble, bubbleText } from '../sim/bubbles';
 import type { DeskTarget } from '../sim/desks';
 import { OfficeSim } from '../sim/sim';
 import {
@@ -67,6 +67,8 @@ const MIN_DPR = 1;
 const SCREEN_REFRESH = 0.2;
 const POOL_REFRESH = 0.35;
 const NAME_MIN_ZOOM = 11;
+/** Height (m) at which a room-wide celebration bubble hangs. */
+const ROOM_BUBBLE_HEIGHT = 1.9;
 const FOCUS_ZOOM = 85;
 const PAN_SPEED = 14;
 const LOOK_SPEED = 1.9;
@@ -814,9 +816,17 @@ export class World3D implements WorldApi {
         sub: c.kind === 'sub',
         emphasis,
         alert: c.alert && !b,
+        celebrating: c.celebrating,
         arriving: c.hiring,
-        bubble: b ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky, tone: b.tone } : null,
+        bubble:
+          b && b.anchor !== 'room'
+            ? { text: bubbleText(b, text.tm), icon: b.icon, sticky: b.sticky, tone: b.tone }
+            : null,
       });
+      if (b?.anchor === 'room') {
+        const room = this.roomBubble(c.areaId, b, text);
+        if (room) items.push(room);
+      }
     }
     items.sort((p, q) => p.sy - q.sy);
     this.overlay.draw(items, this.options.showNames && nameZoom, first ? this.fpHint : null);
@@ -831,6 +841,33 @@ export class World3D implements WorldApi {
         }),
       );
     }
+  }
+
+  /** A room-wide celebration hangs in the middle of the room, above the desks (not over one person). */
+  private roomBubble(areaId: string | null, b: Bubble, text: ReturnType<typeof worldText>): TagItem | null {
+    const area = areaId === null ? undefined : this.sim.building.areas.find((a) => a.id === areaId);
+    if (!area) return null;
+    this.tmpB.set(
+      (area.rect.x + area.rect.w / 2) * TILE_M,
+      ROOM_BUBBLE_HEIGHT,
+      (area.rect.y + area.rect.h * 0.35) * TILE_M,
+    );
+    this.rig.project(this.tmpB, this.screenB);
+    if (!this.screenB.visible) return null;
+    return {
+      id: `room:${areaId}`,
+      sx: this.screenB.x,
+      sy: this.screenB.y,
+      name: '',
+      accent: '#8d99ad',
+      status: 'idle',
+      sub: false,
+      emphasis: false,
+      alert: false,
+      arriving: false,
+      bubbleOnly: true,
+      bubble: { text: bubbleText(b, text.tm), icon: b.icon, sticky: false, tone: b.tone },
+    };
   }
 
   /** The "+" over the empty desk the pointer is on. */

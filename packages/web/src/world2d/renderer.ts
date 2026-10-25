@@ -176,7 +176,7 @@ export class Renderer {
     this.drawDynamic(ctx, s, ordered, vis);
     drawCharacters(ctx, this, s, ordered, vis);
     if (s.night > 0.004) drawLighting(ctx, this, s, ordered, vis, this.cars);
-    this.confetti.draw(ctx, vis);
+    this.confetti.draw(ctx, vis, cam.zoom);
   }
 
   // ---------------------------------------------------------------------------------------------------------------

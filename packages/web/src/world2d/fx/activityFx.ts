@@ -33,6 +33,7 @@ export function drawActivityFx(
   const headY = fy - HEAD_UP + (c.seat ? 4 : 0);
   const salt = hash32(c.seed, 17) / 4294967296;
   if (c.mood === 'waiting' || c.alert) pulseRing(ctx, fx, fy, f);
+  if (c.pose === 'clap' && !f.reducedMotion) clapSparks(ctx, fx, fy, f.time + salt);
   if (f.reducedMotion) return stillMarks(ctx, c, fx, headY);
   switch (c.mood) {
     case 'typing':
@@ -65,6 +66,14 @@ function stillMarks(ctx: CanvasRenderingContext2D, c: Character, fx: number, hea
   else if (c.mood === 'web') ctx.drawImage(glyph('globe', '#6fb8ff'), Math.round(fx - 3), Math.round(headY - 10));
   else if (c.mood === 'frustrated')
     ctx.drawImage(glyph('question', '#ff8a5c'), Math.round(fx + 6), Math.round(headY - 10));
+}
+
+/** Two little sparks that pop between the hands, alternating with the claps. */
+function clapSparks(ctx: CanvasRenderingContext2D, fx: number, fy: number, t: number): void {
+  const beat = Math.floor(t / 0.12) % 2;
+  const spark = glyph('spark', beat === 0 ? '#fff6e0' : '#ffd23f');
+  ctx.drawImage(spark, Math.round(fx - 6 - beat * 2), Math.round(fy - 22 - beat * 2));
+  ctx.drawImage(spark, Math.round(fx + 4 + beat * 2), Math.round(fy - 24 + beat));
 }
 
 function pulseRing(ctx: CanvasRenderingContext2D, fx: number, fy: number, f: FxContext): void {
