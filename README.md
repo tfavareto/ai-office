@@ -396,7 +396,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 2200+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 3100+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |

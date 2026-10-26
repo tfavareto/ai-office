@@ -13,9 +13,9 @@
 
 **Seus agentes do Claude Code, trabalhando em um escritório ao vivo.**
 
-O AI Office transforma as sessões do Claude Code que rodam no seu computador em um escritório corporativo que você acompanha em tempo real. Cada projeto vira uma sala, cada sessão é uma pessoa em sua mesa, e os subagentes são colegas que entram na sala de reunião, trabalham e vão embora.
+O AI Office transforma as sessões do Claude Code que rodam no seu computador (e as suas sessões do Codex) em um escritório corporativo que você acompanha em tempo real. Cada projeto vira uma sala, cada sessão é uma pessoa em sua mesa, e os subagentes são colegas que entram na sala de reunião, trabalham e vão embora.
 
-Você vê quem está trabalhando, quem precisa de você e quem está esperando um comando no shell. Responde a pedidos de permissão, envia instruções e revisa o seu dia sem trocar de terminal. **Tudo roda em `127.0.0.1`; nada sai do seu computador.**
+Você vê quem está trabalhando, quem precisa de você e quem está esperando um comando no shell. Responde a pedidos de permissão, envia instruções e revisa o seu dia sem trocar de terminal. **Tudo roda em `127.0.0.1`; nada sai do seu computador, a menos que você ligue um recurso opcional.**
 
 <p align="center">
   <a href="#install"><strong>INSTALE COM UM PROMPT →</strong></a>
@@ -38,7 +38,7 @@ Você vê quem está trabalhando, quem precisa de você e quem está esperando u
 </p>
 
 <p align="center">
-  <strong>Claude Code</strong> CLI + desktop / várias contas / <strong>macOS + Linux</strong>
+  <strong>Claude Code</strong> CLI + desktop / <strong>Codex</strong> / várias contas / <strong>macOS + Linux</strong>
   <br />
   <strong>Pixel art 2D</strong> por padrão / <strong>3D</strong> opcional / 100% local
   <br />
@@ -59,10 +59,12 @@ Você vê quem está trabalhando, quem precisa de você e quem está esperando u
 | **Uso mais de uma conta do Claude** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Todas as contas no mesmo escritório, com o plugin instalado em cada uma |
 | **Quero iniciar agentes pelo escritório** | [Comande seu time](#team) | Contrate agentes em mesas vazias, organize a fila, acompanhe o quadro de tarefas e automatize aprovações |
 | **Quero saber para onde vão meus tokens e meu tempo** | [Consumo, relatórios e Git](#insights) | Consumo por dia, semana e mês, previsão de limite, relatório do dia, estado do Git por sala, time-lapse |
+| **Quero o escritório vivo e com a minha cara** | [Um escritório com personalidade](#delight) | Comemorações, interações, níveis e decoração, personalização, um card para compartilhar |
+| **Uso o Codex também, ou trabalho em time** | [Codex e modo time](#reach) | Sessões do Codex no mesmo escritório; vários computadores num só escritório pela rede local |
 | **Algo não está funcionando** | [Solução de problemas](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | Primeiro um diagnóstico somente leitura, depois correções que você aprova |
 | **Quero contribuir** | [Contribuindo](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Ambiente de desenvolvimento, verificações e convenções |
 
-**Nesta página:** [Instalação](#install) · [Agentes](#watch) · [Permissões e mensagens](#direct) · [Seu time](#team) · [Consumo e dia](#insights) · [2D e 3D](#views) · [Como funciona](#how-it-works) · [Privacidade](#privacy) · [Prompts](#prompts) · [Configuração](#configuration) · [Evidências](#evidence) · [Repositório](#repository) · [Comunidade](#community).
+**Nesta página:** [Instalação](#install) · [Agentes](#watch) · [Permissões e mensagens](#direct) · [Seu time](#team) · [Consumo e dia](#insights) · [Personalidade](#delight) · [Codex e time](#reach) · [2D e 3D](#views) · [Como funciona](#how-it-works) · [Privacidade](#privacy) · [Prompts](#prompts) · [Configuração](#configuration) · [Evidências](#evidence) · [Repositório](#repository) · [Comunidade](#community).
 
 <a id="install"></a>
 
@@ -237,9 +239,44 @@ Tudo aqui é calculado no seu computador, a partir dos arquivos que o Claude Cod
 
 O [guia de uso](docs/02-using-the-office.md) detalha cada vista; o [guia de privacidade](docs/05-privacy-and-security.md) lista o que o índice de consumo e o relatório guardam em disco (números por projeto e sessão, nunca o texto das conversas).
 
+<a id="delight"></a>
+
+## 06 / Um escritório com personalidade
+
+<p align="center">
+  <img src="docs/assets/readme/pt-BR/celebration.gif" alt="Um agente conclui as suas tarefas: confete sai dos dois lados, a pessoa pula de braços para cima e os colegas da sala reagem." width="1200" loading="lazy" />
+</p>
+
+O escritório reage ao trabalho, não só ao status, e com o tempo fica com a sua cara.
+
+| O quê | Como aparece |
+|---|---|
+| **As pessoas encenam o trabalho** | Ler segura uma página, editar digita rápido com pequenos símbolos de código, um comando longo no shell faz a pessoa se recostar e batucar, pensar mostra um balão, esperar por você levanta a mão, erros repetidos fazem coçar a cabeça, e agentes ociosos tiram uma pausa para o café |
+| **Comemorações** | Testes que passam depois de uma falha, uma lista de tarefas concluída, um commit ou um pull request mesclado soltam confete dos dois lados, um pulo e colegas aplaudindo; uma sala que termina tudo ganha uma chuva de confete. **Configurações → Comemorações**; com movimento reduzido, aparece uma estrela discreta no lugar |
+| **Os agentes interagem** | Apertos de mão com subagentes na sala de reunião, conversas no café, pingue-pongue no lounge, "toca aqui" e acenos no corredor; o trabalho de verdade sempre os interrompe |
+| **O escritório cresce** | **Conquistas** (`C`): dez níveis do escritório a partir das suas sessões, tarefas, commits, testes e sequências, 22 conquistas, um funcionário do mês e decoração que se desbloqueia nível a nível, de quadros nas paredes e um aquário a um armário de troféus, um letreiro de neon e um gatinho do escritório |
+| **Deixe com a sua cara** | **Personalizar** em qualquer agente ou sala: nomes, tom de pele, penteado, roupa e acessórios (iguais em 2D e 3D), por agente, sala ou conta; apelido, piso, paredes, plantas e placa da sala; **Organizar salas** para reordenar, fixar ou ocultar |
+| **Compartilhe o seu dia** | **Meu dia → Compartilhar**: uma imagem com a marca do escritório de hoje, com agentes, tempo ativo, tarefas, commits e testes, em 1200×630 ou 1080×1080, clara ou escura, com uma legenda pronta para o LinkedIn ou o X. Os nomes dos projetos e os custos ficam de fora, a menos que você os inclua |
+
+<p align="center">
+  <img src="docs/assets/readme/pt-BR/share-card.png" alt="Um card de compartilhamento: o escritório visto de cima com os agentes do dia, o tempo ativo, as tarefas feitas, os commits e os testes que passaram, e o link do repositório." width="900" loading="lazy" />
+</p>
+
+<a id="reach"></a>
+
+## 07 / Traga o Codex e o seu time
+
+| O quê | Como funciona |
+|---|---|
+| **Sessões do Codex** | As sessões do Codex CLI e do app desktop da OpenAI (`~/.codex`, ou `CODEX_HOME`) aparecem no mesmo escritório com um selo **Codex**; agentes que trabalham na mesma pasta dividem a sala com os agentes do Claude Code. Status, atividade, consumo, estimativas de custo, o relatório do dia e o time-lapse também as incluem. O Codex não tem hooks, então permissões e mensagens continuam só para o Claude Code: os agentes do Codex são somente leitura. **Configurações → Mostrar sessões do Codex** |
+| **Modo time** | Vários computadores num só escritório pela sua rede local. Um computador usa **Hospedar um time** e mostra um código de uso único que expira em 10 minutos; os outros usam **Entrar num time** com o endereço e o código. Vem desligado, num listener separado que só fala o protocolo do time; o pareamento é autenticado, o tráfego é criptografado e o anfitrião pode remover membros a qualquer momento |
+| **O que um colega vê** | Nomes, status e o tipo de atividade, em salas somente leitura como "Ana · Projeto 1". Nomes de projetos, detalhes da atividade, branches, tokens e custo só são compartilhados quando cada pessoa liga essa categoria |
+
+A [especificação do modo time](docs/spec/08-team-mode.md) documenta o modelo de ameaças, o protocolo e os seus limites conhecidos; o [guia de privacidade](docs/05-privacy-and-security.md) resume o que sai do seu computador e quando.
+
 <a id="views"></a>
 
-## 06 / 2D por padrão, 3D quando você quiser
+## 08 / 2D por padrão, 3D quando você quiser
 
 <table>
   <tr>
@@ -264,7 +301,7 @@ As duas vistas compartilham o mesmo prédio, as mesmas pessoas e a mesma interfa
 
 <a id="how-it-works"></a>
 
-## 07 / Como funciona
+## 09 / Como funciona
 
 <p align="center">
   <picture>
@@ -289,7 +326,7 @@ O [guia de arquitetura](docs/07-architecture.md) e as [especificações](docs/sp
 
 <a id="privacy"></a>
 
-## 08 / Privado por princípio
+## 10 / Privado por princípio
 
 <p align="center">
   <picture>
@@ -298,7 +335,7 @@ O [guia de arquitetura](docs/07-architecture.md) e as [especificações](docs/sp
   </picture>
 </p>
 
-O AI Office foi feito para código que você talvez não queira compartilhar. Ele não envia nada para lugar nenhum; a única exceção é opcional e vem desligada: consultar pull requests pelo seu próprio CLI `gh`.
+O AI Office foi feito para código que você talvez não queira compartilhar. Ele não envia nada para lugar nenhum, exceto por dois recursos opcionais que vêm desligados: consultar pull requests pelo seu próprio CLI `gh` e o modo time, que compartilha uma visão filtrada com os computadores que você pareia na sua rede local.
 
 | Proteção | Como |
 |---|---|
@@ -313,7 +350,7 @@ Leia o [guia de privacidade e segurança](docs/05-privacy-and-security.md) e rel
 
 <a id="prompts"></a>
 
-## 09 / Prompts para cada etapa
+## 11 / Prompts para cada etapa
 
 Escolha uma tarefa, abra o prompt e cole o bloco indicado em um agente com acesso ao terminal. O [catálogo](docs/prompts/README.md) explica cada um.
 
@@ -329,7 +366,7 @@ Escolha uma tarefa, abra o prompt e cole o bloco indicado em um agente com acess
 
 <a id="configuration"></a>
 
-## 10 / Configure do seu jeito
+## 12 / Configure do seu jeito
 
 Os padrões servem para a maioria das pessoas. Defina variáveis de ambiente (ou as flags equivalentes) só quando precisar:
 
@@ -354,12 +391,12 @@ O texto que vem das suas próprias sessões (prompts, títulos de tarefas, coman
 
 <a id="evidence"></a>
 
-## 11 / Evidências e limites
+## 13 / Evidências e limites
 
 | Verificação | Como |
 |---|---|
 | **Tipos** | TypeScript em modo strict nos quatro pacotes: `npm run typecheck` |
-| **Comportamento** | Mais de 2200 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
+| **Comportamento** | Mais de 3100 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
 | **Estilo** | ESLint e Prettier: `npm run lint` |
 | **Build** | Bundle web e bundle do servidor: `npm run build` |
 | **Documentação** | Todo link local, âncora e tradução do README verificados: `npm run docs:check` |
@@ -376,7 +413,7 @@ A sua tela limita o que você enxerga (geralmente 60 fps). A cena noturna em 3D 
 
 <a id="repository"></a>
 
-## 12 / Explore o repositório
+## 14 / Explore o repositório
 
 ```text
 ai-office/
@@ -416,7 +453,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 13 / Acompanhe o projeto
+## 15 / Acompanhe o projeto
 
 Se o AI Office deixou seus agentes mais fáceis de acompanhar, uma estrela ajuda outras pessoas a encontrá-lo.
 
