@@ -202,7 +202,7 @@ The office is also where work starts and where you keep it moving, without hoppi
 | **Start a new agent** | Click an empty desk, **Hire an agent** in a room, or `H` | A new terminal window opens with Claude Code in that folder, with your first task, model and permission mode; a person walks to the desk and takes over when the session starts |
 | **Clear what waits on you** | The **Inbox** (`I`) | Permissions, questions, errors and finished agents in priority order; **Approve all similar** for identical requests, keyboard triage, risky commands never approved in bulk |
 | **See all the work** | The **Task board** (`K`) or the meeting-room whiteboard | Every agent's tasks in **Pending**, **In progress** and **Completed**; dragging a card writes a message to the agent, which you review before sending |
-| **Stop answering the same question** | **Create rule…** on any request, or **Settings → Approval rules** | Recurring requests (say, `npm test` in one project) are answered at once and logged; risky or compound commands always come to you |
+| **Stop answering the same question** | **Create rule…** on any request, or **Settings → Automation and personalization → Approval rules** | Recurring requests (say, `npm test` in one project) are answered at once and logged; risky or compound commands always come to you |
 
 Hiring needs the page open on this computer and opens your usual terminal (Terminal or iTerm on macOS, your desktop terminal on Linux). The [user guide](docs/02-using-the-office.md) covers each one, and the [plugin guide](docs/03-plugin.md) explains how rules answer requests.
 
@@ -252,7 +252,7 @@ The office reacts to the work, not only to the status, and it becomes yours over
 | What | How it shows up |
 |---|---|
 | **People act out their work** | Reading holds a page, editing types fast with tiny code glyphs, a long shell leans back and taps, thinking shows a bubble, waiting for you raises a hand, repeated errors scratch the head, idle agents take a coffee break |
-| **Celebrations** | Tests passing after a failure, a finished task list, a commit or a merged pull request set off confetti from both sides, a jump and colleagues clapping; a room that finishes everything gets a confetti shower. **Settings → Celebrations**; reduced motion shows a quiet star instead |
+| **Celebrations** | Tests passing after a failure, a finished task list, a commit or a merged pull request set off confetti from both sides, a jump and colleagues clapping; a room that finishes everything gets a confetti shower. **Settings → Office → Celebrations**; reduced motion shows a quiet star instead |
 | **Agents interact** | Handshakes with subagents in the meeting room, chats at the pantry, ping-pong in the lounge, high fives and waves in the corridor; real work always interrupts them |
 | **The office grows** | **Achievements** (`C`): ten office levels from your sessions, tasks, commits, tests and streaks, 22 badges, an employee of the month, and decor that unlocks level by level, from wall art and an aquarium to a trophy cabinet, a neon sign and an office cat |
 | **Make it yours** | **Customize** on any agent or room: names, skin, hair, outfit and accessories (the same in 2D and 3D), per agent, room or account; room alias, floor, walls, plants and sign; **Arrange rooms** to reorder, pin or hide them |
@@ -268,7 +268,7 @@ The office reacts to the work, not only to the status, and it becomes yours over
 
 | What | How it works |
 |---|---|
-| **Codex sessions** | Sessions of the OpenAI Codex CLI and desktop app (`~/.codex`, or `CODEX_HOME`) appear in the same office with a **Codex** badge; agents working in the same folder share the room with Claude Code agents. Status, activity, usage, cost estimates, the day report and the time-lapse include them. Codex has no hooks, so permissions and messages stay Claude-only: Codex agents are read-only. **Settings → Show Codex sessions** |
+| **Codex sessions** | Sessions of the OpenAI Codex CLI and desktop app (`~/.codex`, or `CODEX_HOME`) appear in the same office with a **Codex** badge; agents working in the same folder share the room with Claude Code agents. Status, activity, usage, cost estimates, the day report and the time-lapse include them. Codex has no hooks, so permissions and messages stay Claude-only: Codex agents are read-only. **Settings → Data and integrations → Show Codex sessions** |
 | **Team mode** | Several computers in one office over your local network. One computer **hosts a team** and shows a single-use code that expires in 10 minutes; the others **join** with the address and the code. Off by default, on a separate listener that speaks only the team protocol; pairing is authenticated, traffic is encrypted, and the host can remove members at any time |
 | **What a teammate sees** | Names, status and the kind of activity, in read-only rooms such as "Ana · Project 1". Project names, activity details, branches, tokens and cost are shared only when each person turns that category on |
 
@@ -289,12 +289,12 @@ The [team mode spec](docs/spec/08-team-mode.md) documents the threat model, the 
   </tr>
 </table>
 
-Both views share the same building, the same people and the same interface; only the rendering changes. Switch in **Settings → Visual**, and it applies at once.
+Both views share the same building, the same people and the same interface; only the rendering changes. Switch in **Settings → General → Visual**, and it applies at once.
 
 | | 2D (default) | 3D (optional) |
 |---|---|---|
 | **Look** | Hand-made pixel art: walnut, marble, brass, plants and a city around the building | Lit 3D tower with real-time shadows, glass, city traffic and 3D characters |
-| **Camera** | Pan, zoom and overview | **Overview**, **First person** and **Over the shoulder** |
+| **Camera** | Pan, smooth zoom and overview, with one zoom-out step past the overview so the building always fills the view | **Overview**, **First person** and **Over the shoulder** |
 | **Day and night** | Follows your local time, or fixed day or night | Same, with night glow on the windows and signs |
 | **Cost** | Very light: hundreds of frames per second of headroom | Heavier, mainly at night: [measured numbers](docs/06-validation.md) |
 | **Loads** | Immediately | On demand, the first time you switch |
@@ -379,13 +379,13 @@ Defaults work for most people. Set environment variables (or the matching flags)
 | `AI_OFFICE_DEMO` | off | Start with demo sessions |
 | `AI_OFFICE_LOG` | normal | `quiet` or `debug` |
 
-Interface preferences (language, 2D or 3D, day and night, names, speech bubbles, animation, sounds, browser notifications) live in **Settings** and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
+Interface preferences live in **Settings**, grouped into sections you can expand or collapse (**General** with language, visual and day and night first, then office, sounds and notifications, data and integrations, automation and personalization, team, demo and about), and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
 
 <a id="language"></a>
 
 ### Your language
 
-The whole interface (panels, statuses, activities, notifications, room names and the signs inside the office) is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → Language**, or leave **Automatic (system)** to follow your browser. The switch is instant and keeps your selection, open panels and camera.
+The whole interface (panels, statuses, activities, notifications, room names and the signs inside the office) is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → General → Language**, or leave **Automatic (system)** to follow your browser. The switch is instant and keeps your selection, open panels and camera.
 
 Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written. When you answer a permission or send a message, the plugin tells the agent in your language.
 
