@@ -61,7 +61,7 @@ export interface TeamServiceDeps {
   stretch?: (code: string, salt: Buffer) => Promise<Buffer>;
   delayScale?: number;
   /** Limits of the host's unauthenticated connections (tests). */
-  hostOptions?: Pick<HostDeps, 'pending' | 'firstFrameMs'>;
+  hostOptions?: Pick<HostDeps, 'pending' | 'firstFrameMs' | 'addressOf'>;
 }
 
 export class TeamService {

@@ -33,6 +33,8 @@ export interface StoredMember {
   pub: string;
   createdAt: number;
   lastSeenAt?: number;
+  /** The address it last connected from: it keeps its reserve of connection slots after a restart. */
+  lastAddress?: string;
 }
 
 export interface HostFile {
@@ -93,6 +95,7 @@ function memberOf(raw: unknown): StoredMember | undefined {
     pub: r.pub as string,
     createdAt: r.createdAt,
     ...(typeof r.lastSeenAt === 'number' ? { lastSeenAt: r.lastSeenAt } : {}),
+    ...(typeof r.lastAddress === 'string' && isTeamAddress(r.lastAddress) ? { lastAddress: r.lastAddress } : {}),
   };
 }
 

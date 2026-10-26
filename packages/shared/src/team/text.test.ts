@@ -10,6 +10,11 @@ describe('cleanLine', () => {
     expect(cleanLine('\uFEFFstart', 20)).toBe('start');
   });
 
+  test('removes invisible fillers that draw nothing', () => {
+    expect(cleanLine('a\u3164b\u2800c\u115Fd\u1160e\uFFA0f\u034Fg\u17B4h\u17B5i', 20)).toBe('abcdefghi');
+    expect(cleanLine('\u3164\u2800\u3164', 10)).toBeUndefined();
+  });
+
   test('turns control and line-separator characters into a single space', () => {
     expect(cleanLine('a\u0000b\u0007c\n\r\td\u2028e\u2029f\u0085g', 20)).toBe('a b c d e f g');
   });
@@ -38,6 +43,11 @@ describe('isSafeKey', () => {
     expect(isSafeKey('a1B-_')).toBe(true);
     for (const bad of [
       '__proto__',
+      '__defineGetter__',
+      '__x',
+      'isPrototypeOf',
+      'propertyIsEnumerable',
+      'toLocaleString',
       'constructor',
       'prototype',
       'toString',

@@ -26,6 +26,7 @@ import {
   DOWN_MAX_BYTES,
   FIRST_FRAME_MS,
   HANDSHAKE_MAX_BYTES,
+  HANDSHAKE_STALL_MS,
   HANDSHAKE_TIMEOUT_MS,
   MESSAGES_PER_WINDOW,
   MESSAGE_WINDOW_MS,
@@ -60,6 +61,8 @@ export interface HostDeps {
   /** Limits of the connections that have not authenticated yet, and the first-frame deadline (tests). */
   pending?: PendingLimits;
   firstFrameMs?: number;
+  /** Which address a connection counts as coming from (tests give each connection its own). */
+  addressOf?: (socket: Socket) => string;
 }
 
 interface Session {
@@ -133,6 +136,7 @@ export class TeamHost {
   private readonly handshaking = new Map<string, Set<FramedConn>>();
   private readonly received = new Map<string, Received>();
   private readonly lastSeen = new Map<string, number>();
+  private readonly lastAddress = new Map<string, string>();
   private localShare: TeamShare = EMPTY_TEAM_SHARE;
   private localShareSig = '';
   /** Every change of the host file goes through this chain, each computed from the latest state. */
@@ -155,6 +159,9 @@ export class TeamHost {
     this.identity = importIdentity(file.identity);
     this.gate = new PairingGate(deps.now, deps.stretch === undefined ? {} : { stretch: deps.stretch });
     this.pendingGate = new PendingGate(deps.now, deps.pending ?? DEFAULT_PENDING_LIMITS);
+    // Members that connected before keep their reserve of slots across a restart.
+    for (const member of file.members)
+      if (member.lastAddress !== undefined) this.pendingGate.markTrusted(member.lastAddress);
     this.firstFrameMs = deps.firstFrameMs ?? FIRST_FRAME_MS;
     this.pairLimits = new PerAddress(PAIR_ATTEMPTS_PER_MINUTE, deps.now);
     this.wrongProofs = new PerAddress(WRONG_PROOFS_PER_MINUTE, deps.now);
@@ -369,7 +376,7 @@ export class TeamHost {
   // ---- connections -------------------------------------------------------------------------------------------------
 
   private onSocket(socket: Socket): void {
-    const raw = socket.remoteAddress ?? '';
+    const raw = this.deps.addressOf?.(socket) ?? socket.remoteAddress ?? '';
     const address = raw.startsWith('::ffff:') ? raw.slice(7) : raw;
     const conn = new FramedConn(socket, HANDSHAKE_MAX_BYTES);
     const release = isTeamAddress(address) ? this.pendingGate.admit(address, () => conn.destroy()) : undefined;
@@ -379,7 +386,12 @@ export class TeamHost {
     }
     this.sockets.add(socket);
     socket.once('close', () => this.sockets.delete(socket));
-    const deadline = setTimeout(() => conn.destroy(), HANDSHAKE_TIMEOUT_MS);
+    let deadline = setTimeout(() => conn.destroy(), HANDSHAKE_TIMEOUT_MS);
+    // Once the first frame is in, a handshake that stalls is cut sooner than the overall deadline.
+    const firstFrame = (): void => {
+      clearTimeout(deadline);
+      deadline = setTimeout(() => conn.destroy(), HANDSHAKE_STALL_MS);
+    };
     let released = false;
     const done = (): void => {
       clearTimeout(deadline);
@@ -387,16 +399,22 @@ export class TeamHost {
       released = true;
     };
     conn.onClose(done);
-    this.handshake(conn, address, done).catch((error: unknown) => {
+    this.handshake(conn, address, done, firstFrame).catch((error: unknown) => {
       if (!(error instanceof FrameError)) this.deps.log.debug(`Modo time: ${String(error)}`);
       conn.destroy();
       done();
     });
   }
 
-  private async handshake(conn: FramedConn, address: string, authenticated: () => void): Promise<void> {
+  private async handshake(
+    conn: FramedConn,
+    address: string,
+    authenticated: () => void,
+    firstFrame: () => void,
+  ): Promise<void> {
     // The first frame must come quickly: an idle connection is not allowed to hold a slot for the whole handshake.
     const first = decode(await conn.read(this.firstFrameMs));
+    firstFrame();
     const refuse = (code: TeamErrorCode): void => {
       sendPlain(conn, { t: 'error', code });
       conn.close();
@@ -437,7 +455,7 @@ export class TeamHost {
     if (session === 'refused') return;
     authenticated();
     this.pendingGate.markTrusted(address);
-    await this.runSession(conn, session.memberId, session.memberPub, session.channel);
+    await this.runSession(conn, address, session.memberId, session.memberPub, session.channel);
   }
 
   private trackHandshake(memberId: string, conn: FramedConn): () => void {
@@ -481,6 +499,7 @@ export class TeamHost {
 
   private async runSession(
     conn: FramedConn,
+    address: string,
     memberId: string,
     memberPub: Buffer,
     channel: SecureChannel,
@@ -490,6 +509,7 @@ export class TeamHost {
       conn.destroy();
       return;
     }
+    this.lastAddress.set(memberId, address);
     const old = this.sessions.get(memberId);
     if (old !== undefined) this.endSession(old, 'replaced');
     conn.setMaxBytes(UP_MAX_BYTES + SEAL_OVERHEAD);
@@ -591,10 +611,17 @@ export class TeamHost {
       file.members.some((member) => member.id === memberId)
         ? {
             ...file,
-            members: file.members.map((member) => (member.id === memberId ? { ...member, lastSeenAt: seen } : member)),
+            members: file.members.map((member) =>
+              member.id === memberId ? { ...member, lastSeenAt: seen, ...this.addressField(memberId) } : member,
+            ),
           }
         : undefined,
     );
+  }
+
+  private addressField(memberId: string): { lastAddress?: string } {
+    const address = this.lastAddress.get(memberId);
+    return address === undefined ? {} : { lastAddress: address };
   }
 
   private endSession(session: Session, reason: string): void {

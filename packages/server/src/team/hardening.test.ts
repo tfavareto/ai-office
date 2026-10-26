@@ -385,3 +385,115 @@ describe('L9: housekeeping', () => {
     expect(h.n.service.status().host?.link).toBe('stopped');
   });
 });
+
+describe('R1: aliases in the victim subnet cannot block pairing', () => {
+  test('four connections from four addresses of the /24 holding slots do not keep a new pairing out', async () => {
+    const aliases = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4'];
+    const tight = await node('tight', ['T'], {
+      hostOptions: {
+        pending: { max: 32, perAddress: 3, perSubnet: 4, reserve: 0 },
+        firstFrameMs: 6000,
+        // The first four connections count as four aliases of the subnet; later ones come from 10.0.0.200.
+        addressOf: () => aliases.shift() ?? '10.0.0.200',
+      },
+    });
+    const { freePort } = await import('../test-helpers');
+    const port = await freePort();
+    const pairing = await tight.service.startHosting({ address: '127.0.0.1', port, name: 'Tight' });
+    const attackers: ReturnType<typeof connect>[] = [];
+    for (let i = 0; i < 4; i++) {
+      const socket = connect(port, '127.0.0.1');
+      await new Promise((resolve) => socket.once('connect', resolve));
+      await wait(30);
+      attackers.push(socket);
+    }
+    const visitor = await node('visitor', ['V']);
+
+    await visitor.service.join({ address: '127.0.0.1', port, code: pairing.code.replace('-', ''), name: 'V' });
+
+    expect(visitor.service.status().role).toBe('member');
+    await wait(50);
+    expect(attackers.filter((socket) => socket.destroyed || socket.readyState !== 'open').length).toBe(1);
+    attackers.forEach((socket) => socket.destroy());
+  });
+
+  test('a handshake that stalls after its first frame is cut within the stall deadline, not the overall one', async () => {
+    const h = await host();
+    const m = await member(h);
+    await until(() => people(h.n).some((p) => p.online), 'online');
+    const creds = await joinedFiles(m);
+    await m.service.stop();
+    await until(() => !people(h.n).some((p) => p.online), 'offline');
+    const conn = await connectTcp('127.0.0.1', h.port);
+    conn.send(
+      encode({
+        t: 'hello',
+        v: TEAM_PROTOCOL_VERSION,
+        member: creds.memberId,
+        e: toB64(Buffer.alloc(32, 9)),
+        n: toB64(Buffer.alloc(16, 1)),
+      }),
+    );
+    expect(decode(await conn.read(2000)).t).toBe('hello-ok');
+    const started = Date.now();
+
+    await conn.read(7000).catch((error: unknown) => expect((error as FrameError).code).toBe('closed'));
+
+    const elapsed = Date.now() - started;
+    expect(elapsed).toBeGreaterThan(2500);
+    expect(elapsed).toBeLessThan(6500);
+  });
+
+  test('the address a member connected from is kept in the host file, so its reserve survives a restart', async () => {
+    const h = await host();
+    const m = await member(h);
+    await until(() => people(h.n).some((p) => p.online), 'online');
+
+    await m.service.stop();
+    await until(() => !people(h.n).some((p) => p.online), 'offline');
+    const read = async (): Promise<HostFile> =>
+      JSON.parse(await readFile(join(h.n.state, 'team', 'host.json'), 'utf8')) as HostFile;
+    let stored = await read();
+    for (let i = 0; i < 50 && stored.members[0]?.lastAddress === undefined; i++) {
+      await wait(50);
+      stored = await read();
+    }
+
+    expect(stored.members[0]?.lastAddress).toBe('127.0.0.1');
+  });
+});
+
+describe('R3: a member stored on the host that never heard back', () => {
+  test('shows as "never connected" and can be removed', async () => {
+    const h = await host();
+    const { memberPair } = await import('./pair');
+    const identity = newIdentity();
+    const conn = await connectTcp('127.0.0.1', h.port);
+    const send = conn.send.bind(conn);
+    let sent = 0;
+    // The device crashes right after sending its proof: the host stores it, but nobody reads the acceptance.
+    conn.send = (body: Buffer): boolean => {
+      const ok = send(body);
+      if (++sent === 2) setTimeout(() => conn.destroy(), 20);
+      return ok;
+    };
+
+    await memberPair(conn, {
+      code: h.code,
+      name: 'Ghost',
+      device: 'gone',
+      identity,
+      stretch: async (code, salt) => Buffer.concat([Buffer.from(code), salt]).subarray(0, 32),
+    }).catch(() => undefined);
+    await until(() => (h.n.service.status().host?.members.length ?? 0) === 1, 'stored');
+
+    const entry = h.n.service.status().host?.members[0];
+    expect(entry).toMatchObject({ name: 'Ghost', online: false });
+    expect(entry?.lastSeenAt).toBeUndefined();
+    expect(h.n.service.status().host?.pairing).toBeUndefined();
+
+    await h.n.service.revoke(entry?.id as string);
+
+    expect(h.n.service.status().host?.members).toEqual([]);
+  });
+});

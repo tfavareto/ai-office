@@ -54,7 +54,11 @@ const running: Node[] = [];
 export async function node(
   prefix: string,
   names: string[],
-  options: { state?: string; disabled?: boolean; hostOptions?: Pick<HostDeps, 'pending' | 'firstFrameMs'> } = {},
+  options: {
+    state?: string;
+    disabled?: boolean;
+    hostOptions?: Pick<HostDeps, 'pending' | 'firstFrameMs' | 'addressOf'>;
+  } = {},
 ): Promise<Node> {
   const state = options.state ?? join(await makeTempDir(`ai-office-team-${prefix}-`), 'state');
   if (options.state === undefined) dirs.push(join(state, '..'));

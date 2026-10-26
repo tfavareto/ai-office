@@ -16,6 +16,8 @@ export const DEAD_AFTER_MS = 35_000;
  * The first frame must arrive within this: an idle connection is cut after it, long before the whole handshake deadline.
  */
 export const FIRST_FRAME_MS = 2000;
+/** Once the first frame has arrived, the rest of the handshake must not stall longer than this. */
+export const HANDSHAKE_STALL_MS = 4000;
 
 /**
  * Connections that have not authenticated yet: in total, per source address and per /24 subnet. When the total is
@@ -34,7 +36,7 @@ export const PAIR_ATTEMPTS_PER_MINUTE = 10;
 export const WRONG_PROOFS_PER_MINUTE = 2;
 /** A pairing code is locked for an address after this many wrong proofs, and destroyed for everybody after this many in all. */
 export const PAIRING_LOCK_PER_ADDRESS = 5;
-export const PAIRING_DESTROY_AFTER = 60;
+export const PAIRING_DESTROY_AFTER = 1000;
 export const SESSION_HELLOS_PER_MINUTE = 30;
 export const SESSION_FAILURES_PER_MINUTE = 8;
 /** Messages per authenticated connection: more than this in the window closes it. */

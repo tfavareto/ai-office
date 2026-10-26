@@ -58,28 +58,40 @@ export class PendingGate {
     return false;
   }
 
-  /** Admits a connection (returning its release function) or refuses it (undefined). `drop` closes it when evicted. */
+  /**
+   * Admits a connection (returning its release function) or refuses it (undefined). `drop` closes it when evicted.
+   * At the per-address cap the newcomer is refused. At the subnet cap or the total cap the oldest connection of the
+   * busiest address (in that subnet, or overall) is dropped for it, unless the newcomer's own address is that busiest
+   * one: aliases in a victim's subnet cannot lock the victim out by holding slots.
+   */
   admit(address: string, drop: () => void): (() => void) | undefined {
     const subnet = subnetOf(address);
-    const all = [...this.entries.values()];
     const known = this.isTrusted(address);
-    if (all.filter((entry) => entry.address === address).length >= this.limits.perAddress + (known ? 1 : 0))
+    const entries = (): Entry[] => [...this.entries.values()];
+    if (entries().filter((entry) => entry.address === address).length >= this.limits.perAddress + (known ? 1 : 0))
       return undefined;
-    if (!known && all.filter((entry) => entry.subnet === subnet).length >= this.limits.perSubnet) return undefined;
+    if (!known) {
+      const local = entries().filter((entry) => entry.subnet === subnet);
+      if (local.length >= this.limits.perSubnet && !this.evict(local, address)) return undefined;
+    }
     const capacity = this.limits.max + (known ? this.limits.reserve : 0);
-    if (all.length >= capacity && !this.evict(all)) return undefined;
+    if (this.entries.size >= capacity && !this.evict(entries(), address)) return undefined;
     const id = this.nextId++;
     this.entries.set(id, { id, address, subnet, since: this.now(), drop });
     return () => void this.entries.delete(id);
   }
 
-  /** Drops the oldest connection of the address with the most of them, never one of a recently authenticated address. */
-  private evict(all: readonly Entry[]): boolean {
+  /**
+   * Drops the oldest connection of the address with the most of them among `pool`, never one of a recently
+   * authenticated address. False when there is nobody to drop, or when the newcomer's own address is the busiest.
+   */
+  private evict(pool: readonly Entry[], newcomer: string): boolean {
     const counts = new Map<string, number>();
-    for (const entry of all) counts.set(entry.address, (counts.get(entry.address) ?? 0) + 1);
-    const candidates = all.filter((entry) => !this.isTrusted(entry.address));
+    for (const entry of pool) counts.set(entry.address, (counts.get(entry.address) ?? 0) + 1);
+    const candidates = pool.filter((entry) => !this.isTrusted(entry.address));
     if (candidates.length === 0) return false;
     const busiest = Math.max(...candidates.map((entry) => counts.get(entry.address) ?? 0));
+    if ((counts.get(newcomer) ?? 0) >= busiest) return false;
     const victim = candidates
       .filter((entry) => (counts.get(entry.address) ?? 0) === busiest)
       .reduce((oldest, entry) => (entry.since < oldest.since ? entry : oldest));

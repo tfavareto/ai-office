@@ -14,11 +14,42 @@ describe('PendingGate', () => {
     expect(g.admit('10.0.0.5', noop)).toBeUndefined();
   });
 
-  test('one /24 subnet cannot hold more than its share, other subnets are not affected', () => {
+  test('at the subnet cap a newcomer from another address takes the place of the oldest of the busiest address', () => {
     const g = gate();
-    for (const last of [1, 1, 2, 2]) expect(g.admit(`10.0.0.${last}`, noop)).toBeDefined();
-    expect(g.admit('10.0.0.3', noop)).toBeUndefined();
+    const dropped: string[] = [];
+    clock = 1;
+    g.admit('10.0.0.1', () => dropped.push('1-old'));
+    clock = 2;
+    g.admit('10.0.0.1', () => dropped.push('1-new'));
+    clock = 3;
+    g.admit('10.0.0.2', () => dropped.push('2'));
+    g.admit('10.0.0.3', () => dropped.push('3'));
+
+    const victimSubnetNewcomer = g.admit('10.0.0.9', noop);
+
+    expect(victimSubnetNewcomer).toBeDefined();
+    expect(dropped).toEqual(['1-old']);
     expect(g.admit('10.0.1.3', noop)).toBeDefined();
+  });
+
+  test('aliases in a subnet each holding a slot cannot lock out a newcomer of that subnet', () => {
+    const g = gate();
+    const dropped: string[] = [];
+    for (const [i, last] of [1, 2, 3, 4].entries()) {
+      clock = i;
+      g.admit(`10.0.0.${last}`, () => dropped.push(String(last)));
+    }
+
+    expect(g.admit('10.0.0.50', noop)).toBeDefined();
+    expect(dropped).toEqual(['1']);
+  });
+
+  test('the newcomer is refused only when its own address is the busiest of the subnet', () => {
+    const g = new PendingGate(() => clock, { max: 20, perAddress: 3, perSubnet: 4, reserve: 0 });
+    for (const last of [1, 1, 1, 2]) g.admit(`10.0.0.${last}`, noop);
+
+    expect(g.admit('10.0.0.1', noop)).toBeUndefined();
+    expect(g.admit('10.0.0.2', noop)).toBeDefined();
   });
 
   test('when full, the oldest connection of the busiest address is dropped for a newcomer', () => {
