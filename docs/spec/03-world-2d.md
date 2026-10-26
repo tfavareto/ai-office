@@ -137,6 +137,11 @@ The office grows with the level in the snapshot (`progress.level`, see [00-produ
 - The activity marks are procedural (`fx/activityFx.ts`, glyph bitmaps cached in `fx/glyphs.ts`); the confetti pool never allocates while it runs.
 - Static layers (exterior, building shell, each room) pre-rendered into offscreen canvases, rebuilt only when the
   layout changes; per frame draw: layers (culled to the viewport), characters (y-sorted), overlay.
+- The city is one cached canvas that is blitted only where it is visible; per frame it costs the blit and the driving cars (culled
+  to the view): about 0.1 ms, plus about 0.25 ms of lamps and headlights at night. Its cost is the rebuild, which happens on every
+  new room: the ground speckle (asphalt, alleys, lawn, roofs) is batched into two path fills per surface instead of one `fillRect`
+  per pixel and the colours are resolved once, which took the rebuild of a 4-room office from about 150 ms to about 40 ms (12 rooms
+  from about 200-330 ms to about 65 ms) with the same pixels.
 - No allocation-heavy work per frame; sim tick fixed at 30 Hz decoupled from render.
 
 ## World API
@@ -150,9 +155,22 @@ without updating every implementation).
 `WorldApi.capture({ width, height, mode: 'overview' | 'current', showProjectNames? })` returns a canvas of exactly that size with a still of the office, for the share card. It never draws from the live scene: `world/capture.ts` (`captureSnapshot`, pure) copies the last snapshot keeping only rooms, people, status, kind of activity and colours (project names are replaced by `room.generic`, "Room 1", unless `showProjectNames`; paths, titles, task and activity texts, branches, permissions and hires are dropped), `capture2d` builds a throwaway `OfficeSim` from it (settled for one second), draws it with a new `Renderer` and the same layers and lighting as the live world, at the `night` amount on screen, without the overlay (no name tags, bubbles or pills). `overview` frames the whole building with a margin (`overviewFraming`); `current` shows the region the live camera shows, scaled to fit (`currentFraming`). When the picture needs a zoom above 1 the art is drawn at the next whole zoom and scaled down with smoothing (`renderPlan`), so the pixels stay square; below 1 it is drawn at the fit itself. The live camera, canvas and caches are not touched. The pure framing math is in `captureFraming.ts` (tested). The dev harness (`dev/world2d.html?capture=1&cw=1200&ch=630&cmode=overview&names=1`) shows a capture and exposes `window.__capture`.
 
 ## Camera
-- The visible area is always covered by the drawn world: the minimum zoom is the zoom at which the world (the building plus
-  its city frame) covers the whole canvas, and panning is clamped to the world edge. The city frame is large enough
-  (several rows of blocks, a wide park) for that to hold on wide and tall windows and for wide buildings.
+- The visible area is always covered by the drawn world, and panning is clamped to the world edge. The zoom range ends
+  **one step below the overview**: the minimum zoom is the overview zoom divided by `ZOOM_OUT_STEP` (1.25, the factor of the `-`
+  button and key), or the cover zoom of the world when that is larger (`minZoomForView`). A building that already fills the window
+  at the smallest zoom level (0.5) gets no further step (`zoomOutFloor`). The wheel, the pinch and the buttons stop there; the
+  drawn zoom eases toward the target and only the cover zoom is a hard limit, so a floor that moves (a panel opening or closing
+  changes the overview) is reached smoothly.
+- **The city is sized from that rule** (`world2d/cityMargins.ts`, pure, tested). `cityMargins(buildingTiles, window)` replays the
+  camera for the canvas size and the device pixel ratio, with the sidebar open and closed, and takes the largest distance the
+  canvas reaches beyond each side of the building at the lowest zoom. That is the margin of that side in tiles, plus the cover slack
+  and two tiles of safety, in steps of 4 tiles and never below 16 (the street frame needs 12). It works for any window, 4:3 to 21:9
+  and beyond. `LayerCache.setWindow` hands it the canvas size; the window only grows, so shrinking and enlarging a window again never
+  rebuilds the city, and a rebuild happens only when a margin moves up a step (a new room, a bigger window). Stills (share card) use a
+  large reference window. A 4-room office in a 1440x830 window gets a 135 x 73 tile world (was 130 x 121); the drawer and the expanded
+  feed only shrink the free area further, and then the cover zoom holds the camera. `layoutExterior(width, margins)` takes the margins;
+  the 3D city keeps `WIDE_EXTERIOR_MARGINS`. Blocks of neighbours (rows north and south, columns west) are added to reach the margins,
+  and rooftops wholly outside the world are not generated.
 - Wheel and trackpad pinch zoom continuously around the cursor and ease toward the target (exponential, frame-rate
   independent). Buttons and `+`/`-` step through the crisp levels around the middle of the free area in about 200 ms.
   `prefers-reduced-motion` makes every camera move instant. The camera translation snaps to device pixels.

@@ -380,6 +380,7 @@ export class World2D implements WorldApi {
     this.canvas.height = Math.round(height * dpr);
     this.cam.dpr = dpr;
     this.cam.view = { width, height, insets: this.insets };
+    this.renderer.setWindow({ width, height, dpr });
     if (this.fitted && !this.userMoved) this.overview(false);
   }
 
@@ -456,6 +457,7 @@ export class World2D implements WorldApi {
     this.renderer.sync(this.sim, this.options.locale);
     const ex = this.renderer.layers.exterior;
     this.cam.world = ex ? { x: ex.x, y: ex.y, w: ex.canvas.width, h: ex.canvas.height } : null;
+    this.cam.building = { w: b.width * TILE, h: b.height * TILE };
     if (!this.fitted && this.sim.characters.length + b.areas.length > 0 && this.cam.view.width > 10) {
       this.overview(false);
     } else if (this.fitted && !this.userMoved && b.width !== this.fittedWidth) {

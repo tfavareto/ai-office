@@ -17,6 +17,7 @@ import { taskBoardKey, type TaskBoardSummary } from '../world/taskBoard';
 import { roomGitKey } from '../world/roomGit';
 import { ITEM_Y } from './paint/wallitems';
 import { PLAQUE_W, renderPlaque } from './runtime/plaque';
+import type { CityWindow } from './cityMargins';
 import { type CarDraw, Traffic } from './runtime/cars';
 import { SCREEN_H, SCREEN_W, desksScreens, screenSprite } from './runtime/screens';
 import { type TickerStrip } from './runtime/ticker';
@@ -131,6 +132,11 @@ export class Renderer {
 
   evolutionNow(): Evolution {
     return this.evolution;
+  }
+
+  /** The size of the canvas, which decides how much city is drawn around the building. */
+  setWindow(win: CityWindow): void {
+    this.layers.setWindow(win);
   }
 
   /** Make sure static layers match the simulation's layout. */

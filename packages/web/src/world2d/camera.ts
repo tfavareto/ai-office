@@ -13,6 +13,7 @@ import {
   easeZoom,
   freeCenter,
   minZoomFor,
+  minZoomForView,
   pinnedCenter,
   stepZoom,
   worldAt,
@@ -52,6 +53,8 @@ export class Camera {
   view: Viewport = { width: 800, height: 600, insets: { top: 0, right: 0, bottom: 0, left: 0 } };
   /** Drawn world; the visible rect never leaves it. Null while unknown. */
   world: Bounds | null = null;
+  /** The building in world px (origin at 0,0), whose overview sets how far the user may zoom out. Null while unknown. */
+  building: { w: number; h: number } | null = null;
   /** World point held in the middle of the free area, and the point it eases toward. */
   pin: Point | null = null;
   pinGoal: Point | null = null;
@@ -64,7 +67,13 @@ export class Camera {
     return zoomLevels(this.dpr);
   }
 
+  /** Lowest zoom the user may ask for: one step out from the overview (never below what the world covers). */
   get minZoom(): number {
+    return minZoomForView(this.world, this.view, this.building, this.dpr);
+  }
+
+  /** Lowest zoom that still shows nothing outside the world. The drawn zoom is held to this, never to `minZoom`. */
+  get coverZoom(): number {
     return minZoomFor(this.world, this.view);
   }
 
@@ -183,10 +192,11 @@ export class Camera {
 
   /** Advances the easing by `dt` seconds (frame-rate independent). Returns true while something is still moving. */
   update(dt: number, reducedMotion = false): boolean {
-    const min = this.minZoom;
-    this.tz = clampZoom(this.tz, min);
+    this.tz = clampZoom(this.tz, this.minZoom);
     const k = (rate: number): number => (reducedMotion ? 1 : easeFactor(dt, rate));
-    this.zoom = clampZoom(easeZoom(this.zoom, this.tz, k(this.zoomRate)), min);
+    // The drawn zoom eases toward the target and only the cover zoom is a hard limit, so a floor that moves (a panel
+    // opening or closing changes the overview) is reached smoothly instead of by a jump.
+    this.zoom = clampZoom(easeZoom(this.zoom, this.tz, k(this.zoomRate)), this.coverZoom);
     this.easeInsets(k(INSET_RATE));
     this.easePin(k(POSITION_RATE));
     this.applyCenter();
@@ -225,7 +235,7 @@ export class Camera {
 
   /** Keep the visible rect inside the world, whatever the zoom and the window size. */
   clamp(): void {
-    this.zoom = clampZoom(this.zoom, this.minZoom);
+    this.zoom = clampZoom(this.zoom, this.coverZoom);
     const c = clampCenter({ x: this.cx, y: this.cy }, this.zoom, this.view, this.world);
     this.cx = c.x;
     this.cy = c.y;

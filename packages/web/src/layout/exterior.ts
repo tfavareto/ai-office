@@ -41,31 +41,65 @@ export interface ExteriorLayout {
   grass: Rect[];
 }
 
+/** City margin around the building, in tiles, on each side. */
+export interface ExteriorMargins {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
 /**
- * City margin around the building, in tiles. The camera may never show anything outside the drawn world, so the
- * margin has to be large enough that the world still covers a wide or tall window at the zoom of the overview: three
- * rows of neighbouring blocks to the north and south, two columns to the west and a wide park to the east.
+ * Smallest margin that still holds the street frame: the far sidewalk of the streets is 12 tiles from the building,
+ * and a few tiles of neighbouring rooftops behind it keep the block reading as a city.
  */
-export const EXTERIOR_MARGIN_X = 34;
-export const EXTERIOR_MARGIN_Y = 46;
-const MARGIN_X = EXTERIOR_MARGIN_X;
-const MARGIN_Y = EXTERIOR_MARGIN_Y;
+export const MIN_EXTERIOR_MARGIN = 16;
+
+/**
+ * Margins of the 3D city, which has its own camera and keeps a wide surround (three rows of blocks north and south,
+ * two columns west, a wide park east). The 2D world sizes its city from the zoom rule instead (`world2d/cityMargins`).
+ */
+export const WIDE_EXTERIOR_MARGINS: ExteriorMargins = { left: 34, right: 34, top: 46, bottom: 46 };
 const SIDEWALK = 3;
 const STREET = 6;
 const BLOCK_H = 10;
-const BLOCK_ROWS = 3;
-const BLOCK_COLS = 2;
+const BLOCK_W = 12;
 const ALLEY = 2;
 const BLOCK_STRIDE = 14;
+/** Sidewalk, street and far sidewalk: how far the first block of neighbours stands from the building. */
+const FRAME = SIDEWALK + STREET + SIDEWALK;
+
+/** Rows (or columns) of neighbouring blocks that reach `margin` tiles, behind the street frame `FRAME` tiles from the building. */
+function blocksFor(margin: number, size: number, stride: number): number {
+  return Math.max(1, Math.ceil((margin - FRAME - size) / stride) + 1);
+}
+
+/** Adds a rooftop unless it lies wholly outside the world, where nothing could ever show it. */
+function addRooftop(list: Rooftop[], bounds: Rect, rect: Rect, variant: number): void {
+  const outside =
+    rect.x >= bounds.x + bounds.w ||
+    rect.x + rect.w <= bounds.x ||
+    rect.y >= bounds.y + bounds.h ||
+    rect.y + rect.h <= bounds.y;
+  if (!outside) list.push({ rect, variant });
+}
 
 /**
  * Street frame around the building: sidewalks, a street along the north and south sides and the west entrance,
  * trees, lamp posts and neighbour rooftops. Objects are hashed per 8-tile cell so growing the building only appends.
  */
-export function layoutExterior(buildingWidth: number): ExteriorLayout {
+export function layoutExterior(
+  buildingWidth: number,
+  margins: ExteriorMargins = WIDE_EXTERIOR_MARGINS,
+): ExteriorLayout {
   const w = buildingWidth;
   const h = BUILDING_H;
-  const bounds: Rect = { x: -MARGIN_X, y: -MARGIN_Y, w: w + MARGIN_X * 2, h: h + MARGIN_Y * 2 };
+  const bounds: Rect = {
+    x: -margins.left,
+    y: -margins.top,
+    w: w + margins.left + margins.right,
+    h: h + margins.top + margins.bottom,
+  };
   const northWalk: Rect = { x: -SIDEWALK, y: -SIDEWALK, w: w + SIDEWALK * 2 + 4, h: SIDEWALK };
   const southWalk: Rect = { x: -SIDEWALK, y: h, w: w + SIDEWALK * 2 + 4, h: SIDEWALK };
   const westWalk: Rect = { x: -SIDEWALK, y: 0, w: SIDEWALK, h };
@@ -117,26 +151,31 @@ export function layoutExterior(buildingWidth: number): ExteriorLayout {
   const lampsFiltered = lamps.filter((l) => l.x > -SIDEWALK && l.x < w + SIDEWALK + 3);
 
   const rooftops: Rooftop[] = [];
-  for (let row = 0; row < BLOCK_ROWS; row++) {
+  const rows = blocksFor(Math.max(margins.top, margins.bottom), BLOCK_H, BLOCK_H + ALLEY);
+  const firstCell = -Math.ceil(margins.left / BLOCK_STRIDE) - 1;
+  for (let row = 0; row < rows; row++) {
     const lift = row * (BLOCK_H + ALLEY);
-    for (let cell = -4; cell * BLOCK_STRIDE < w + MARGIN_X; cell++) {
+    for (let cell = firstCell; cell * BLOCK_STRIDE < w + margins.right; cell++) {
       const hh = hash32(cell + 2000 + row * 500, 91 + row);
       const width = 9 + (hh % 5);
       const x = cell * BLOCK_STRIDE + (hh % 3) + row * 7;
       if (x + width < bounds.x || x > bounds.x + bounds.w) continue;
-      rooftops.push({ rect: { x, y: farNorth.y - BLOCK_H - lift, w: width, h: BLOCK_H }, variant: hh % 4 });
-      rooftops.push({
-        rect: { x: x + (hh % 2), y: farSouth.y + SIDEWALK + lift, w: width, h: BLOCK_H },
-        variant: (hh >>> 4) % 4,
-      });
+      addRooftop(rooftops, bounds, { x, y: farNorth.y - BLOCK_H - lift, w: width, h: BLOCK_H }, hh % 4);
+      addRooftop(
+        rooftops,
+        bounds,
+        { x: x + (hh % 2), y: farSouth.y + SIDEWALK + lift, w: width, h: BLOCK_H },
+        (hh >>> 4) % 4,
+      );
     }
   }
-  for (let col = 0; col < BLOCK_COLS; col++) {
+  const cols = blocksFor(margins.left, BLOCK_W, BLOCK_W + ALLEY);
+  for (let col = 0; col < cols; col++) {
     for (let i = 0; i < 3; i++) {
       const hh = hash32(i + 3000 + col * 500, 13 + col);
       const width = 10 + (hh % 3);
-      const right = farWest.x - col * (12 + ALLEY);
-      rooftops.push({ rect: { x: right - width, y: farWest.y + i * 12, w: width, h: 10 }, variant: hh % 4 });
+      const right = farWest.x - col * (BLOCK_W + ALLEY);
+      addRooftop(rooftops, bounds, { x: right - width, y: farWest.y + i * 12, w: width, h: 10 }, hh % 4);
     }
   }
 
