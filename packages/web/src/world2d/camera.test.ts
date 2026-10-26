@@ -5,6 +5,7 @@ import {
   ABS_MIN_ZOOM,
   COVER_SLACK,
   Camera,
+  ZOOM_OUT_STEP,
   fitContinuous,
   fitZoom,
   freeCenter,
@@ -171,6 +172,80 @@ describe('world coverage', () => {
     expect(stepZoom(levels, 0.82, -1, 0.82)).toBeCloseTo(0.82);
     expect(stepZoom(levels, 0.82, 1, 0.82)).toBe(1);
     expect(stepZoom(levels, 6, 1, 0.82)).toBe(6);
+  });
+});
+
+describe('zoom-out range', () => {
+  const win = { width: 1440, height: 830 };
+  const insets = { top: 56, right: 0, bottom: 64, left: 344 };
+  const building = { w: 63 * 16, h: 29 * 16 };
+
+  function overviewCam(size = building): Camera {
+    const c = new Camera();
+    c.dpr = 2;
+    c.view = { ...win, insets };
+    c.world = { x: -60 * 16, y: -40 * 16, w: 200 * 16, h: 110 * 16 };
+    c.building = size;
+    const ov = overviewZoom(size, c.view, 2, c.minZoom);
+    c.frame({ x: size.w / 2, y: size.h / 2 }, ov, true);
+    return c;
+  }
+
+  it('lets the camera go exactly one step below the overview and no further', () => {
+    const c = overviewCam();
+    const overview = c.zoom;
+    expect(c.minZoom).toBeCloseTo(overview / ZOOM_OUT_STEP, 9);
+    for (let i = 0; i < 60; i++) c.zoomBy(wheelFactor(120, 0, false), 700, 400);
+    expect(c.tz).toBeCloseTo(overview / ZOOM_OUT_STEP, 9);
+  });
+
+  it('stops the - button at the floor on the first press', () => {
+    const c = overviewCam();
+    c.step(-1);
+    expect(c.tz).toBeCloseTo(c.minZoom, 9);
+    c.step(-1);
+    expect(c.tz).toBeCloseTo(c.minZoom, 9);
+  });
+
+  it('eases down to the floor without overshoot or bounce, showing nothing outside the world', () => {
+    const c = overviewCam();
+    const floor = c.minZoom;
+    const zooms: number[] = [];
+    for (let i = 0; i < 90; i++) {
+      c.zoomBy(wheelFactor(120, 0, false), 1200, 100);
+      c.update(1 / 60);
+      zooms.push(c.zoom);
+      const v = c.visibleWorld();
+      expect(v.x).toBeGreaterThanOrEqual(c.world!.x - 1e-6);
+      expect(v.x + v.w).toBeLessThanOrEqual(c.world!.x + c.world!.w + 1e-6);
+      expect(v.y).toBeGreaterThanOrEqual(c.world!.y - 1e-6);
+      expect(v.y + v.h).toBeLessThanOrEqual(c.world!.y + c.world!.h + 1e-6);
+    }
+    for (let i = 1; i < zooms.length; i++) expect(zooms[i]).toBeLessThanOrEqual(zooms[i - 1] + 1e-12);
+    expect(Math.min(...zooms)).toBeGreaterThanOrEqual(floor - 1e-9);
+    for (let i = 0; i < 300; i++) c.update(1 / 60);
+    expect(c.zoom).toBeCloseTo(floor, 6);
+  });
+
+  it('reaches a floor that moves (a panel closing) smoothly instead of jumping', () => {
+    const c = overviewCam({ w: 93 * 16, h: 29 * 16 });
+    c.step(-1);
+    for (let i = 0; i < 120; i++) c.update(1 / 60);
+    const before = c.zoom;
+    c.view = { ...c.view, insets: { ...insets, left: 0 } };
+    c.update(1 / 60);
+    expect(c.minZoom).toBeGreaterThan(before);
+    expect(c.zoom).toBeLessThan(c.minZoom);
+    expect(c.zoom).toBeGreaterThanOrEqual(before - 1e-9);
+    for (let i = 0; i < 300; i++) c.update(1 / 60);
+    expect(c.zoom).toBeCloseTo(c.minZoom, 6);
+  });
+
+  it('falls back to the cover zoom when the world cannot cover the canvas any lower', () => {
+    const c = overviewCam();
+    c.world = { x: 0, y: 0, w: 1600, h: 900 };
+    expect(c.minZoom).toBeCloseTo(c.coverZoom, 9);
+    expect(c.minZoom).toBeGreaterThan(overviewZoom(building, c.view, 2) / ZOOM_OUT_STEP);
   });
 });
 

@@ -1,4 +1,4 @@
-// Settings popover: language, visual, day/night, names, bubbles, animation, sounds, browser notifications, demo mode, about.
+// Settings popover: collapsible groups (general, office, sounds, data, automation, team, demo and about) of rows.
 import { LOCALES, LOCALE_NAMES, type CodexSettings, type GitSettings } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
@@ -8,7 +8,9 @@ import { localOnlyHint, type AppContext } from '../context';
 import { h, setAttr, setText } from '../dom';
 import { button, createSegmented, createSwitch } from '../widgets';
 import { CustomizationManager } from './customize-manager';
+import { SETTINGS_GROUP_IDS, toggleGroup, type SettingsGroupId } from '../model/settings-groups';
 import { Popover } from './overlay';
+import { SettingsGroup } from './settings-group';
 
 interface Row {
   el: HTMLElement;
@@ -134,6 +136,7 @@ export class Settings extends Popover {
     t('settings.team.hint'),
   );
   private readonly about = h('p', { class: 'ao-setting-about' });
+  private readonly groups: readonly SettingsGroup[];
   private readonly customization: CustomizationManager;
   private readonly customizationRow: HTMLElement;
   private busy = false;
@@ -156,28 +159,32 @@ export class Settings extends Popover {
     this.volume.addEventListener('input', () => ctx.prefs.set({ volume: Number(this.volume.value) / 100 }));
     this.volume.addEventListener('change', () => ctx.cue('info'));
     this.soundRow = row(t('settings.sounds'), h('div', { class: 'ao-sound-control' }, this.volume, this.sounds.el));
+    this.groups = this.createGroups();
     this.el.append(
       h('header', { class: 'ao-popover-head' }, h('strong', null, t('topbar.settings'))),
-      h(
-        'div',
-        { class: 'ao-settings-body' },
-        this.languageRow.el,
-        this.visualRow.el,
-        row(t('settings.daylight'), this.daylight.el).el,
+      h('div', { class: 'ao-settings-body' }, ...this.groups.map((group) => group.el)),
+    );
+  }
+
+  /** Every row lands in one group; the order here is the order on screen. */
+  private createGroups(): readonly SettingsGroup[] {
+    const toggle = (id: SettingsGroupId): void =>
+      this.ctx.prefs.set({ settingsOpen: toggleGroup(this.ctx.prefs.get().settingsOpen, id) });
+    const rows: Readonly<Record<SettingsGroupId, readonly HTMLElement[]>> = {
+      general: [this.languageRow.el, this.visualRow.el, row(t('settings.daylight'), this.daylight.el).el],
+      office: [
         row(t('settings.names'), this.names.el).el,
         row(t('settings.bubbles'), this.bubbles.el).el,
         row(t('settings.animation'), this.animation.el).el,
         this.celebrationsRow.el,
-        this.soundRow.el,
-        this.browserRow.el,
         this.evolutionRow.el,
         this.employeeProjectRow.el,
-        this.repoRow.el,
-        this.pullRequestsRow.el,
-        this.codexRow.el,
-        this.rulesRow.el,
-        this.teamRow.el,
-        this.customizationRow,
+      ],
+      sound: [this.soundRow.el, this.browserRow.el],
+      data: [this.repoRow.el, this.pullRequestsRow.el, this.codexRow.el],
+      automation: [this.rulesRow.el, this.customizationRow],
+      team: [this.teamRow.el],
+      about: [
         this.demoRow.el,
         h(
           'div',
@@ -185,8 +192,9 @@ export class Settings extends Popover {
           h('span', { class: 'ao-setting-label' }, t('settings.about')),
           this.about,
         ),
-      ),
-    );
+      ],
+    };
+    return SETTINGS_GROUP_IDS.map((id) => new SettingsGroup(id, rows[id], toggle));
   }
 
   /** "Automático (sistema)" plus each language under its own name, so it is findable whatever the current one is. */
@@ -255,6 +263,7 @@ export class Settings extends Popover {
 
   protected update(): void {
     const prefs = this.ctx.prefs.get();
+    for (const group of this.groups) group.setOpen(prefs.settingsOpen.includes(group.id));
     if (this.language.value !== prefs.language) this.language.value = prefs.language;
     this.visual.set(prefs.visual);
     this.daylight.set(prefs.daylight);

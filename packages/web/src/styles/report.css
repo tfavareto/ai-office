@@ -1,15 +1,7 @@
 /* "Meu dia" > Relatório: day picker, headline tiles, activity strip, highlights and the sections per project or agent. */
-.ao-dialog--day .ao-dialog-head .ao-segmented {
-  margin-left: 8px;
-}
-
 .ao-dialog--day.is-report {
   width: min(980px, 100%);
   max-height: min(900px, calc(100vh - 32px));
-}
-
-.ao-dialog--day.is-report .ao-dialog-head .ao-segmented {
-  margin-right: auto;
 }
 
 .ao-report {

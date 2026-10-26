@@ -653,6 +653,13 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
   'settings.about.text': 'AI Office {version}{build} · todo se ejecuta en este equipo, nada sale de él.',
   'settings.about.build': ' · build {build}',
   'settings.about.textNoVersion': 'AI Office · todo se ejecuta en este equipo, nada sale de él.',
+  'settings.group.general': 'General',
+  'settings.group.office': 'Oficina',
+  'settings.group.sound': 'Sonidos y notificaciones',
+  'settings.group.data': 'Datos e integraciones',
+  'settings.group.automation': 'Automatización y personalización',
+  'settings.group.team': 'Equipo',
+  'settings.group.about': 'Demostración y acerca de',
   // Hire an agent
   'hire.action': 'Contratar un agente',
   'hire.action.room': 'Contratar un agente en {room}',

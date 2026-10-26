@@ -6,6 +6,7 @@ import type { BuildingLayout } from '../../layout/types';
 import { BASE_EVOLUTION, type Evolution } from '../../world/evolution';
 import { context2d, makeCanvas } from '../paint/ctx';
 import { paintExterior } from '../paint/exterior';
+import { type CityWindow, REFERENCE_WINDOW, cityMargins, growWindow } from '../cityMargins';
 import { type AreaCanvas, areaKey, buildAreaCanvas, buildCorridorCanvas, buildEndCap } from './areaLayer';
 
 export interface ExteriorCanvas {
@@ -23,8 +24,15 @@ export class LayerCache {
   corridor: AreaCanvas | null = null;
   endCap: HTMLCanvasElement | null = null;
   exterior: ExteriorCanvas | null = null;
+  /** The window the city around the building is sized for (it only grows); stills use a large reference one. */
+  private window: CityWindow | null = null;
   /** Bumped whenever any layer was (re)built, so renderers can refresh dependent data. */
   version = 0;
+
+  /** Tells the cache how big the canvas is, so the city is only as large as that window can show. */
+  setWindow(win: CityWindow): void {
+    this.window = growWindow(this.window, win);
+  }
 
   /** Returns the built areas in drawing order (north row, corridor, south row) after syncing. */
   sync(building: BuildingLayout, locale: Locale = 'pt-BR', evolution: Evolution = BASE_EVOLUTION): void {
@@ -48,9 +56,10 @@ export class LayerCache {
     }
     if (!this.endCap) this.endCap = buildEndCap(building.height);
 
-    const ekey = `${building.width}`;
+    const margins = cityMargins(building.width, this.window ?? REFERENCE_WINDOW);
+    const ekey = `${building.width}|${margins.left},${margins.right},${margins.top},${margins.bottom}`;
     if (this.exterior?.key !== ekey) {
-      const layout = layoutExterior(building.width);
+      const layout = layoutExterior(building.width, margins);
       const canvas = makeCanvas(layout.bounds.w * TILE, layout.bounds.h * TILE);
       const ctx = context2d(canvas);
       ctx.translate(-layout.bounds.x * TILE, -layout.bounds.y * TILE);

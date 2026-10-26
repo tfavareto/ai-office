@@ -648,6 +648,13 @@ export const uiPtBR = {
   'settings.about.text': 'AI Office {version}{build} · tudo roda neste computador, nada sai dele.',
   'settings.about.build': ' · build {build}',
   'settings.about.textNoVersion': 'AI Office · tudo roda neste computador, nada sai dele.',
+  'settings.group.general': 'Geral',
+  'settings.group.office': 'Escritório',
+  'settings.group.sound': 'Sons e notificações',
+  'settings.group.data': 'Dados e integrações',
+  'settings.group.automation': 'Automação e personalização',
+  'settings.group.team': 'Time',
+  'settings.group.about': 'Demonstração e sobre',
   // Hire an agent
   'hire.action': 'Contratar agente',
   'hire.action.room': 'Contratar agente em {room}',

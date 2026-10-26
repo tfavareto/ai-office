@@ -55,6 +55,13 @@ describe('parsePrefs', () => {
     ).toBe(false);
   });
 
+  it('opens only the first settings group by default and validates the stored ones', () => {
+    expect(DEFAULT_PREFS.settingsOpen).toEqual(['general']);
+    expect(parsePrefs({ settingsOpen: ['data', 'bogus', 'office'] }).settingsOpen).toEqual(['office', 'data']);
+    expect(parsePrefs({ settingsOpen: [] }).settingsOpen).toEqual([]);
+    expect(parsePrefs({ settingsOpen: 'data' }).settingsOpen).toEqual(['general']);
+  });
+
   it('survives broken JSON', () => {
     expect(parsePrefsJson('{oops')).toEqual(DEFAULT_PREFS);
     expect(parsePrefsJson(null)).toEqual(DEFAULT_PREFS);

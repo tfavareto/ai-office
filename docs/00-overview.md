@@ -6,7 +6,7 @@ This guide explains what AI Office is, the mental model behind the office metaph
 
 AI Office is a local web app that turns the Claude Code sessions running on your computer into a corporate office you can watch in real time. A small Node.js server reads the files Claude Code already writes under `~/.claude`, works out what every session is doing and streams that to a page in your browser. An optional Claude Code plugin adds two-way features: you can answer permission requests and send messages to agents from the office. Sessions of the OpenAI **Codex CLI** (`~/.codex`) show up in the same rooms too, read-only: see [Codex sessions](#codex-sessions).
 
-The interface is available in English, Portuguese (Brazil) and Spanish, and follows your browser's language unless you pick one in **Settings → Language** (see [using the office](02-using-the-office.md#language)). This documentation is in English and quotes the English labels, for example **Needs you**. Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written, whatever language the interface is in.
+The interface is available in English, Portuguese (Brazil) and Spanish, and follows your browser's language unless you pick one in **Settings → General → Language** (see [using the office](02-using-the-office.md#language)). This documentation is in English and quotes the English labels, for example **Needs you**. Text that comes from your own sessions (prompts, task titles, commands, file names) is shown as written, whatever language the interface is in.
 
 ## The mental model
 

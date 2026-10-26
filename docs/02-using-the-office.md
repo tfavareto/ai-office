@@ -2,7 +2,7 @@
 
 This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
 
-The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
+The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → General → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
 
 ## The screen
 
@@ -121,7 +121,7 @@ When the room's folder is a Git repository, the drawer has a **Git** section and
 
 The sidebar shows the branch under each room's name, with a dot while there is uncommitted work (red during a rebase, merge...). Hovering a room shows its branch in the tip and on its label on the map. In the office, each room has a small **plaque under its sign** with the branch and a marker (green clean, amber uncommitted work, red conflicts or an operation in progress); in 3D the plaque also names the operation and the commits ahead or behind. When the branch has an open pull request, a **CI light** (green, red or amber) sits on the plaque. Folders that are not repositories show none of this.
 
-Pull requests and CI come from GitHub through your own [`gh`](https://cli.github.com/) CLI. This is **off by default** because it is the only feature that uses the internet: turn it on in **Settings → Look up pull requests with gh (uses the internet)**. `gh` must be installed and signed in (`gh auth login`); Settings tells you when it is not. See [privacy and security](05-privacy-and-security.md#git-and-pull-requests).
+Pull requests and CI come from GitHub through your own [`gh`](https://cli.github.com/) CLI. This is **off by default** because it is the only feature that uses the internet: turn it on in **Settings → Data and integrations → Look up pull requests with gh (uses the internet)**. `gh` must be installed and signed in (`gh auth login`); Settings tells you when it is not. See [privacy and security](05-privacy-and-security.md#git-and-pull-requests).
 
 ## The inbox: what needs you
 
@@ -191,9 +191,9 @@ Make the office yours. Everything stays on your computer (in `customization.json
 
 **A room.** The **Customize** button of a room offers the **name shown** (the project does not change; leave it empty for the folder's name), a **color**, **floor** (wood, carpet, tiles, concrete), **wall** (wood slats, smooth plaster, brick, raw concrete), **plants** (few, normal, many), the **sign** (brass, neon, wood, minimal), the team's outfit, **Pin to the front** and **Hide from the building**. Only that room is redrawn.
 
-**The order of the rooms.** **Settings → Personalization → Arrange rooms…** (or the same button when you customize a room) shows the slots of the building: the north row, the corridor and the south row, with each room in its slot. Drag rooms on the plan or in the list, or use the up and down buttons (they work with the keyboard). Pinned rooms take the first slots; a hidden room leaves the building (its people walk out through the elevator) but stays in the sidebar with an eye icon. **Restore order** puts the rooms back in the order they arrived.
+**The order of the rooms.** **Settings → Automation and personalization → Personalization → Arrange rooms…** (or the same button when you customize a room) shows the slots of the building: the north row, the corridor and the south row, with each room in its slot. Drag rooms on the plan or in the list, or use the up and down buttons (they work with the keyboard). Pinned rooms take the first slots; a hidden room leaves the building (its people walk out through the elevator) but stays in the sidebar with an eye icon. **Restore order** puts the rooms back in the order they arrived.
 
-**Resetting.** **Restore default** in an editor resets that agent or room. **Settings → Personalization** lists everything you changed with a reset button for each item, and **Restore everything** (asks you to confirm) clears it all. In demo mode a few agents and rooms come customized, so you can see the effect; your own choices go on top.
+**Resetting.** **Restore default** in an editor resets that agent or room. **Settings → Automation and personalization → Personalization** lists everything you changed with a reset button for each item, and **Restore everything** (asks you to confirm) clears it all. In demo mode a few agents and rooms come customized, so you can see the effect; your own choices go on top.
 
 ## Hiring an agent
 
@@ -239,7 +239,7 @@ Moving and adding need the [plugin](03-plugin.md#messages-to-agents) and the pag
 
 ## Feed
 
-The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent.
+The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent. An expanded feed closes when you click anywhere outside it (the office, the sidebar, the top bar) or press `Esc`; clicks on its own lines and bar behave as before, and dragging the office to pan does not close it.
 
 ## Notifications and Do not disturb
 
@@ -262,7 +262,7 @@ The first time (or after the saved history is reset) the server reads all your t
 
 ## My day
 
-**My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
+**My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The first row of the dialog has the title, the **Time** and **Report** tabs and the close button; below it, the arrows move to other days, **Share** makes a card of the day and **Watch the day** plays it back. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
 
 ### Day report
 
@@ -308,7 +308,7 @@ Each level unlocks one piece of decoration, in 2D and in 3D: **2** framed art on
 
 Press `C` (or the trophy button) to open **Achievements**: the level and XP bar, what the next level brings, the Employee of the month, all 22 badges with the date you earned them or how to earn them (locked ones show their progress) and your lifetime numbers. The **Employee of the month** is the agent that completed the most tasks this month; only the agent's name is shown, and the project too if you turn on **Show the project in Employee of the month** in Settings.
 
-When the office levels up or you earn a badge you get one toast and a few sparkles. **Settings → Office evolution** turns this off: the office goes back to the plain one, with no decoration and no toasts (the counting goes on). In demo mode you see a level 6 office with many badges and the cat; demo numbers never count for your real office.
+When the office levels up or you earn a badge you get one toast and a few sparkles. **Settings → Office → Office evolution** turns this off: the office goes back to the plain one, with no decoration and no toasts (the counting goes on). In demo mode you see a level 6 office with many badges and the cat; demo numbers never count for your real office.
 
 ## Session history
 
@@ -320,11 +320,11 @@ Codex CLI sessions are people in the office too, marked with a purple **Codex** 
 
 Everything that talks back does not, because Codex has no hooks: the **Message** action and the **Messages** tab say "Codex is read-only here", a room message goes only to the Claude Code agents of the room (a note says how many Codex agents were skipped), permission requests never appear for Codex, and **Hire agent** only offers Claude Code accounts. When a Codex agent waits for an approval or a question the card says so and points you to Codex's own terminal.
 
-Turn Codex off in **Settings → Show Codex sessions**; off, AI Office does not read the Codex folder.
+Turn Codex off in **Settings → Data and integrations → Show Codex sessions**; off, AI Office does not read the Codex folder.
 
 ## Team mode
 
-**Settings → Team mode → Open…** puts several computers in one office over your local network. It is off until you use it, read-only between machines, and shares only what you choose (see [privacy and security](05-privacy-and-security.md#team-mode)).
+**Settings → Team → Team mode → Open…** puts several computers in one office over your local network. It is off until you use it, read-only between machines, and shares only what you choose (see [privacy and security](05-privacy-and-security.md#team-mode)).
 
 - **Host a team.** Type your name and the team's name, pick the network and port (an address of the shared 100.64.x.x range needs you to tick a warning), press **Start hosting**. The dialog shows the address to join, the host key's **fingerprint** (optional: whoever joins sees the same one), the **pairing code** (`ABCD-EFGH`, with a countdown; it works once and for ten minutes; **New code** replaces it) and the members with their device and *Online* or *Offline · seen 3 min ago*. **Remove** (it asks twice) takes a member out for good; **Stop listening** closes the port and keeps the team; **End the team** (asks twice) tells everybody and deletes it.
 - **Join a team.** Type your name, the host's address and the code (an optional device name is what the others see for this computer; empty gives a neutral label). When it works you are connected; if not, the dialog says why (wrong code, expired code, host not reachable, different versions).
@@ -349,6 +349,8 @@ Text in the terminal view is truncated (entries keep at most 4 KB of text) and s
 ## Settings
 
 The settings popover. Everything except the demo switch is stored in your browser (`localStorage`, key `ai-office:prefs`), not on the server.
+
+The rows are organized in groups. Click a group's title (or focus it and press `Enter` or `Space`) to expand or collapse it; the chevron shows the state. Only **General** is open the first time, and the browser remembers which groups you leave open. The table follows the groups: **General** (Language, Visual, Day and night), **Office** (Names above people, Bubbles, Animation, Celebrations, Office evolution, Employee of the month project), **Sounds and notifications** (Sounds, Browser notifications), **Data and integrations** (Git status, pull requests, Codex sessions), **Automation and personalization** (Approval rules, Personalization), **Team** (Team mode) and **Demo and about** (Demo mode, About).
 
 | Setting | Options |
 | --- | --- |
@@ -376,13 +378,13 @@ The settings popover. Everything except the demo switch is stored in your browse
 
 The office celebrates when: tests pass after a failure, an agent's task list becomes fully completed, a `git commit` succeeds (or a room's repository gets a new commit), a pull request is merged (needs the pull request lookup), a subagent finishes well, or a work turn of several minutes ends. The person jumps with raised arms, a green bubble says what happened ("Tudo pronto!", "Commitado!"...), confetti bursts, and idle colleagues in the same room clap. When the last open task of a whole room is done, confetti showers over the room and a bubble in the middle of it says so. The person turns to face you and jumps, two cannons and a fountain throw pieces, streamers and stars, a ring flashes on the floor and idle colleagues turn and clap. Two colleagues who celebrate within a few seconds of each other meet halfway for a high five.
 
-Celebrations are rationed so they stay special: a person celebrates at most every 14 to 60 seconds depending on **Animation** (calm, normal, lively), and only a few happen at once across the office. The animation level also scales the amount of confetti. The sound is a short synthesized arpeggio, played only when **Sounds** is on and **Do not disturb** is off. Turn the whole thing off with **Settings → Celebrations**. With reduced motion (your system setting) there is no confetti or jumping: a still star badge shows over the person instead.
+Celebrations are rationed so they stay special: a person celebrates at most every 14 to 60 seconds depending on **Animation** (calm, normal, lively), and only a few happen at once across the office. The animation level also scales the amount of confetti. The sound is a short synthesized arpeggio, played only when **Sounds** is on and **Do not disturb** is off. Turn the whole thing off with **Settings → Office → Celebrations**. With reduced motion (your system setting) there is no confetti or jumping: a still star badge shows over the person instead.
 
 In demo mode the demo agents run failing and passing tests, commit and finish their task lists, so you see celebrations within a couple of minutes.
 
 ## Language
 
-The interface is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → Language**, or leave **Automatic (system)** to follow your browser: the first of your browser languages that AI Office supports wins (Portuguese gives Português, Spanish gives Español, anything else gives English).
+The interface is available in **English**, **Português (Brasil)** and **Español**. Pick one in **Settings → General → Language**, or leave **Automatic (system)** to follow your browser: the first of your browser languages that AI Office supports wins (Portuguese gives Português, Spanish gives Español, anything else gives English).
 
 **The switch is live.** Nothing reloads: the panels are rebuilt in the new language and the world renderer redraws its signs, and your selected agent or room, the open panels, the scroll positions and the camera stay as they were.
 

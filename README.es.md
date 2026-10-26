@@ -202,7 +202,7 @@ La oficina es también el lugar donde empieza el trabajo y donde lo mantienes en
 | **Iniciar un agente nuevo** | Haz clic en un escritorio vacío, en **Contratar un agente** en una sala, o pulsa `H` | Se abre una nueva ventana de terminal con Claude Code en esa carpeta, con tu primera tarea, el modelo y el modo de permisos; una persona camina hasta el escritorio y toma el relevo cuando empieza la sesión |
 | **Despejar lo que te espera** | La **Bandeja** (`I`) | Permisos, preguntas, errores y agentes que terminaron, por orden de prioridad; **Aprobar todas las parecidas** para solicitudes idénticas, triaje con el teclado y los comandos peligrosos nunca se aprueban en bloque |
 | **Ver todo el trabajo** | El **Tablero de tareas** (`K`) o la pizarra de la sala de reuniones | Las tareas de cada agente en **Pendiente**, **En curso** y **Completada**; arrastrar una tarjeta escribe un mensaje al agente, que revisas antes de enviarlo |
-| **Dejar de responder la misma pregunta** | **Crear regla…** en cualquier solicitud, o **Configuración → Reglas de aprobación** | Las solicitudes recurrentes (por ejemplo, `npm test` en un proyecto) se responden al instante y quedan registradas; los comandos peligrosos o compuestos siempre te llegan a ti |
+| **Dejar de responder la misma pregunta** | **Crear regla…** en cualquier solicitud, o **Configuración → Automatización y personalización → Reglas de aprobación** | Las solicitudes recurrentes (por ejemplo, `npm test` en un proyecto) se responden al instante y quedan registradas; los comandos peligrosos o compuestos siempre te llegan a ti |
 
 Contratar requiere tener la página abierta en este computador y abre tu terminal de siempre (Terminal o iTerm en macOS, el terminal de tu escritorio en Linux). La [guía de uso](docs/02-using-the-office.md) detalla cada una, y la [guía del plugin](docs/03-plugin.md) explica cómo las reglas responden a las solicitudes.
 
@@ -252,7 +252,7 @@ La oficina reacciona al trabajo, no solo al estado, y con el tiempo se vuelve tu
 | Qué | Cómo se ve |
 |---|---|
 | **Las personas actúan su trabajo** | Leer sostiene una página, editar teclea rápido con pequeños símbolos de código, un comando largo en el shell hace que la persona se recueste y golpetee, pensar muestra un globo, esperarte levanta la mano, los errores repetidos hacen rascarse la cabeza, y los agentes inactivos se toman un descanso para el café |
-| **Celebraciones** | Pruebas que pasan tras un fallo, una lista de tareas terminada, un commit o un pull request fusionado sueltan confeti por los dos lados, un salto y compañeros aplaudiendo; una sala que lo termina todo recibe una lluvia de confeti. **Configuración → Celebraciones**; con movimiento reducido aparece una estrella discreta en su lugar |
+| **Celebraciones** | Pruebas que pasan tras un fallo, una lista de tareas terminada, un commit o un pull request fusionado sueltan confeti por los dos lados, un salto y compañeros aplaudiendo; una sala que lo termina todo recibe una lluvia de confeti. **Configuración → Oficina → Celebraciones**; con movimiento reducido aparece una estrella discreta en su lugar |
 | **Los agentes interactúan** | Apretones de manos con subagentes en la sala de reuniones, charlas en la cocina, ping-pong en el lounge, choques de manos y saludos en el pasillo; el trabajo de verdad siempre los interrumpe |
 | **La oficina crece** | **Logros** (`C`): diez niveles de la oficina a partir de tus sesiones, tareas, commits, pruebas y rachas, 22 logros, un empleado del mes y decoración que se desbloquea nivel a nivel, desde cuadros en las paredes y un acuario hasta una vitrina de trofeos, un letrero de neón y un gatito de la oficina |
 | **Hazla tuya** | **Personalizar** en cualquier agente o sala: nombres, tono de piel, peinado, ropa y accesorios (iguales en 2D y 3D), por agente, sala o cuenta; alias, piso, paredes, plantas y letrero de la sala; **Organizar salas** para reordenar, fijar u ocultar |
@@ -268,7 +268,7 @@ La oficina reacciona al trabajo, no solo al estado, y con el tiempo se vuelve tu
 
 | Qué | Cómo funciona |
 |---|---|
-| **Sesiones de Codex** | Las sesiones del Codex CLI y de la app de escritorio de OpenAI (`~/.codex`, o `CODEX_HOME`) aparecen en la misma oficina con una insignia **Codex**; los agentes que trabajan en la misma carpeta comparten la sala con los agentes de Claude Code. Estado, actividad, consumo, estimaciones de costo, el informe del día y el time-lapse también las incluyen. Codex no tiene hooks, así que los permisos y los mensajes siguen siendo solo de Claude Code: los agentes de Codex son de solo lectura. **Configuración → Mostrar sesiones de Codex** |
+| **Sesiones de Codex** | Las sesiones del Codex CLI y de la app de escritorio de OpenAI (`~/.codex`, o `CODEX_HOME`) aparecen en la misma oficina con una insignia **Codex**; los agentes que trabajan en la misma carpeta comparten la sala con los agentes de Claude Code. Estado, actividad, consumo, estimaciones de costo, el informe del día y el time-lapse también las incluyen. Codex no tiene hooks, así que los permisos y los mensajes siguen siendo solo de Claude Code: los agentes de Codex son de solo lectura. **Configuración → Datos e integraciones → Mostrar sesiones de Codex** |
 | **Modo equipo** | Varias computadoras en una sola oficina por tu red local. Una computadora usa **Alojar un equipo** y muestra un código de un solo uso que caduca en 10 minutos; las demás usan **Unirse a un equipo** con la dirección y el código. Viene apagado, en un listener aparte que solo habla el protocolo del equipo; el emparejamiento está autenticado, el tráfico va cifrado y el anfitrión puede quitar miembros en cualquier momento |
 | **Lo que ve un compañero** | Nombres, estado y el tipo de actividad, en salas de solo lectura como "Ana · Proyecto 1". Los nombres de proyectos, los detalles de la actividad, las ramas, los tokens y el costo solo se comparten cuando cada persona activa esa categoría |
 
@@ -289,12 +289,12 @@ La [especificación del modo equipo](docs/spec/08-team-mode.md) documenta el mod
   </tr>
 </table>
 
-Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfaz; solo cambia el renderizado. Cambia en **Configuración → Visual** y se aplica al instante.
+Ambas vistas comparten el mismo edificio, las mismas personas y la misma interfaz; solo cambia el renderizado. Cambia en **Configuración → General → Visual** y se aplica al instante.
 
 | | 2D (por defecto) | 3D (opcional) |
 |---|---|---|
 | **Aspecto** | Pixel art hecho a mano: nogal, mármol, latón, plantas y una ciudad alrededor del edificio | Torre 3D iluminada con sombras en tiempo real, vidrio, tráfico urbano y personajes 3D |
-| **Cámara** | Desplazar, zoom y vista general | **Vista general**, **Primera persona** y **Sobre el hombro** |
+| **Cámara** | Desplazar, zoom suave y vista general, con un paso de zoom out más allá de la vista general para que el edificio siempre llene la pantalla | **Vista general**, **Primera persona** y **Sobre el hombro** |
 | **Día y noche** | Sigue tu hora local, o día o noche fijos | Igual, con brillo nocturno en las ventanas y los letreros |
 | **Costo** | Muy ligero: cientos de fps de margen | Más pesado, sobre todo de noche: [cifras medidas](docs/06-validation.md) |
 | **Carga** | Inmediata | Bajo demanda, la primera vez que cambias |
@@ -379,13 +379,13 @@ Los valores por defecto sirven para la mayoría de las personas. Define variable
 | `AI_OFFICE_DEMO` | desactivado | Iniciar con sesiones de demostración |
 | `AI_OFFICE_LOG` | normal | `quiet` o `debug` |
 
-Las preferencias de la interfaz (idioma, 2D o 3D, día y noche, nombres, globos de diálogo, animación, sonidos, notificaciones del navegador) viven en **Configuración** y se guardan en tu navegador. La [guía de configuración](docs/04-configuration.md) lo lista todo, incluidos los ajustes de los hooks.
+Las preferencias de la interfaz viven en **Configuración**, en grupos que puedes abrir y cerrar (**General**, con idioma, visual y día y noche, primero; luego oficina, sonidos y notificaciones, datos e integraciones, automatización y personalización, equipo, demostración y acerca de), y se guardan en tu navegador. La [guía de configuración](docs/04-configuration.md) lo lista todo, incluidos los ajustes de los hooks.
 
 <a id="language"></a>
 
 ### Tu idioma
 
-Toda la interfaz (paneles, estados, actividades, notificaciones, nombres de las salas y los letreros dentro de la oficina) está disponible en **English**, **Português (Brasil)** y **Español**. Elige uno en **Configuración → Idioma**, o deja **Automático (sistema)** para seguir tu navegador. El cambio es instantáneo y conserva tu selección, los paneles abiertos y la cámara.
+Toda la interfaz (paneles, estados, actividades, notificaciones, nombres de las salas y los letreros dentro de la oficina) está disponible en **English**, **Português (Brasil)** y **Español**. Elige uno en **Configuración → General → Idioma**, o deja **Automático (sistema)** para seguir tu navegador. El cambio es instantáneo y conserva tu selección, los paneles abiertos y la cámara.
 
 El texto que viene de tus propias sesiones (prompts, títulos de tareas, comandos, nombres de archivos) se muestra tal como fue escrito. Cuando respondes a un permiso o envías un mensaje, el plugin le habla al agente en tu idioma.
 

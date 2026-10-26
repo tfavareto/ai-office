@@ -55,6 +55,7 @@ import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
 import { localOnlyHint, setReplayHint, type AppContext, type Component } from './context';
 import { BoardStore } from './board-store';
+import { bindFeedDismiss } from './feed-dismiss';
 import { bindLanguage } from './language';
 import { accountLabel, agentRole, agentTitle, localized, localizedOptional, permissionSummary } from './display';
 import { h, isEditable, toggleClass } from './dom';
@@ -780,6 +781,7 @@ export class App implements AppContext {
 
     document.addEventListener('keydown', (event) => this.onKeyDown(event));
     document.addEventListener('pointerdown', (event) => this.onPointerDown(event), true);
+    bindFeedDismiss({ isOpen: () => this.ui.get().feedOpen, collapse: () => this.ui.set({ feedOpen: false }) });
     window.addEventListener('resize', () => {
       this.ui.set({ narrow: window.innerWidth < NARROW_BREAKPOINT });
       this.refresh();
@@ -1142,13 +1144,14 @@ export class App implements AppContext {
     else this.announce(t('announce.permission.none'));
   }
 
-  /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, then the selection. */
+  /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, the activity feed, then the selection. */
   private escape(): void {
     const ui = this.ui.get();
     if (this.terminal.handleEscape()) return;
     if (ui.dialog) this.closeDialog();
     else if (ui.popover) this.closePopover();
     else if (ui.terminal) this.closeTerminal();
+    else if (ui.feedOpen) this.ui.set({ feedOpen: false });
     else if (ui.selection) this.clearSelection();
     else if (this.replay.engaged) this.stopReplay();
     else if (ui.narrow && ui.sidebarOpen) this.ui.set({ sidebarOpen: false });

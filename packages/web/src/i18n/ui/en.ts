@@ -648,6 +648,13 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'settings.about.text': 'AI Office {version}{build} · everything runs on this computer, nothing leaves it.',
   'settings.about.build': ' · build {build}',
   'settings.about.textNoVersion': 'AI Office · everything runs on this computer, nothing leaves it.',
+  'settings.group.general': 'General',
+  'settings.group.office': 'Office',
+  'settings.group.sound': 'Sounds and notifications',
+  'settings.group.data': 'Data and integrations',
+  'settings.group.automation': 'Automation and personalization',
+  'settings.group.team': 'Team',
+  'settings.group.about': 'Demo and about',
   // Hire an agent
   'hire.action': 'Hire an agent',
   'hire.action.room': 'Hire an agent in {room}',

@@ -219,6 +219,66 @@
   overflow-y: auto;
 }
 
+/* A group of settings: a header button with a chevron over its rows. */
+.ao-setting-group {
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-setting-group:last-child {
+  border-bottom: 0;
+}
+
+.ao-setting-group-h {
+  margin: 0;
+  font-size: inherit;
+}
+
+.ao-setting-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.ao-setting-group-head:hover,
+.ao-setting-group.is-open > .ao-setting-group-h > .ao-setting-group-head {
+  color: var(--text);
+}
+
+.ao-setting-group-chevron {
+  display: grid;
+  flex: none;
+  color: var(--faint);
+  transition: transform var(--t-base) var(--ease);
+}
+
+.ao-setting-group.is-open .ao-setting-group-chevron {
+  transform: rotate(180deg);
+}
+
+.ao-setting-group-body[hidden] {
+  display: none;
+}
+
+.ao-setting-group-body > .ao-setting:first-child {
+  padding-top: 2px;
+}
+
+.ao-setting-group-body > .ao-setting:last-child {
+  padding-bottom: 14px;
+  border-bottom: 0;
+}
+
 .ao-setting {
   display: grid;
   gap: 4px;
@@ -307,16 +367,65 @@
   font-size: 16px;
 }
 
+/* "Meu dia": title, tabs and close on the first row; date navigator and actions on a toolbar row of their own. */
+.ao-dialog--day {
+  width: min(720px, 100%);
+}
+
+.ao-day-head {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.ao-day-head h2 {
+  flex: none;
+  white-space: nowrap;
+}
+
+.ao-day-head .ao-segmented {
+  min-width: 0;
+}
+
+.ao-day-head-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.ao-day-toolbar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 20px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ao-day-toolbar[hidden] {
+  display: none;
+}
+
+.ao-day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .ao-day-nav {
   display: flex;
-  flex: 1;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
 
 .ao-day-date {
-  min-width: 150px;
+  min-width: 140px;
   font-weight: 600;
   text-align: center;
 }

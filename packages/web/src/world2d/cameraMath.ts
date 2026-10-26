@@ -34,6 +34,11 @@ export const ABS_MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 6;
 /** World px kept as a safety band at every edge of the world, so rounding to device pixels never shows the page behind. */
 export const COVER_SLACK = 4;
+/**
+ * Ratio of one zoom-out step: the factor of the "-" button and key. The overview is the normal view and the camera
+ * may go one step beyond it, no further; the city around the building is sized for exactly that.
+ */
+export const ZOOM_OUT_STEP = 1.25;
 
 const BASE_LEVELS = [0.5, 1, 1.5, 2, 3, 4, 5, 6];
 const LEVEL_FLOOR = 0.5;
@@ -114,10 +119,34 @@ export function coverZoom(world: Bounds, size: { width: number; height: number }
   return Math.max(size.width / w, size.height / h);
 }
 
-/** Lowest zoom the camera may show: the cover zoom of the world, or the hard floor while the world is unknown. */
+/** Lowest zoom at which the world still covers the canvas: the cover zoom, or the hard floor while the world is unknown. */
 export function minZoomFor(world: Bounds | null, size: { width: number; height: number }): number {
   if (!world) return ABS_MIN_ZOOM;
   return Math.min(MAX_ZOOM, Math.max(ABS_MIN_ZOOM, coverZoom(world, size)));
+}
+
+/**
+ * The zoom one step out from the overview: the lowest the wheel, pinch and buttons may reach. A building that already
+ * fills the window at the smallest zoom level (`LEVEL_FLOOR`) gets no further step: below it people would be a few
+ * pixels tall and the city around would have to grow for nothing.
+ */
+export function zoomOutFloor(overview: number): number {
+  return Math.max(overview / ZOOM_OUT_STEP, Math.min(overview, LEVEL_FLOOR));
+}
+
+/**
+ * Lowest zoom the user may reach: one zoom-out step below the overview of `building`, or the cover zoom of the
+ * world when that is larger (a world that could not cover the canvas any lower). Without a building, the cover zoom.
+ */
+export function minZoomForView(
+  world: Bounds | null,
+  view: Viewport,
+  building: { w: number; h: number } | null,
+  dpr: number,
+): number {
+  const cover = minZoomFor(world, view);
+  if (!building) return cover;
+  return Math.max(cover, zoomOutFloor(overviewZoom(building, view, dpr)));
 }
 
 export function clampZoom(zoom: number, min: number): number {

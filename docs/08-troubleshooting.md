@@ -17,7 +17,7 @@ Prefer an agent? [Prompt 05](prompts/05-troubleshoot.md) runs a read-only diagno
 | No **Permission request** card appears | No local page open, plugin not loaded, or port or token mismatch. | [Permissions do not show](#permissions-do-not-show). |
 | Message stays **Queued** | The agent has not run a hook yet, or the plugin is not loaded. | [Messages stay queued](#messages-stay-queued). |
 | Buttons say "Only available when AI Office is opened on this computer (localhost)" | The page was opened with a non-local address. | Open `http://127.0.0.1:4848` or `http://localhost:4848` on the same computer. |
-| The interface is in the wrong language | **Settings → Language** is set to a fixed language, or **Automatic (system)** follows a browser language you did not expect. | [The interface is in the wrong language](#the-interface-is-in-the-wrong-language). |
+| The interface is in the wrong language | **Settings → General → Language** is set to a fixed language, or **Automatic (system)** follows a browser language you did not expect. | [The interface is in the wrong language](#the-interface-is-in-the-wrong-language). |
 | 3D is slow or stutters | 3D is heavy at night, especially on laptops. | [3D is slow](#3d-is-slow). |
 | A second account is missing | Its folder name or location is not auto-detected. | [Accounts not detected](#multiple-accounts-are-not-detected). |
 | Hooks logged `401` or "token rejected" | An old plugin version or a token or state dir mismatch. | [Hooks get 401](#hooks-get-401-after-an-update). |
@@ -108,7 +108,7 @@ To wake an idle agent, send the message while its turn is ending or during stand
 The language is a per-browser preference, so a different browser, a private window or cleared site data can show another language than the one you chose.
 
 1. Open **Settings** (the gear in the top bar) and look at **Language**. The change is instant, and the panels, the signs inside the office and the notifications all follow it.
-2. If it says **Automatic (system)**, the page uses the first supported language in your browser's language list: Portuguese gives Português, Spanish gives Español, anything else gives English. Reorder or add languages in the browser settings, or pick a fixed language in **Settings → Language**.
+2. If it says **Automatic (system)**, the page uses the first supported language in your browser's language list: Portuguese gives Português, Spanish gives Español, anything else gives English. Reorder or add languages in the browser settings, or pick a fixed language in **Settings → General → Language**.
 3. Text from your own sessions (prompts, task titles, commands, file names) is shown as written and is never translated, so it can differ from the interface language. The same goes for the conversation in the terminal panel.
 4. A few messages stay in Portuguese on purpose: the status lines Claude Code shows while a plugin hook waits ("Aguardando resposta no AI Office", "De plantão: aguardando ordens no AI Office") and the server's command-line messages such as "A porta 4848 já está em uso".
 5. The wording the agent receives (the reason added to a denial and the preamble before your messages) follows the language the page had when you answered or sent. If it is in Portuguese while the interface is not, a plugin version from before the language support is probably still cached: refresh it (the steps in [hooks get 401](#hooks-get-401-after-an-update)) and restart the sessions.

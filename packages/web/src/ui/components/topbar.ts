@@ -101,6 +101,7 @@ export class TopBar implements Component {
       pressed: false,
       onClick: () => ctx.ui.set({ feedOpen: !ctx.ui.get().feedOpen }),
     });
+    this.feedBtn.dataset.feedToggle = '';
     this.bellBadge = h('span', { class: 'ao-badge', hidden: true });
     this.bellBtn = iconButton({
       icon: 'bell',
