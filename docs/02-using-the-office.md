@@ -239,7 +239,7 @@ Moving and adding need the [plugin](03-plugin.md#messages-to-agents) and the pag
 
 ## Feed
 
-The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent.
+The **Activity** bar at the bottom shows the count and the latest event. Expand it (`]`) for the stream of activities across the whole office. Each line is the agent, an icon and a short description, for example reading a file, editing, running a command or delegating to a subagent. An expanded feed closes when you click anywhere outside it (the office, the sidebar, the top bar) or press `Esc`; clicks on its own lines and bar behave as before, and dragging the office to pan does not close it.
 
 ## Notifications and Do not disturb
 
@@ -262,7 +262,7 @@ The first time (or after the saved history is reset) the server reads all your t
 
 ## My day
 
-**My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The arrows move to other days. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
+**My day** (`M`) shows how long each agent spent in each status today as a bar per agent, with totals for **Working**, **Waiting for you** and **Idle**. The first row of the dialog has the title, the **Time** and **Report** tabs and the close button; below it, the arrows move to other days, **Share** makes a card of the day and **Watch the day** plays it back. The server records this every 5 seconds into its state directory, so it covers the time AI Office was running. Demo agents are excluded.
 
 ### Day report
 
@@ -349,6 +349,8 @@ Text in the terminal view is truncated (entries keep at most 4 KB of text) and s
 ## Settings
 
 The settings popover. Everything except the demo switch is stored in your browser (`localStorage`, key `ai-office:prefs`), not on the server.
+
+The rows are organized in groups. Click a group's title (or focus it and press `Enter` or `Space`) to expand or collapse it; the chevron shows the state. Only **General** is open the first time, and the browser remembers which groups you leave open. The table follows the groups: **General** (Language, Visual, Day and night), **Office** (Names above people, Bubbles, Animation, Celebrations, Office evolution, Employee of the month project), **Sounds and notifications** (Sounds, Browser notifications), **Data and integrations** (Git status, pull requests, Codex sessions), **Automation and personalization** (Approval rules, Personalization), **Team** (Team mode) and **Demo and about** (Demo mode, About).
 
 | Setting | Options |
 | --- | --- |

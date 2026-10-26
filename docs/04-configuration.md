@@ -76,6 +76,7 @@ The interface settings in **Settings** are saved by the page in your browser's `
 | `bubbles` | `all`, `important`, `none` | `important` |
 | `animation` | `calm`, `normal`, `lively` | `normal` |
 | `volume` | 0 to 1 | `0.5` |
+| `settingsOpen` | List of Settings groups left expanded: `general`, `office`, `sound`, `data`, `automation`, `team`, `about` | `["general"]` |
 | `usageLimits` | Object keyed by account id: `{ "unit": "usd" \| "tokens", "window5h"?: number, "week"?: number }` | none |
 
 **Office evolution.** `evolution` (default on) is what **Settings → Office evolution** edits: the decoration unlocked by the level, the level counter and the achievement toasts; off shows the plain office. `employeeProject` (default off) adds the project name to the Employee of the month in the achievements dialog. Both only change what the page shows; the server keeps counting.

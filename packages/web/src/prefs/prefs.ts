@@ -1,6 +1,7 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
 import { LOCALES, type AccountLimits, type Locale } from '@ai-office/shared';
 import { systemLocale } from '../i18n';
+import { DEFAULT_OPEN_GROUPS, parseOpenGroups, type SettingsGroupId } from '../ui/model/settings-groups';
 import { DEFAULT_WORLD_OPTIONS, type DaylightMode, type WorldOptions } from '../world/api';
 
 export const PREFS_KEY = 'ai-office:prefs';
@@ -34,6 +35,8 @@ export interface Prefs {
   employeeProject: boolean;
   /** Confetti and cheering when something goes well (tests fixed, tasks done, commits...). */
   celebrations: boolean;
+  /** The groups of the settings popover that are expanded. */
+  settingsOpen: readonly SettingsGroupId[];
   /** Plan limits the user typed in per account id (the reference of the usage forecast). */
   usageLimits: Readonly<Record<string, AccountLimits>>;
 }
@@ -55,6 +58,7 @@ export const DEFAULT_PREFS: Prefs = {
   evolution: DEFAULT_WORLD_OPTIONS.evolution,
   employeeProject: false,
   celebrations: true,
+  settingsOpen: DEFAULT_OPEN_GROUPS,
   usageLimits: {},
 };
 
@@ -127,6 +131,7 @@ export function parsePrefs(raw: unknown): Prefs {
     evolution: bool(data.evolution, DEFAULT_PREFS.evolution),
     employeeProject: bool(data.employeeProject, DEFAULT_PREFS.employeeProject),
     celebrations: bool(data.celebrations, DEFAULT_PREFS.celebrations),
+    settingsOpen: parseOpenGroups(data.settingsOpen),
     usageLimits: parseUsageLimits(data.usageLimits),
   };
 }

@@ -469,10 +469,6 @@
 }
 
 /* "Meu dia" carries the button that starts the time-lapse. */
-.ao-dialog--day .ao-dialog-head h2 {
-  white-space: nowrap;
-}
-
 .ao-day-watch {
   flex: none;
 }

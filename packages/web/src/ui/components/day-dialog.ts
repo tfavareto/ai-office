@@ -25,6 +25,11 @@ export class DayDialog extends Dialog {
     },
   );
   private readonly nav: HTMLElement;
+  /** Date navigator and actions, on their own row below the header (the Time tab). */
+  private readonly toolbar = h('div', { class: 'ao-day-toolbar' });
+  private readonly actions = h('div', { class: 'ao-day-actions' });
+  /** Right end of the header row: the close button, and the Watch button on the Report tab (which has no toolbar). */
+  private readonly headEnd = h('div', { class: 'ao-day-head-end' });
   private readonly dateLabel = h('span', { class: 'ao-day-date' });
   private readonly nextBtn: HTMLButtonElement;
   private readonly watchBtn: HTMLButtonElement;
@@ -75,17 +80,19 @@ export class DayDialog extends Dialog {
       className: 'ao-day-share',
       onClick: () => ctx.openShare(this.shownDate()),
     });
+    this.headEnd.append(closeButton(t('common.close'), () => ctx.closeDialog()));
+    this.actions.append(this.shareBtn, this.watchBtn);
+    this.toolbar.append(this.nav, this.actions);
     this.panel.append(
       h(
         'header',
-        { class: 'ao-dialog-head' },
+        { class: 'ao-dialog-head ao-day-head' },
         h('h2', { id: 'ao-day-title' }, t('day.title')),
         this.tabs.el,
-        this.nav,
-        this.shareBtn,
-        this.watchBtn,
-        closeButton(t('common.close'), () => ctx.closeDialog()),
+        this.headEnd,
       ),
+      // The date navigator and the actions sit on their own row, so the title row never outgrows the box.
+      this.toolbar,
       this.time.el,
       this.report.el,
     );
@@ -132,6 +139,9 @@ export class DayDialog extends Dialog {
       this.time.el.hidden = tab !== 'time';
       this.report.el.hidden = tab !== 'report';
       this.nav.hidden = tab !== 'time';
+      this.toolbar.hidden = tab !== 'time';
+      if (tab === 'time') this.actions.append(this.watchBtn);
+      else this.headEnd.prepend(this.watchBtn);
       toggleClass(this.panel, 'is-report', tab === 'report');
       if (tab === 'time') this.time.show(this.date);
     }
