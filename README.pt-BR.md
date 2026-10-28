@@ -57,6 +57,7 @@ Você vê quem está trabalhando, quem precisa de você e quem está esperando u
 | **Quero meus agentes no escritório** | [Instalar com um prompt](#install) · [Prompt 01](docs/prompts/01-install-and-run.md) | Servidor rodando, plugin instalado e o escritório aberto no navegador |
 | **Quero que fique sempre ligado** | [Prompt 02](docs/prompts/02-run-at-login.md) | O AI Office inicia no login (launchd no macOS, systemd no Linux) |
 | **Uso mais de uma conta do Claude** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Todas as contas no mesmo escritório, com o plugin instalado em cada uma |
+| **Quero comandar muitos agentes como numa sala de controle** | [Visão Pro](#pro) | Cada sessão como um terminal ao vivo, orquestradores ligados aos subagentes, tarefas por texto ou voz |
 | **Quero iniciar agentes pelo escritório** | [Comande seu time](#team) | Contrate agentes em mesas vazias, organize a fila, acompanhe o quadro de tarefas e automatize aprovações |
 | **Quero saber para onde vão meus tokens e meu tempo** | [Consumo, relatórios e Git](#insights) | Consumo por dia, semana e mês, previsão de limite, relatório do dia, estado do Git por sala, time-lapse |
 | **Quero o escritório vivo e com a minha cara** | [Um escritório com personalidade](#delight) | Comemorações, interações, níveis e decoração, personalização, um card para compartilhar |
@@ -64,7 +65,7 @@ Você vê quem está trabalhando, quem precisa de você e quem está esperando u
 | **Algo não está funcionando** | [Solução de problemas](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | Primeiro um diagnóstico somente leitura, depois correções que você aprova |
 | **Quero contribuir** | [Contribuindo](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Ambiente de desenvolvimento, verificações e convenções |
 
-**Nesta página:** [Instalação](#install) · [Agentes](#watch) · [Permissões e mensagens](#direct) · [Seu time](#team) · [Consumo e dia](#insights) · [Personalidade](#delight) · [Codex e time](#reach) · [2D e 3D](#views) · [Como funciona](#how-it-works) · [Privacidade](#privacy) · [Prompts](#prompts) · [Configuração](#configuration) · [Evidências](#evidence) · [Repositório](#repository) · [Comunidade](#community).
+**Nesta página:** [Instalação](#install) · [Agentes](#watch) · [Permissões e mensagens](#direct) · [Visão Pro](#pro) · [Seu time](#team) · [Consumo e dia](#insights) · [Personalidade](#delight) · [Codex e time](#reach) · [2D e 3D](#views) · [Como funciona](#how-it-works) · [Privacidade](#privacy) · [Prompts](#prompts) · [Configuração](#configuration) · [Evidências](#evidence) · [Repositório](#repository) · [Comunidade](#community).
 
 <a id="install"></a>
 
@@ -180,9 +181,36 @@ O diálogo do terminal continua funcionando: vale a resposta que chegar primeiro
 
 O [guia do plugin](docs/03-plugin.md) detalha cada hook, os caminhos de entrega e o stand-by de 10 minutos.
 
+<a id="pro"></a>
+
+## 04 / Orquestre todos os terminais na Visão Pro
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-canvas.png" alt="Visão Pro afastada: uma moldura por sala, cada orquestrador como um terminal grande com os terminais dos subagentes em volta, ligados por linhas, e a barra de comando embaixo." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-terminals.png" alt="Visão Pro aproximada num orquestrador: o terminal ao vivo mostra chamadas de ferramentas e resultados, ligado a dois terminais de subagentes marcados Explore." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Todas as salas, orquestradores e subagentes numa só tela</sub></td>
+    <td align="center"><sub>Aproxime e os terminais ficam ao vivo</sub></td>
+  </tr>
+</table>
+
+Troque **Básica | Pro** na barra superior (ou aperte `V`) para trocar o escritório por uma tela de orquestração. Ela mostra as mesmas sessões reais do Claude Code, sem chamadas extras de API: cada sala é uma moldura, cada sessão principal é um terminal grande e os subagentes são terminais menores ligados a ela.
+
+| Você quer | Na Visão Pro | O que acontece |
+|---|---|---|
+| **Ver quem delega para quem** | As linhas entre os terminais | Tracejado em movimento enquanto o subagente trabalha, âmbar quando ele espera você, apagado quando termina; subagentes concluídos viram uma etiqueta "N concluídos" depois de 5 minutos |
+| **Ler o trabalho enquanto acontece** | Aproxime um grupo | Os terminais na tela mostram a conversa ao vivo (pedidos, respostas, ferramentas e resultados); de longe, cada um é um cartão de status |
+| **Navegar** | Arraste, role, faça pinça, use o minimapa, `0` para ver tudo, `F` para focar | A câmera desliza até onde você aponta; arraste a barra de título para organizar os terminais, e o arranjo fica salvo |
+| **Passar uma tarefa ao orquestrador** | A barra de comando (`N`), digitando ou falando | O texto vai pelo canal de mensagens do plugin, para um orquestrador ou para a sala inteira; a barra diz quando ele vai chegar e acompanha a entrega |
+| **Falar em vez de digitar** | **Falar** na barra de comando | A fala vira texto neste computador e cai na caixa para você revisar; nada é enviado sozinho |
+
+A voz precisa de um modelo de fala, baixado uma vez quando você escolhe **Configurações → Dados e integrações → Voz → Baixar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB, o padrão) ou Preciso (252 MB). Depois disso, o áudio e o texto nunca saem do seu computador. As sessões do Codex aparecem só para leitura, e uma ordem segue as mesmas regras de entrega de qualquer mensagem: chega a um agente parado só enquanto ele está nos 10 minutos de plantão. O [guia de uso](docs/02-using-the-office.md) cobre cada controle e atalho.
+
 <a id="team"></a>
 
-## 04 / Comande seu time pelo escritório
+## 05 / Comande seu time pelo escritório
 
 <table>
   <tr>
@@ -208,7 +236,7 @@ Contratar exige a página aberta neste computador e abre o seu terminal de costu
 
 <a id="insights"></a>
 
-## 05 / Saiba para onde foram seus tokens e o seu dia
+## 06 / Saiba para onde foram seus tokens e o seu dia
 
 <table>
   <tr>
@@ -241,7 +269,7 @@ O [guia de uso](docs/02-using-the-office.md) detalha cada vista; o [guia de priv
 
 <a id="delight"></a>
 
-## 06 / Um escritório com personalidade
+## 07 / Um escritório com personalidade
 
 <p align="center">
   <img src="docs/assets/readme/pt-BR/celebration.gif" alt="Um agente conclui as suas tarefas: confete sai dos dois lados, a pessoa pula de braços para cima e os colegas da sala reagem." width="1200" loading="lazy" />
@@ -264,7 +292,7 @@ O escritório reage ao trabalho, não só ao status, e com o tempo fica com a su
 
 <a id="reach"></a>
 
-## 07 / Traga o Codex e o seu time
+## 08 / Traga o Codex e o seu time
 
 | O quê | Como funciona |
 |---|---|
@@ -276,7 +304,7 @@ A [especificação do modo time](docs/spec/08-team-mode.md) documenta o modelo d
 
 <a id="views"></a>
 
-## 08 / 2D por padrão, 3D quando você quiser
+## 09 / 2D por padrão, 3D quando você quiser
 
 <table>
   <tr>
@@ -301,7 +329,7 @@ As duas vistas compartilham o mesmo prédio, as mesmas pessoas e a mesma interfa
 
 <a id="how-it-works"></a>
 
-## 09 / Como funciona
+## 10 / Como funciona
 
 <p align="center">
   <picture>
@@ -326,7 +354,7 @@ O [guia de arquitetura](docs/07-architecture.md) e as [especificações](docs/sp
 
 <a id="privacy"></a>
 
-## 10 / Privado por princípio
+## 11 / Privado por princípio
 
 <p align="center">
   <picture>
@@ -335,7 +363,7 @@ O [guia de arquitetura](docs/07-architecture.md) e as [especificações](docs/sp
   </picture>
 </p>
 
-O AI Office foi feito para código que você talvez não queira compartilhar. Ele não envia nada para lugar nenhum, exceto por dois recursos opcionais que vêm desligados: consultar pull requests pelo seu próprio CLI `gh` e o modo time, que compartilha uma visão filtrada com os computadores que você pareia na sua rede local.
+O AI Office foi feito para código que você talvez não queira compartilhar. Ele não envia nada para lugar nenhum, exceto por três recursos opcionais que vêm desligados: consultar pull requests pelo seu próprio CLI `gh`, o modo time, que compartilha uma visão filtrada com os computadores que você pareia na sua rede local, e o download único de um modelo de voz do Hugging Face (versões fixas, cada arquivo conferido por SHA-256) quando você pede.
 
 | Proteção | Como |
 |---|---|
@@ -350,7 +378,7 @@ Leia o [guia de privacidade e segurança](docs/05-privacy-and-security.md) e rel
 
 <a id="prompts"></a>
 
-## 11 / Prompts para cada etapa
+## 12 / Prompts para cada etapa
 
 Escolha uma tarefa, abra o prompt e cole o bloco indicado em um agente com acesso ao terminal. O [catálogo](docs/prompts/README.md) explica cada um.
 
@@ -366,7 +394,7 @@ Escolha uma tarefa, abra o prompt e cole o bloco indicado em um agente com acess
 
 <a id="configuration"></a>
 
-## 12 / Configure do seu jeito
+## 13 / Configure do seu jeito
 
 Os padrões servem para a maioria das pessoas. Defina variáveis de ambiente (ou as flags equivalentes) só quando precisar:
 
@@ -378,6 +406,7 @@ Os padrões servem para a maioria das pessoas. Defina variáveis de ambiente (ou
 | `AI_OFFICE_STATE_DIR` | `~/.ai-office` | Nomes, registros dos dias e o token de acesso local |
 | `AI_OFFICE_DEMO` | desligado | Iniciar com sessões de demonstração |
 | `AI_OFFICE_LOG` | normal | `quiet` ou `debug` |
+| `AI_OFFICE_VOICE` | ligado | `0` desliga o download do modelo de voz |
 
 As preferências da interface ficam em **Configurações**, em grupos que você abre e fecha (**Geral**, com idioma, visual e dia e noite, primeiro; depois escritório, sons e notificações, dados e integrações, automação e personalização, time, demonstração e sobre), e são salvas no seu navegador. O [guia de configuração](docs/04-configuration.md) lista tudo, inclusive os ajustes dos hooks.
 
@@ -391,12 +420,12 @@ O texto que vem das suas próprias sessões (prompts, títulos de tarefas, coman
 
 <a id="evidence"></a>
 
-## 13 / Evidências e limites
+## 14 / Evidências e limites
 
 | Verificação | Como |
 |---|---|
 | **Tipos** | TypeScript em modo strict nos quatro pacotes: `npm run typecheck` |
-| **Comportamento** | Mais de 3100 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
+| **Comportamento** | Mais de 3500 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
 | **Estilo** | ESLint e Prettier: `npm run lint` |
 | **Build** | Bundle web e bundle do servidor: `npm run build` |
 | **Documentação** | Todo link local, âncora e tradução do README verificados: `npm run docs:check` |
@@ -409,11 +438,11 @@ Frame rate medido no app real com sessões ao vivo (4 agentes em 4 salas), 1440�
 | 2D | 427 fps | 385 fps |
 | 3D, qualidade máxima | 83 fps | 21 fps |
 
-A sua tela limita o que você enxerga (geralmente 60 fps). A cena noturna em 3D é a mais cara: o efeito de brilho com anti-aliasing em proporção de pixels 2× responde pela maior parte do custo. O [guia de validação](docs/06-validation.md) registra a máquina, o método e os limites conhecidos, como os valores de custo serem estimativas e o Windows não ser suportado.
+A Visão Pro se mantém em 60 fps (quadro mediano de 16,7 ms, vsync ligado) com 36 a 48 terminais, navegando de longe, num grupo e numa área densa. A sua tela limita o que você enxerga (geralmente 60 fps). A cena noturna em 3D é a mais cara: o efeito de brilho com anti-aliasing em proporção de pixels 2× responde pela maior parte do custo. O [guia de validação](docs/06-validation.md) registra a máquina, o método e os limites conhecidos, como os valores de custo serem estimativas e o Windows não ser suportado.
 
 <a id="repository"></a>
 
-## 14 / Explore o repositório
+## 15 / Explore o repositório
 
 ```text
 ai-office/
@@ -453,7 +482,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 15 / Acompanhe o projeto
+## 16 / Acompanhe o projeto
 
 Se o AI Office deixou seus agentes mais fáceis de acompanhar, uma estrela ajuda outras pessoas a encontrá-lo.
 

@@ -57,6 +57,7 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 | **I want my agents in the office** | [Install with one prompt](#install) · [Prompt 01](docs/prompts/01-install-and-run.md) | Server running, plugin installed, office open in your browser |
 | **I want it always on** | [Prompt 02](docs/prompts/02-run-at-login.md) | AI Office starts at login (launchd on macOS, systemd on Linux) |
 | **I use more than one Claude account** | [Prompt 04](docs/prompts/04-multiple-accounts.md) | Every account in the same office, plugin installed in each one |
+| **I want to run many agents like a control room** | [Pro view](#pro) | Every session as a live terminal, orchestrators linked to their subagents, tasks by prompt or voice |
 | **I want to start agents from the office** | [Run your team](#team) | Hire agents at empty desks, triage the inbox, follow the task board, automate approvals |
 | **I want to know where my tokens and time go** | [Usage, reports and Git](#insights) | Usage by day, week and month, limit forecast, day report, Git state per room, time-lapse |
 | **I want the office to feel alive and mine** | [An office with personality](#delight) | Celebrations, interactions, levels and decor, customization, a share card |
@@ -64,7 +65,7 @@ You see who is working, who needs you and who is waiting on a shell. You answer 
 | **Something is not working** | [Troubleshooting](docs/08-troubleshooting.md) · [Prompt 05](docs/prompts/05-troubleshoot.md) | A read-only diagnosis first, then fixes you approve |
 | **I want to contribute** | [Contributing](CONTRIBUTING.md) · [Prompt 07](docs/prompts/07-contribute.md) | Dev setup, checks and conventions |
 
-**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Your team](#team) · [Insights](#insights) · [Personality](#delight) · [Codex and team](#reach) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
+**On this page:** [Install](#install) · [Agents](#watch) · [Permissions and messages](#direct) · [Pro view](#pro) · [Your team](#team) · [Insights](#insights) · [Personality](#delight) · [Codex and team](#reach) · [2D and 3D](#views) · [How it works](#how-it-works) · [Privacy](#privacy) · [Prompts](#prompts) · [Configuration](#configuration) · [Evidence](#evidence) · [Repository](#repository) · [Community](#community).
 
 <a id="install"></a>
 
@@ -180,9 +181,36 @@ The terminal dialog keeps working: whichever answer comes first wins. Every mess
 
 The [plugin guide](docs/03-plugin.md) details each hook, the delivery paths and the 10-minute stand-by.
 
+<a id="pro"></a>
+
+## 04 / Orchestrate every terminal from the Pro view
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/en/pro-canvas.png" alt="Pro view zoomed out: one frame per room, each orchestrator as a large terminal with its subagents' terminals around it, linked by lines, and the command bar at the bottom." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/pro-terminals.png" alt="Pro view zoomed in on one orchestrator: its live terminal shows tool calls and results, linked to two subagent terminals labeled Explore." /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Every room, orchestrator and subagent on one canvas</sub></td>
+    <td align="center"><sub>Zoom in and the terminals go live</sub></td>
+  </tr>
+</table>
+
+Switch **Basic | Pro** in the top bar (or press `V`) to trade the office for an orchestration canvas. It shows the same real Claude Code sessions, with no extra API calls: each room is a frame, each main session is a large terminal and its subagents are smaller terminals linked to it.
+
+| You want to | In the Pro view | What happens |
+|---|---|---|
+| **See who delegates to whom** | The lines between terminals | Moving dashes while a subagent works, amber when it waits on you, dimmed when it is done; finished subagents fold into an "N finished" pill after 5 minutes |
+| **Read the work as it happens** | Zoom in on a cluster | Terminals on screen show the live conversation (prompts, replies, tool calls and results); zoomed out, each one is a status card |
+| **Move around** | Drag, scroll, pinch, the minimap, `0` to fit, `F` to focus | The camera eases to where you point; drag a title bar to arrange terminals, and the layout is remembered |
+| **Give an orchestrator a task** | The command bar (`N`), typed or spoken | Your text goes through the plugin's message channel, to one orchestrator or a whole room; the bar says when it will arrive and tracks delivery |
+| **Talk instead of typing** | **Speak** in the command bar | Speech becomes text on this computer and lands in the box for you to review; nothing is sent on its own |
+
+Voice needs a speech model, downloaded once when you choose **Settings → Data and integrations → Voice → Download voice model**: Fast (44 MB), Balanced (80 MB, the default) or Accurate (252 MB). After that, the audio and the text never leave your computer. Codex sessions appear read-only, and an order follows the same delivery rules as any message: it reaches an idle agent only while it is within its 10-minute stand-by. The [user guide](docs/02-using-the-office.md) covers every control and shortcut.
+
 <a id="team"></a>
 
-## 04 / Run your team from the office
+## 05 / Run your team from the office
 
 <table>
   <tr>
@@ -208,7 +236,7 @@ Hiring needs the page open on this computer and opens your usual terminal (Termi
 
 <a id="insights"></a>
 
-## 05 / Know where your tokens and your day went
+## 06 / Know where your tokens and your day went
 
 <table>
   <tr>
@@ -241,7 +269,7 @@ The [user guide](docs/02-using-the-office.md) details each view; the [privacy gu
 
 <a id="delight"></a>
 
-## 06 / An office with personality
+## 07 / An office with personality
 
 <p align="center">
   <img src="docs/assets/readme/en/celebration.gif" alt="An agent finishes its tasks: confetti bursts from both sides, the person jumps with arms up and the colleagues in the room clap." width="1200" loading="lazy" />
@@ -264,7 +292,7 @@ The office reacts to the work, not only to the status, and it becomes yours over
 
 <a id="reach"></a>
 
-## 07 / Bring Codex and your team
+## 08 / Bring Codex and your team
 
 | What | How it works |
 |---|---|
@@ -276,7 +304,7 @@ The [team mode spec](docs/spec/08-team-mode.md) documents the threat model, the 
 
 <a id="views"></a>
 
-## 08 / 2D by default, 3D when you want it
+## 09 / 2D by default, 3D when you want it
 
 <table>
   <tr>
@@ -301,7 +329,7 @@ Both views share the same building, the same people and the same interface; only
 
 <a id="how-it-works"></a>
 
-## 09 / How it works
+## 10 / How it works
 
 <p align="center">
   <picture>
@@ -326,7 +354,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
 
 <a id="privacy"></a>
 
-## 10 / Private by design
+## 11 / Private by design
 
 <p align="center">
   <picture>
@@ -335,7 +363,7 @@ The [architecture guide](docs/07-architecture.md) and the [specs](docs/spec/00-p
   </picture>
 </p>
 
-AI Office was built for code you may not want to share. It sends nothing anywhere, except through two opt-in features that are off by default: looking up pull requests through your own `gh` CLI, and team mode, which shares a sanitized view with the computers you pair on your local network.
+AI Office was built for code you may not want to share. It sends nothing anywhere, except through three opt-in features that are off by default: looking up pull requests through your own `gh` CLI, team mode, which shares a sanitized view with the computers you pair on your local network, and the one-time download of a voice model from Hugging Face (pinned versions, every file checked by SHA-256) when you ask for it.
 
 | Protection | How |
 |---|---|
@@ -350,7 +378,7 @@ Read the [privacy and security guide](docs/05-privacy-and-security.md), and repo
 
 <a id="prompts"></a>
 
-## 11 / Prompts for every step
+## 12 / Prompts for every step
 
 Pick a task, open the prompt and paste the indicated block into an agent with terminal access. The [catalog](docs/prompts/README.md) explains each one.
 
@@ -366,7 +394,7 @@ Pick a task, open the prompt and paste the indicated block into an agent with te
 
 <a id="configuration"></a>
 
-## 12 / Configure it your way
+## 13 / Configure it your way
 
 Defaults work for most people. Set environment variables (or the matching flags) only when you need to:
 
@@ -378,6 +406,7 @@ Defaults work for most people. Set environment variables (or the matching flags)
 | `AI_OFFICE_STATE_DIR` | `~/.ai-office` | Names, day records and the local access token |
 | `AI_OFFICE_DEMO` | off | Start with demo sessions |
 | `AI_OFFICE_LOG` | normal | `quiet` or `debug` |
+| `AI_OFFICE_VOICE` | on | `0` turns off the voice model download |
 
 Interface preferences live in **Settings**, grouped into sections you can expand or collapse (**General** with language, visual and day and night first, then office, sounds and notifications, data and integrations, automation and personalization, team, demo and about), and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
 
@@ -391,12 +420,12 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 
 <a id="evidence"></a>
 
-## 13 / Evidence and limits
+## 14 / Evidence and limits
 
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 3100+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 3500+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |
@@ -409,11 +438,11 @@ Frame rate measured in the real app with live sessions (4 agents in 4 rooms), 14
 | 2D | 427 fps | 385 fps |
 | 3D, full quality | 83 fps | 21 fps |
 
-Your screen caps what you see (usually 60 fps). The 3D night scene is the expensive one: its glow pass with anti-aliasing at a 2× pixel ratio accounts for most of the cost. The [validation guide](docs/06-validation.md) records the machine, the method and the known limits, such as cost figures being estimates and Windows not being supported.
+The Pro view holds 60 fps (median frame 16.7 ms, vsync on) with 36–48 terminals, panning zoomed out, on one cluster and in a dense area. Your screen caps what you see (usually 60 fps). The 3D night scene is the expensive one: its glow pass with anti-aliasing at a 2× pixel ratio accounts for most of the cost. The [validation guide](docs/06-validation.md) records the machine, the method and the known limits, such as cost figures being estimates and Windows not being supported.
 
 <a id="repository"></a>
 
-## 14 / Explore the repository
+## 15 / Explore the repository
 
 ```text
 ai-office/
@@ -453,7 +482,7 @@ npm run docs:check
 
 <a id="community"></a>
 
-## 15 / Follow the project
+## 16 / Follow the project
 
 If AI Office made your agents easier to follow, a star helps other people find it.
 
