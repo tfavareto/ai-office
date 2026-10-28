@@ -27,6 +27,7 @@ const SHORTCUTS: readonly [string, UiKey][] = [
   ['V', 'help.shortcut.viewMode'],
   ['+ / − / 0', 'help.shortcut.pro.zoom'],
   ['Space + drag', 'help.shortcut.pro.pan'],
+  ['N', 'help.shortcut.pro.command'],
   ['Space', 'help.shortcut.replay.play'],
   ['← / →', 'help.shortcut.replay.skip'],
   ['PgUp / PgDn', 'help.shortcut.replay.mark'],

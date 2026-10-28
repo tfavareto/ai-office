@@ -10,7 +10,7 @@ export const FEED_EXPANDED_HEIGHT = 200;
 /** The time-lapse controls above the feed (one row; two on narrow screens). */
 export const REPLAY_BAR_HEIGHT = 124;
 export const REPLAY_BAR_NARROW_HEIGHT = 176;
-/** The Pro view's command bar above the feed (taller on narrow screens, where its rows wrap). */
+/** The Pro view's optional command bar at the bottom (taller on narrow screens, where its rows wrap). */
 export const COMMAND_BAR_HEIGHT = 152;
 export const COMMAND_BAR_NARROW_HEIGHT = 196;
 
@@ -21,20 +21,24 @@ export interface LayoutState {
   narrow: boolean;
   /** A time-lapse is on: its controls take the strip above the feed. */
   replay?: boolean;
-  /** The Pro view is on: its command bar takes the strip above the feed. */
+  /** The Pro view is on: it has no activity feed (the strip is given back to the canvas). */
   pro?: boolean;
+  /** The Pro view's command bar is shown (only counts with `pro`). */
+  commandBar?: boolean;
 }
 
 /** The free area of the screen, i.e. what the panels do not cover. On narrow screens panels are overlays. */
 export function computeInsets(state: LayoutState): ViewInsets {
-  const feed = state.feedOpen ? FEED_EXPANDED_HEIGHT : FEED_COLLAPSED_HEIGHT;
+  const pro = state.pro === true;
+  const feed = pro ? 0 : (state.feedOpen ? FEED_EXPANDED_HEIGHT : FEED_COLLAPSED_HEIGHT) + PANEL_GAP;
   const replay = state.replay === true ? (state.narrow ? REPLAY_BAR_NARROW_HEIGHT : REPLAY_BAR_HEIGHT) + PANEL_GAP : 0;
-  const command = state.pro === true ? (state.narrow ? COMMAND_BAR_NARROW_HEIGHT : COMMAND_BAR_HEIGHT) + PANEL_GAP : 0;
+  const command =
+    pro && state.commandBar === true ? (state.narrow ? COMMAND_BAR_NARROW_HEIGHT : COMMAND_BAR_HEIGHT) + PANEL_GAP : 0;
   return {
     top: TOPBAR_HEIGHT,
     left: state.sidebarOpen && !state.narrow ? SIDEBAR_WIDTH + 2 * PANEL_GAP : 0,
     right: state.drawerOpen && !state.narrow ? DRAWER_WIDTH + 2 * PANEL_GAP : 0,
-    bottom: feed + 2 * PANEL_GAP + replay + command,
+    bottom: feed + PANEL_GAP + replay + command,
   };
 }
 

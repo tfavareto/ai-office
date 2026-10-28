@@ -1,4 +1,5 @@
-// The canvas tools: fit everything, focus the orchestrator, zoom, theme and reset of the dragged positions.
+// The canvas tools: fit everything, focus the orchestrator, zoom, theme, reset of the dragged positions, and the switch
+// of the optional command bar.
 import { t } from '../../i18n';
 import { h, setText } from '../../ui/dom';
 import { icon } from '../../ui/icons';
@@ -13,6 +14,7 @@ export interface ToolbarActions {
   resetZoom(): void;
   toggleTheme(): void;
   resetLayout(): void;
+  toggleCommandBar(): void;
 }
 
 export class Toolbar {
@@ -25,6 +27,7 @@ export class Toolbar {
   });
   private readonly theme: HTMLButtonElement;
   private readonly reset: HTMLButtonElement;
+  private readonly command: HTMLButtonElement;
   private shownTheme: ProTheme | null = null;
 
   constructor(actions: ToolbarActions) {
@@ -36,6 +39,12 @@ export class Toolbar {
       pressed: false,
     });
     this.reset = iconButton({ icon: 'reset', label: t('pro.toolbar.resetLayout'), onClick: actions.resetLayout });
+    this.command = iconButton({
+      icon: 'terminal',
+      label: t('pro.toolbar.command'),
+      onClick: actions.toggleCommandBar,
+      pressed: false,
+    });
     this.el.append(
       iconButton({ icon: 'fit', label: t('pro.toolbar.fit'), onClick: actions.fitAll }),
       iconButton({ icon: 'target', label: t('pro.toolbar.focus'), onClick: actions.focusOrchestrator }),
@@ -46,10 +55,13 @@ export class Toolbar {
       h('span', { class: 'ao-pro-toolbar-sep', 'aria-hidden': 'true' }),
       this.theme,
       this.reset,
+      h('span', { class: 'ao-pro-toolbar-sep', 'aria-hidden': 'true' }),
+      this.command,
     );
   }
 
-  render(state: { zoom: number; theme: ProTheme; canReset: boolean }): void {
+  render(state: { zoom: number; theme: ProTheme; canReset: boolean; commandBar: boolean }): void {
+    setPressed(this.command, state.commandBar);
     setText(this.zoom, `${Math.round(state.zoom * 100)}%`);
     setPressed(this.theme, state.theme === 'light');
     if (this.shownTheme !== state.theme) {

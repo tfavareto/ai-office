@@ -1,19 +1,33 @@
-/* Pro view: the orchestration canvas of live terminals, its tools and its command bar. */
-.ao-root.is-pro .ao-world {
+/* Pro view: the orchestration canvas of raw terminals, its tools, the room panel and the optional command bar. */
+.ao-root.is-pro .ao-world,
+.ao-root.is-pro .ao-feed {
   visibility: hidden;
 }
 
+/* The Pro view has no activity feed: the strip it used goes back to the canvas. */
+.ao-root.is-pro {
+  --feed-h: 0px;
+}
+
 .ao-pro {
-  --pro-bg: #090d14;
-  --pro-dot: rgba(148, 163, 184, 0.17);
-  --pro-node-bg: #0d121b;
-  --pro-node-head: #131a26;
-  --pro-node-line: rgba(148, 163, 184, 0.22);
-  --pro-label-bg: rgba(13, 18, 27, 0.92);
-  --pro-code-bg: rgba(0, 0, 0, 0.35);
-  --pro-error-text: #ffb4b4;
-  --pro-node-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --pro-bg: #07090d;
+  --pro-dot: rgba(148, 163, 184, 0.13);
+  --pro-term-bg: #0a0c10;
+  --pro-term-head: #10131a;
+  --pro-term-line: rgba(148, 163, 184, 0.2);
+  --pro-term-fg: #d5dbe5;
+  --pro-term-dim: #7c8594;
+  --pro-term-faint: #545c69;
+  --pro-term-prompt-bg: rgba(148, 163, 184, 0.09);
+  --pro-term-accent: #9cc2ff;
+  --pro-ok: #3fb950;
+  --pro-err: #f85149;
+  --pro-warn: #e3a52f;
+  --pro-shell: #39c5cf;
+  --pro-label-bg: rgba(10, 12, 16, 0.94);
+  --pro-node-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   --pro-command-h: var(--command-h, 152px);
+  --pro-font: 11.5px;
   --ao-pro-inv: 1;
 
   position: absolute;
@@ -24,16 +38,23 @@
 }
 
 .ao-pro[data-theme='light'] {
-  --pro-bg: #eceff5;
-  --pro-dot: rgba(51, 65, 92, 0.22);
-  --pro-node-bg: #fbfcfe;
-  --pro-node-head: #eef1f7;
-  --pro-node-line: rgba(51, 65, 92, 0.22);
-  --pro-label-bg: rgba(255, 255, 255, 0.94);
-  --pro-code-bg: rgba(15, 23, 42, 0.06);
-  --pro-error-text: #b42323;
-  --pro-node-shadow: 0 8px 22px rgba(30, 41, 59, 0.16);
-  --bg: rgba(255, 255, 255, 0.92);
+  --pro-bg: #e9ebef;
+  --pro-dot: rgba(51, 65, 92, 0.2);
+  --pro-term-bg: #fbfbfa;
+  --pro-term-head: #eff1f4;
+  --pro-term-line: rgba(31, 35, 40, 0.18);
+  --pro-term-fg: #1f2328;
+  --pro-term-dim: #5f6873;
+  --pro-term-faint: #8b939d;
+  --pro-term-prompt-bg: rgba(31, 35, 40, 0.06);
+  --pro-term-accent: #0b5cd5;
+  --pro-ok: #1a7f37;
+  --pro-err: #cf222e;
+  --pro-warn: #9a6700;
+  --pro-shell: #0f7b84;
+  --pro-label-bg: rgba(251, 251, 250, 0.96);
+  --pro-node-shadow: 0 6px 18px rgba(30, 41, 59, 0.14);
+  --bg: rgba(255, 255, 255, 0.94);
   --bg-solid: #ffffff;
   --bg-soft: rgba(15, 23, 42, 0.045);
   --bg-hover: rgba(15, 23, 42, 0.08);
@@ -58,7 +79,7 @@
   inset: 0;
   overflow: hidden;
   background-color: var(--pro-bg);
-  background-image: radial-gradient(circle, var(--pro-dot) 1.3px, transparent 1.7px);
+  background-image: radial-gradient(circle, var(--pro-dot) 1.2px, transparent 1.6px);
   background-size: 28px 28px;
   cursor: grab;
   touch-action: none;
@@ -82,15 +103,15 @@
   position: absolute;
   top: 40%;
   left: var(--panel-left);
-  right: var(--panel-right);
+  right: var(--gap);
   max-width: 460px;
   margin-inline: auto;
   color: var(--muted);
-  font-size: 15px;
+  font: 13px/1.5 var(--mono);
   text-align: center;
 }
 
-/* Room frames. */
+/* Room frames: the header is the button that opens the room panel. */
 .ao-pro-frames,
 .ao-pro-nodes,
 .ao-pro-labels {
@@ -103,9 +124,10 @@
   position: absolute;
   top: 0;
   left: 0;
-  border: 2px solid color-mix(in srgb, var(--room) 42%, transparent);
-  border-radius: 36px;
-  background: color-mix(in srgb, var(--room) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--room) 34%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--room) 3%, transparent);
+  pointer-events: none;
   transition:
     transform 0.45s var(--ease),
     width 0.45s var(--ease),
@@ -113,30 +135,59 @@
 }
 
 .ao-pro-frame-head {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 16px;
-  padding: 26px 40px 0;
+  gap: 18px;
+  max-width: calc(100% - 48px);
+  margin: 14px 0 0 24px;
+  padding: 8px 16px;
+  overflow: hidden;
+  border-radius: 10px;
+  color: var(--pro-term-fg);
+  font-family: var(--mono);
   white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+}
+
+.ao-pro-frame-head:hover,
+.ao-pro-frame-head[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--room) 14%, transparent);
+}
+
+.ao-pro-frame-head:focus-visible {
+  outline: calc(2px * var(--ao-pro-inv)) solid var(--accent);
 }
 
 .ao-pro-frame-dot {
   align-self: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  flex: none;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 3px;
   background: var(--room);
+  font-size: clamp(30px, calc(13px * var(--ao-pro-inv)), 58px);
 }
 
 .ao-pro-frame-name {
-  font-size: 34px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(30px, calc(13px * var(--ao-pro-inv)), 58px);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
 }
 
+/* In a narrow frame the counts give way before the room's name does. */
 .ao-pro-frame-meta {
-  color: var(--muted);
-  font-size: 20px;
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pro-term-dim);
+  text-overflow: ellipsis;
+  font-size: clamp(18px, calc(8px * var(--ao-pro-inv)), 34px);
 }
 
 /* Lines from an orchestrator to its subagents. */
@@ -149,53 +200,48 @@
 }
 
 .ao-pro-link-line {
-  stroke: var(--idle);
-  stroke-width: 1.8;
+  stroke: var(--pro-term-faint);
+  stroke-width: 1.4;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
 .ao-pro-link-port {
-  fill: var(--idle);
+  fill: var(--pro-term-faint);
 }
 
 .ao-pro-link.is-flowing .ao-pro-link-line {
-  stroke: var(--working);
-  stroke-width: 2.4;
-  stroke-dasharray: 7 9;
+  stroke: var(--pro-ok);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
   animation: ao-pro-flow 0.8s linear infinite;
 }
 
 .ao-pro-link.is-flowing .ao-pro-link-port {
-  fill: var(--working);
+  fill: var(--pro-ok);
 }
 
 .ao-pro-link.is-waiting .ao-pro-link-line {
-  stroke: var(--waiting);
-  stroke-width: 2.6;
+  stroke: var(--pro-warn);
+  stroke-width: 2.2;
 }
 
 .ao-pro-link.is-waiting .ao-pro-link-port {
-  fill: var(--waiting);
+  fill: var(--pro-warn);
 }
 
 .ao-pro-link.is-done {
-  opacity: 0.4;
+  opacity: 0.45;
 }
 
 .ao-pro-link.is-done .ao-pro-link-line {
-  stroke: var(--done);
-  stroke-width: 1.6;
-  stroke-dasharray: 2 7;
-}
-
-.ao-pro-link.is-done .ao-pro-link-port {
-  fill: var(--done);
+  stroke-width: 1.3;
+  stroke-dasharray: 2 6;
 }
 
 @keyframes ao-pro-flow {
   to {
-    stroke-dashoffset: -16;
+    stroke-dashoffset: -14;
   }
 }
 
@@ -205,23 +251,27 @@
   left: 0;
   display: grid;
   gap: 1px;
-  width: 108px;
-  padding: 4px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  width: 112px;
+  padding: 3px 6px;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 4px;
   background: var(--pro-label-bg);
-  color: var(--muted);
-  font-size: 11.5px;
-  line-height: 1.25;
-  text-align: center;
+  color: var(--pro-term-dim);
+  font: 10.5px/1.3 var(--mono);
   transition: transform 0.45s var(--ease);
 }
 
 .ao-pro-link-role {
   overflow: hidden;
-  color: var(--text);
+  color: var(--pro-term-fg);
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ao-pro-link-role::before {
+  content: '⏺ ';
+  color: var(--pro-term-faint);
 }
 
 .ao-pro-link-task {
@@ -232,17 +282,24 @@
 }
 
 .ao-pro-link-label.is-flowing {
-  border-color: color-mix(in srgb, var(--working) 55%, transparent);
-  color: var(--text);
+  border-color: color-mix(in srgb, var(--pro-ok) 50%, transparent);
+}
+
+.ao-pro-link-label.is-flowing .ao-pro-link-role::before {
+  color: var(--pro-ok);
 }
 
 .ao-pro-link-label.is-waiting {
-  border-color: color-mix(in srgb, var(--waiting) 65%, transparent);
-  color: var(--waiting);
+  border-color: color-mix(in srgb, var(--pro-warn) 65%, transparent);
+  color: var(--pro-warn);
+}
+
+.ao-pro-link-label.is-waiting .ao-pro-link-role::before {
+  color: var(--pro-warn);
 }
 
 .ao-pro-link-label.is-done {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 .ao-pro.lod-far .ao-pro-link-label {
@@ -257,18 +314,23 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--pro-node-line);
-  border-radius: 14px;
-  background: var(--pro-node-bg);
+  border: 1px solid var(--pro-term-line);
+  border-radius: 7px;
+  background: var(--pro-term-bg);
   box-shadow: var(--pro-node-shadow);
+  color: var(--pro-term-fg);
+  font: var(--pro-font) / 1.45 var(--mono);
   contain: layout paint style;
-  container-type: inline-size;
   transition:
     transform 0.45s var(--ease),
     opacity 0.4s var(--ease),
     border-color 0.25s var(--ease),
     box-shadow 0.25s var(--ease);
   animation: ao-pro-in 0.4s var(--ease) both;
+}
+
+.ao-pro-node.is-orchestrator {
+  --pro-font: 12px;
 }
 
 @keyframes ao-pro-in {
@@ -291,25 +353,22 @@
 
 .ao-pro-node:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .ao-pro-node.is-working {
-  border-color: color-mix(in srgb, var(--working) 55%, var(--pro-node-line));
-  box-shadow:
-    var(--pro-node-shadow),
-    0 0 26px color-mix(in srgb, var(--working) 16%, transparent);
+  border-color: color-mix(in srgb, var(--pro-ok) 42%, var(--pro-term-line));
 }
 
 .ao-pro-node.is-waiting {
-  border-color: color-mix(in srgb, var(--waiting) 75%, var(--pro-node-line));
+  border-color: color-mix(in srgb, var(--pro-warn) 75%, var(--pro-term-line));
   box-shadow:
     var(--pro-node-shadow),
-    0 0 28px color-mix(in srgb, var(--waiting) 24%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--pro-warn) 35%, transparent);
 }
 
 .ao-pro-node.is-error {
-  border-color: color-mix(in srgb, var(--error) 60%, var(--pro-node-line));
+  border-color: color-mix(in srgb, var(--pro-err) 55%, var(--pro-term-line));
 }
 
 .ao-pro-node.is-selected {
@@ -320,84 +379,158 @@
 
 .ao-pro-node.is-finished {
   opacity: 0.55;
-  filter: saturate(0.55);
 }
 
+/* Title bar. */
 .ao-pro-head {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 8px 0 12px;
-  border-bottom: 1px solid var(--pro-node-line);
-  background: var(--pro-node-head);
+  gap: 7px;
+  height: 26px;
+  padding: 0 4px 0 9px;
+  border-bottom: 1px solid var(--pro-term-line);
+  background: var(--pro-term-head);
+  font-size: 11px;
+  white-space: nowrap;
   cursor: grab;
   user-select: none;
 }
 
-.ao-pro-heading {
-  display: flex;
-  flex: 1;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
+.ao-pro-node.is-orchestrator .ao-pro-head {
+  height: 30px;
+  font-size: 12px;
+}
+
+.ao-pro-head .ao-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
 }
 
 .ao-pro-name {
-  font-size: 13.5px;
-}
-
-.ao-pro-role {
   min-width: 0;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 12px;
+  font-weight: 700;
   text-overflow: ellipsis;
 }
 
-.ao-pro-role.is-empty {
+.ao-pro-role {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pro-term-dim);
+  text-overflow: ellipsis;
+}
+
+.ao-pro-role::before {
+  content: '· ';
+  color: var(--pro-term-faint);
+}
+
+.ao-pro-badge,
+.ao-pro-node .ao-account {
+  flex: none;
+  padding: 0 4px;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 3px;
+  color: var(--pro-term-dim);
+  font: 600 9.5px/14px var(--mono);
+  text-transform: uppercase;
+}
+
+.ao-pro-badge.is-codex {
+  border-color: color-mix(in srgb, #a371f7 60%, transparent);
+  color: #a371f7;
+}
+
+.ao-pro-node .ao-account {
+  border-color: color-mix(in srgb, var(--account) 60%, transparent);
+  color: var(--account);
+}
+
+.ao-pro-node .ao-account-initial {
+  width: auto;
+  height: auto;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.ao-pro-model {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pro-term-faint);
+  text-overflow: ellipsis;
+}
+
+.ao-pro-node.is-sub:not(.is-maximized) .ao-pro-model {
   display: none;
+}
+
+.ao-pro-spacer {
+  flex: 1;
 }
 
 .ao-pro-elapsed {
   flex: none;
-  color: var(--faint);
-  font: 11.5px var(--mono);
+  color: var(--pro-term-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 .ao-pro-actions {
   display: flex;
   flex: none;
-  gap: 0;
-  opacity: 0.55;
+  opacity: 0.45;
   transition: opacity var(--t-fast) var(--ease);
 }
 
 .ao-pro-node:hover .ao-pro-actions,
-.ao-pro-node:focus-within .ao-pro-actions {
+.ao-pro-node:focus-within .ao-pro-actions,
+.ao-pro-node.is-maximized .ao-pro-actions {
   opacity: 1;
+}
+
+.ao-pro-action {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pro-term-dim);
+}
+
+.ao-pro-action:hover {
+  background: var(--pro-term-prompt-bg);
+  color: var(--pro-term-fg);
+}
+
+.ao-pro-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .ao-pro .ao-pro-task {
   flex: none;
-  display: -webkit-box;
-  padding: 5px 12px;
+  padding: 3px 9px;
   overflow: hidden;
-  border-bottom: 1px solid var(--pro-node-line);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.4;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  border-bottom: 1px dashed var(--pro-term-line);
+  color: var(--pro-term-dim);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ao-pro .ao-pro-node.is-sub .ao-pro-task {
-  -webkit-line-clamp: 2;
+.ao-pro .ao-pro-task::before {
+  content: '# ';
+  color: var(--pro-term-faint);
 }
 
+/* The body: the session printed like the CLI. */
 .ao-pro-content {
   position: relative;
   flex: 1;
@@ -407,222 +540,405 @@
 .ao-pro-body {
   position: absolute;
   inset: 0;
-  padding: 10px 12px 14px;
+  padding: 6px 9px 8px;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  font: 12px/1.5 var(--mono);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pro-term-line) transparent;
   outline: none;
 }
 
+.ao-pro-node.lod-summary .ao-pro-body {
+  overflow-y: hidden;
+}
+
 .ao-pro-body:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: -1px;
 }
 
-.ao-pro-node .ao-term-entry {
-  gap: 8px;
-  margin-bottom: 8px;
+.ao-cli-entry {
+  margin-bottom: 6px;
 }
 
-.ao-pro-node .ao-term-para {
-  font-size: 12.5px;
-}
-
-.ao-pro-node .ao-term-code {
-  background: var(--pro-code-bg);
-}
-
-.ao-pro-node .ao-term-tool.is-error .ao-term-result {
-  color: var(--pro-error-text);
-}
-
-.ao-pro .ao-pro-note {
-  padding: 4px 2px;
-}
-
-.ao-pro-earlier {
+.ao-cli-line {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr);
   width: 100%;
-  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pro-term-fg);
+  font: inherit;
+  text-align: left;
 }
 
-.ao-pro-end {
-  position: absolute;
-  right: 12px;
-  bottom: 10px;
-  box-shadow: var(--shadow);
+.ao-cli-gutter {
+  color: var(--pro-term-faint);
 }
 
-.ao-pro-retry {
-  position: absolute;
-  left: 12px;
-  bottom: 10px;
+.ao-cli-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
-.ao-pro-card {
-  position: absolute;
-  inset: 0;
-  display: none;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 4px;
-  padding: 0 18px;
+.ao-cli-line.is-prompt {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--pro-term-prompt-bg);
+}
+
+.ao-cli-line.is-prompt .ao-cli-gutter {
+  color: var(--pro-term-accent);
+  font-weight: 700;
+}
+
+.ao-cli-line.is-prompt .ao-cli-text {
+  display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
-.ao-pro-card-name {
-  max-width: 100%;
+.ao-cli-line.is-text .ao-cli-gutter {
+  color: var(--pro-term-fg);
+}
+
+.ao-cli-line.is-code {
+  margin: 2px 0 2px 2ch;
+  padding: 3px 6px;
+  border-left: 2px solid var(--pro-term-line);
+  color: var(--pro-term-dim);
+}
+
+.ao-cli-line.is-tool .ao-cli-text {
   overflow: hidden;
-  font-size: min(calc(16px * var(--ao-pro-inv)), 11cqw);
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ao-pro-card-status {
-  color: var(--muted);
-  font-size: min(calc(12px * var(--ao-pro-inv)), 5.5cqw);
-  font-weight: 600;
+.ao-cli-line.is-tool.tone-ok .ao-cli-gutter {
+  color: var(--pro-ok);
 }
 
-.ao-pro .ao-pro-card-line {
-  display: -webkit-box;
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--text);
-  font-size: min(calc(13px * var(--ao-pro-inv)), 7cqw);
-  line-height: 1.3;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+.ao-cli-line.is-tool.tone-error .ao-cli-gutter {
+  color: var(--pro-err);
 }
 
-.ao-pro-node.lod-summary .ao-pro-body,
+.ao-cli-line.is-tool.tone-pending .ao-cli-gutter {
+  color: var(--pro-term-dim);
+  animation: ao-pro-blink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes ao-pro-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ao-cli-line.is-result,
+.ao-cli-line.is-more,
+.ao-cli-entry.is-thinking .ao-cli-line.is-result {
+  padding-left: 2ch;
+  color: var(--pro-term-dim);
+}
+
+.ao-cli-line.tone-error.is-result {
+  color: var(--pro-err);
+}
+
+.ao-cli-line.is-more {
+  color: var(--pro-term-faint);
+}
+
+.ao-cli-line.is-thinking {
+  color: var(--pro-term-dim);
+  font-style: italic;
+}
+
+.ao-cli-line.is-thinking .ao-cli-gutter {
+  color: #d77757;
+  font-style: normal;
+}
+
+.ao-cli-line.is-system {
+  color: var(--pro-term-dim);
+}
+
+.ao-cli-line.is-system.tone-error {
+  color: var(--pro-err);
+}
+
+.ao-cli-line.is-toggle {
+  cursor: pointer;
+}
+
+.ao-cli-line.is-toggle:hover .ao-cli-text {
+  color: var(--pro-term-fg);
+  text-decoration: underline;
+}
+
+.ao-cli-line.is-toggle:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
+.ao-cli-earlier {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 2px 0;
+  border: 1px dashed var(--pro-term-line);
+  border-radius: 3px;
+  background: none;
+  color: var(--pro-term-dim);
+  font: inherit;
+}
+
+.ao-cli-earlier:hover {
+  color: var(--pro-term-fg);
+}
+
+/* What the agent waits for: the CLI's permission prompt, amber. */
+.ao-cli-ask {
+  margin: 4px 0 2px;
+  padding: 5px 8px 6px;
+  border: 1px solid var(--pro-warn);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pro-warn) 8%, transparent);
+}
+
+.ao-cli-ask-title {
+  color: var(--pro-warn);
+  font-weight: 700;
+}
+
+.ao-cli-ask-detail {
+  margin: 2px 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ao-cli-ask-hint {
+  color: var(--pro-term-dim);
+}
+
+.ao-pro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 4px;
+  background: var(--pro-term-head);
+  color: var(--pro-term-fg);
+  font: 11px var(--mono);
+}
+
+.ao-pro-chip:hover {
+  border-color: var(--pro-term-dim);
+}
+
+.ao-pro-end {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  box-shadow: var(--pro-node-shadow);
+}
+
+.ao-pro-retry {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+}
+
 .ao-pro-node.lod-summary .ao-pro-end,
 .ao-pro-node.lod-summary .ao-pro-retry {
   display: none;
 }
 
-.ao-pro-node.lod-summary .ao-pro-card {
-  display: flex;
-}
-
-.ao-pro .ao-pro-node.lod-summary .ao-pro-task {
-  display: none;
-}
-
-.ao-pro-foot-row {
+/* The status line at the bottom, like the CLI's. */
+.ao-pro-status {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  border-top: 1px solid var(--pro-node-line);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.ao-pro-foot {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 6px;
+  height: 22px;
+  padding: 0 4px 0 9px;
+  border-top: 1px solid var(--pro-term-line);
+  color: var(--pro-term-dim);
+  font-size: 10.5px;
   white-space: nowrap;
 }
 
-.ao-pro-foot.is-waiting {
-  color: var(--waiting);
-  font-weight: 600;
+.ao-pro-status-glyph {
+  flex: none;
+  width: 1.2ch;
+}
+
+.ao-pro-status-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ao-pro-status-time {
+  flex: none;
+  color: var(--pro-term-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-pro-status-time::before {
+  content: '· ';
+}
+
+.ao-pro-status.tone-ok .ao-pro-status-glyph,
+.ao-pro-status.tone-ok .ao-pro-status-text {
+  color: var(--pro-ok);
+}
+
+.ao-pro-status.tone-ok .ao-pro-status-glyph {
+  animation: ao-pro-spin 2.4s linear infinite;
+}
+
+@keyframes ao-pro-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ao-pro-status.tone-warn {
+  background: color-mix(in srgb, var(--pro-warn) 10%, transparent);
+  color: var(--pro-warn);
+  font-weight: 700;
+}
+
+.ao-pro-status.tone-error {
+  color: var(--pro-err);
+}
+
+.ao-pro-status.tone-accent {
+  color: var(--pro-shell);
 }
 
 .ao-pro-pill {
   flex: none;
-  padding: 1px 10px;
-  border: 1px solid color-mix(in srgb, var(--done) 45%, transparent);
-  border-radius: 99px;
-  background: color-mix(in srgb, var(--done) 14%, transparent);
-  color: var(--done);
-  font-size: 11.5px;
-  font-weight: 600;
+  margin-left: auto;
+  padding: 0 6px;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--pro-term-dim);
+  font: 10.5px/16px var(--mono);
 }
 
-.ao-pro-pill:hover {
-  background: color-mix(in srgb, var(--done) 24%, transparent);
+.ao-pro-pill::before {
+  content: '✓ ';
+}
+
+.ao-pro-pill:hover,
+.ao-pro-pill[aria-expanded='true'] {
+  border-color: var(--pro-term-dim);
+  color: var(--pro-term-fg);
 }
 
 .ao-pro-done {
   position: absolute;
-  inset: 8px;
+  inset: 6px;
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: 2px;
+  padding: 6px;
   overflow-y: auto;
-  border: 1px solid var(--pro-node-line);
-  border-radius: 10px;
-  background: var(--pro-node-bg);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--pro-term-line);
+  border-radius: 5px;
+  background: var(--pro-term-bg);
+  box-shadow: var(--pro-node-shadow);
 }
 
 .ao-pro .ao-pro-done-title {
-  color: var(--muted);
-  font-size: 12px;
+  padding: 0 4px 4px;
+  color: var(--pro-term-dim);
   font-weight: 700;
 }
 
 .ao-pro-done-item {
   display: grid;
-  gap: 1px;
-  padding: 5px 8px;
+  grid-template-columns: 2ch auto minmax(0, 1fr);
+  gap: 1ch;
+  padding: 2px 4px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 3px;
   background: transparent;
+  color: var(--pro-term-fg);
+  font: inherit;
   text-align: left;
 }
 
 .ao-pro-done-item:hover {
-  background: var(--bg-hover);
+  background: var(--pro-term-prompt-bg);
 }
 
-.ao-pro-done-item span {
+.ao-pro-done-mark {
+  color: var(--pro-ok);
+}
+
+.ao-pro-done-type {
+  font-weight: 600;
+}
+
+.ao-pro-done-task {
   overflow: hidden;
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--pro-term-dim);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* A maximized terminal covers the free area of the canvas. */
+/* A maximized terminal covers the free area of the canvas, as a full raw terminal. */
 .ao-pro-max {
   position: absolute;
   top: calc(var(--topbar-h) + var(--gap) + 52px);
-  right: var(--panel-right);
-  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--pro-command-h));
+  right: var(--gap);
+  bottom: var(--gap);
   left: var(--panel-left);
   z-index: 8;
   display: flex;
 }
 
+.ao-pro.has-command .ao-pro-max {
+  bottom: calc(2 * var(--gap) + var(--pro-command-h));
+}
+
+.ao-pro.has-panel .ao-pro-max {
+  right: calc(var(--drawer-w) + 2 * var(--gap));
+}
+
 .ao-pro.has-maximized .ao-pro-viewport {
-  opacity: 0.3;
+  opacity: 0.25;
   pointer-events: none;
 }
 
 .ao-pro-node.is-maximized {
+  --pro-font: 13px;
+
   position: relative;
   flex: 1;
   width: auto !important;
   height: auto !important;
   transform: none !important;
+  opacity: 1;
   box-shadow: var(--shadow);
 }
 
 .ao-pro-node.is-maximized .ao-pro-head {
+  height: 34px;
+  font-size: 12.5px;
   cursor: default;
 }
 
-.ao-pro-node.is-maximized .ao-term-para,
 .ao-pro-node.is-maximized .ao-pro-body {
-  font-size: 13px;
+  padding: 10px 16px 14px;
 }
 
 /* Tools. */
@@ -658,7 +974,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--muted);
-  font: 600 12px var(--font);
+  font: 600 12px var(--mono);
 }
 
 .ao-pro-zoom:hover {
@@ -666,78 +982,327 @@
   color: var(--text);
 }
 
-.ao-pro-minimap {
+/* The room panel: dev-style, on the right. */
+.ao-pro-panel {
   position: absolute;
-  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--pro-command-h));
-  left: var(--panel-left);
-  z-index: 10;
-  border: 1px solid var(--line);
+  top: calc(var(--topbar-h) + var(--gap));
+  right: var(--gap);
+  bottom: var(--gap);
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  width: var(--drawer-w);
+  max-width: calc(100vw - 2 * var(--gap));
+  overflow: hidden;
+  border: 1px solid var(--pro-term-line);
   border-radius: 10px;
-  background: var(--bg);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  touch-action: none;
+  background: var(--pro-term-bg);
+  box-shadow: var(--pro-node-shadow);
+  color: var(--pro-term-fg);
+  font: 12px/1.5 var(--mono);
 }
 
-.ao-pro.has-maximized .ao-pro-minimap {
+/* The panel takes the focus when it opens (for the keyboard and screen readers): no ring around all of it. */
+.ao-pro-panel:focus {
+  outline: none;
+}
+
+.ao-pro.has-command .ao-pro-panel {
+  bottom: calc(2 * var(--gap) + var(--pro-command-h));
+}
+
+.ao-pro-panel[hidden] {
   display: none;
 }
 
-/* Command bar. */
+.ao-pro-panel-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 10px 14px;
+  border-bottom: 1px solid var(--pro-term-line);
+  background: var(--pro-term-head);
+}
+
+.ao-pro-panel-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.ao-pro-panel-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-pro .ao-pro-panel-title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro .ao-pro-panel-path {
+  margin: 0;
+  overflow: hidden;
+  color: var(--pro-term-faint);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-panel-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ao-pro .ao-pro-panel-h {
+  margin: 4px 0 6px;
+  color: var(--pro-term-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ao-pro-panel-picker {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.ao-pro-panel-orch,
+.ao-pro-panel-sub {
+  display: grid;
+  align-items: baseline;
+  gap: 1ch;
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--pro-term-fg);
+  font: inherit;
+  text-align: left;
+}
+
+.ao-pro-panel-orch {
+  grid-template-columns: 2ch auto minmax(0, 1fr) auto;
+}
+
+.ao-pro-panel-orch:hover,
+.ao-pro-panel-sub:hover {
+  background: var(--pro-term-prompt-bg);
+}
+
+.ao-pro-panel-orch.is-selected {
+  border-color: var(--pro-term-line);
+  background: var(--pro-term-prompt-bg);
+}
+
+.ao-pro-panel-orch:focus-visible,
+.ao-pro-panel-sub:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ao-pro-panel-orch-name {
+  font-weight: 700;
+}
+
+.ao-pro-panel-orch-status,
+.ao-pro-panel-orch-count {
+  overflow: hidden;
+  color: var(--pro-term-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro .ao-pro-panel-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px 14px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 5px;
+}
+
+.ao-pro-panel-facts dt {
+  color: var(--pro-term-dim);
+}
+
+.ao-pro-panel-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-pro-panel-subs {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-pro-panel-sub {
+  grid-template-columns: 2ch auto minmax(0, 1fr) auto;
+}
+
+.ao-pro-panel-sub.is-finished {
+  color: var(--pro-term-dim);
+}
+
+.ao-pro-panel-sub-type {
+  font-weight: 600;
+}
+
+.ao-pro-panel-sub-task {
+  overflow: hidden;
+  color: var(--pro-term-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-panel-sub-time {
+  color: var(--pro-term-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-pro-panel-empty {
+  padding: 3px 6px;
+  color: var(--pro-term-faint);
+}
+
+.ao-pro-panel-glyph.tone-ok {
+  color: var(--pro-ok);
+}
+
+.ao-pro-panel-glyph.tone-warn,
+.ao-pro .tone-warn {
+  color: var(--pro-warn);
+}
+
+.ao-pro-panel-glyph.tone-error,
+.ao-pro-panel-facts .tone-error {
+  color: var(--pro-err);
+}
+
+.ao-pro-panel-glyph.tone-dim {
+  color: var(--pro-term-faint);
+}
+
+.ao-pro-panel-glyph.tone-accent {
+  color: var(--pro-shell);
+}
+
+.ao-pro-panel-facts .tone-ok {
+  color: var(--pro-ok);
+}
+
+.ao-pro-panel-foot {
+  flex: none;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--pro-term-line);
+  background: var(--pro-term-head);
+}
+
+.ao-pro-panel-foot .ao-pro-promptbox {
+  display: grid;
+  gap: 6px;
+}
+
+.ao-pro-panel-foot .ao-pro-command-main {
+  flex-direction: column;
+}
+
+.ao-pro-panel-foot .ao-pro-prompt {
+  min-height: 74px;
+}
+
+.ao-pro-panel-foot .ao-pro-command-buttons {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.ao-pro-panel-foot .ao-pro-command-buttons .ao-btn {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.ao-pro-panel-foot .ao-pro-foot-status {
+  max-width: none;
+  text-align: left;
+}
+
+/* The optional command bar, at the bottom. */
 .ao-pro-command {
   position: absolute;
-  right: var(--panel-right);
-  bottom: calc(var(--feed-h) + 2 * var(--gap));
+  right: var(--gap);
+  bottom: var(--gap);
   left: var(--panel-left);
   z-index: 12;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 6px;
   height: var(--pro-command-h);
   max-width: 1000px;
   margin-inline: auto;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
-  border-radius: 16px;
-  background: var(--bg);
-  box-shadow:
-    0 14px 44px rgba(0, 0, 0, 0.4),
-    0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  border: 1px solid var(--pro-term-line);
+  border-radius: 10px;
+  background: var(--pro-term-bg);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4);
+  color: var(--pro-term-fg);
+}
+
+.ao-pro-command[hidden] {
+  display: none;
+}
+
+.ao-pro-command .ao-pro-promptbox {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  height: 100%;
 }
 
 .ao-pro-command-top {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 32px;
+  min-height: 26px;
 }
 
 .ao-pro-target {
   flex: none;
   max-width: 280px;
-  font-weight: 600;
+  font: 600 12px var(--mono);
 }
 
 .ao-pro .ao-pro-outlook {
   display: -webkit-box;
   flex: 1;
   min-width: 0;
+  margin: 0;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
+  color: var(--pro-term-dim);
+  font: 11.5px/1.35 var(--mono);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .ao-pro .ao-pro-outlook.is-warn {
-  color: var(--waiting);
+  color: var(--pro-warn);
 }
 
 .ao-pro .ao-pro-outlook.is-blocked {
-  color: var(--faint);
+  color: var(--pro-term-faint);
   font-style: italic;
 }
 
@@ -747,12 +1312,19 @@
   min-height: 0;
 }
 
-.ao-pro-prompt {
+.ao-pro .ao-pro-prompt {
   flex: 1;
   min-height: 0;
   height: 100%;
+  border-color: var(--pro-term-line);
+  background: var(--pro-term-head);
+  color: var(--pro-term-fg);
+  font: 13px/1.45 var(--mono);
   resize: none;
-  font-size: 14px;
+}
+
+.ao-pro .ao-pro-prompt::placeholder {
+  color: var(--pro-term-faint);
 }
 
 .ao-pro-command-buttons {
@@ -765,6 +1337,8 @@
 .ao-pro-command-buttons .ao-btn {
   flex: 1;
   min-width: 112px;
+  font-family: var(--mono);
+  font-size: 12px;
 }
 
 .ao-pro-mic.is-listening {
@@ -788,7 +1362,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 26px;
+  min-height: 24px;
   min-width: 0;
 }
 
@@ -799,29 +1373,37 @@
   flex-wrap: nowrap;
 }
 
+.ao-pro-foot-gap {
+  flex: 1;
+}
+
+.ao-pro-command-foot .ao-quick-chip {
+  font: 11px var(--mono);
+}
+
 .ao-pro-foot-status {
   flex: 0 1 auto;
   max-width: 46%;
+  margin: 0;
   overflow: hidden;
-  font-size: 12px;
+  font: 11px var(--mono);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ao-pro-delivery {
-  color: var(--accent);
+  color: var(--pro-term-accent);
 }
 
 .ao-pro-delivery.is-pending {
-  color: var(--waiting);
+  color: var(--pro-warn);
 }
 
 .ao-pro-delivery.is-expired {
-  color: var(--error);
+  color: var(--pro-err);
 }
 
-.ao-pro[data-theme='light'] .ao-textarea,
 .ao-pro[data-theme='light'] .ao-select,
 .ao-pro[data-theme='light'] .ao-input {
   background: #ffffff;
@@ -831,10 +1413,12 @@
   background: rgba(15, 23, 42, 0.05);
 }
 
-/* Reduced motion: lines stay still, windows do not glide. */
+/* Reduced motion: lines stay still, cursors do not blink, windows do not glide. */
 .is-reduced-motion .ao-pro-link.is-flowing .ao-pro-link-line,
 .is-reduced-motion .ao-pro-node,
-.is-reduced-motion .ao-pro-mic.is-listening {
+.is-reduced-motion .ao-pro-mic.is-listening,
+.is-reduced-motion .ao-cli-line.is-tool.tone-pending .ao-cli-gutter,
+.is-reduced-motion .ao-pro-status.tone-ok .ao-pro-status-glyph {
   animation: none;
 }
 
@@ -847,7 +1431,9 @@
 @media (prefers-reduced-motion: reduce) {
   .ao-pro-link.is-flowing .ao-pro-link-line,
   .ao-pro-node,
-  .ao-pro-mic.is-listening {
+  .ao-pro-mic.is-listening,
+  .ao-cli-line.is-tool.tone-pending .ao-cli-gutter,
+  .ao-pro-status.tone-ok .ao-pro-status-glyph {
     animation: none;
   }
 
@@ -873,7 +1459,7 @@
     max-width: none;
   }
 
-  .ao-pro-command-main {
+  .ao-pro-command .ao-pro-command-main {
     flex-direction: column;
   }
 
@@ -890,18 +1476,23 @@
     text-align: left;
   }
 
-  .ao-pro-minimap {
-    display: none;
+  .ao-pro-panel {
+    left: var(--gap);
+    width: auto;
+  }
+
+  .ao-pro.has-panel .ao-pro-max {
+    right: var(--gap);
   }
 }
 
-/* The toasts rise above the command bar instead of covering its buttons. */
-.ao-root.is-pro .ao-toasts {
-  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--command-h));
+/* The toasts rise above the command bar while it is shown, instead of covering its buttons. */
+.ao-root.is-pro.has-pro-command .ao-toasts {
+  bottom: calc(2 * var(--gap) + var(--command-h));
 }
 
 @media (max-width: 899px) {
-  .ao-root.is-pro .ao-toasts {
-    bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--command-narrow-h));
+  .ao-root.is-pro.has-pro-command .ao-toasts {
+    bottom: calc(2 * var(--gap) + var(--command-narrow-h));
   }
 }

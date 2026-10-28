@@ -9,6 +9,8 @@ export const MAX_KEPT_ENTRIES = 240;
 /** Entries a canvas terminal puts in the DOM, and how many more "earlier" adds. */
 export const WINDOW_ENTRIES = 40;
 export const WINDOW_MAXIMIZED = 160;
+/** Entries a resting terminal (not live) keeps in the DOM: enough to fill it. */
+export const WINDOW_RECENT = 14;
 
 export interface LiveTranscript {
   entries: readonly TranscriptEntry[];
@@ -86,4 +88,15 @@ export function planRender(rendered: readonly TranscriptEntry[], target: readonl
 /** The last `size` entries. */
 export function windowOf(entries: readonly TranscriptEntry[], size: number): readonly TranscriptEntry[] {
   return entries.length > size ? entries.slice(entries.length - size) : entries;
+}
+
+/** The transcript a terminal already read, followed by the entries of `recent` that are newer than its last one. */
+export function withNewer(
+  read: readonly TranscriptEntry[],
+  recent: readonly TranscriptEntry[],
+): readonly TranscriptEntry[] {
+  const last = read[read.length - 1];
+  if (last === undefined) return recent;
+  const newer = recent.filter((entry) => entry.at > last.at);
+  return newer.length === 0 ? read : [...read, ...newer];
 }

@@ -29,7 +29,8 @@ export class Drawer implements Component {
   }
 
   render(): void {
-    const selection = this.ctx.ui.get().selection;
+    // The Pro view has no drawer: there a selection focuses a terminal and a room opens the canvas's own panel.
+    const selection = this.ctx.viewMode === 'pro' ? null : this.ctx.ui.get().selection;
     const open = selection !== null;
     toggleClass(this.el, 'is-open', open);
     this.el.setAttribute('aria-hidden', String(!open));

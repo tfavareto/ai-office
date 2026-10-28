@@ -1,5 +1,6 @@
 // One entry of a conversation as a terminal line: what Claude Code shows (the prompt, the answer, the collapsed
-// thinking, a tool call with its result). Shared by the read-only terminal panel and the terminals of the Pro canvas.
+// thinking, a tool call with its result), as the read-only terminal panel draws it. The Pro canvas prints sessions with
+// its own CLI-style formatter (`pro/model/cli-format.ts`).
 import type { TranscriptEntry } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { localized, toolSummary } from '../display';

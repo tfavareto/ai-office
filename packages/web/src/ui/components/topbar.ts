@@ -322,6 +322,8 @@ export class TopBar implements Component {
     const ui = this.ctx.ui.get();
     setPressed(this.sidebarBtn, ui.sidebarOpen);
     setPressed(this.feedBtn, ui.feedOpen);
+    // The Pro view has no activity feed, so its switch leaves the bar there.
+    this.feedBtn.hidden = this.ctx.viewMode === 'pro';
     for (const [id, btn] of this.popoverButtons) setPressed(btn, ui.popover === id);
     setPressed(this.bellBtn, ui.popover === 'notifications');
     setPressed(this.boardBtn, ui.dialog === 'board');

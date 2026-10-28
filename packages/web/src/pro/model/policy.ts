@@ -4,7 +4,10 @@
 import type { DisplayStatus } from '../../ui/model/status';
 import { rectCenter, rectsOverlap, type Point, type Rect } from './geometry';
 
-/** live: loads and renders the conversation · summary: shows the last activity line only · hidden: off screen. */
+/**
+ * live: reads its conversation and polls · summary: rests, showing the lines it already has and the activities the
+ * office saw (terminal text all the same, no requests) · hidden: off screen, not rendered.
+ */
 export type Detail = 'live' | 'summary' | 'hidden';
 
 /** A terminal is readable from this width on the screen (px). */
@@ -13,7 +16,8 @@ export const LIVE_MIN_SCREEN_WIDTH = 170;
 export const LIVE_MIN_ZOOM = 0.45;
 /** Terminals that may be live at once (the server keeps a few more transcripts open than this). */
 export const MAX_LIVE_TERMINALS = 10;
-export const POLL_ACTIVE_MS = 1000;
+/** A busy terminal on screen shows what its agent wrote within this time (the office's own updates also nudge it). */
+export const POLL_ACTIVE_MS = 700;
 export const POLL_CALM_MS = 3000;
 /** The visible area is widened by this many screen pixels, so terminals about to come in start loading. */
 export const VISIBLE_MARGIN_PX = 160;
@@ -35,7 +39,7 @@ export interface PolicyInput {
   /** The part of the world on screen, already widened by the margin. */
   visible: Rect;
   zoom: number;
-  /** The page is hidden, or the actions on sessions are not available (not local, or a time-lapse is on). */
+  /** Reading sessions is not available (the page is not local): every terminal on screen rests. */
   paused: boolean;
   maxLive?: number;
 }

@@ -1,25 +1,29 @@
-// One terminal window of the canvas: title bar (who, role, account, status, time), the live conversation, and the
-// last activity line. At a zoom where it cannot be read it turns into a card with the name and what it is doing.
+// One terminal window of the canvas, raw: a minimal title bar (status dot, session name, role, account or Codex badge,
+// model, session time, maximize and copy-id buttons), the session printed like the Claude Code CLI, what it waits for
+// (the permission prompt, amber), and a CLI-like status line. It always shows terminal text: live from the transcript
+// when the policy lets it poll, otherwise the last lines it already has followed by what the office saw the agent do.
 import { isCodex, type Account, type Agent, type TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
 import { t, type TextKey } from '../../i18n';
-import { activityText, agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../../ui/display';
+import { agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../../ui/display';
 import { h, setAttr, setText, toggleClass } from '../../ui/dom';
 import { icon, type IconName } from '../../ui/icons';
-import { displayStatus, statusLabel, type DisplayStatus } from '../../ui/model/status';
+import { displayStatus, statusLabel } from '../../ui/model/status';
 import { liveText, setLive, setStatusDot, statusDot, updateAccountChip } from '../../ui/widgets';
+import { ActivityEntryCache, NO_RESULT } from '../model/activity-entries';
+import { RESULT_LINES, RESULT_LINES_MAXIMIZED, shortModel, statusLine } from '../model/cli-format';
+import { demoResult } from '../model/demo-results';
 import type { Rect } from '../model/geometry';
-import { WINDOW_ENTRIES, WINDOW_MAXIMIZED } from '../model/live-transcript';
+import { WINDOW_ENTRIES, WINDOW_MAXIMIZED, WINDOW_RECENT, withNewer } from '../model/live-transcript';
 import type { Detail } from '../model/policy';
 import type { FinishedSub } from '../model/scene';
-import { TranscriptBody } from './transcript-body';
+import { CliBody } from './cli-body';
 import { TranscriptFeed, type FeedSource } from './transcript-feed';
 
 export interface NodeModel {
   agent: Agent;
   rect: Rect;
   isOrchestrator: boolean;
-  roomName: string;
   account: Account | undefined;
   /** When it finished (faded subagents). */
   finishedAt: number | undefined;
@@ -27,24 +31,27 @@ export interface NodeModel {
   maximized: boolean;
   /** Finished subagents folded into the orchestrator's pill. */
   collapsed: readonly FinishedSub[];
-  now: number;
 }
 
 export interface NodeHandlers {
   maximize(): void;
-  openInTerminal(): void;
-  showInOffice(): void;
   copySessionId(): void;
   select(): void;
+  /** A folded finished subagent was picked in the orchestrator's list: show its terminal. */
   openFinished(agent: Agent): void;
 }
 
-type ActionName = 'maximize' | 'terminal' | 'office' | 'copy';
+type ActionName = 'maximize' | 'copy';
+
+/**
+ * A resting terminal (not live) redraws what the office saw at most this often: with dozens of them on screen,
+ * redrawing each on every snapshot would repaint the whole canvas many times a second for text that is often too
+ * small to read. A live terminal is never held back.
+ */
+export const RESTING_REDRAW_MS = 1000;
 
 const ACTIONS: readonly { name: ActionName; icon: IconName; key: TextKey }[] = [
   { name: 'maximize', icon: 'maximize', key: 'pro.node.maximize' },
-  { name: 'terminal', icon: 'terminal', key: 'pro.node.openTerminal' },
-  { name: 'office', icon: 'target', key: 'pro.node.showOffice' },
   { name: 'copy', icon: 'copy', key: 'pro.node.copyId' },
 ];
 
@@ -56,57 +63,63 @@ export class TerminalNode {
   private readonly account = h('span', { class: 'ao-account' });
   private readonly codex = h(
     'span',
-    { class: 'ao-source-badge', hidden: true, title: t('codex.badge.title') },
+    { class: 'ao-pro-badge is-codex', hidden: true, title: t('codex.badge.title') },
     t('codex.badge'),
   );
+  private readonly model = h('span', { class: 'ao-pro-model' });
   private readonly elapsed = liveText('elapsed', 0, 'ao-pro-elapsed');
   private readonly task = h('p', { class: 'ao-pro-task' });
-  private readonly body: TranscriptBody;
+  private readonly body: CliBody;
   private readonly toEnd: HTMLButtonElement;
   private readonly retry: HTMLButtonElement;
-  private readonly cardName = h('strong', { class: 'ao-pro-card-name' });
-  private readonly cardStatus = h('span', { class: 'ao-pro-card-status' });
-  private readonly cardLine = h('p', { class: 'ao-pro-card-line' });
-  private readonly foot = h('footer', { class: 'ao-pro-foot' });
-  private readonly pill = h('button', { type: 'button', class: 'ao-pro-pill', hidden: true });
+  private readonly statusGlyph = h('span', { class: 'ao-pro-status-glyph', 'aria-hidden': 'true' });
+  private readonly statusText = h('span', { class: 'ao-pro-status-text' });
+  private readonly statusTime = liveText('elapsed', 0, 'ao-pro-status-time');
+  private readonly status = h('footer', { class: 'ao-pro-status' }, this.statusGlyph, this.statusText, this.statusTime);
+  private readonly pill = h('button', { type: 'button', class: 'ao-pro-pill', hidden: true, 'data-no-drag': '' });
   private readonly doneList = h('div', { class: 'ao-pro-done', hidden: true });
   private readonly maximizeButton: HTMLButtonElement;
   private readonly liveFeed: TranscriptFeed;
+  private readonly recent = new ActivityEntryCache();
+  private readonly ask = h('div', { class: 'ao-cli-ask' });
+  private askSignature = '';
   private detail: Detail = 'summary';
   private maximized = false;
   private doneOpen = false;
   private doneSignature = '';
-  private model: NodeModel | null = null;
-  private lastEntries: readonly TranscriptEntry[] | null = null;
-  private lastFeedStatus = '';
+  private model_: NodeModel | null = null;
+  private lastEventAt = 0;
+  private lastRestingDraw = Number.NEGATIVE_INFINITY;
+  private restingTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     readonly id: string,
     source: FeedSource,
     private readonly handlers: NodeHandlers,
-    private readonly onDirty: () => void,
   ) {
     this.liveFeed = new TranscriptFeed(source, () => this.renderBody());
-    this.body = new TranscriptBody((sticking) => {
+    this.body = new CliBody((sticking) => {
       this.toEnd.hidden = sticking;
     });
     this.toEnd = h(
       'button',
       {
         type: 'button',
-        class: 'ao-btn ao-btn--soft ao-btn--small ao-pro-end',
+        class: 'ao-pro-chip ao-pro-end',
         hidden: true,
+        'data-no-drag': '',
         onclick: () => this.body.scrollToEnd(),
       },
-      icon('arrowDown', 14),
+      icon('arrowDown', 12),
       h('span', null, t('terminal.toEnd')),
     );
     this.retry = h(
       'button',
       {
         type: 'button',
-        class: 'ao-btn ao-btn--soft ao-btn--small ao-pro-retry',
+        class: 'ao-pro-chip ao-pro-retry',
         hidden: true,
+        'data-no-drag': '',
         onclick: () => this.liveFeed.retry(),
       },
       t('common.retry'),
@@ -117,37 +130,40 @@ export class TerminalNode {
     // The first position is set without gliding in from the corner.
     this.el.classList.add('is-new');
     requestAnimationFrame(() => requestAnimationFrame(() => this.el.classList.remove('is-new')));
-    this.pill.addEventListener('click', () => {
+    this.pill.addEventListener('click', (event) => {
+      event.stopPropagation();
       this.doneOpen = !this.doneOpen;
       this.doneSignature = '';
       this.renderDone();
     });
+    this.status.appendChild(this.pill);
     this.el.append(
       h(
         'header',
         { class: 'ao-pro-head', 'data-drag': '' },
         this.dot,
-        h('div', { class: 'ao-pro-heading' }, this.name, this.role),
+        this.name,
+        this.role,
         this.codex,
         this.account,
+        this.model,
+        h('span', { class: 'ao-pro-spacer' }),
         this.elapsed,
         h('div', { class: 'ao-pro-actions' }, ...buttons),
       ),
       this.task,
-      h(
-        'div',
-        { class: 'ao-pro-content' },
-        this.body.el,
-        h('div', { class: 'ao-pro-card' }, this.cardStatus, this.cardName, this.cardLine),
-        this.toEnd,
-        this.retry,
-        this.doneList,
-      ),
-      h('div', { class: 'ao-pro-foot-row' }, this.foot, this.pill),
+      h('div', { class: 'ao-pro-content' }, this.body.el, this.toEnd, this.retry, this.doneList),
+      this.status,
     );
-    this.el.addEventListener('pointerdown', () => this.handlers.select());
-    this.el.addEventListener('focusin', () => toggleClass(this.el, 'is-focused', true));
-    this.el.addEventListener('focusout', () => toggleClass(this.el, 'is-focused', false));
+    this.el.addEventListener('pointerdown', (event) => {
+      if (event.target instanceof Element && event.target.closest('button') !== null) return;
+      this.handlers.select();
+    });
+    this.el.addEventListener('dblclick', (event) => {
+      if (event.target instanceof Element && event.target.closest('button, .ao-pro-done') !== null) return;
+      event.preventDefault();
+      this.handlers.maximize();
+    });
   }
 
   private actionButton(action: (typeof ACTIONS)[number]): HTMLButtonElement {
@@ -155,29 +171,17 @@ export class TerminalNode {
       'button',
       {
         type: 'button',
-        class: 'ao-iconbtn ao-iconbtn--small ao-pro-action',
+        class: 'ao-pro-action',
         'aria-label': t(action.key),
         title: t(action.key),
         'data-no-drag': '',
       },
-      icon(action.icon, 14),
+      icon(action.icon, 13),
     );
     button.addEventListener('click', (event) => {
       event.stopPropagation();
-      switch (action.name) {
-        case 'maximize':
-          this.handlers.maximize();
-          break;
-        case 'terminal':
-          this.handlers.openInTerminal();
-          break;
-        case 'office':
-          this.handlers.showInOffice();
-          break;
-        case 'copy':
-          this.handlers.copySessionId();
-          break;
-      }
+      if (action.name === 'maximize') this.handlers.maximize();
+      else this.handlers.copySessionId();
     });
     return button;
   }
@@ -185,31 +189,28 @@ export class TerminalNode {
   // --- model ------------------------------------------------------------------------------------------------------
 
   update(model: NodeModel): void {
-    this.model = model;
+    this.model_ = model;
     const { agent } = model;
-    const status = displayStatus(agent);
-    const finished = model.finishedAt !== undefined;
-    if (!this.maximized) {
-      const { rect } = model;
-      this.el.style.width = `${rect.width}px`;
-      this.el.style.height = `${rect.height}px`;
-      this.el.style.transform = `translate(${rect.x}px, ${rect.y}px)`;
-    }
+    this.body.setCwd(agent.projectId);
+    const status = model.finishedAt !== undefined ? 'done' : displayStatus(agent);
+    if (!this.maximized) this.place(model.rect);
     setStatusDot(this.dot, status);
     setText(this.name, agent.name);
-    setText(this.role, model.isOrchestrator ? roleOfMain(agent) : agentRole(agent));
-    toggleClass(this.role, 'is-empty', this.role.textContent === '');
+    setText(this.role, model.isOrchestrator ? t('pro.term.main') : agentRole(agent));
     this.codex.hidden = !isCodex(agent);
     this.account.hidden = isCodex(agent);
-    updateAccountChip(this.account, model.account);
-    setLive(this.elapsed, 'elapsed', agent.statusSince);
-    this.elapsed.hidden = status === 'offline';
+    if (!isCodex(agent)) updateAccountChip(this.account, model.account);
+    const shortName = agent.model === undefined ? '' : shortModel(agent.model);
+    setText(this.model, shortName);
+    setAttr(this.model, 'title', agent.model ?? null);
+    this.model.hidden = shortName === '';
+    setLive(this.elapsed, 'elapsed', agent.startedAt);
+    setAttr(this.elapsed, 'title', t('pro.node.session'));
     const title = agentTitle(agent);
     setText(this.task, title ?? '');
     setAttr(this.task, 'title', title ?? null);
     this.task.hidden = title === undefined || title === '';
-    this.updateCard(agent, status);
-    this.updateFoot(agent, status);
+    this.updateStatus(status, model.finishedAt ?? agent.statusSince);
     setAttr(
       this.el,
       'aria-label',
@@ -219,78 +220,122 @@ export class TerminalNode {
       toggleClass(this.el, `is-${state}`, status === state);
     toggleClass(this.el, 'is-orchestrator', model.isOrchestrator);
     toggleClass(this.el, 'is-sub', !model.isOrchestrator);
-    toggleClass(this.el, 'is-finished', finished);
+    toggleClass(this.el, 'is-finished', model.finishedAt !== undefined);
     toggleClass(this.el, 'is-selected', model.selected);
     this.setMaximizedState(model.maximized);
     this.renderPill(model);
+    this.renderAsk(agent, status === 'waiting');
+    if (agent.lastEventAt !== this.lastEventAt) {
+      // The office saw it do something: a live terminal reads it now, a resting one shows the new activity.
+      this.lastEventAt = agent.lastEventAt;
+      if (this.detail === 'live') this.liveFeed.nudge();
+    }
+    if (this.detail === 'live' && this.liveFeed.state.loaded) return;
+    if (this.detail === 'live') this.renderBody();
+    else this.renderResting();
   }
 
-  private updateCard(agent: Agent, status: DisplayStatus): void {
-    setText(this.cardName, agent.name);
-    setText(this.cardStatus, statusLabel(status));
-    setText(this.cardLine, this.lastLine(agent));
+  /** Redraws a resting terminal now, or once the redraw interval has passed. */
+  private renderResting(): void {
+    if (this.restingTimer !== null) return;
+    const wait = this.lastRestingDraw + RESTING_REDRAW_MS - performance.now();
+    if (wait <= 0) {
+      this.renderBody();
+      return;
+    }
+    this.restingTimer = setTimeout(() => {
+      this.restingTimer = null;
+      if (this.detail === 'summary') this.renderBody();
+    }, wait);
   }
 
-  private updateFoot(agent: Agent, status: DisplayStatus): void {
-    const line = this.lastLine(agent);
-    setText(this.foot, line);
-    setAttr(this.foot, 'title', line);
-    toggleClass(this.foot, 'is-waiting', status === 'waiting');
+  private place(rect: Rect): void {
+    this.el.style.width = `${rect.width}px`;
+    this.el.style.height = `${rect.height}px`;
+    this.el.style.transform = `translate(${rect.x}px, ${rect.y}px)`;
   }
 
-  private lastLine(agent: Agent): string {
-    if (agent.status === 'waiting')
-      return (
-        (agent.permission ? permissionSummary(agent.permission) : undefined) ??
-        agentWaitingFor(agent) ??
-        t('sidebar.row.needsYou')
-      );
-    if (agent.activity) return `${agent.activity.icon} ${activityText(agent.activity)}`;
-    return statusLabel(displayStatus(agent));
+  private updateStatus(status: ReturnType<typeof displayStatus>, since: number): void {
+    const line = statusLine(status);
+    setText(this.statusGlyph, line.glyph);
+    setText(this.statusText, line.text);
+    this.status.className = `ao-pro-status tone-${line.tone}`;
+    this.statusTime.hidden = !line.timed;
+    setLive(this.statusTime, 'elapsed', since);
   }
 
-  // --- detail and live feed ---------------------------------------------------------------------------------------
+  /** The permission prompt (or the question) the agent is waiting on, as the CLI would show it. */
+  private renderAsk(agent: Agent, waiting: boolean): void {
+    if (!waiting) {
+      if (this.askSignature !== '') {
+        this.askSignature = '';
+        this.body.setTail(null);
+      }
+      return;
+    }
+    const permission = agent.permission;
+    const title = permission ? t('pro.term.permission', { tool: permission.toolName }) : t('pro.term.question');
+    const detail = permission ? permissionSummary(permission) : (agentWaitingFor(agent) ?? t('sidebar.row.needsYou'));
+    const signature = `${title}|${detail}`;
+    if (signature === this.askSignature) return;
+    this.askSignature = signature;
+    this.ask.replaceChildren(
+      h('div', { class: 'ao-cli-ask-title' }, h('span', { 'aria-hidden': 'true' }, '◆ '), title),
+      h('div', { class: 'ao-cli-ask-detail' }, detail),
+      h('div', { class: 'ao-cli-ask-hint' }, t(permission ? 'pro.term.permission.hint' : 'pro.term.question.hint')),
+    );
+    this.body.setTail(this.ask);
+  }
 
-  /** How much this terminal shows and how often it polls (decided by the policy). */
+  // --- detail and text --------------------------------------------------------------------------------------------
+
+  /** How much this terminal reads and how often it polls (decided by the policy). */
   setDetail(detail: Detail, pollMs: number): void {
-    const wasLive = this.detail === 'live';
+    const was = this.detail;
     this.detail = detail;
     toggleClass(this.el, 'is-off', detail === 'hidden');
     toggleClass(this.el, 'lod-summary', detail === 'summary');
     toggleClass(this.el, 'lod-live', detail === 'live');
-    if (detail === 'live') {
-      if (!wasLive) {
-        this.renderBody();
-        this.liveFeed.run(pollMs);
-      } else {
-        this.liveFeed.run(pollMs);
-      }
-    } else if (wasLive || detail === 'hidden') {
-      this.liveFeed.stop();
+    if (detail === 'live') this.liveFeed.run(pollMs);
+    else if (was === 'live') this.liveFeed.stop();
+    if (detail !== was) {
+      this.configureBody();
+      this.renderBody();
     }
   }
 
+  private configureBody(): void {
+    const size = this.maximized ? WINDOW_MAXIMIZED : this.detail === 'live' ? WINDOW_ENTRIES : WINDOW_RECENT;
+    this.body.configure(size, this.maximized ? RESULT_LINES_MAXIMIZED : RESULT_LINES);
+  }
+
+  /** What the terminal shows: the transcript it read, followed by what the office saw the agent do since. */
+  private currentEntries(agent: Agent): readonly TranscriptEntry[] {
+    const recent = this.recent.entries(agent, agent.recent, {
+      pendingLast: agent.status === 'working' && this.model_?.finishedAt === undefined,
+      result: agent.demo === true ? demoResult : NO_RESULT,
+    });
+    const feed = this.liveFeed.state;
+    if (!feed.loaded) return recent;
+    return this.detail === 'live' ? feed.entries : withNewer(feed.entries, recent);
+  }
+
   private renderBody(): void {
+    const model = this.model_;
+    if (model === null || this.detail === 'hidden') return;
+    if (this.detail === 'summary') this.lastRestingDraw = performance.now();
     const feed = this.liveFeed;
-    const showRetry = feed.status === 'error';
-    this.retry.hidden = !showRetry;
-    if (feed.status === 'loading' || feed.status === 'idle') {
-      if (this.lastFeedStatus !== 'loading') this.body.showMessage(t('terminal.loading'), 'note');
-      this.lastFeedStatus = 'loading';
-    } else if (feed.status === 'error') {
-      this.body.showMessage(describeError(feed.error), 'error');
-      this.lastFeedStatus = 'error';
-    } else if (feed.state.entries !== this.lastEntries || this.lastFeedStatus !== 'ready') {
-      this.lastFeedStatus = 'ready';
-      this.lastEntries = feed.state.entries;
-      this.body.update(feed.state.entries);
-    }
-    this.onDirty();
+    const failed = feed.status === 'error';
+    this.retry.hidden = !failed || this.detail !== 'live';
+    this.body.setNote(failed && this.detail === 'live' ? describeError(feed.error) : null);
+    this.body.update(this.currentEntries(model.agent));
   }
 
   /** Stops its polling (the terminal left the canvas, or the page rebuilds its panels). */
   dispose(): void {
     this.liveFeed.stop();
+    if (this.restingTimer !== null) clearTimeout(this.restingTimer);
+    this.restingTimer = null;
   }
 
   rememberScroll(): void {
@@ -307,21 +352,12 @@ export class TerminalNode {
     if (maximized === this.maximized) return;
     this.maximized = maximized;
     toggleClass(this.el, 'is-maximized', maximized);
-    if (!maximized) {
-      const rect = this.model?.rect;
-      if (rect !== undefined) {
-        this.el.style.width = `${rect.width}px`;
-        this.el.style.height = `${rect.height}px`;
-        this.el.style.transform = `translate(${rect.x}px, ${rect.y}px)`;
-      }
-    }
-    this.body.setWindow(maximized ? WINDOW_MAXIMIZED : WINDOW_ENTRIES);
-    this.lastEntries = null;
-    this.maximizeButton.replaceChildren(icon(maximized ? 'minimize' : 'maximize', 14));
+    if (!maximized && this.model_ !== null) this.place(this.model_.rect);
+    this.maximizeButton.replaceChildren(icon(maximized ? 'minimize' : 'maximize', 13));
     const label = t(maximized ? 'pro.node.restore' : 'pro.node.maximize');
     this.maximizeButton.setAttribute('aria-label', label);
     this.maximizeButton.title = label;
-    if (this.detail === 'live') this.renderBody();
+    this.configureBody();
   }
 
   // --- finished subagents (orchestrators) ---------------------------------------------------------------------------
@@ -337,7 +373,7 @@ export class TerminalNode {
   }
 
   private renderDone(): void {
-    const model = this.model;
+    const model = this.model_;
     this.doneList.hidden = !this.doneOpen || model === null;
     if (!this.doneOpen || model === null) return;
     const signature = model.collapsed.map((entry) => entry.agent.id).join('|');
@@ -348,16 +384,17 @@ export class TerminalNode {
       ...model.collapsed.map((entry) =>
         h(
           'button',
-          { type: 'button', class: 'ao-pro-done-item', onclick: () => this.handlers.openFinished(entry.agent) },
-          h('strong', null, entry.agent.name),
-          h('span', null, [agentRole(entry.agent), agentTitle(entry.agent)].filter(Boolean).join(' · ')),
+          {
+            type: 'button',
+            class: 'ao-pro-done-item',
+            'data-no-drag': '',
+            onclick: () => this.handlers.openFinished(entry.agent),
+          },
+          h('span', { class: 'ao-pro-done-mark', 'aria-hidden': 'true' }, '✓'),
+          h('span', { class: 'ao-pro-done-type' }, agentRole(entry.agent)),
+          h('span', { class: 'ao-pro-done-task' }, agentTitle(entry.agent) ?? entry.agent.name),
         ),
       ),
     );
   }
-}
-
-/** "Principal" is not worth a label on the orchestrator: only a role the person gave it. */
-function roleOfMain(agent: Agent): string {
-  return agent.role && agent.role !== 'Principal' ? agentRole(agent) : t('agent.main');
 }

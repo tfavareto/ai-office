@@ -20,6 +20,8 @@ export interface Prefs {
   language: LanguagePref;
   viewMode: ViewMode;
   proTheme: ProTheme;
+  /** The Pro view's command bar is shown (hidden by default; the canvas toolbar and `N` toggle it). */
+  proCommandBar: boolean;
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -51,6 +53,7 @@ export const DEFAULT_PREFS: Prefs = {
   language: 'auto',
   viewMode: 'basic',
   proTheme: 'dark',
+  proCommandBar: false,
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -126,6 +129,7 @@ export function parsePrefs(raw: unknown): Prefs {
     language: oneOf(data.language, ['auto', ...LOCALES], DEFAULT_PREFS.language),
     viewMode: oneOf(data.viewMode, ['basic', 'pro'], DEFAULT_PREFS.viewMode),
     proTheme: oneOf(data.proTheme, ['dark', 'light'], DEFAULT_PREFS.proTheme),
+    proCommandBar: bool(data.proCommandBar, DEFAULT_PREFS.proCommandBar),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),

@@ -1,6 +1,8 @@
-// The Pro view: every open session of every room on one canvas. Each orchestrator is a large terminal with its
-// subagents around it, joined by lines that move while the subagent works. It only draws what the office already knows
-// (the snapshot) and reads the real conversations from the local server; nothing here runs a model.
+// The Pro view: every open session of every room on one canvas, raw and code-first. Each orchestrator is a large
+// terminal with its subagents around it, joined by lines that move while the subagent works. A click focuses a
+// terminal (it never opens the office drawer), a double click maximizes it, a room frame's header opens the room's
+// orchestration panel. It only draws what the office already knows (the snapshot) and reads the real conversations
+// from the local server; nothing here runs a model.
 import type { Agent } from '@ai-office/shared';
 import { t } from '../../i18n';
 import type { AppContext, Component } from '../../ui/context';
@@ -35,14 +37,22 @@ import {
 import { computeLayout, type Layout } from '../model/layout';
 import { linkLabel, linkState } from '../model/links';
 import { pollFor, planTerminals, VISIBLE_MARGIN_PX, type NodePolicy, type PolicyNode } from '../model/policy';
-import { buildScene, layoutRooms, type Scene, type SceneCluster, type SceneMemory } from '../model/scene';
+import {
+  buildScene,
+  layoutRooms,
+  type FinishedSub,
+  type Scene,
+  type SceneCluster,
+  type SceneMemory,
+} from '../model/scene';
 import { directionOfKey, neighbor } from '../model/spatial';
 import { CameraController } from './camera-controller';
 import { CanvasLayers, type FrameModel, type LinkModel } from './canvas-layers';
 import { CommandBar } from './command-bar';
 import { ViewportGestures } from './gestures';
-import { Minimap } from './minimap';
+import { Listeners } from './listeners';
 import { NodeDrag, type ActiveDrag, type DragTarget } from './node-drag';
+import { RoomPanel } from './room-panel';
 import { TerminalNode, type NodeHandlers } from './terminal-node';
 import { Toolbar } from './toolbar';
 import { DemoTranscripts, feedSourceFor } from './transcript-source';
@@ -57,12 +67,18 @@ const POLICY_DELAY_MS = 120;
 const LABEL_MIN_ZOOM = 0.34;
 const GRID_PITCH = 28;
 const GRID_MIN_PITCH_PX = 9;
+/** A press on a frame's header that moves less than this is a click (more is a pan of the canvas). */
+const CLICK_SLOP_PX = 5;
+/** Where a maximized finished subagent (no longer on the canvas) is placed while it is maximized. */
+const DETACHED_RECT: Rect = { x: 0, y: 0, width: 600, height: 400 };
 
 /** What survives the rebuild of the panels after a language change: where the camera was and which subagents it remembers. */
 export interface ProSession {
   camera: Camera | null;
   memory: SceneMemory;
 }
+
+type Selection = ReturnType<AppContext['ui']['get']>['selection'];
 
 export class ProView implements Component {
   readonly el = h('section', { class: 'ao-pro', hidden: true });
@@ -72,33 +88,40 @@ export class ProView implements Component {
     'aria-label': t('pro.canvas.label'),
   });
   private readonly world = h('div', { class: 'ao-pro-world' });
-  private readonly layers = new CanvasLayers();
+  private readonly layers: CanvasLayers;
   private readonly nodesLayer = h('div', { class: 'ao-pro-nodes' });
   private readonly maxLayer = h('div', { class: 'ao-pro-max', hidden: true });
   private readonly empty = h('p', { class: 'ao-pro-empty', hidden: true }, t('pro.canvas.empty'));
   private readonly toolbar: Toolbar;
-  private readonly minimap: Minimap;
   private readonly command: CommandBar;
+  private readonly panel: RoomPanel;
   private readonly camera: CameraController;
   private readonly gestures: ViewportGestures;
   private readonly drag: NodeDrag;
   private readonly demo = new DemoTranscripts();
   private readonly nodes = new Map<string, TerminalNode>();
   private readonly agents = new Map<string, Agent>();
+  /** Finished subagents folded into a pill, by id: they can still be maximized. */
+  private readonly folded = new Map<string, FinishedSub>();
   private readonly resizeObserver: ResizeObserver;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  private readonly windowListeners = new Listeners();
   private memory: SceneMemory;
   private positions: ProPositions = loadPositions();
   private scene: Scene | null = null;
   private layout: Layout | null = null;
   private viewportSize = { width: 0, height: 0 };
   private active = false;
+  private disposed = false;
   private needsFit = true;
   private maximizedId: string | null = null;
   private policyTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSelection: string | null = null;
   private selectedFromCanvas: string | null = null;
   private lastInverse = 0;
+  private framePress: { roomId: string; x: number; y: number; pointerId: number } | null = null;
+  /** The room selected in the sidebar that opened the panel (cleared with it). */
+  private panelFromSelection = false;
 
   constructor(
     private readonly ctx: AppContext,
@@ -120,6 +143,7 @@ export class ProView implements Component {
       onMove: (drag) => this.onDragMove(drag),
       onEnd: (drag, moved) => this.onDragEnd(drag, moved),
     });
+    this.layers = new CanvasLayers((roomId) => this.openPanel(roomId));
     this.toolbar = new Toolbar({
       fitAll: () => this.fitAll(),
       focusOrchestrator: () => this.focusOrchestrator(),
@@ -128,12 +152,16 @@ export class ProView implements Component {
       resetZoom: () => this.setZoom(1),
       toggleTheme: () => ctx.prefs.set({ proTheme: ctx.prefs.get().proTheme === 'dark' ? 'light' : 'dark' }),
       resetLayout: () => this.resetLayout(),
+      toggleCommandBar: () => this.toggleCommandBar(),
     });
-    this.minimap = new Minimap((point) => this.centerOn(point));
     this.command = new CommandBar(ctx, ctx.voice.input);
+    this.panel = new RoomPanel(ctx, ctx.voice.input, {
+      close: () => this.closePanel(),
+      reveal: (agentId) => this.focusNode(agentId),
+    });
     this.world.append(this.layers.frames, this.layers.svg, this.layers.labels, this.nodesLayer);
     this.viewport.append(this.world);
-    this.el.append(this.viewport, this.empty, this.maxLayer, this.toolbar.el, this.minimap.el, this.command.el);
+    this.el.append(this.viewport, this.empty, this.maxLayer, this.toolbar.el, this.panel.el, this.command.el);
     this.resizeObserver = new ResizeObserver(() => this.onResize());
     this.resizeObserver.observe(this.viewport);
     this.bindEvents();
@@ -143,64 +171,89 @@ export class ProView implements Component {
     }
   }
 
+  /** Called when the page rebuilds its panels (a language change): nothing of this view may keep running. */
   dispose(): void {
+    this.disposed = true;
+    this.active = false;
     this.resizeObserver.disconnect();
-    this.command.dispose();
-    for (const node of this.nodes.values()) node.dispose();
+    this.windowListeners.removeAll();
+    this.camera.stop();
     if (this.policyTimer !== null) clearTimeout(this.policyTimer);
+    this.policyTimer = null;
+    this.command.dispose();
+    this.panel.dispose();
+    for (const node of this.nodes.values()) node.dispose();
+    this.nodes.clear();
   }
 
   // --- events -----------------------------------------------------------------------------------------------------
 
+  private listen<K extends keyof WindowEventMap>(type: K, listener: (event: WindowEventMap[K]) => void): void {
+    this.windowListeners.on(window, type, listener);
+  }
+
   private bindEvents(): void {
     this.viewport.addEventListener('pointerdown', (event) => {
       if (this.drag.pointerDown(event)) return;
-      const onBackground = !(event.target instanceof Element) || event.target.closest('.ao-pro-node') === null;
+      const target = event.target instanceof Element ? event.target : null;
+      const head = target?.closest<HTMLElement>('.ao-pro-frame-head');
+      this.framePress =
+        head?.dataset.roomId !== undefined && event.button === 0
+          ? { roomId: head.dataset.roomId, x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+          : null;
+      const onBackground = target === null || target.closest('.ao-pro-node') === null;
       this.gestures.pointerDown(event, onBackground);
     });
+    this.viewport.addEventListener('pointerup', (event) => this.onFrameRelease(event));
     this.el.addEventListener('keydown', (event) => this.onKeyDown(event));
-    window.addEventListener('keydown', (event) => this.onGlobalKey(event));
-    window.addEventListener('keydown', (event) => {
-      if (
-        event.key === ' ' &&
-        this.active &&
-        !isEditable(event.target) &&
-        !(event.target instanceof HTMLButtonElement)
-      ) {
-        this.gestures.setSpace(true);
-        event.preventDefault();
-      }
+    this.listen('keydown', (event) => this.onGlobalKey(event));
+    this.listen('keydown', (event) => {
+      if (event.key !== ' ' || !this.canPan() || isEditable(event.target)) return;
+      if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLSelectElement) return;
+      this.gestures.setSpace(true);
+      event.preventDefault();
     });
-    window.addEventListener('keyup', (event) => {
+    this.listen('keyup', (event) => {
       if (event.key === ' ') this.gestures.setSpace(false);
     });
-    window.addEventListener('blur', () => this.gestures.setSpace(false));
+    this.listen('blur', () => this.gestures.setSpace(false));
+  }
+
+  /** The canvas has the keyboard: Pro is on and no dialog or popover is over it. */
+  private canPan(): boolean {
+    const ui = this.ctx.ui.get();
+    return this.active && ui.dialog === null && ui.popover === null;
+  }
+
+  private onFrameRelease(event: PointerEvent): void {
+    const press = this.framePress;
+    this.framePress = null;
+    if (press === null || press.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_SLOP_PX) return;
+    this.openPanel(press.roomId);
   }
 
   private onKeyDown(event: KeyboardEvent): void {
     if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
     const target = event.target;
-    if (target instanceof HTMLElement && target.classList.contains('ao-pro-node')) {
-      const id = target.dataset.nodeId;
-      const direction = directionOfKey(event.key);
-      if (id !== undefined && direction !== null && this.layout !== null) {
-        const nodes = [...this.layout.nodes].map(([nodeId, rect]) => ({ id: nodeId, rect }));
-        const next = neighbor(nodes, id, direction);
-        if (next !== null) this.focusNode(next, true);
-        event.preventDefault();
-        return;
-      }
-      if (id !== undefined && event.key === 'Enter') {
-        this.toggleMaximize(id);
-        event.preventDefault();
-        return;
-      }
+    if (!(target instanceof HTMLElement) || !target.classList.contains('ao-pro-node')) return;
+    const id = target.dataset.nodeId;
+    if (id === undefined) return;
+    const direction = directionOfKey(event.key);
+    if (direction !== null && this.layout !== null) {
+      const nodes = [...this.layout.nodes].map(([nodeId, rect]) => ({ id: nodeId, rect }));
+      const next = neighbor(nodes, id, direction);
+      if (next !== null) this.focusNode(next, true);
+      event.preventDefault();
+    } else if (event.key === 'Enter') {
+      this.toggleMaximize(id);
+      event.preventDefault();
     }
   }
 
   /** Zoom and fit keys work wherever the focus is on the page (as long as the user is not typing). */
   private onGlobalKey(event: KeyboardEvent): void {
-    if (!this.active || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (!this.canPan() || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
     if (isEditable(event.target)) return;
     if (event.key === '+' || event.key === '=') this.zoomBy(ZOOM_STEP);
     else if (event.key === '-') this.zoomBy(1 / ZOOM_STEP);
@@ -212,12 +265,16 @@ export class ProView implements Component {
   // --- render -----------------------------------------------------------------------------------------------------
 
   render(): void {
+    if (this.disposed) return;
     const active = this.ctx.viewMode === 'pro';
     if (active !== this.active) this.setActive(active);
     if (!active) return;
     const snapshot = this.ctx.snapshot;
-    const theme = this.ctx.prefs.get().proTheme;
-    this.el.dataset.theme = theme;
+    const prefs = this.ctx.prefs.get();
+    this.el.dataset.theme = prefs.proTheme;
+    this.command.setShown(prefs.proCommandBar);
+    toggleClass(this.el, 'has-command', prefs.proCommandBar);
+    toggleClass(this.el, 'has-panel', this.panel.openRoom !== null);
     if (snapshot === null) return;
     this.demo.observe(snapshot);
     const scene = buildScene(snapshot, this.memory, this.ctx.now());
@@ -228,7 +285,14 @@ export class ProView implements Component {
     this.followSelection();
     this.sync();
     this.command.render();
-    this.toolbar.render({ zoom: this.camera.camera.zoom, theme, canReset: hasPositions(this.positions) });
+    this.panel.render(scene.rooms.find((room) => room.project.id === this.panel.openRoom));
+    this.layers.setOpenRoom(this.panel.openRoom);
+    this.toolbar.render({
+      zoom: this.camera.camera.zoom,
+      theme: prefs.proTheme,
+      canReset: hasPositions(this.positions),
+      commandBar: prefs.proCommandBar,
+    });
     toggleClass(this.el, 'is-empty', scene.rooms.length === 0);
     this.empty.hidden = scene.rooms.length > 0;
   }
@@ -241,23 +305,29 @@ export class ProView implements Component {
       this.measure();
     } else {
       this.maximizedId = null;
+      this.closePanel();
       for (const node of this.nodes.values()) node.setDetail('hidden', 0);
     }
   }
 
   private rememberAgents(scene: Scene): void {
     this.agents.clear();
+    this.folded.clear();
     for (const room of scene.rooms)
       for (const cluster of room.clusters) {
         this.agents.set(cluster.main.id, cluster.main);
         for (const sub of cluster.subs) this.agents.set(sub.agent.id, sub.agent);
+        for (const entry of cluster.collapsed) {
+          this.folded.set(entry.agent.id, entry);
+          if (!this.agents.has(entry.agent.id)) this.agents.set(entry.agent.id, entry.agent);
+        }
       }
   }
 
   /** The layout of the scene with the user's drags, drawn into the DOM. */
   private sync(): void {
     const scene = this.scene;
-    if (scene === null) return;
+    if (scene === null || this.disposed) return;
     const layout = computeLayout(layoutRooms(scene), this.liveOffsets());
     this.layout = layout;
     this.syncNodes(scene, layout);
@@ -268,19 +338,21 @@ export class ProView implements Component {
       this.camera.jump(fitCamera(layout.bounds, this.area(), FIT_PADDING, 1));
     }
     this.applyPolicy();
-    this.drawMinimap();
   }
 
   private syncNodes(scene: Scene, layout: Layout): void {
     const seen = new Set<string>();
     const selection = this.ctx.ui.get().selection;
-    for (const room of scene.rooms) {
+    for (const room of scene.rooms)
       for (const cluster of room.clusters) {
-        this.updateNode(cluster.main, cluster, true, undefined, room.project.name, layout, selection, seen);
+        this.updateNode(cluster.main, cluster, true, undefined, layout.nodes.get(cluster.main.id), selection, seen);
         for (const sub of cluster.subs)
-          this.updateNode(sub.agent, cluster, false, sub.finishedAt, room.project.name, layout, selection, seen);
+          this.updateNode(sub.agent, cluster, false, sub.finishedAt, layout.nodes.get(sub.agent.id), selection, seen);
       }
-    }
+    // A finished subagent that folded into its pill can still be maximized from the pill's list.
+    const detached = this.maximizedId === null ? undefined : this.folded.get(this.maximizedId);
+    if (detached !== undefined && !seen.has(detached.agent.id))
+      this.updateNode(detached.agent, null, false, detached.finishedAt, DETACHED_RECT, selection, seen);
     for (const [id, node] of this.nodes) {
       if (seen.has(id)) continue;
       node.dispose();
@@ -294,15 +366,13 @@ export class ProView implements Component {
 
   private updateNode(
     agent: Agent,
-    cluster: SceneCluster,
+    cluster: SceneCluster | null,
     isOrchestrator: boolean,
     finishedAt: number | undefined,
-    roomName: string,
-    layout: Layout,
-    selection: ReturnType<AppContext['ui']['get']>['selection'],
+    rect: Rect | undefined,
+    selection: Selection,
     seen: Set<string>,
   ): void {
-    const rect = layout.nodes.get(agent.id);
     if (rect === undefined) return;
     seen.add(agent.id);
     let node = this.nodes.get(agent.id);
@@ -311,45 +381,50 @@ export class ProView implements Component {
         agent.id,
         feedSourceFor(this.ctx, this.demo, () => this.agents.get(agent.id) ?? agent),
         this.handlersFor(agent.id),
-        () => undefined,
       );
       this.nodes.set(agent.id, node);
       this.nodesLayer.appendChild(node.el);
     }
     const maximized = this.maximizedId === agent.id;
-    const host = maximized ? this.maxLayer : this.nodesLayer;
-    if (node.el.parentElement !== host) {
-      node.rememberScroll();
-      host.appendChild(node.el);
-      node.restoreScroll();
-    }
+    this.moveToHost(node, maximized ? this.maxLayer : this.nodesLayer);
     node.update({
       agent,
       rect,
       isOrchestrator,
-      roomName,
       account: this.ctx.account(agent.accountId),
       finishedAt,
       selected: selection?.type === 'agent' && selection.id === agent.id,
       maximized,
-      collapsed: isOrchestrator ? cluster.collapsed : [],
-      now: this.ctx.now(),
+      collapsed: isOrchestrator && cluster !== null ? cluster.collapsed : [],
     });
   }
 
+  /** Moves a terminal between the canvas and the maximized layer, keeping its scroll and the keyboard focus. */
+  private moveToHost(node: TerminalNode, host: HTMLElement): void {
+    if (node.el.parentElement === host) return;
+    const focused = document.activeElement;
+    const hadFocus = focused instanceof HTMLElement && node.el.contains(focused) ? focused : null;
+    node.rememberScroll();
+    host.appendChild(node.el);
+    node.restoreScroll();
+    hadFocus?.focus({ preventScroll: true });
+  }
+
   private frameModels(scene: Scene, layout: Layout): FrameModel[] {
+    const light = this.ctx.prefs.get().proTheme === 'light';
     return layout.frames.flatMap((frame) => {
       const room = scene.rooms.find((candidate) => candidate.project.id === frame.roomId);
       if (room === undefined) return [];
       const agents = room.clusters.flatMap((cluster) => [cluster.main, ...cluster.subs.map((sub) => sub.agent)]);
       const working = agents.filter((agent) => agent.status === 'working').length;
+      const waiting = agents.filter((agent) => agent.status === 'waiting').length;
       return [
         {
           roomId: frame.roomId,
           name: room.project.name,
-          color: roomColor(room.project.seed, this.ctx.prefs.get().proTheme === 'light' ? 42 : 60),
+          color: roomColor(room.project.seed, light ? 42 : 60),
           rect: frame.rect,
-          meta: t('pro.frame.meta', { agents: agents.length, working }),
+          meta: t('pro.frame.meta', { sessions: room.clusters.length, working, waiting }),
         },
       ];
     });
@@ -387,15 +462,16 @@ export class ProView implements Component {
     if (this.active) this.sync();
   }
 
-  /** The part of the screen the canvas may use: inside the sidebar, the drawer, the top bar and the command bar. */
+  /** The part of the screen the canvas may use: inside the sidebar, the room panel, the top bar and the command bar. */
   private area(): Area {
     const ui = this.ctx.ui.get();
     const insets = computeInsets({
       sidebarOpen: ui.sidebarOpen,
-      drawerOpen: ui.selection !== null,
-      feedOpen: ui.feedOpen,
+      drawerOpen: this.panel.openRoom !== null,
+      feedOpen: false,
       narrow: ui.narrow,
       pro: true,
+      commandBar: this.ctx.prefs.get().proCommandBar,
     });
     // The tools sit at the top left of the canvas: the picture starts below them.
     const top = insets.top + TOOLBAR_CLEARANCE;
@@ -420,7 +496,6 @@ export class ProView implements Component {
     this.viewport.style.backgroundSize = showGrid ? `${pitch}px ${pitch}px` : '0 0';
     this.viewport.style.backgroundPosition = `${camera.x}px ${camera.y}px`;
     this.schedulePolicy();
-    this.drawMinimapSoon();
   }
 
   fitAll(): void {
@@ -429,11 +504,10 @@ export class ProView implements Component {
     this.camera.glideTo(fitCamera(bounds, this.area(), FIT_PADDING, 1));
   }
 
-  /** Centers the orchestrator of the selected agent (or the first one) with its subagents around it. */
+  /** Centers the orchestrator of the selected agent (or the first busy one) with its subagents around it. */
   focusOrchestrator(): void {
-    const layout = this.layout;
     const scene = this.scene;
-    if (layout === null || scene === null) return;
+    if (this.layout === null || scene === null) return;
     const selection = this.ctx.ui.get().selection;
     const clusters = scene.rooms.flatMap((room) => room.clusters);
     const cluster =
@@ -459,7 +533,7 @@ export class ProView implements Component {
     if (bounds !== null) this.camera.glideTo(fitCamera(bounds, this.area(), FIT_PADDING, 1));
   }
 
-  /** Brings a terminal into view (the sidebar, a click on the minimap or the arrow keys). */
+  /** Brings a terminal into view (the sidebar, the room panel or the arrow keys). */
   focusNode(id: string, focusElement = false): void {
     const rect = this.layout?.nodes.get(id);
     if (rect === undefined) return;
@@ -480,17 +554,10 @@ export class ProView implements Component {
     this.zoomBy(clamp(zoom, 0.01, MAX_ZOOM) / current.zoom);
   }
 
-  /** The minimap was pressed: put that world point at the center of the area. */
-  private centerOn(world: Point): void {
-    const camera = this.camera.destination;
-    const center = areaCenter(this.area());
-    this.camera.jump({ zoom: camera.zoom, x: center.x - world.x * camera.zoom, y: center.y - world.y * camera.zoom });
-  }
-
   // --- policy: what loads and polls --------------------------------------------------------------------------------
 
   private schedulePolicy(): void {
-    if (this.policyTimer !== null) return;
+    if (this.policyTimer !== null || this.disposed) return;
     this.policyTimer = setTimeout(() => {
       this.policyTimer = null;
       this.applyPolicy();
@@ -499,7 +566,7 @@ export class ProView implements Component {
 
   private applyPolicy(): void {
     const layout = this.layout;
-    if (layout === null || !this.active) return;
+    if (layout === null || !this.active || this.disposed) return;
     const camera = this.camera.camera;
     const full: Area = { x: 0, y: 0, width: this.viewportSize.width, height: this.viewportSize.height };
     const visible = visibleWorldRect(camera, full, VISIBLE_MARGIN_PX / camera.zoom);
@@ -519,75 +586,45 @@ export class ProView implements Component {
     }
     const plan =
       this.maximizedId !== null
-        ? this.maximizedPlan(policyNodes)
-        : planTerminals({
-            nodes: policyNodes,
-            visible,
-            zoom: camera.zoom,
-            paused: !this.ctx.isLocal,
-          });
+        ? this.maximizedPlan()
+        : planTerminals({ nodes: policyNodes, visible, zoom: camera.zoom, paused: !this.ctx.isLocal });
     for (const [id, node] of this.nodes) {
       const policy = plan.get(id) ?? { detail: 'hidden' as const, pollMs: 0 };
       node.setDetail(policy.detail, policy.pollMs);
     }
   }
 
-  /** While a terminal is maximized only it works; the canvas behind it rests. */
-  private maximizedPlan(nodes: readonly PolicyNode[]): Map<string, NodePolicy> {
+  /** While a terminal is maximized only it reads its conversation; the canvas behind it rests. */
+  private maximizedPlan(): Map<string, NodePolicy> {
     const plan = new Map<string, NodePolicy>();
-    for (const node of nodes)
-      plan.set(
-        node.id,
-        node.id === this.maximizedId && this.ctx.isLocal
-          ? { detail: 'live', pollMs: pollFor(node.status, node.finished) }
-          : { detail: node.id === this.maximizedId ? 'summary' : 'hidden', pollMs: 0 },
-      );
+    const id = this.maximizedId;
+    const agent = id === null ? undefined : this.agents.get(id);
+    if (id === null || agent === undefined) return plan;
+    const finished = agent.status === 'done' || agent.status === 'offline' || this.folded.has(id);
+    plan.set(
+      id,
+      this.ctx.isLocal
+        ? { detail: 'live', pollMs: pollFor(displayStatus(agent), finished) }
+        : { detail: 'summary', pollMs: 0 },
+    );
     return plan;
   }
 
-  // --- minimap ----------------------------------------------------------------------------------------------------
+  // --- selection, maximize, room panel ----------------------------------------------------------------------------
 
-  private minimapTimer: ReturnType<typeof setTimeout> | null = null;
-
-  private drawMinimapSoon(): void {
-    if (this.minimapTimer !== null) return;
-    this.minimapTimer = setTimeout(() => {
-      this.minimapTimer = null;
-      this.drawMinimap();
-    }, 60);
-  }
-
-  private drawMinimap(): void {
-    const layout = this.layout;
-    if (layout === null || !this.active) return;
-    const camera = this.camera.camera;
-    const view = visibleWorldRect(camera, this.area());
-    this.minimap.draw(
-      {
-        frames: layout.frames.map((frame) => ({
-          rect: frame.rect,
-          color: roomColor(this.roomSeed(frame.roomId), 58),
-        })),
-        nodes: [...layout.nodes].map(([id, rect]) => ({ rect, active: this.agents.get(id)?.status === 'working' })),
-        view,
-      },
-      this.ctx.prefs.get().proTheme === 'dark',
-    );
-  }
-
-  private roomSeed(roomId: string): number {
-    return this.scene?.rooms.find((room) => room.project.id === roomId)?.project.seed ?? 0;
-  }
-
-  // --- selection, maximize ----------------------------------------------------------------------------------------
-
-  /** A selection made elsewhere (the sidebar, the inbox) brings its terminal into view and aims the command bar. */
+  /** A selection made elsewhere (the sidebar, the inbox): an agent brings its terminal into view, a room opens its panel. */
   private followSelection(): void {
     const selection = this.ctx.ui.get().selection;
-    const id = selection?.type === 'agent' ? selection.id : null;
-    if (id === this.lastSelection) return;
-    this.lastSelection = id;
+    const key = selection === null ? null : `${selection.type}:${selection.id}`;
+    if (key === this.lastSelection) return;
+    this.lastSelection = key;
     this.command.followSelection();
+    if (selection?.type === 'room') {
+      this.panelFromSelection = true;
+      this.openPanel(selection.id);
+      return;
+    }
+    const id = selection?.type === 'agent' ? selection.id : null;
     if (id === null || id === this.selectedFromCanvas) return;
     // The layout of a new agent may not exist yet; try again on the next render in that case.
     if (this.layout?.nodes.has(id) === true) this.focusNode(id);
@@ -597,14 +634,6 @@ export class ProView implements Component {
   private handlersFor(id: string): NodeHandlers {
     return {
       maximize: () => this.toggleMaximize(id),
-      openInTerminal: () => {
-        const agent = this.agents.get(id);
-        if (agent !== undefined) this.ctx.openTerminalForAgent(agent);
-      },
-      showInOffice: () => {
-        this.ctx.setViewMode('basic');
-        if (this.ctx.agent(id) !== undefined) this.ctx.selectAgent(id, { focus: true });
-      },
       copySessionId: () => {
         const agent = this.agents.get(id);
         if (agent !== undefined) this.ctx.copy(agent.sessionId, t('pro.node.copied'));
@@ -614,7 +643,11 @@ export class ProView implements Component {
         this.selectedFromCanvas = id;
         this.ctx.selectAgent(id);
       },
-      openFinished: (agent) => this.ctx.openTerminalForAgent(agent),
+      openFinished: (agent) => {
+        this.maximizedId = agent.id;
+        this.render();
+        this.nodes.get(agent.id)?.el.focus({ preventScroll: true });
+      },
     };
   }
 
@@ -623,17 +656,55 @@ export class ProView implements Component {
     this.render();
   }
 
-  /** Esc closes a maximized terminal first. Returns whether it used the key. */
-  handleEscape(): boolean {
-    if (!this.active || this.maximizedId === null) return false;
-    this.maximizedId = null;
+  private openPanel(roomId: string): void {
+    if (this.panel.openRoom === roomId) {
+      this.panel.open(roomId);
+      return;
+    }
+    this.panel.open(roomId);
     this.render();
-    return true;
   }
 
-  /** The "N" key: the prompt of the command bar gets the focus. */
-  focusPrompt(): void {
-    this.command.focus();
+  private closePanel(): void {
+    const roomId = this.panel.openRoom;
+    if (roomId === null) return;
+    this.panel.close();
+    this.layers.setOpenRoom(null);
+    toggleClass(this.el, 'has-panel', false);
+    const selection = this.ctx.ui.get().selection;
+    if (this.panelFromSelection && selection?.type === 'room' && selection.id === roomId) this.ctx.clearSelection();
+    this.panelFromSelection = false;
+    // The keyboard goes back to the header that opened it.
+    if (this.active) this.layers.frameHead(roomId)?.focus({ preventScroll: true });
+  }
+
+  /** Esc restores a maximized terminal first, then closes the room panel. Returns whether it used the key. */
+  handleEscape(): boolean {
+    // A dialog or a popover over the canvas closes first.
+    if (!this.canPan()) return false;
+    if (this.maximizedId !== null) {
+      const id = this.maximizedId;
+      this.maximizedId = null;
+      this.render();
+      this.nodes.get(id)?.el.focus({ preventScroll: true });
+      return true;
+    }
+    if (this.panel.openRoom !== null) {
+      this.closePanel();
+      this.ctx.refresh();
+      return true;
+    }
+    return false;
+  }
+
+  /** The "N" key and the toolbar switch: shows the command bar (with the cursor in it) or hides it. */
+  toggleCommandBar(): void {
+    const shown = !this.ctx.prefs.get().proCommandBar;
+    this.ctx.prefs.set({ proCommandBar: shown });
+    this.command.setShown(shown);
+    this.command.render();
+    if (shown) this.command.focus();
+    this.ctx.refresh();
   }
 
   // --- dragging ---------------------------------------------------------------------------------------------------
@@ -684,11 +755,14 @@ export class ProView implements Component {
   }
 
   /** Numbers for the debug hook (`window.aiOffice.debug`). */
-  get debug(): { zoom: number; nodes: number; live: number } {
+  get debug(): { zoom: number; nodes: number; live: number; resting: number; elements: number } {
+    const values = [...this.nodes.values()];
     return {
       zoom: this.camera.camera.zoom,
       nodes: this.nodes.size,
-      live: [...this.nodes.values()].filter((node) => node.el.classList.contains('lod-live')).length,
+      live: values.filter((node) => node.el.classList.contains('lod-live')).length,
+      resting: values.filter((node) => node.el.classList.contains('lod-summary')).length,
+      elements: this.el.getElementsByTagName('*').length,
     };
   }
 }

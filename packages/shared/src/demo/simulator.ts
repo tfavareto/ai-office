@@ -82,6 +82,8 @@ const MAX_BLOCKED = 4;
 /** Per step, the chance an agent blocks on a permission request, and (just above it) on a question. */
 const PERMISSION_CHANCE = 0.07;
 const QUESTION_CHANCE = 0.09;
+/** Per step of a subagent, the chance it stops on a permission request (the Pro view shows the wait on its terminal). */
+const SUB_PERMISSION_CHANCE = 0.05;
 const CHURN_MIN_MS = 70_000;
 const CHURN_MAX_MS = 130_000;
 const MAX_VISITORS = 2;
@@ -516,10 +518,10 @@ class Simulator implements DemoSimulator {
     }
     this.resumeTurn(id, t0);
     if (mood === 'shell') this.startLongShell(id, t0 - 180_000, 12 * 60_000);
-    if (mood === 'subs') this.queue.push(t0 + 1200, (at) => this.spawnSubs(id, at, 2));
-    // The orchestration canvas looks alive from the first second: the busy sessions are already delegating.
-    if (mood === 'busy') this.queue.push(t0 + 2500, (at) => this.spawnSubs(id, at, 3));
-    if (mood === 'shell') this.queue.push(t0 + 2000, (at) => this.spawnSubs(id, at, 2));
+    // The orchestration canvas looks alive from the first second: the busy sessions are already delegating to a team.
+    if (mood === 'subs') this.queue.push(t0 + 1200, (at) => this.spawnSubs(id, at, 4));
+    if (mood === 'busy') this.queue.push(t0 + 2500, (at) => this.spawnSubs(id, at, 5));
+    if (mood === 'shell') this.queue.push(t0 + 2000, (at) => this.spawnSubs(id, at, 3));
     if (mood === 'blocked') {
       this.queue.push(t0 + 500, (at) => this.blockOnPermission(id, at));
       return;
@@ -701,7 +703,7 @@ class Simulator implements DemoSimulator {
     }
     let delay = this.dwell(runtime.rng, 1200, 4500);
     if (roll < 0.16) {
-      this.spawnSubs(id, at, randInt(runtime.rng, 1, 3));
+      this.spawnSubs(id, at, randInt(runtime.rng, 2, 4));
       delay = this.dwell(runtime.rng, 800, 1500);
     } else if (roll < 0.28) {
       delay = Math.max(delay, this.runCommand(id, runtime, at));
@@ -920,6 +922,7 @@ class Simulator implements DemoSimulator {
   private resolveBlock(id: string, episode: number, decision: PermissionDecision, at: number): void {
     const runtime = this.runtimes.get(id);
     if (runtime === undefined || runtime.phase !== 'blocked' || runtime.episode !== episode) return;
+    const parentId = this.agentMap.get(id)?.kind === 'sub' ? this.agentMap.get(id)?.parentId : undefined;
     runtime.phase = 'working';
     runtime.episode++;
     this.setStatus(id, 'working', at, { permission: undefined, waitingFor: undefined, waitingForMsg: undefined });
@@ -927,11 +930,15 @@ class Simulator implements DemoSimulator {
       const denied = msg('activity.denied');
       this.emit(id, { kind: 'other', icon: '🚫', text: sourceText(denied), msg: denied, detail: decision.message }, at);
       if (decision.interrupt === true) {
-        this.finishTurn(id, at);
+        if (parentId === undefined) this.finishTurn(id, at);
+        else this.finishSub(id, parentId, runtime, at);
         return;
       }
     }
-    this.scheduleStep(id, at + this.dwell(runtime.rng, 700, 1600));
+    // A subagent goes back to its own steps; a main agent to its turn.
+    if (parentId !== undefined)
+      this.queue.push(at + this.dwell(runtime.rng, 700, 1600), (when) => this.subStep(id, parentId, when));
+    else this.scheduleStep(id, at + this.dwell(runtime.rng, 700, 1600));
   }
 
   // ---- subagents --------------------------------------------------------------------------------------------
@@ -991,7 +998,7 @@ class Simulator implements DemoSimulator {
       rng,
       phase: 'working',
       stepToken: 0,
-      stepsLeft: randInt(rng, 5, 11),
+      stepsLeft: randInt(rng, 8, 16),
       pendingSubs: 0,
       turnsLeft: 0,
       visitor: false,
@@ -1007,6 +1014,10 @@ class Simulator implements DemoSimulator {
       return;
     }
     runtime.stepsLeft--;
+    if (runtime.rng() < SUB_PERMISSION_CHANCE && this.blockedCount() < MAX_BLOCKED) {
+      this.blockOnPermission(id, at);
+      return;
+    }
     this.emit(id, this.workDraft(runtime), at);
     this.queue.push(at + this.dwell(runtime.rng, 1500, 3200), (when) => this.subStep(id, parentId, when));
   }

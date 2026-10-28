@@ -1,6 +1,6 @@
 import type { TranscriptEntry } from '@ai-office/shared';
 import { describe, expect, it } from 'vitest';
-import { EMPTY_LIVE, MAX_KEPT_ENTRIES, applyPage, entryKey, planRender, windowOf } from './live-transcript';
+import { EMPTY_LIVE, MAX_KEPT_ENTRIES, applyPage, entryKey, planRender, windowOf, withNewer } from './live-transcript';
 
 const user = (at: number, text = 'oi'): TranscriptEntry => ({ kind: 'user', at, text });
 const assistant = (at: number, text = 'ok'): TranscriptEntry => ({ kind: 'assistant', at, text });
@@ -108,5 +108,24 @@ describe('planRender', () => {
   it('windows to the last entries', () => {
     expect(windowOf(entries, 2)).toEqual(entries.slice(2));
     expect(windowOf(entries, 10)).toBe(entries);
+  });
+});
+
+describe('withNewer', () => {
+  it('adds to what the terminal read only the activities that happened after it', () => {
+    // Arrange
+    const read: TranscriptEntry[] = [{ kind: 'user', at: 10, text: 'go' }];
+    const recent: TranscriptEntry[] = [
+      { kind: 'user', at: 5, text: 'old' },
+      { kind: 'assistant', at: 20, text: 'new' },
+    ];
+
+    // Act
+    const merged = withNewer(read, recent);
+
+    // Assert
+    expect(merged.map((entry) => entry.at)).toEqual([10, 20]);
+    expect(withNewer(read, recent.slice(0, 1))).toBe(read);
+    expect(withNewer([], recent)).toBe(recent);
   });
 });
