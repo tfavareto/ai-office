@@ -15,6 +15,14 @@ describe('resolveShortcut', () => {
     expect(resolveShortcut(key('H'), false, false)).toBe('hire');
   });
 
+  it('maps V to the Basic/Pro switch, but not while typing or with modifiers', () => {
+    expect(resolveShortcut(key('v'), false, false)).toBe('viewMode');
+    expect(resolveShortcut(key('V'), false, false)).toBe('viewMode');
+    expect(resolveShortcut(key('v'), true, false)).toBeNull();
+    expect(resolveShortcut(key('v', { metaKey: true }), false, false)).toBeNull();
+    expect(resolveShortcut(key('v', { ctrlKey: true }), false, false)).toBeNull();
+  });
+
   it('leaves H alone while typing and with modifiers', () => {
     expect(resolveShortcut(key('h'), true, false)).toBeNull();
     expect(resolveShortcut(key('h', { metaKey: true }), false, false)).toBeNull();

@@ -3,9 +3,8 @@ import type { TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
 import { t } from '../../i18n';
 import { localOnlyHint, type AppContext, type Component } from '../context';
-import { agentRole, agentTitle, localized, toolSummary } from '../display';
+import { agentRole, agentTitle } from '../display';
 import { compact, h, setText, toggleClass } from '../dom';
-import { formatClock } from '../format';
 import { icon } from '../icons';
 import {
   EMPTY_TRANSCRIPT,
@@ -13,15 +12,14 @@ import {
   findMatches,
   mergeTranscript,
   occurrencesIn,
-  splitFences,
   splitHighlight,
   stepMatch,
-  toolPreview,
   type TermMatch,
   type TranscriptState,
 } from '../model/terminal';
 import type { TerminalTarget } from '../state';
 import { closeButton } from './overlay';
+import { entryElement, type EntryText, type EntryView } from './transcript-entry';
 
 const POLL_MS = 1500;
 const RENDER_WINDOW = 400;
@@ -29,11 +27,6 @@ const STICK_THRESHOLD_PX = 48;
 
 function targetKey(target: TerminalTarget): string {
   return `${target.accountId}|${target.sessionId}|${target.agentId ?? ''}`;
-}
-
-interface Highlighter {
-  /** Appends `text` to `parent`, wrapping search hits in <mark>. */
-  append(parent: HTMLElement, text: string): void;
 }
 
 export class TerminalPanel implements Component {
@@ -400,7 +393,8 @@ export class TerminalPanel implements Component {
     this.toEnd.hidden = true;
   }
 
-  private highlighter(entryIndex: number, counter: { n: number }): Highlighter {
+  /** Writes the text of an entry, wrapping search hits in <mark> (`counter` numbers the occurrences inside the entry). */
+  private highlighter(entryIndex: number, counter: { n: number }): EntryText {
     const activeMatch = this.active >= 0 ? this.matches[this.active] : undefined;
     return {
       append: (parent, text) => {
@@ -426,53 +420,14 @@ export class TerminalPanel implements Component {
     return this.query !== '' && occurrencesIn(entrySearchText(entry), this.query).length > 0;
   }
 
+  private readonly entryView: EntryView = {
+    text: (index) => this.highlighter(index, { n: 0 }),
+    isExpanded: (index, entry) => this.isExpanded(index, entry),
+    toggle: (index) => this.toggleEntry(index),
+  };
+
   private entryEl(entry: TranscriptEntry, index: number): HTMLElement {
-    const counter = { n: 0 };
-    const hl = this.highlighter(index, counter);
-    switch (entry.kind) {
-      case 'user':
-        return this.userEl(entry, hl);
-      case 'assistant':
-        return this.assistantEl(entry, hl);
-      case 'thinking':
-        return this.thinkingEl(entry, index, hl);
-      case 'tool':
-        return this.toolEl(entry, index, hl);
-      case 'system': {
-        const el = h('div', { class: 'ao-term-entry ao-term-system' });
-        hl.append(el, localized(entry.msg, entry.text));
-        return el;
-      }
-    }
-  }
-
-  private userEl(entry: Extract<TranscriptEntry, { kind: 'user' }>, hl: Highlighter): HTMLElement {
-    const text = h('div', { class: 'ao-term-text' });
-    hl.append(text, entry.text);
-    return h(
-      'div',
-      { class: 'ao-term-entry ao-term-user' },
-      h('span', { class: 'ao-term-prompt', 'aria-hidden': 'true' }, '❯'),
-      text,
-      h('time', { class: 'ao-term-time' }, formatClock(entry.at)),
-    );
-  }
-
-  private assistantEl(entry: Extract<TranscriptEntry, { kind: 'assistant' }>, hl: Highlighter): HTMLElement {
-    const text = h('div', { class: 'ao-term-text' });
-    for (const block of splitFences(entry.text)) {
-      const el = h(block.kind === 'code' ? 'pre' : 'p', {
-        class: block.kind === 'code' ? 'ao-term-code' : 'ao-term-para',
-      });
-      hl.append(el, block.text);
-      text.appendChild(el);
-    }
-    return h(
-      'div',
-      { class: 'ao-term-entry ao-term-assistant' },
-      h('span', { class: 'ao-term-bullet', 'aria-hidden': 'true' }, '●'),
-      text,
-    );
+    return entryElement(entry, index, this.entryView);
   }
 
   private toggleEntry(index: number): void {
@@ -481,74 +436,5 @@ export class TerminalPanel implements Component {
     this.needsFullRender = true;
     this.stick = false;
     this.ctx.refresh();
-  }
-
-  private thinkingEl(
-    entry: Extract<TranscriptEntry, { kind: 'thinking' }>,
-    index: number,
-    hl: Highlighter,
-  ): HTMLElement {
-    const open = this.isExpanded(index, entry);
-    const toggle = h(
-      'button',
-      {
-        type: 'button',
-        class: 'ao-term-toggle',
-        'aria-expanded': String(open),
-        onclick: () => this.toggleEntry(index),
-      },
-      icon(open ? 'chevronDown' : 'chevronRight', 12),
-      h('span', null, t('terminal.thinking')),
-    );
-    const el = h('div', { class: `ao-term-entry ao-term-thinking ${open ? 'is-open' : ''}`.trim() }, toggle);
-    if (open) {
-      const text = h('div', { class: 'ao-term-text' });
-      hl.append(text, entry.text);
-      el.appendChild(text);
-    }
-    return el;
-  }
-
-  private toolEl(entry: Extract<TranscriptEntry, { kind: 'tool' }>, index: number, hl: Highlighter): HTMLElement {
-    const open = this.isExpanded(index, entry);
-    const name = h('strong', { class: 'ao-term-tool-name' });
-    hl.append(name, entry.name);
-    const summary = h('span', { class: 'ao-term-tool-summary' });
-    hl.append(summary, toolSummary(entry));
-    const head = h(
-      'div',
-      { class: 'ao-term-tool-head' },
-      h('span', { class: `ao-term-bullet ${entry.error ? 'is-error' : ''}`.trim(), 'aria-hidden': 'true' }, '●'),
-      name,
-      summary,
-    );
-    const el = h(
-      'div',
-      { class: `ao-term-entry ao-term-tool ${entry.error ? 'is-error' : ''} ${open ? 'is-open' : ''}`.trim() },
-      head,
-    );
-    if (entry.result) {
-      const { preview, hiddenLines } = toolPreview(entry.result);
-      const result = h('pre', { class: 'ao-term-result' });
-      if (open) hl.append(result, entry.result);
-      else result.textContent = preview;
-      el.appendChild(result);
-      if (hiddenLines > 0 || open) {
-        el.appendChild(
-          h(
-            'button',
-            {
-              type: 'button',
-              class: 'ao-term-toggle',
-              'aria-expanded': String(open),
-              onclick: () => this.toggleEntry(index),
-            },
-            icon(open ? 'chevronUp' : 'chevronDown', 12),
-            h('span', null, open ? t('terminal.collapse') : t('terminal.moreLines', { n: hiddenLines })),
-          ),
-        );
-      }
-    }
-    return el;
   }
 }

@@ -1,0 +1,75 @@
+// pro-pt-BR: texts of the Pro view (the orchestration canvas). Spread into the pt-BR catalog.
+export const proPtBR = {
+  // Mode switch and announcements
+  'topbar.view': 'Visão',
+  'topbar.view.basic': 'Básica',
+  'topbar.view.pro': 'Pro',
+  'topbar.view.hint': 'Alternar entre a visão Básica (o escritório) e a visão Pro (terminais ao vivo) (V)',
+  'announce.view.pro': 'Visão Pro: terminais ao vivo de todas as sessões.',
+  'announce.view.basic': 'Visão Básica: o escritório.',
+  'help.shortcut.viewMode': 'Alternar entre a visão Básica e a visão Pro',
+  'help.shortcut.pro.zoom': 'Visão Pro: aproximar, afastar e enquadrar tudo',
+  'help.shortcut.pro.pan': 'Visão Pro: arrastar o canvas (ou segurar Espaço e arrastar)',
+  // Canvas
+  'pro.canvas.label': 'Canvas de orquestração: um terminal por sessão, com as linhas até seus subagentes',
+  'pro.canvas.empty': 'Nenhuma sessão aberta. Abra o Claude Code em um projeto e ele aparece aqui como um terminal.',
+  'pro.frame.meta': '{agents, plural, =1 {# agente} other {# agentes}} · {working} trabalhando',
+  // Toolbar
+  'pro.toolbar.label': 'Ferramentas do canvas',
+  'pro.toolbar.fit': 'Enquadrar tudo (0)',
+  'pro.toolbar.focus': 'Focar o orquestrador selecionado',
+  'pro.toolbar.zoomIn': 'Aproximar (+)',
+  'pro.toolbar.zoomOut': 'Afastar (−)',
+  'pro.toolbar.resetZoom': 'Voltar para 100%',
+  'pro.toolbar.theme': 'Tema do canvas',
+  'pro.toolbar.themeLight': 'Usar o tema claro no canvas',
+  'pro.toolbar.themeDark': 'Usar o tema escuro no canvas',
+  'pro.toolbar.resetLayout': 'Desfazer as posições que você arrastou',
+  'pro.toolbar.resetLayout.none': 'Nada foi movido de lugar',
+  // Terminal windows
+  'pro.node.label': '{name}, {role}, {status}',
+  'pro.node.maximize': 'Maximizar',
+  'pro.node.restore': 'Voltar ao tamanho normal',
+  'pro.node.openTerminal': 'Abrir no painel de terminal',
+  'pro.node.showOffice': 'Mostrar no escritório',
+  'pro.node.copyId': 'Copiar o id da sessão',
+  'pro.node.copied': 'Id da sessão copiado.',
+  'pro.node.done': '{n, plural, =1 {# concluído} other {# concluídos}}',
+  'pro.node.doneTitle': '{n, plural, =1 {Subagente concluído} other {Subagentes concluídos}}',
+  // Command bar
+  'pro.command.label': 'Enviar uma tarefa ao orquestrador',
+  'pro.command.target': 'Para quem é a tarefa',
+  'pro.command.noTarget': 'Nenhum orquestrador aberto',
+  'pro.command.team': 'Equipe da sala {room}',
+  'pro.command.teamCount': '{n, plural, =1 {1 orquestrador recebe.} other {# orquestradores recebem.}}',
+  'pro.command.placeholder': 'Diga ao orquestrador o que fazer. Ele reparte o trabalho com os subagentes.',
+  'pro.command.placeholder.team': 'Diga à equipe da sala o que fazer.',
+  'pro.command.last': 'Última ordem para {target}, {time}: {status}',
+  'pro.command.outlook.afterTool': 'Está trabalhando: a ordem chega depois da próxima chamada de ferramenta.',
+  'pro.command.outlook.standby': 'Terminou o turno e está de plantão: a ordem chega na hora, como uma nova instrução.',
+  'pro.command.outlook.beyondStandby':
+    'Parado há mais de 10 minutos, além do plantão: a ordem fica na fila até ele voltar a trabalhar. Para acordá-lo, escreva no terminal dele.',
+  'pro.command.outlook.afterPermission':
+    'Está esperando você (permissão ou pergunta): a ordem chega depois que ele voltar a trabalhar.',
+  'pro.command.blocked.ended': 'Esta sessão terminou e não recebe mais ordens.',
+  // Voice
+  'pro.voice.label': 'Voz',
+  'pro.voice.unavailable': 'A entrada por voz ainda não está disponível nesta versão.',
+  'pro.voice.prepare': 'Preparar a voz',
+  'pro.voice.prepare.hint':
+    'Baixa uma vez o modelo de reconhecimento de voz (roda neste computador, sem enviar nada para fora).',
+  'pro.voice.downloading': 'Baixando {percent}%',
+  'pro.voice.downloading.hint': 'Baixando o modelo de voz.',
+  'pro.voice.loading': 'Carregando {percent}%',
+  'pro.voice.loading.hint': 'Carregando o modelo de voz no navegador.',
+  'pro.voice.start': 'Falar',
+  'pro.voice.start.hint': 'Grava pelo microfone. O texto vai para a caixa para você revisar; nada é enviado sozinho.',
+  'pro.voice.stop': 'Parar',
+  'pro.voice.stop.hint': 'Para a gravação e transcreve.',
+  'pro.voice.transcribing': 'Transcrevendo…',
+  'pro.voice.error': 'Não foi possível usar a voz. Tente de novo.',
+  'pro.voice.retry': 'Tentar a voz de novo',
+  'pro.voice.inserted': 'Texto da voz inserido na caixa. Revise antes de enviar.',
+} as const;
+
+export type ProKey = keyof typeof proPtBR;

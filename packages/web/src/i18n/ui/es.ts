@@ -1,7 +1,9 @@
+import { proEs } from './pro-es';
 import type { UiKey } from './pt-BR';
 
 // Spanish (Latin American, informal "tú") ui texts.
 export const uiEs: Readonly<Record<UiKey, string>> = {
+  ...proEs,
   // App and common
   'app.description': 'AI Office: una oficina en vivo donde tus sesiones de Claude Code trabajan como personas.',
   'app.startFailed': 'No se pudo iniciar AI Office.',

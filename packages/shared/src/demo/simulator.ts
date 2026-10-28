@@ -517,6 +517,9 @@ class Simulator implements DemoSimulator {
     this.resumeTurn(id, t0);
     if (mood === 'shell') this.startLongShell(id, t0 - 180_000, 12 * 60_000);
     if (mood === 'subs') this.queue.push(t0 + 1200, (at) => this.spawnSubs(id, at, 2));
+    // The orchestration canvas looks alive from the first second: the busy sessions are already delegating.
+    if (mood === 'busy') this.queue.push(t0 + 2500, (at) => this.spawnSubs(id, at, 3));
+    if (mood === 'shell') this.queue.push(t0 + 2000, (at) => this.spawnSubs(id, at, 2));
     if (mood === 'blocked') {
       this.queue.push(t0 + 500, (at) => this.blockOnPermission(id, at));
       return;
@@ -697,7 +700,7 @@ class Simulator implements DemoSimulator {
       return;
     }
     let delay = this.dwell(runtime.rng, 1200, 4500);
-    if (roll < 0.11) {
+    if (roll < 0.16) {
       this.spawnSubs(id, at, randInt(runtime.rng, 1, 3));
       delay = this.dwell(runtime.rng, 800, 1500);
     } else if (roll < 0.28) {
@@ -988,7 +991,7 @@ class Simulator implements DemoSimulator {
       rng,
       phase: 'working',
       stepToken: 0,
-      stepsLeft: randInt(rng, 3, 7),
+      stepsLeft: randInt(rng, 5, 11),
       pendingSubs: 0,
       turnsLeft: 0,
       visitor: false,

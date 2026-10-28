@@ -185,9 +185,16 @@ the source catalog the other two are translated from. Code, comments and docs in
     [02-server.md](02-server.md#progress-apiprogress), [03-world-2d.md](03-world-2d.md#unlockable-decoration),
     [04-ui.md](04-ui.md#achievements-dialog-conquistas) and [06-world-3d.md](06-world-3d.md).
 
-Keyboard: / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
+Keyboard: V Basic/Pro view, / search, F follow selected, T terminal, N message, P next permission, I inbox (inside it: J/K or arrows move,
 Space select, A approve, Shift+A approve and remember, D deny, Enter open, E mark seen), M my day, R day report, U usage, C achievements, K task board (on a focused card: M moves it), O overview,
 H hire an agent, L time-lapse of the day (in it: Space play/pause, arrows skip 1 min, Shift+arrows 10 min), [ sidebar, ] feed, ? help, Esc closes the topmost thing (terminal search, terminal, drawer/selection, then the time-lapse).
+
+## Pro view: the orchestration canvas
+A second way to look at the same sessions, for people who think in orchestrators and subagents rather than in people (full design in [04-ui.md](04-ui.md#pro-view-the-orchestration-canvas)).
+- **A switch in the top bar, Basic | Pro** (key `V`, remembered in the preferences). Basic is the office; Pro replaces the world with a dark (or light) canvas where **every open session of every room is a terminal window**. A main agent (the orchestrator) is a large terminal, its subagents are smaller terminals around it, and thin lines join the orchestrator to each subagent: they flow while the subagent works, turn amber when it needs you and fade when it is done, and carry the subagent's type and task.
+- **Live, but only a view.** The terminals render the real conversation of each session (the same data as the terminal panel). Nothing here calls a model or runs an agent: it is a picture of the Claude Code sessions already running on this computer.
+- **Orders from one bar.** A command bar at the bottom sends a typed task to an orchestrator or to the team of a room through the same message feature as the drawer (so with the same delivery rules, and the plugin required), says honestly what will happen to it given what the agent is doing, and takes dictation when the local voice input is present (the text lands in the box for review; it is never sent by itself). Codex agents stay read-only.
+- Bounded by design: only terminals that are on screen and big enough to read load their conversation, at most ten at a time, so the canvas stays smooth with dozens of sessions.
 
 ## Alive office: work animations, celebrations and encounters
 - People look like what their agent is doing: reading a page, typing fast with tiny code glyphs, leaning back at a glowing terminal (and yawning during a long one),

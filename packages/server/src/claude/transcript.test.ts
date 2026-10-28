@@ -11,7 +11,14 @@ import {
   toolUse,
   userLine,
 } from '../test-helpers';
-import { MAX_TEXT, MAX_VIEW_BYTES, PAGE_SIZE, TranscriptCache, TranscriptView } from './transcript';
+import {
+  MAX_TEXT,
+  MAX_VIEW_BYTES,
+  PAGE_SIZE,
+  TRANSCRIPT_CACHE_VIEWS,
+  TranscriptCache,
+  TranscriptView,
+} from './transcript';
 import { scanRecentSessions } from './sessions-scan';
 
 let fake: FakeClaudeDir;
@@ -200,6 +207,16 @@ describe('TranscriptView', () => {
     expect(await cache.open(b)).not.toBe(first);
     expect(await cache.open(a)).not.toBe(first);
     expect(await cache.open('/nao/existe.jsonl')).toBeUndefined();
+  });
+
+  test('TranscriptCache keeps as many views open as the Pro view polls live terminals', async () => {
+    const cache = new TranscriptCache();
+    const paths: string[] = [];
+    for (let i = 0; i < TRANSCRIPT_CACHE_VIEWS; i++)
+      paths.push(await fake.writeTranscript(`s${i}`, jsonl(userLine('x', i))));
+    const first = await cache.open(paths[0] as string);
+    for (const path of paths.slice(1)) await cache.open(path);
+    expect(await cache.open(paths[0] as string)).toBe(first);
   });
 });
 

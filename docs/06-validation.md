@@ -67,11 +67,33 @@ The 3D night scene is the expensive one. Its bloom pass combined with multisampl
 
 A separate stress test used the 3D lab page with a synthetic office of **12 rooms and 40 agents**, on an earlier build that still had quality reductions: **49 to 60 fps by day and 21 to 39 fps at night**. That build is not the shipping renderer, so treat these as a rough indication of how load scales, not as current figures.
 
+### Pro view canvas
+
+The orchestration canvas ([guide](02-using-the-office.md#pro-view)) is DOM and SVG, not a renderer, so it is measured by frame times while panning.
+
+| Item | Value |
+| --- | --- |
+| Date | 2026-10-28 |
+| Machine and browser | The same MacBook (Apple A18 Pro, macOS 27) and Chromium; 1440 by 900 at 2x pixel ratio; vsync on |
+| Data | The demo with 8 projects: 12 orchestrators and, as subagents come and go, 36 to 48 terminals on the canvas (finished subagents stay faded) |
+| Method | A `wheel` event (what a trackpad sends) pans the camera once per frame for 4 s; every frame time is recorded; three trials per view |
+
+| View | Frames | Median frame | 95th percentile | Frames over 20 ms |
+| --- | --- | --- | --- | --- |
+| Everything fitted (about 12% zoom, cards only) | 3 x 240 | 16.7 ms | 16.7 to 16.8 ms | 0 to 3 per trial (a 17 to 50 ms hiccup) |
+| One cluster at about 100% (2 to 4 live terminals) | 3 x 240 | 16.7 ms | 16.8 ms | 0 per trial |
+| Dense area at about 38% (8 to 10 terminals on screen) | 3 x 240 | 16.7 ms | 16.7 to 16.8 ms | 0 to 1 per trial |
+
+That is the display's 60 fps on every trial. With vsync off the same pans ran at about 55 to 130 fps, so the headroom is real but not large: a dense, zoomed-out canvas is the heaviest case, which is why terminals that are off screen or too small to read are not rendered or polled. The DOM held about 2400 elements for 46 terminals. A pan driven by a real mouse through an automation tool dropped frames in the same conditions; that measures the tool's input rate rather than the page, and was not used for the numbers above.
+
+Live terminals are capped at ten and poll once a second while their agent works (every three seconds when it is calm, never when it finished); the server keeps twelve transcript views open so they do not evict each other.
+
 ### How to measure on your machine
 
 1. Run the server and open the office. In the browser console, `window.aiOffice.debug()` returns the renderer's own counters under `world`, including `fps`, the CPU draw time (`drawMs`) and the number of agents.
-2. For a controlled scene, use the dev harness (see [configuration](04-configuration.md#development-mode)): with `npm run dev`, open `http://localhost:5173/dev/world3d.html?projects=12&agents=40&hud=1&daylight=night`. The `hud=1` parameter prints fps, CPU time, agents, draw calls and pixel ratio on screen. `/dev/world2d.html` is the 2D equivalent.
-3. To see headroom beyond your display rate, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit` and count `requestAnimationFrame` callbacks over a few seconds after the scene has loaded (the figures above are a 6-second count, taken 4 s after load for 2D and 8 s for 3D). With vsync on, the measured rate is capped at your refresh rate, and Low Power Mode on a laptop halves it to 30 fps.
+2. For the Pro canvas, `window.aiOffice.debug().pro` reports the zoom, how many terminals exist and how many are live.
+3. For a controlled scene, use the dev harness (see [configuration](04-configuration.md#development-mode)): with `npm run dev`, open `http://localhost:5173/dev/world3d.html?projects=12&agents=40&hud=1&daylight=night`. The `hud=1` parameter prints fps, CPU time, agents, draw calls and pixel ratio on screen. `/dev/world2d.html` is the 2D equivalent.
+4. To see headroom beyond your display rate, launch Chromium with `--disable-gpu-vsync --disable-frame-rate-limit` and count `requestAnimationFrame` callbacks over a few seconds after the scene has loaded (the figures above are a 6-second count, taken 4 s after load for 2D and 8 s for 3D). With vsync on, the measured rate is capped at your refresh rate, and Low Power Mode on a laptop halves it to 30 fps.
 
 If 3D feels slow, switch to 2D in **Settings**, set **Day and night** to **Day** (the day scene is far cheaper), turn off Low Power Mode, or plug in.
 
