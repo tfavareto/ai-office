@@ -50,7 +50,7 @@ export class NodeDrag {
     if (nodeId === undefined) return false;
     const target = this.host.resolve(nodeId, event.shiftKey);
     if (target === null) return false;
-    this.viewport.setPointerCapture(event.pointerId);
+    // The pointer is captured only once it moves, so a click or a double click on the title bar still reaches it.
     this.active = {
       ...target,
       delta: { x: 0, y: 0 },
@@ -64,9 +64,15 @@ export class NodeDrag {
   private move(event: PointerEvent): void {
     const drag = this.active;
     if (drag === null || drag.pointerId !== event.pointerId) return;
+    // Released somewhere the canvas did not hear (before the capture): that press was not a drag.
+    if (!drag.moved && event.buttons === 0) {
+      this.active = null;
+      return;
+    }
     const dx = event.clientX - drag.start.x;
     const dy = event.clientY - drag.start.y;
     if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    if (!drag.moved) this.viewport.setPointerCapture(event.pointerId);
     drag.moved = true;
     const zoom = this.host.zoom();
     drag.delta = { x: Math.round(dx / zoom), y: Math.round(dy / zoom) };

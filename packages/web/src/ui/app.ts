@@ -411,7 +411,7 @@ export class App implements AppContext {
   }
 
   /** Numbers about the Pro canvas for `window.aiOffice.debug()`. */
-  proDebug(): { zoom: number; nodes: number; live: number } {
+  proDebug(): ProView['debug'] {
     return this.proView.debug;
   }
 
@@ -982,13 +982,16 @@ export class App implements AppContext {
 
   private currentInsets(): ViewInsets {
     const ui = this.ui.get();
+    const pro = this.viewMode === 'pro';
     return computeInsets({
       sidebarOpen: ui.sidebarOpen,
-      drawerOpen: ui.selection !== null,
+      // The Pro view has no drawer: a selection focuses a terminal, a room opens the canvas's own panel.
+      drawerOpen: ui.selection !== null && !pro,
       feedOpen: ui.feedOpen,
       narrow: ui.narrow,
       replay: this.replay.engaged,
-      pro: this.viewMode === 'pro',
+      pro,
+      commandBar: this.prefs.get().proCommandBar,
     });
   }
 
@@ -1015,13 +1018,14 @@ export class App implements AppContext {
       this.world.setOptions({ hireEnabled: this.isLocal });
     }
     toggleClass(this.root, 'is-narrow', ui.narrow);
-    toggleClass(this.root, 'has-drawer', ui.selection !== null);
+    const pro = this.viewMode === 'pro';
+    toggleClass(this.root, 'has-drawer', ui.selection !== null && !pro);
     toggleClass(this.root, 'has-sidebar', ui.sidebarOpen);
     toggleClass(this.root, 'has-terminal', ui.terminal !== null);
     toggleClass(this.root, 'feed-open', ui.feedOpen);
     toggleClass(this.root, 'is-replay', this.replay.engaged);
-    const pro = this.viewMode === 'pro';
     toggleClass(this.root, 'is-pro', pro);
+    toggleClass(this.root, 'has-pro-command', pro && this.prefs.get().proCommandBar);
     if (pro !== this.appliedPro) {
       this.appliedPro = pro;
       this.world.setPaused(pro);
@@ -1141,7 +1145,8 @@ export class App implements AppContext {
         this.ui.set({ sidebarOpen: !ui.sidebarOpen });
         return;
       case 'feed':
-        this.ui.set({ feedOpen: !ui.feedOpen });
+        // The Pro view has no activity feed.
+        if (this.viewMode !== 'pro') this.ui.set({ feedOpen: !ui.feedOpen });
         return;
       case 'help':
         this.openDialog('help');
@@ -1173,7 +1178,7 @@ export class App implements AppContext {
 
   private messageShortcut(): void {
     if (this.viewMode === 'pro') {
-      this.proView.focusPrompt();
+      this.proView.toggleCommandBar();
       return;
     }
     const ui = this.ui.get();
@@ -1206,7 +1211,7 @@ export class App implements AppContext {
     if (ui.dialog) this.closeDialog();
     else if (ui.popover) this.closePopover();
     else if (ui.terminal) this.closeTerminal();
-    else if (ui.feedOpen) this.ui.set({ feedOpen: false });
+    else if (ui.feedOpen && this.viewMode !== 'pro') this.ui.set({ feedOpen: false });
     else if (ui.selection) this.clearSelection();
     else if (this.replay.engaged) this.stopReplay();
     else if (ui.narrow && ui.sidebarOpen) this.ui.set({ sidebarOpen: false });
