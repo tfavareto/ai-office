@@ -1,7 +1,7 @@
 // What the mic button shows for a voice status: pure, so every state is testable without a DOM.
 import { VOICE_MODEL_SIZES, type VoiceModelSize } from '@ai-office/shared';
 import { t, type TextKey } from '../i18n';
-import { formatElapsed } from '../ui/format';
+import { formatDecimal, formatElapsed } from '../ui/format';
 import type { IconName } from '../ui/icons';
 import { VOICE_ERROR_KEYS } from './errors';
 import type { VoiceStatus } from './types';
@@ -28,10 +28,12 @@ export interface MicView {
 
 const ERROR_KEYS: ReadonlySet<string> = new Set(Object.values(VOICE_ERROR_KEYS));
 const MB = 1_000_000;
+const GB = 1_000_000_000;
 const PERCENT = 100;
 
-/** Size of a download as "80 MB". */
+/** Size of a download as "80 MB", or "1.6 GB" (in the interface's number format) from a gigabyte up. */
 export function formatMegabytes(bytes: number): string {
+  if (bytes >= GB) return `${formatDecimal(bytes / GB, 1)} GB`;
   return `${Math.max(1, Math.round(bytes / MB))} MB`;
 }
 

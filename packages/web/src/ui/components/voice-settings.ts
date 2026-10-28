@@ -1,9 +1,13 @@
-// The "Voz" row of the settings: whether the speech model is on this computer, which size, and the buttons that
-// download and remove it. Nothing is downloaded until the person presses the button.
+// The "Voz" row of the settings: which model, whether it is on this computer, where it runs (graphics card or
+// processor) and how fast, the spoken language, and the buttons that download and remove it. Nothing is downloaded
+// until the person presses the button.
 import { VOICE_MODEL_SIZES, type VoiceModelSize, type VoiceModelStatus } from '@ai-office/shared';
 import { t } from '../../i18n';
+import { activeVoiceModel, type ActiveVoiceModel } from '../../voice/engine';
+import { engineView } from '../../voice/engine-view';
 import { downloadErrorKey } from '../../voice/errors';
 import { formatMegabytes, isVoiceSize, percentOf, sizeOptionLabel, voiceErrorText } from '../../voice/mic-view';
+import { VOICE_LANGUAGE_CHOICES, type VoiceLanguageChoice } from '../../voice/preference';
 import type { VoiceHandle } from '../../voice';
 import { localOnlyHint, type AppContext } from '../context';
 import { h, setAttr, setText } from '../dom';
@@ -15,8 +19,15 @@ export class VoiceSettings {
     class: 'ao-select',
     'aria-label': t('settings.voice.sizeLabel'),
   });
+  private readonly languageSelect = h('select', {
+    class: 'ao-select',
+    'aria-label': t('settings.voice.languageLabel'),
+  });
   private readonly status = h('span', { class: 'ao-voice-status', role: 'status' });
   private readonly sizeHint = h('p', { class: 'ao-setting-hint' });
+  private readonly engine = h('p', { class: 'ao-setting-hint ao-voice-engine' });
+  private readonly fallback = h('p', { class: 'ao-setting-hint ao-setting-hint--warn', hidden: true });
+  private readonly speed = h('p', { class: 'ao-setting-hint' });
   private readonly error = h('p', { class: 'ao-setting-hint ao-setting-hint--warn', role: 'alert', hidden: true });
   private readonly download = button({
     label: t('voice.download'),
@@ -54,6 +65,11 @@ export class VoiceSettings {
     this.select.addEventListener('change', () => {
       if (isVoiceSize(this.select.value)) this.voice.preference.setSize(this.select.value);
     });
+    for (const choice of VOICE_LANGUAGE_CHOICES) this.languageSelect.append(h('option', { value: choice }));
+    this.languageSelect.addEventListener('change', () => {
+      const choice = VOICE_LANGUAGE_CHOICES.find((value) => value === this.languageSelect.value);
+      if (choice !== undefined) this.voice.preference.setLanguage(choice);
+    });
     this.el = h(
       'div',
       { class: 'ao-setting ao-setting--voice' },
@@ -64,18 +80,42 @@ export class VoiceSettings {
         this.select,
       ),
       this.sizeHint,
+      this.engine,
+      this.fallback,
+      this.speed,
       h('div', { class: 'ao-voice-row' }, this.status, this.download, this.cancelDownload, this.removeButton),
       this.progress,
       this.error,
+      h(
+        'div',
+        { class: 'ao-setting-main' },
+        h('span', { class: 'ao-setting-label' }, t('settings.voice.languageLabel')),
+        this.languageSelect,
+      ),
       h('p', { class: 'ao-setting-hint' }, t('settings.voice.hint')),
     );
-    this.unsubscribe = voice.models.onChange(() => ctx.refresh());
-    voice.preference.onChange(() => ctx.refresh());
+    const refresh = (): void => ctx.refresh();
+    const unsubscribers = [
+      voice.models.onChange(refresh),
+      voice.preference.onChange(refresh),
+      voice.engine.onChange(refresh),
+    ];
+    this.unsubscribe = () => {
+      for (const unsubscribe of unsubscribers) unsubscribe();
+    };
   }
 
-  /** The popover opened: read what the server says now. */
+  /** The model that will run for the size picked, once the browser was checked. */
+  private active(): ActiveVoiceModel | undefined {
+    const capabilities = this.voice.engine.capabilities();
+    return capabilities === undefined ? undefined : activeVoiceModel(this.voice.preference.size(), capabilities);
+  }
+
+  /** The popover opened: read what the server says now, and check where the model can run. */
   onOpen(): void {
-    if (this.ctx.isLocal) void this.voice.models.refresh();
+    if (!this.ctx.isLocal) return;
+    void this.voice.models.refresh();
+    void this.voice.engine.ready();
   }
 
   dispose(): void {
@@ -84,7 +124,7 @@ export class VoiceSettings {
 
   private async remove(): Promise<void> {
     try {
-      await this.voice.models.remove(this.voice.preference.size());
+      await this.voice.models.remove(this.active()?.size ?? this.voice.preference.size());
     } catch {
       this.ctx.notifyLocal('warn', t('error.generic'));
     }
@@ -92,9 +132,10 @@ export class VoiceSettings {
 
   update(): void {
     const size = this.voice.preference.size();
+    const active = this.active();
     const models = this.voice.models;
     const current = models.current();
-    const model = models.statusOf(size);
+    const model = models.statusOf(active?.size ?? size);
     const local = this.ctx.isLocal;
     if (this.select.value !== size) this.select.value = size;
     this.select.disabled = !local;
@@ -103,6 +144,8 @@ export class VoiceSettings {
       setText(option, sizeOptionLabel(optionSize, models.statusOf(optionSize)?.bytes));
     }
     setText(this.sizeHint, t(`voice.size.${size}.hint`));
+    this.renderEngine(active);
+    this.renderLanguage(local);
     this.renderState(model, current?.enabled !== false, local);
     const busy = model?.state === 'downloading';
     this.download.hidden = model?.state === 'ready' || busy;
@@ -112,6 +155,24 @@ export class VoiceSettings {
     const bar = this.progress.firstElementChild as HTMLElement;
     this.progress.hidden = !busy;
     bar.style.width = `${percentOf(model === undefined || model.bytes === 0 ? 0 : model.downloadedBytes / model.bytes)}%`;
+  }
+
+  private renderEngine(active: ActiveVoiceModel | undefined): void {
+    const view = engineView(active, this.voice.engine.lastTake());
+    setText(this.engine, view.engine);
+    this.fallback.hidden = view.fallback === undefined;
+    setText(this.fallback, view.fallback ?? '');
+    const speed = [view.speed, view.last].filter((line) => line !== undefined).join(' ');
+    this.speed.hidden = speed === '';
+    setText(this.speed, speed);
+  }
+
+  private renderLanguage(local: boolean): void {
+    const choice: VoiceLanguageChoice = this.voice.preference.language();
+    if (this.languageSelect.value !== choice) this.languageSelect.value = choice;
+    this.languageSelect.disabled = !local;
+    for (const option of Array.from(this.languageSelect.options))
+      setText(option, t(option.value === 'auto' ? 'voice.language.auto' : 'voice.language.interface'));
   }
 
   private renderState(model: VoiceModelStatus | undefined, enabled: boolean, local: boolean): void {

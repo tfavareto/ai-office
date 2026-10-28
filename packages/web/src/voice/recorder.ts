@@ -59,6 +59,19 @@ interface Take {
   limitReached: boolean;
 }
 
+/**
+ * What the microphone is asked for, chosen for Whisper: one channel; echo cancellation on, so the office's own sounds
+ * coming out of the speakers do not end up in the take; noise suppression off, because Whisper was trained on ordinary
+ * noisy audio and copes with it, while the suppressor (tuned for calls) can clip soft word endings; automatic gain off,
+ * because it moves the level mid-sentence, and the take is normalized as a whole before inference.
+ */
+export const MIC_CONSTRAINTS: MediaTrackConstraints = {
+  channelCount: 1,
+  echoCancellation: true,
+  noiseSuppression: false,
+  autoGainControl: false,
+};
+
 const DENIED = new Set(['NotAllowedError', 'SecurityError', 'PermissionDeniedError']);
 const NO_DEVICE = new Set(['NotFoundError', 'DevicesNotFoundError', 'OverconstrainedError']);
 const BUSY = new Set(['NotReadableError', 'TrackStartError', 'AbortError']);
@@ -110,7 +123,7 @@ export function createRecorder(env: RecorderEnv, maxMs = MAX_RECORDING_MS): Reco
     const mine = ++generation;
     let stream: MediaStream;
     try {
-      stream = await env.getUserMedia({ audio: { channelCount: 1 } });
+      stream = await env.getUserMedia({ audio: MIC_CONSTRAINTS });
     } catch (error) {
       throw recorderErrorFor(error);
     }

@@ -74,3 +74,70 @@ export function levelOf(samples: Float32Array): number {
   if (rms === 0) return 0;
   return Math.min(1, Math.max(0, (20 * Math.log10(rms) - METER_FLOOR_DB) / -METER_FLOOR_DB));
 }
+
+// ---- getting a take ready for Whisper ----------------------------------------------------------------------------
+
+/** Loudness is measured in frames of 20 ms. */
+const FRAME_MS = 20;
+/** Speech is what stands this far (x4, 12 dB) above the quietest tenth of the take... */
+const NOISE_FACTOR = 4;
+const NOISE_PERCENTILE = 0.1;
+/** ...but never more than 20 dB under the loudest frame (a take that is all speech has no quiet tenth)... */
+const LOUDEST_FRACTION = 0.1;
+/** ...and never under this level (-54 dBFS), so the hiss of a silent room does not count as speech. */
+const MIN_SPEECH_RMS = 0.002;
+/** Kept around the speech on each side: soft word onsets and endings sit under the threshold. */
+const PAD_MS = 300;
+/** The loudest sample after normalizing, and the most a quiet take is amplified (x8, 18 dB). */
+const TARGET_PEAK = 0.9;
+const MAX_GAIN = 8;
+
+function frameLevels(samples: Float32Array, frame: number): Float32Array {
+  const levels = new Float32Array(Math.ceil(samples.length / frame));
+  for (let f = 0; f < levels.length; f++) {
+    const end = Math.min(samples.length, (f + 1) * frame);
+    let sum = 0;
+    for (let i = f * frame; i < end; i++) sum += (samples[i] ?? 0) ** 2;
+    levels[f] = Math.sqrt(sum / Math.max(1, end - f * frame));
+  }
+  return levels;
+}
+
+function speechThreshold(levels: Float32Array): number {
+  const sorted = levels.slice().sort();
+  const floor = sorted[Math.floor((sorted.length - 1) * NOISE_PERCENTILE)] ?? 0;
+  const loudest = sorted[sorted.length - 1] ?? 0;
+  return Math.max(MIN_SPEECH_RMS, Math.min(floor * NOISE_FACTOR, loudest * LOUDEST_FRACTION));
+}
+
+/**
+ * The part of the take that holds speech, with a little margin: the silence before the first word and after the last is
+ * dropped (Whisper tends to invent words, "Obrigado." above all, in trailing silence). Null when nothing is speech.
+ */
+export function trimSilence(samples: Float32Array, sampleRate: number): Float32Array | null {
+  const frame = Math.max(1, Math.round((sampleRate * FRAME_MS) / 1000));
+  const levels = frameLevels(samples, frame);
+  const threshold = speechThreshold(levels);
+  const first = levels.findIndex((level) => level >= threshold);
+  if (first < 0) return null;
+  let last = levels.length - 1;
+  while (last > first && (levels[last] ?? 0) < threshold) last--;
+  const pad = Math.round((sampleRate * PAD_MS) / 1000);
+  const start = Math.max(0, first * frame - pad);
+  const end = Math.min(samples.length, (last + 1) * frame + pad);
+  return samples.slice(start, end);
+}
+
+/** Scales the take so its loudest sample is at 0.9, amplifying at most 8x (a new array). */
+export function normalizeGain(samples: Float32Array): Float32Array {
+  const peak = peakOf(samples);
+  if (peak === 0) return samples.slice();
+  const gain = Math.min(MAX_GAIN, TARGET_PEAK / peak);
+  return samples.map((sample) => sample * gain);
+}
+
+/** Trimmed and normalized speech, ready for the model, or null when the take holds none. */
+export function prepareSpeech(samples: Float32Array, sampleRate: number): Float32Array | null {
+  const speech = trimSilence(samples, sampleRate);
+  return speech === null ? null : normalizeGain(speech);
+}

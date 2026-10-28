@@ -25,6 +25,13 @@ const DIR_MODE = 0o700;
 const DISK_MARGIN = 1.1;
 /** A whole model, however slow the connection: nothing legitimate takes longer. */
 export const DOWNLOAD_DEADLINE_MS = 60 * 60_000;
+/** A large model gets more time: as long as the slowest transfer still worth waiting for (300 kB/s) needs. */
+const SLOWEST_BYTES_PER_SECOND = 300_000;
+
+/** How long a model may take to download: an hour, or more for a model too large to arrive in an hour at 300 kB/s. */
+export function downloadDeadlineMs(bytes: number): number {
+  return Math.max(DOWNLOAD_DEADLINE_MS, Math.ceil((bytes / SLOWEST_BYTES_PER_SECOND) * 1000));
+}
 
 export interface VoiceModelStoreOptions {
   stateDir: string;
@@ -87,6 +94,8 @@ export class VoiceModelStore {
   private readonly source: VoiceSource;
   private readonly jobs = new Map<VoiceModelSize, Job>();
   private readonly failures = new Map<VoiceModelSize, VoiceDownloadErrorCode>();
+  /** Removals under way: a download asked for meanwhile would write files the removal then deletes. */
+  private readonly removals = new Map<VoiceModelSize, Promise<void>>();
 
   constructor(private readonly options: VoiceModelStoreOptions) {
     this.log = options.log;
@@ -138,6 +147,7 @@ export class VoiceModelStore {
    */
   start(size: VoiceModelSize): 'started' | 'running' | 'busy' | 'disabled' {
     if (!this.enabled) return 'disabled';
+    if (this.removals.has(size)) return 'busy';
     if (this.jobs.has(size)) return 'running';
     if (this.jobs.size > 0) return 'busy';
     this.failures.delete(size);
@@ -157,7 +167,7 @@ export class VoiceModelStore {
     const spec = this.specs[size];
     const deadline = setTimeout(
       () => job.abort.abort(new DOMException('deadline', 'TimeoutError')),
-      this.options.deadlineMs ?? DOWNLOAD_DEADLINE_MS,
+      this.options.deadlineMs ?? downloadDeadlineMs(specBytes(spec)),
     );
     try {
       if (await this.isReady(size)) return;
@@ -228,8 +238,19 @@ export class VoiceModelStore {
     job.currentBytes = 0;
   }
 
-  /** Stops the download of the model, if any, and deletes everything of it. */
-  async remove(size: VoiceModelSize): Promise<void> {
+  /**
+   * Stops the download of the model, if any, and deletes everything of it. Until the folder is gone, a new download of
+   * the same model answers `busy` (it would race the deletion), and removing it again joins the removal under way.
+   */
+  remove(size: VoiceModelSize): Promise<void> {
+    const running = this.removals.get(size);
+    if (running !== undefined) return running;
+    const removal = this.removeNow(size).finally(() => this.removals.delete(size));
+    this.removals.set(size, removal);
+    return removal;
+  }
+
+  private async removeNow(size: VoiceModelSize): Promise<void> {
     const job = this.jobs.get(size);
     if (job !== undefined) {
       job.abort.abort();

@@ -92,6 +92,7 @@ describe('GET /api/voice/status', () => {
       ['tiny', 'missing'],
       ['base', 'missing'],
       ['small', 'missing'],
+      ['turbo', 'missing'],
     ]);
     expect(body.models[1]?.bytes).toBe(specBytes(specs.base as VoiceModelSpec));
   });

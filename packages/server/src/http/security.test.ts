@@ -317,6 +317,30 @@ describe('content security policy', () => {
   });
 });
 
+describe('cross-origin isolation', () => {
+  test('isolates the page from other sites, which also gives the speech model its threads', () => {
+    expect(SECURITY_HEADERS['Cross-Origin-Opener-Policy']).toBe('same-origin');
+    expect(SECURITY_HEADERS['Cross-Origin-Embedder-Policy']).toBe('require-corp');
+    expect(SECURITY_HEADERS['Cross-Origin-Resource-Policy']).toBe('same-origin');
+  });
+
+  test('is sent with the page, its scripts, the API and errors', async () => {
+    await boot();
+    const responses = [
+      await raw('/'),
+      await raw('/assets/app-Ab12Cd34.js'),
+      await raw('/api/health'),
+      await raw('/api/day'),
+    ];
+
+    for (const { headers } of responses) {
+      expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+      expect(headers['cross-origin-embedder-policy']).toBe('require-corp');
+      expect(headers['cross-origin-resource-policy']).toBe('same-origin');
+    }
+  });
+});
+
 describe('event stream cap', () => {
   test(`answers 503 beyond ${MAX_CLIENTS} streams and accepts new ones when a slot frees up`, async () => {
     await boot();

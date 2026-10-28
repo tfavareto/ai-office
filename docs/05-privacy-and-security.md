@@ -42,7 +42,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `progress.json` | The office level and achievements (mode 0600, written atomically): per local day, counters (sessions, work time, tasks completed, commits, passing test runs, tokens, subagents), the agents with most completed tasks that day (name and the project folder's name, never a path), a folded total of older days, the unlock dates and the first time you watched a time-lapse or shared the card. Numbers and names only: no prompt, reply, task title or file content. Delete it and the history is counted again. |
 | `customization.json` | What you changed with **Personalization** (mode 0600, written atomically, at most 192 KB): the names you gave agents (by agent id), their looks (skin, hair, outfit and accessory choices), the aliases, finishes, pins and hidden flags of rooms (by the project's folder path), looks kept for an account (by account id) and the order of the rooms. Only what you chose: no prompt, reply, title, task or file content. A file this version cannot read is kept aside as `customization.json.unreadable-<time>`. **Settings → Automation and personalization → Personalization → Restore everything** erases it. |
 | `team/` | Only after you use [team mode](#team-mode). Mode 0700, files 0600: `host.json` (the team you host: its identity key pair, the members' **public** keys, names and devices, the removed ids, where the listener was left), `member.json` (the team you joined: your own key pair, the host's pinned public key and address) and `settings.json` (what you share, and the salt of the opaque agent ids). No pairing code, no session key and nothing received from other computers is written. **Leave the team** or **End the team** deletes the files. |
-| `models/whisper-<size>/` | Only after you download a speech model (see [Voice input](#voice-input)). Mode 0700, files 0600: the model files and `model.json`, written last, which says they were all verified. **Remove model** deletes the folder. No audio is ever stored. |
+| `models/<model id>/` | Only after you download a speech model (`whisper-tiny`, `whisper-base`, `whisper-small` or `whisper-large-v3-turbo`) (see [Voice input](#voice-input)). Mode 0700, files 0600: the model files and `model.json`, written last, which says they were all verified. **Remove model** deletes the folder. No audio is ever stored. |
 | `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
@@ -93,9 +93,12 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
 Referrer-Policy: no-referrer
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Resource-Policy: same-origin
 ```
 
-The page cannot be framed, cannot load scripts from other origins (`'wasm-unsafe-eval'` only lets it compile WebAssembly for [voice input](#voice-input)) and cannot connect anywhere but its own server. The UI builds text with `textContent`, never `innerHTML` with session data.
+The page cannot be framed, cannot load scripts from other origins (`'wasm-unsafe-eval'` only lets it compile WebAssembly for [voice input](#voice-input)) and cannot connect anywhere but its own server. It is cross-origin isolated (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`, `Cross-Origin-Resource-Policy: same-origin`): no other site's window keeps a handle on it, and no other site can embed its files. The UI builds text with `textContent`, never `innerHTML` with session data.
 
 ## Approval rules
 
@@ -123,19 +126,24 @@ The page cannot be framed, cannot load scripts from other origins (`'wasm-unsafe
 
 **How it is checked.** Each file must have exactly the size and SHA-256 below, or it is deleted and the download fails (`integrity`). A transfer longer than the pinned size is refused; a connection that goes quiet for 30 seconds or a model that takes over an hour is stopped; a cut transfer continues where it stopped the next time. Folders are mode 0700 and files 0600, files get their final name only after the hash matches, and the model is marked usable only after all of them did. A server started with `AI_OFFICE_VOICE=0` cannot download anything.
 
-**Where it lives and how the page gets it.** `<state dir>/models/whisper-<size>/` (see [What AI Office stores](#what-ai-office-stores)). The page loads the files from the server itself, through `GET /api/voice/model/<id>/<file>`: local-only, token-protected, and limited to the exact files of the table (anything else, including `..`, answers 404). They are sent `Cache-Control: no-store`, so removing the model really removes it. `transformers.js` runs with `allowRemoteModels = false`, so it can only read these routes; the WebAssembly runtime it needs is a file of the build, served by the server too, not fetched from a CDN.
+**Where it lives and how the page gets it.** `<state dir>/models/<id>/` (`whisper-tiny`, `whisper-base`, `whisper-small`, `whisper-large-v3-turbo`; see [What AI Office stores](#what-ai-office-stores)). The page loads the files from the server itself, through `GET /api/voice/model/<id>/<file>`: local-only, token-protected, and limited to the exact files of the table (anything else, including `..`, answers 404). They are sent `Cache-Control: no-store`, so removing the model really removes it, and the file is closed even when the page stops reading halfway. `transformers.js` runs with `allowRemoteModels = false`, so it can only read these routes; the two ONNX Runtime builds it may need (WebGPU and plain WebAssembly) are files of the build, served by the server too and fetched only by the speech worker, never from a CDN. A partial file is only ever written as a plain file: anything else left at its path (a symbolic link, a folder) is removed first. Removing a model blocks a new download of it until the folder is gone.
 
-**Content Security Policy.** Running a model needs WebAssembly, which a browser only compiles when the policy allows it, so the policy gained exactly one source: `script-src 'self' 'wasm-unsafe-eval'`. That allows WebAssembly (`'wasm-unsafe-eval'` does not allow `eval()`, `new Function()` or inline scripts) and scripts from the server itself, and nothing else; `connect-src` is still `'self'`. A test pins the policy.
+**Content Security Policy.** Running a model needs WebAssembly, which a browser only compiles when the policy allows it, so the policy gained exactly one source: `script-src 'self' 'wasm-unsafe-eval'`. That allows WebAssembly (`'wasm-unsafe-eval'` does not allow `eval()`, `new Function()` or inline scripts) and scripts from the server itself, and nothing else; `connect-src` is still `'self'`. WebGPU and WebAssembly threads need nothing more from the policy: WebGPU has no CSP directive, and the runtime starts its thread workers from its own same-origin script (`worker-src 'self' blob:` was already there). A test pins the policy.
+
+**Cross-origin isolation.** Every response carries `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp` and `Cross-Origin-Resource-Policy: same-origin`. They make the page cross-origin isolated: no window of another site keeps a handle on it, it only embeds what is its own (everything AI Office loads is), and no other site can embed AI Office's files. Isolation is also what browsers require before they give a page `SharedArrayBuffer`, which the WebAssembly runtime needs to run the speech model on several CPU threads. This only strengthens the page's isolation; links to GitHub still open in a new tab as before (they already used `noopener`). A test pins the three headers.
+
+**Where the model runs.** Large-v3-turbo runs on the graphics card through WebGPU, inside the page's worker (the browser must offer WebGPU with 16-bit shaders, `shader-f16`); tiny, base and small run on the CPU through WebAssembly, on up to four threads (one per core but one) when the page is isolated, or on one. A browser without WebGPU uses Accurate (`small`) in place of Best and Settings says so. Either way the computation happens on this computer.
 
 **Sizes.** Pick one in Settings. The model lives on your disk and, while in use, in the browser's memory (released after five minutes without use).
 
-| Size | Download | Notes |
-| --- | ---: | --- |
-| Fast (`tiny`) | 44 MB | The smallest and fastest; more mistakes on long sentences and accents. |
-| Balanced (`base`) | 80 MB | The default; good for Portuguese, Spanish and English. |
-| Accurate (`small`) | 252 MB | The most accurate; larger and slower. |
+| Size | Download | Runs on | Notes |
+| --- | ---: | --- | --- |
+| Fast (`tiny`) | 44 MB | CPU | The smallest and fastest; more mistakes on long sentences and accents. |
+| Balanced (`base`) | 80 MB | CPU | Good for short sentences in Portuguese, Spanish and English. |
+| Accurate (`small`) | 252 MB | CPU | More accurate than Balanced, a little slower; what Best falls back to without WebGPU. |
+| Best (`turbo`, the default) | 1.6 GB | Graphics card | Whisper large-v3-turbo: the most accurate, technical terms included. Needs WebGPU. |
 
-**The files.** Each model is the 8-bit quantized encoder and merged decoder that transformers.js picks for the WebAssembly backend, plus the small JSON files it reads next to them. The same list, in code, is `packages/server/src/voice/manifest.ts`; a test checks that this page and that file agree.
+**The files.** For tiny, base and small: the 8-bit quantized encoder and merged decoder that transformers.js picks for the WebAssembly backend. For large-v3-turbo: the 16-bit float encoder (full precision on the graphics card) and the 4-bit merged decoder (the decoder runs once per word, so it is the part worth shrinking). Next to them, the small JSON files the library reads. The same list, in code, is `packages/server/src/voice/manifest.ts`; a test checks that this page and that file agree.
 
 **Fast (`tiny`)**: `Xenova/whisper-tiny` at commit `5332fcc35e32a33b86612b9a57a89be7906102b1`, 44 MB in total.
 
@@ -173,7 +181,21 @@ The page cannot be framed, cannot load scripts from other origins (`'wasm-unsafe
 | `onnx/encoder_model_quantized.onnx` | 92324809 | `969f5ac12974340386bf7a02ea6626003e5e2dee396ffc6ab0eec282bf55ba06` |
 | `onnx/decoder_model_merged_quantized.onnx` | 156780950 | `fcfc6100dc7339e7507e10f8b274350be7c4f8d8b575f0293f94cc0e156d6d24` |
 
-**Licenses.** The weights are OpenAI's Whisper, released under the MIT license ([github.com/openai/whisper](https://github.com/openai/whisper/blob/main/LICENSE)); the Hugging Face model cards of these conversions list the Apache-2.0 license. Both are permissive; AI Office does not redistribute the weights (your computer downloads them from Hugging Face). The code that runs them is [transformers.js](https://github.com/huggingface/transformers.js) (`@huggingface/transformers`, Apache-2.0), with [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) (MIT) inside it.
+**Best (`turbo`, the default)**: `onnx-community/whisper-large-v3-turbo` at commit `360ebcde2559d60bb474678be3c1de9ef347d01a`, 1.6 GB in total (1611 MB).
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `config.json` | 1332 | `35cd83669f75bc2867f3b3a4461850392d5e308cd6ea951c3700539883c28df1` |
+| `generation_config.json` | 3897 | `16f95291d2f47c944d3c2b19390bba7965666555c1ea2a0bdc850d1fab45612f` |
+| `preprocessor_config.json` | 340 | `7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711` |
+| `tokenizer.json` | 2480617 | `6d8cbd7cd0d8d5815e478dac67b85a26bbe77c1f5e0c6d76d1ce2abc0e5f21ca` |
+| `tokenizer_config.json` | 282843 | `844b642c73a91359722f47b35705f7174686df33d252695d8572cf9ac03a6389` |
+| `onnx/encoder_model_fp16.onnx` | 1274342603 | `fdadc70836e6b028fd5e580417c312208dad073d2d01e509e2d127c1373399d8` |
+| `onnx/decoder_model_merged_q4.onnx` | 334147222 | `8b933ac24074a24a1635084d06a4ed37e387ef22d980f184a5fc27418e9ceeb8` |
+
+A model this large may take longer than the usual hour to download on a slow connection: the deadline grows with the size (the time the model needs at 300 kB/s, at least an hour).
+
+**Licenses.** The weights are OpenAI's Whisper, released under the MIT license ([github.com/openai/whisper](https://github.com/openai/whisper/blob/main/LICENSE)); the Hugging Face model cards of the tiny, base and small conversions list the Apache-2.0 license, and the card of the large-v3-turbo conversion names no license of its own but its base model, [`openai/whisper-large-v3-turbo`](https://huggingface.co/openai/whisper-large-v3-turbo), whose card says MIT. Both are permissive; AI Office does not redistribute the weights (your computer downloads them from Hugging Face). The code that runs them is [transformers.js](https://github.com/huggingface/transformers.js) (`@huggingface/transformers`, Apache-2.0), with [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) (MIT) inside it.
 
 ## The share card
 

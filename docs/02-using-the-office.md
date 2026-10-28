@@ -326,11 +326,11 @@ Turn Codex off in **Settings → Data and integrations → Show Codex sessions**
 
 Wherever the office offers a microphone button, you can dictate instead of typing. It works in three steps and the audio never leaves your computer.
 
-1. **Download the model, once.** Until it is installed the control reads **Download voice model (80 MB)** (also in **Settings → Data and integrations → Voice**, where you can choose the size). Nothing is downloaded before you press it. The AI Office server fetches the model from Hugging Face, checks every file against a pinned hash, and keeps it in `~/.ai-office/models/`. A cut download continues where it stopped.
+1. **Download the model, once.** Until it is installed the control reads **Download voice model (1.6 GB)** for the default, most accurate model (also in **Settings → Data and integrations → Voice**, where you can choose a lighter one). Nothing is downloaded before you press it. The AI Office server fetches the model from Hugging Face, checks every file against a pinned hash, and keeps it in `~/.ai-office/models/`. A cut download continues where it stopped.
 2. **Record.** Press the microphone (the browser asks for permission the first time). A red stop button, a timer and a level meter show that it is listening; a take stops recording by itself after 1 minute (press stop to transcribe it). Press **Esc** or the **x** to throw the take away.
-3. **Review.** A moment later (a few seconds, the first time a little more while the model loads) the text appears in the field. Nothing is sent to an agent until you do it yourself.
+3. **Review.** A moment later (a few seconds; the first take after the page opens waits for the model to load) the text appears in the field. Nothing is sent to an agent until you do it yourself.
 
-It speaks the language of the interface (Portuguese, English or Spanish). If the browser blocks the microphone, the control says so; allow it in the site permissions and press the button again. **Remove model** in Settings deletes the download.
+It listens for the language of the interface (Portuguese, English or Spanish), the most accurate setting; **Spoken language → Detect it** in Settings lets Whisper guess instead. The default model, **Best** (Whisper large-v3-turbo), runs on the graphics card through WebGPU; a browser without WebGPU uses **Accurate** in its place, and Settings shows which engine is in use. If the browser blocks the microphone, the control says so; allow it in the site permissions and press the button again. **Remove model** in Settings deletes the download.
 
 ## Team mode
 
@@ -399,7 +399,7 @@ The rows are organized in groups. Click a group's title (or focus it and press `
 | **Office evolution** | Decoration, achievements toasts and the level counter (on by default). Off shows the plain office and announces nothing. |
 | **Show the project in Employee of the month** | Add the project name next to the agent name in the achievements dialog (off by default). |
 | **Show Codex sessions** | Follow the open Codex CLI sessions, read-only. On by default when a Codex home exists (the row only shows then). Stored on the server: off, the Codex folder is not read. Needs a local page. See [Codex agents](#codex-agents). |
-| **Voice** | Dictation that runs on this computer. Pick the model size (**Fast** 44 MB, **Balanced** 80 MB, **Accurate** 252 MB), then **Download voice model** (once; nothing downloads by itself), and **Remove model** to delete it. See [Voice input](#voice-input). |
+| **Voice** | Dictation that runs on this computer. Pick the model (**Best** 1.6 GB, the default, on the graphics card; **Accurate** 252 MB, **Balanced** 80 MB, **Fast** 44 MB on the processor), then **Download voice model** (once; nothing downloads by itself), and **Remove model** to delete it. The row shows the engine in use and how fast the last take was; **Spoken language** chooses between the interface's language and detection. See [Voice input](#voice-input). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Team mode** | **Open…** the [team mode](#team-mode) dialog (the state next to it: off, hosting or in a team). Needs a local page. |

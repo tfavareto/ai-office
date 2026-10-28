@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, stat, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { makeTempDir, removeDir } from '../test-helpers';
@@ -78,6 +78,26 @@ describe('downloadVerifiedFile', () => {
       res.writeHead(200, { 'Content-Length': body.length });
       res.end(body);
     });
+
+    await downloadVerifiedFile(options());
+
+    expect(await readFile(join(dir, 'file.bin'))).toEqual(BODY);
+  });
+
+  test('never writes through a symbolic link left where the partial file goes', async () => {
+    const outside = join(dir, 'outside.txt');
+    await writeFile(outside, 'keep me');
+    await symlink(outside, join(dir, 'file.bin.part'));
+
+    await downloadVerifiedFile(options());
+
+    expect(await readFile(outside, 'utf8')).toBe('keep me');
+    expect(await readFile(join(dir, 'file.bin'))).toEqual(BODY);
+    expect((await lstat(join(dir, 'file.bin'))).isFile()).toBe(true);
+  });
+
+  test('replaces a folder left where the partial file goes', async () => {
+    await mkdir(join(dir, 'file.bin.part', 'inner'), { recursive: true });
 
     await downloadVerifiedFile(options());
 

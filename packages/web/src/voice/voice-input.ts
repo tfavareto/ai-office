@@ -1,8 +1,16 @@
 // The voice input: a state machine over the model on this computer (downloaded by the AI Office server), a Whisper
 // worker in this browser and the microphone. Nothing is ever sent anywhere but the local server's model files.
-import { voiceModelId, type Locale, type VoiceModelSize } from '@ai-office/shared';
-import { peakOf } from './audio';
-import { MAX_RECORDING_MS, MIN_RECORDING_MS, MODEL_BASE_URL, MODEL_IDLE_MS, SILENCE_PEAK } from './constants';
+import { voiceModelId, type Locale } from '@ai-office/shared';
+import { peakOf, prepareSpeech } from './audio';
+import {
+  MAX_RECORDING_MS,
+  MIN_RECORDING_MS,
+  MODEL_BASE_URL,
+  MODEL_IDLE_MS,
+  SILENCE_PEAK,
+  WHISPER_SAMPLE_RATE,
+} from './constants';
+import { activeVoiceModel, type ActiveVoiceModel, type VoiceEngine } from './engine';
 import { downloadErrorKey, recorderErrorKey, VOICE_ERROR_KEYS, type VoiceErrorKey } from './errors';
 import { whisperLanguage } from './language';
 import { VoiceDownloadError, type VoiceModels } from './models';
@@ -16,8 +24,10 @@ export interface VoiceInputDeps {
   recorder: Recorder;
   /** A fresh Whisper worker. Called again after the previous one was dropped (idle, cancelled, crashed). */
   createWorker: () => WhisperWorker;
-  /** The model size the person picked. */
+  /** The model size and the language choice of the person. */
   preference: VoicePreference;
+  /** Where the model can run in this browser (WebGPU, threads), and the timing of the last take. */
+  engine: VoiceEngine;
   /** The language of the interface: what is spoken unless `setLanguage` says otherwise. */
   locale: () => Locale;
   /** Whether this browser can do it at all (microphone, workers, WebAssembly). */
@@ -25,9 +35,12 @@ export interface VoiceInputDeps {
 }
 
 interface PendingJob {
-  resolve: (text: string) => void;
+  resolve: (result: { text: string; ms: number }) => void;
   reject: (error: Error) => void;
 }
+
+const sameModel = (a: ActiveVoiceModel | undefined, b: ActiveVoiceModel): boolean =>
+  a !== undefined && a.size === b.size && a.device === b.device && a.threads === b.threads;
 
 const BUSY_STATES: readonly VoiceState[] = ['loading', 'listening', 'transcribing'];
 
@@ -58,7 +71,7 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
   let takeToken = 0;
 
   let worker: WhisperWorker | undefined;
-  let workerSize: VoiceModelSize | undefined;
+  let workerModel: ActiveVoiceModel | undefined;
   let loaded = false;
   let loading: Promise<void> | undefined;
   let loadProgress: ((progress: number) => void) | undefined;
@@ -84,7 +97,7 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
     clearTimeout(idleTimer);
     worker?.terminate();
     worker = undefined;
-    workerSize = undefined;
+    workerModel = undefined;
     loaded = false;
     loading = undefined;
     loadProgress = undefined;
@@ -106,7 +119,7 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
       return;
     }
     if (message.type === 'result') {
-      jobs.get(message.id)?.resolve(message.text);
+      jobs.get(message.id)?.resolve({ text: message.text, ms: message.ms });
       jobs.delete(message.id);
       return;
     }
@@ -121,16 +134,23 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
     jobs.delete(message.id);
   }
 
+  /** The model to use: the person's pick, or what replaces it in this browser. Undefined until the engine is known. */
+  function active(): ActiveVoiceModel | undefined {
+    const capabilities = deps.engine.capabilities();
+    return capabilities === undefined ? undefined : activeVoiceModel(deps.preference.size(), capabilities);
+  }
+
   /** Loads the model into a worker (once; a loaded one is reused). `onProgress` hears 0..1 while it loads. */
   function ensureLoaded(onProgress?: (progress: number) => void): Promise<void> {
-    const size = deps.preference.size();
-    if (worker !== undefined && workerSize !== size) dropWorker();
+    const model = active();
+    if (model === undefined) return Promise.reject(new Error('engine unknown'));
+    if (worker !== undefined && !sameModel(workerModel, model)) dropWorker();
     if (loaded) return Promise.resolve();
     if (onProgress !== undefined) loadProgress = onProgress;
     if (loading !== undefined) return loading;
     const created = deps.createWorker();
     worker = created;
-    workerSize = size;
+    workerModel = model;
     created.onMessage(onWorkerMessage);
     created.onFailure(() => {
       if (worker === created) dropWorker();
@@ -140,19 +160,32 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
     });
     // The failure is reported to whoever awaits `loading`; a load nobody awaits (started with the take) stays quiet.
     loading.catch(() => undefined);
-    created.post({ type: 'load', model: voiceModelId(size), baseUrl: MODEL_BASE_URL });
+    created.post({
+      type: 'load',
+      model: voiceModelId(model.size),
+      baseUrl: MODEL_BASE_URL,
+      device: model.device,
+      threads: model.threads,
+    });
     return loading;
   }
 
-  function transcribe(audio: Float32Array): Promise<string> {
+  /** What is spoken: the person's 'auto' choice in Settings wins, then `setLanguage`, then the interface language. */
+  function spokenLanguage(): Locale | 'auto' {
+    return deps.preference.language() === 'auto' ? 'auto' : (language ?? deps.locale());
+  }
+
+  async function transcribe(audio: Float32Array): Promise<string> {
     const current = worker;
-    if (current === undefined || !loaded) return Promise.reject(new Error('model not loaded'));
+    const model = workerModel;
+    if (current === undefined || model === undefined || !loaded) throw new Error('model not loaded');
     const id = nextJob++;
-    const result = new Promise<string>((resolve, reject) => jobs.set(id, { resolve, reject }));
-    current.post({ type: 'transcribe', id, audio, language: whisperLanguage(language ?? deps.locale()) }, [
-      audio.buffer,
-    ]);
-    return result;
+    const result = new Promise<{ text: string; ms: number }>((resolve, reject) => jobs.set(id, { resolve, reject }));
+    const audioMs = Math.round((audio.length / WHISPER_SAMPLE_RATE) * 1000);
+    current.post({ type: 'transcribe', id, audio, language: whisperLanguage(spokenLanguage()) }, [audio.buffer]);
+    const { text, ms } = await result;
+    deps.engine.recordTake({ size: model.size, backend: model.backend, audioMs, ms });
+    return text;
   }
 
   function scheduleIdleDrop(): void {
@@ -171,7 +204,9 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
     const current = deps.models.current();
     if (current === null) return;
     if (!current.enabled) return set({ state: 'unavailable', errorKey: VOICE_ERROR_KEYS.disabled });
-    const model = deps.models.statusOf(deps.preference.size());
+    const target = active();
+    if (target === undefined) return;
+    const model = deps.models.statusOf(target.size);
     if (model?.state === 'downloading')
       return set({ state: 'downloading', progress: model.bytes === 0 ? 0 : model.downloadedBytes / model.bytes });
     // While prepare() runs it decides what comes after the download.
@@ -184,17 +219,20 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
 
   const unsubscribeModels = deps.models.onChange(syncFromModels);
   const unsubscribePreference = deps.preference.onChange(syncFromModels);
+  const unsubscribeEngine = deps.engine.onChange(syncFromModels);
   // The models are shared: the status may already be known (Settings read it); either way ask the server again.
   syncFromModels();
   void deps.models.refresh();
+  if (status.state !== 'unavailable') void deps.engine.ready();
 
   async function runPrepare(): Promise<void> {
     stickyError = false;
+    const capabilities = await deps.engine.ready();
     if (deps.models.current() === null) await deps.models.refresh();
     const current = deps.models.current();
     if (current === null) return setError(VOICE_ERROR_KEYS.downloadNetwork);
     if (!current.enabled) return set({ state: 'unavailable', errorKey: VOICE_ERROR_KEYS.disabled });
-    const size = deps.preference.size();
+    const { size } = activeVoiceModel(deps.preference.size(), capabilities);
     if (deps.models.statusOf(size)?.state !== 'ready') {
       set({ state: 'downloading', progress: 0 });
       try {
@@ -259,7 +297,11 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
       return '';
     }
     if (token !== takeToken) return '';
-    if (recording.durationMs < MIN_RECORDING_MS || peakOf(recording.samples) < SILENCE_PEAK) {
+    const speech =
+      recording.durationMs < MIN_RECORDING_MS || peakOf(recording.samples) < SILENCE_PEAK
+        ? null
+        : prepareSpeech(recording.samples, WHISPER_SAMPLE_RATE);
+    if (speech === null) {
       set({ state: 'ready' });
       scheduleIdleDrop();
       return '';
@@ -276,7 +318,7 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
     if (token !== takeToken) return '';
     set({ state: 'transcribing' });
     try {
-      const text = await transcribe(recording.samples);
+      const text = await transcribe(speech);
       if (token !== takeToken) return '';
       set({ state: 'ready' });
       scheduleIdleDrop();
@@ -336,6 +378,7 @@ export function createVoiceInputCore(deps: VoiceInputDeps): VoiceInput {
       unsubscribeRecorder();
       unsubscribeModels();
       unsubscribePreference();
+      unsubscribeEngine();
       dropWorker();
       disposed = true;
       listeners.clear();

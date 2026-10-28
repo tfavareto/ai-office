@@ -309,10 +309,13 @@ What the person changed about the office, kept by `CustomizationStore` (`package
 Voice input transcribes speech in the browser with a Whisper model; the server only fetches that model once, on request,
 and serves it back to the page. It never receives audio. User-facing summary and the file lists:
 [05-privacy-and-security.md](../05-privacy-and-security.md#voice-input).
-- **Models.** `manifest.ts` pins three (`tiny` 44 MB, `base` 80 MB, `small` 252 MB; `whisper-<size>` is the id): the
-  Hugging Face repository `Xenova/whisper-<size>` at a full commit hash, seven files each (the 8-bit quantized encoder and
-  merged decoder, `config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`,
-  `tokenizer_config.json`) with exact size and SHA-256. Weights: OpenAI Whisper, MIT; the model cards say Apache-2.0.
+- **Models.** `manifest.ts` pins four, each at a full commit hash with seven files (`config.json`,
+  `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`, `tokenizer_config.json` and two ONNX files) of
+  exact size and SHA-256: `tiny` 44 MB, `base` 80 MB and `small` 252 MB from `Xenova/whisper-<size>` (8-bit quantized
+  encoder and merged decoder, for WebAssembly), and `turbo` 1.6 GB from `onnx-community/whisper-large-v3-turbo`
+  (`encoder_model_fp16.onnx` and `decoder_model_merged_q4.onnx`, for WebGPU). Ids (`voiceModelId`): `whisper-tiny`,
+  `whisper-base`, `whisper-small`, `whisper-large-v3-turbo`. Weights: OpenAI Whisper, MIT; the Xenova cards say
+  Apache-2.0, the large-v3-turbo card names its MIT base model.
 - **Source policy** (`source.ts`). URLs are built from the pin only; every request, redirects included, must be HTTPS on
   `huggingface.co` or `hf.co` (or a subdomain), without credentials or a port. Redirects are followed by hand, at most 5.
 - **Download** (`download-file.ts`, `model-store.ts`). Only after `POST /api/voice/download { size }`, never at startup.
@@ -320,7 +323,10 @@ and serves it back to the page. It never receives audio. User-facing summary and
   `.part` file with `Range`, restart if the server ignores the range, refuse a `Content-Length`/stream that does not match
   the pinned size (`size`), time out a connection that takes over 30 s to answer or goes quiet for 30 s (`timeout`),
   hash the file (SHA-256) before renaming it into place and delete it on a mismatch (`integrity`), refuse to start without
-  free disk for the model plus 10 % (`disk`), give up on a model after an hour (`timeout`). Cut transfers keep their `.part`
+  free disk for the model plus 10 % (`disk`), give up on a model after an hour, or after the time it needs at 300 kB/s
+  when that is longer (`downloadDeadlineMs`; `timeout`). Anything at a `.part` path that is not a plain file (a symbolic
+  link, a folder) is removed before writing. `remove()` blocks `start()` of the same model (answers `busy`) until the
+  folder is gone; a second `remove()` joins the first. Cut transfers keep their `.part`
   so the next try continues; a leftover of another pinned revision is wiped. Folders 0700, files 0600, `model.json`
   (marker with the revision and every hash) is written last: a model is `ready` only when it matches the pin and every
   file has the pinned size.
@@ -330,10 +336,12 @@ and serves it back to the page. It never receives audio. User-facing summary and
   `AI_OFFICE_VOICE=0`, 400 `invalid-size`); `DELETE /api/voice/model/:id` → stops the job and deletes the folder, answers
   the status (404 for an unknown id); `GET|HEAD /api/voice/model/:id/<path>` and `/api/voice/model/:id/onnx/<file>` →
   the bytes of a file of a `ready` model, with single `Range` support (`bytes=0-0` is how transformers.js learns a size)
-  and `Cache-Control: no-store`. Only the exact paths of the pin exist; anything else, `..` or `%2e` included, is 404.
-- **State dir**: `models/whisper-<size>/` (see 05-privacy-and-security).
+  and `Cache-Control: no-store`, streamed with `pipeline` (`http/file-stream.ts`) so the file is closed when the page
+  disconnects halfway. Only the exact paths of the pin exist; anything else, `..` or `%2e` included, is 404.
+- **State dir**: `models/<model id>/` (see 05-privacy-and-security).
 - **Tests**: `download-file.test.ts`, `model-store.test.ts` and `http/voice-route.test.ts` use a fake hub (a local HTTP
-  server, `voice/testkit.ts`); no test reaches the network. `manifest.test.ts` checks the pin and that the docs list the
+  server, `voice/testkit.ts`); no test reaches the network. `http/file-stream.test.ts` checks the file closes when the
+  reader goes away. `manifest.test.ts` checks the pin and that the docs list the
   same hashes.
 
 ## Day recorder

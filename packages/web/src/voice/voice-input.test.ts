@@ -1,6 +1,16 @@
-import type { Locale, VoiceModelSize, VoiceModelState, VoiceModelStatus, VoiceStatusResponse } from '@ai-office/shared';
+import {
+  VOICE_MODEL_SIZES,
+  voiceModelId,
+  type Locale,
+  type VoiceModelSize,
+  type VoiceModelState,
+  type VoiceModelStatus,
+  type VoiceStatusResponse,
+} from '@ai-office/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_RECORDING_MS, MODEL_BASE_URL, MODEL_IDLE_MS } from './constants';
+import { createVoiceEngine, type VoiceCapabilities, type VoiceEngine } from './engine';
+import type { VoiceLanguageChoice } from './preference';
 import { VoiceDownloadError, type VoiceModels } from './models';
 import { RecorderError, type Recorder, type RecorderProgress, type Recording } from './recorder';
 import type { VoiceStatus } from './types';
@@ -91,9 +101,9 @@ class FakeModels implements VoiceModels {
     size: VoiceModelSize = 'base',
     enabled = true,
   ): void {
-    const models: VoiceModelStatus[] = (['tiny', 'base', 'small'] as const).map((s) => ({
+    const models: VoiceModelStatus[] = VOICE_MODEL_SIZES.map((s) => ({
       size: s,
-      id: `whisper-${s}`,
+      id: voiceModelId(s),
       bytes: 1000,
       state: s === size ? state : 'missing',
       downloadedBytes: s === size && state === 'ready' ? 1000 : 0,
@@ -137,7 +147,18 @@ interface Rig {
   workers: FakeWorker[];
   seen: VoiceStatus[];
   size: { current: VoiceModelSize };
+  language: { current: VoiceLanguageChoice };
   locale: { current: Locale };
+  engine: VoiceEngine;
+}
+
+const CPU_ONE_THREAD: VoiceCapabilities = { webgpu: false, threads: 1 };
+
+/** An engine whose capabilities are known at once (detection is instant), as after the first check of a page. */
+function knownEngine(capabilities: VoiceCapabilities): VoiceEngine {
+  const engine = createVoiceEngine(() => Promise.resolve(capabilities));
+  const capabilitiesOf = engine.capabilities;
+  return { ...engine, capabilities: () => capabilitiesOf() ?? capabilities };
 }
 
 function rig(
@@ -145,6 +166,7 @@ function rig(
     supported?: boolean;
     behavior?: { load: 'ready' | 'manual' | 'fail'; transcribe: 'echo' | 'manual' | 'fail' };
     model?: VoiceModelState;
+    engine?: VoiceEngine;
   } = {},
 ): Rig {
   const models = new FakeModels();
@@ -152,8 +174,10 @@ function rig(
   const recorder = new FakeRecorder();
   const workers: FakeWorker[] = [];
   const size = { current: 'base' as VoiceModelSize };
+  const language = { current: 'interface' as VoiceLanguageChoice };
   const sizeListeners = new Set<() => void>();
   const locale = { current: 'pt-BR' as Locale };
+  const engine = options.engine ?? knownEngine(CPU_ONE_THREAD);
   const input = createVoiceInputCore({
     models,
     recorder,
@@ -168,17 +192,22 @@ function rig(
         size.current = next;
         for (const listener of [...sizeListeners]) listener();
       },
+      language: () => language.current,
+      setLanguage: (next) => {
+        language.current = next;
+      },
       onChange: (listener) => {
         sizeListeners.add(listener);
         return () => sizeListeners.delete(listener);
       },
     },
+    engine,
     locale: () => locale.current,
     supported: () => options.supported ?? true,
   });
   const seen: VoiceStatus[] = [];
   input.onStatus((status) => seen.push(status));
-  return { input, models, recorder, workers, seen, size, locale };
+  return { input, models, recorder, workers, seen, size, language, locale, engine };
 }
 
 /** The states in order, a state repeated with other details (progress) counted once. */
@@ -253,7 +282,9 @@ describe('prepare', () => {
 
     expect(models.downloads).toEqual(['base']);
     expect(workers).toHaveLength(1);
-    expect(workers[0]?.posted).toEqual([{ type: 'load', model: 'whisper-base', baseUrl: MODEL_BASE_URL }]);
+    expect(workers[0]?.posted).toEqual([
+      { type: 'load', model: 'whisper-base', baseUrl: MODEL_BASE_URL, device: 'wasm', threads: 1 },
+    ]);
     expect(states(seen)).toEqual(['downloading', 'loading', 'ready']);
     expect(input.status()).toEqual({ state: 'ready' });
   });
@@ -402,6 +433,42 @@ describe('recording and transcribing', () => {
     expect(await languageOfNextTake()).toBeNull();
   });
 
+  it("lets Whisper detect the language when the person chose 'auto' in Settings", async () => {
+    const { input, workers, language } = rig({ model: 'ready' });
+    input.setLanguage('pt-BR');
+    language.current = 'auto';
+
+    await input.start();
+    await input.stop();
+
+    expect((workers[0]?.posted.at(-1) as Extract<WorkerRequest, { type: 'transcribe' }>).language).toBeNull();
+  });
+
+  it('sends only the speech, without the silence around it, at a normal level', async () => {
+    const { input, recorder, workers } = rig({ model: 'ready' });
+    const speech = Float32Array.from({ length: 16_000 }, (_, i) => 0.2 * Math.sin(i / 3));
+    recorder.take = {
+      samples: Float32Array.from([...new Float32Array(32_000), ...speech, ...new Float32Array(32_000)]),
+      durationMs: 5000,
+    };
+
+    await input.start();
+    await input.stop();
+
+    const sent = (workers[0]?.posted.at(-1) as Extract<WorkerRequest, { type: 'transcribe' }>).audio;
+    expect(sent.length / 16_000).toBeCloseTo(1.6, 1);
+    expect(Math.max(...sent.map(Math.abs))).toBeCloseTo(0.9, 2);
+  });
+
+  it('remembers how long the last take took, for the speed hint', async () => {
+    const { input, engine } = rig({ model: 'ready' });
+
+    await input.start();
+    await input.stop();
+
+    expect(engine.lastTake()).toEqual({ size: 'base', backend: 'wasm', audioMs: 1000, ms: 9 });
+  });
+
   it('transcribes nothing when the take is silent or a slip of the finger', async () => {
     const { input, recorder, workers } = rig({ model: 'ready' });
     await input.prepare();
@@ -501,6 +568,66 @@ describe('recording and transcribing', () => {
 
     expect(workers[0]?.terminated).toBe(true);
     expect(workers[1]?.posted[0]).toMatchObject({ model: 'whisper-small' });
+  });
+});
+
+describe('engine', () => {
+  it('runs large-v3-turbo on the graphics card when the browser has WebGPU', async () => {
+    const { input, models, workers, size } = rig({ engine: knownEngine({ webgpu: true, threads: 4 }) });
+    size.current = 'turbo';
+    models.set('missing', {}, 'turbo');
+
+    await input.prepare();
+
+    expect(models.downloads).toEqual(['turbo']);
+    expect(workers[0]?.posted[0]).toEqual({
+      type: 'load',
+      model: 'whisper-large-v3-turbo',
+      baseUrl: MODEL_BASE_URL,
+      device: 'webgpu',
+      threads: 4,
+    });
+  });
+
+  it('uses small on the CPU, with its threads, where large-v3-turbo cannot run', async () => {
+    const { input, models, workers, size } = rig({ engine: knownEngine({ webgpu: false, threads: 3 }) });
+    size.current = 'turbo';
+    models.set('missing', {}, 'small');
+
+    await input.prepare();
+
+    expect(models.downloads).toEqual(['small']);
+    expect(workers[0]?.posted[0]).toMatchObject({ model: 'whisper-small', device: 'wasm', threads: 3 });
+  });
+
+  it('waits to know the engine before it shows a state or downloads anything', async () => {
+    let found: (capabilities: VoiceCapabilities) => void = () => undefined;
+    const engine = createVoiceEngine(() => new Promise((resolve) => (found = resolve)));
+    const { input, models, size } = rig({ engine, model: 'missing' });
+    size.current = 'turbo';
+    models.set('ready', {}, 'small');
+
+    const preparing = input.prepare();
+    await flush();
+    expect(models.downloads).toEqual([]);
+    expect(input.status().state).toBe('off');
+    found({ webgpu: false, threads: 1 });
+    await preparing;
+
+    expect(models.downloads).toEqual([]);
+    expect(input.status().state).toBe('ready');
+  });
+
+  it('moves to the graphics card when the person picks large-v3-turbo', async () => {
+    const { input, models, workers, size } = rig({ engine: knownEngine({ webgpu: true, threads: 1 }), model: 'ready' });
+    await input.prepare();
+    size.current = 'turbo';
+    models.set('ready', {}, 'turbo');
+
+    await input.start();
+
+    expect(workers[0]?.terminated).toBe(true);
+    expect(workers[1]?.posted[0]).toMatchObject({ model: 'whisper-large-v3-turbo', device: 'webgpu' });
   });
 });
 

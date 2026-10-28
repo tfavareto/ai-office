@@ -1,10 +1,14 @@
 // The Whisper models voice input can download: where from, which exact revision and the SHA-256 of every file.
 //
-// Source: the ONNX conversions used by transformers.js, published on Hugging Face by its maintainer (`Xenova/whisper-*`).
-// Weights: OpenAI Whisper (MIT license); the Hugging Face model cards list Apache-2.0. Both are permissive licenses.
-// Files: the 8-bit quantized encoder and merged decoder (what transformers.js picks for the WASM backend) and the small
-// JSON files the library reads next to them. Every revision below is a full commit hash, so the bytes cannot change
-// under us; a download is refused unless each file has exactly this size and SHA-256.
+// Source: the ONNX conversions used by transformers.js, published on Hugging Face by its maintainers (`Xenova/whisper-*`
+// and `onnx-community/whisper-large-v3-turbo`). Weights: OpenAI Whisper (MIT license); the Hugging Face model cards of
+// the Xenova conversions list Apache-2.0, the large-v3-turbo card names its base model (`openai/whisper-large-v3-turbo`,
+// MIT). All permissive licenses.
+// Files: for tiny, base and small the 8-bit quantized encoder and merged decoder (the WebAssembly backend); for
+// large-v3-turbo the 16-bit float encoder and the 4-bit merged decoder (the WebGPU backend: the encoder keeps its full
+// precision on the graphics card, the decoder, which runs once per word, is the part worth shrinking). Next to them, the
+// small JSON files the library reads. Every revision below is a full commit hash, so the bytes cannot change under us;
+// a download is refused unless each file has exactly this size and SHA-256.
 //
 // To update a model: pick the new commit, regenerate the list (size and SHA-256 of each file at that commit), change
 // this file and the tables in docs/05-privacy-and-security.md together (a test compares them).
@@ -22,7 +26,7 @@ export interface VoiceModelSpec {
   repo: string;
   /** Full commit hash the files are pinned to. */
   revision: string;
-  /** License named by the repository's model card. */
+  /** License of the weights: the one the model card names, or its base model's when the card names none. */
   license: string;
   files: readonly VoiceModelFile[];
 }
@@ -139,6 +143,44 @@ export const VOICE_MODEL_SPECS: Readonly<Record<VoiceModelSize, VoiceModelSpec>>
         path: 'onnx/decoder_model_merged_quantized.onnx',
         bytes: 156780950,
         sha256: 'fcfc6100dc7339e7507e10f8b274350be7c4f8d8b575f0293f94cc0e156d6d24',
+      },
+    ],
+  },
+  turbo: {
+    repo: 'onnx-community/whisper-large-v3-turbo',
+    revision: '360ebcde2559d60bb474678be3c1de9ef347d01a',
+    license: 'mit',
+    files: [
+      { path: 'config.json', bytes: 1332, sha256: '35cd83669f75bc2867f3b3a4461850392d5e308cd6ea951c3700539883c28df1' },
+      {
+        path: 'generation_config.json',
+        bytes: 3897,
+        sha256: '16f95291d2f47c944d3c2b19390bba7965666555c1ea2a0bdc850d1fab45612f',
+      },
+      {
+        path: 'preprocessor_config.json',
+        bytes: 340,
+        sha256: '7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711',
+      },
+      {
+        path: 'tokenizer.json',
+        bytes: 2480617,
+        sha256: '6d8cbd7cd0d8d5815e478dac67b85a26bbe77c1f5e0c6d76d1ce2abc0e5f21ca',
+      },
+      {
+        path: 'tokenizer_config.json',
+        bytes: 282843,
+        sha256: '844b642c73a91359722f47b35705f7174686df33d252695d8572cf9ac03a6389',
+      },
+      {
+        path: 'onnx/encoder_model_fp16.onnx',
+        bytes: 1274342603,
+        sha256: 'fdadc70836e6b028fd5e580417c312208dad073d2d01e509e2d127c1373399d8',
+      },
+      {
+        path: 'onnx/decoder_model_merged_q4.onnx',
+        bytes: 334147222,
+        sha256: '8b933ac24074a24a1635084d06a4ed37e387ef22d980f184a5fc27418e9ceeb8',
       },
     ],
   },

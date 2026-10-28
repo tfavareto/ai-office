@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { VoiceModelSize } from '@ai-office/shared';
+import { VOICE_MODEL_SIZES, voiceModelId, type VoiceModelSize } from '@ai-office/shared';
 import type { VoiceModelSpec } from './manifest';
 import type { VoiceSource } from './source';
 
@@ -106,9 +106,7 @@ export function fakeModels(): {
   specs: Record<VoiceModelSize, VoiceModelSpec>;
   served: Map<string, Buffer>;
 } {
-  const models = (['tiny', 'base', 'small'] as const).map(
-    (size) => [size, fakeModel(`test/whisper-${size}`, size)] as const,
-  );
+  const models = VOICE_MODEL_SIZES.map((size) => [size, fakeModel(`test/${voiceModelId(size)}`, size)] as const);
   return {
     specs: Object.fromEntries(models.map(([size, model]) => [size, model.spec])) as Record<
       VoiceModelSize,

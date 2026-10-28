@@ -100,9 +100,14 @@ describe('micView', () => {
 });
 
 describe('helpers', () => {
-  it('names a size in megabytes, at least one', () => {
+  it('names a size in megabytes, at least one, and in gigabytes from one up', () => {
+    setLocale('en');
+
     expect(formatMegabytes(251_875_316)).toBe('252 MB');
     expect(formatMegabytes(200)).toBe('1 MB');
+    expect(formatMegabytes(1_611_258_854)).toBe('1.6 GB');
+    setLocale('pt-BR');
+    expect(formatMegabytes(1_611_258_854)).toBe('1,6 GB');
   });
 
   it('turns an error key into a sentence, with a fallback for unknown keys', () => {

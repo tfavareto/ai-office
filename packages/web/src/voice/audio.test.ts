@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { concatBlocks, levelOf, mixToMono, peakOf, resample } from './audio';
+import { concatBlocks, levelOf, mixToMono, normalizeGain, peakOf, prepareSpeech, resample, trimSilence } from './audio';
 
 const sine = (frequency: number, rate: number, seconds: number, amplitude = 1): Float32Array =>
   Float32Array.from(
@@ -148,5 +148,75 @@ describe('peakOf and levelOf', () => {
     expect(quiet).toBeLessThan(medium);
     expect(medium).toBeLessThan(loud);
     expect(loud).toBeLessThanOrEqual(1);
+  });
+});
+
+const RATE = 16_000;
+/** Noise of a quiet room (deterministic): about -60 dBFS. */
+const hiss = (seconds: number): Float32Array =>
+  Float32Array.from(
+    { length: Math.round(RATE * seconds) },
+    (_, i) => 0.001 * Math.sin(i * 12.9898) * Math.cos(i * 78.233),
+  );
+const join = (...parts: Float32Array[]): Float32Array => concatBlocks(parts);
+
+describe('trimSilence', () => {
+  it('drops the silence before and after the speech, keeping 300 ms around it', () => {
+    const take = join(hiss(1.5), sine(220, RATE, 1, 0.3), hiss(2));
+
+    const speech = trimSilence(take, RATE);
+
+    expect(speech).not.toBeNull();
+    expect((speech?.length ?? 0) / RATE).toBeCloseTo(1.6, 1);
+    expect(take.length / RATE).toBeCloseTo(4.5, 5);
+  });
+
+  it('keeps a take that is speech from end to end', () => {
+    const take = join(sine(220, RATE, 1, 0.3), sine(330, RATE, 1, 0.05), sine(220, RATE, 1, 0.3));
+
+    expect(trimSilence(take, RATE)?.length).toBe(take.length);
+  });
+
+  it('keeps quiet words between loud ones', () => {
+    const take = join(hiss(1), sine(220, RATE, 0.5, 0.4), hiss(0.5), sine(220, RATE, 0.5, 0.05), hiss(1));
+
+    const speech = trimSilence(take, RATE);
+
+    expect((speech?.length ?? 0) / RATE).toBeCloseTo(2.1, 1);
+  });
+
+  it('finds no speech in a silent room', () => {
+    expect(trimSilence(hiss(3), RATE)).toBeNull();
+    expect(trimSilence(new Float32Array(RATE), RATE)).toBeNull();
+  });
+});
+
+describe('normalizeGain', () => {
+  it('brings a quiet take up to a peak of 0.9, in a new array', () => {
+    const quiet = sine(220, RATE, 0.5, 0.2);
+
+    const louder = normalizeGain(quiet);
+
+    expect(peakOf(louder)).toBeCloseTo(0.9, 3);
+    expect(peakOf(quiet)).toBeCloseTo(0.2, 3);
+  });
+
+  it('amplifies at most 8 times, and leaves silence alone', () => {
+    expect(peakOf(normalizeGain(sine(220, RATE, 0.5, 0.01)))).toBeCloseTo(0.08, 3);
+    expect(Array.from(normalizeGain(new Float32Array(4)))).toEqual([0, 0, 0, 0]);
+  });
+
+  it('brings a take that is too loud down to 0.9', () => {
+    expect(peakOf(normalizeGain(sine(220, RATE, 0.5, 1)))).toBeCloseTo(0.9, 3);
+  });
+});
+
+describe('prepareSpeech', () => {
+  it('trims and normalizes the speech, or says there is none', () => {
+    const speech = prepareSpeech(join(hiss(1), sine(220, RATE, 1, 0.3), hiss(1)), RATE);
+
+    expect(peakOf(speech ?? new Float32Array())).toBeCloseTo(0.9, 3);
+    expect((speech?.length ?? 0) / RATE).toBeCloseTo(1.6, 1);
+    expect(prepareSpeech(hiss(2), RATE)).toBeNull();
   });
 });
