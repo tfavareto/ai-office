@@ -11,9 +11,29 @@ function memory(initial: Record<string, string> = {}): StorageLike & { data: Rec
 }
 
 describe('voice size preference', () => {
-  it('defaults to base', () => {
-    expect(createVoicePreference(memory()).size()).toBe('base');
-    expect(createVoicePreference(null).size()).toBe('base');
+  it('defaults to the most accurate model, in the language of the interface', () => {
+    expect(createVoicePreference(memory()).size()).toBe('turbo');
+    expect(createVoicePreference(null).size()).toBe('turbo');
+    expect(createVoicePreference(null).language()).toBe('interface');
+  });
+
+  it('keeps the size someone picked before the large model existed', () => {
+    expect(createVoicePreference(memory({ [VOICE_PREF_KEY]: '{"size":"base"}' })).size()).toBe('base');
+  });
+
+  it('remembers the language choice next to the size', () => {
+    const storage = memory();
+    const pref = createVoicePreference(storage);
+    const listener = vi.fn();
+    pref.onChange(listener);
+
+    pref.setLanguage('auto');
+    pref.setLanguage('auto');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(storage.data[VOICE_PREF_KEY] ?? '{}')).toEqual({ size: 'turbo', language: 'auto' });
+    expect(createVoicePreference(storage).language()).toBe('auto');
+    expect(createVoicePreference(memory({ [VOICE_PREF_KEY]: '{"language":"klingon"}' })).language()).toBe('interface');
   });
 
   it('remembers the choice across page loads and tells listeners', () => {
@@ -32,7 +52,7 @@ describe('voice size preference', () => {
   it.each([[''], ['not json'], ['{"size":"huge"}'], ['null'], ['[1]'], ['{"size":3}']])(
     'falls back to the default for %j',
     (stored) => {
-      expect(readVoiceSize(memory({ [VOICE_PREF_KEY]: stored }))).toBe('base');
+      expect(readVoiceSize(memory({ [VOICE_PREF_KEY]: stored }))).toBe('turbo');
     },
   );
 

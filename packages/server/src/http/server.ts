@@ -30,6 +30,12 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
+  // Cross-origin isolation: no other site's window keeps a handle on this page (COOP), and the page only loads what is
+  // its own or explicitly shared (COEP, CORP). It is also what lets the speech model use several CPU threads
+  // (SharedArrayBuffer is only given to isolated pages).
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
 };
 
 /** A request must arrive completely within these limits (they do not apply to long-lived responses such as SSE). */

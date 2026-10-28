@@ -1,5 +1,5 @@
 // Dev harness: the voice input and the mic button over a text field, against a running AI Office server (vite proxies /api).
-// Query: ?lang=pt-BR|en|es (the interface language), ?size=tiny|base|small (the model size to use).
+// Query: ?lang=pt-BR|en|es (the interface language), ?size=tiny|base|small|turbo (the model to use).
 // `window.voice` and `window.recorder` expose the engine and the bare recorder for scripted checks.
 import '../src/styles/index.css';
 import { LOCALES, isVoiceModelSize, type Locale } from '@ai-office/shared';

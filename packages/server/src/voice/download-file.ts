@@ -2,7 +2,7 @@
 // source's allowlist, and the SHA-256 verified before the file takes its final name.
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { chmod, rename, rm, stat } from 'node:fs/promises';
+import { chmod, lstat, rename, rm } from 'node:fs/promises';
 import { Readable, Transform, type TransformCallback } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
@@ -42,13 +42,20 @@ export interface DownloadFileOptions {
   idleTimeoutMs?: number;
 }
 
-async function sizeOf(path: string): Promise<number> {
+/**
+ * Bytes of the partial file. Anything at that path that is not a plain file (a symbolic link, a folder) is removed
+ * first, so the download never writes through a link into a file elsewhere.
+ */
+async function partialSize(path: string): Promise<number> {
+  let info;
   try {
-    const info = await stat(path);
-    return info.isFile() ? info.size : 0;
+    info = await lstat(path);
   } catch {
     return 0;
   }
+  if (info.isFile()) return info.size;
+  await rm(path, { recursive: true, force: true });
+  return 0;
 }
 
 /** Counts the bytes that pass, refuses more than `limit` and restarts an idle timer on every chunk. */
@@ -174,7 +181,7 @@ async function transfer(options: DownloadFileOptions, resumeFrom: number): Promi
  * then renames it. A file with the wrong hash is deleted, never kept.
  */
 export async function downloadVerifiedFile(options: DownloadFileOptions): Promise<void> {
-  let have = await sizeOf(options.partPath);
+  let have = await partialSize(options.partPath);
   if (have > options.bytes) {
     await rm(options.partPath, { force: true });
     have = 0;

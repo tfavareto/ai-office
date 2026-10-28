@@ -1,10 +1,10 @@
 // Local voice input (local access only): the status of the Whisper models, their one-time download, their removal and the
 // files of a downloaded model, which the page loads into its own worker. Audio never reaches the server.
-import { createReadStream } from 'node:fs';
 import { extname } from 'node:path';
 import { API, isVoiceModelSize, parseVoiceModelId } from '@ai-office/shared';
 import { asRecord } from '../../util/fs-safe';
 import type { AppContext } from '../context';
+import { streamFile } from '../file-stream';
 import { HttpError, readJsonBody, sendError, sendJson } from '../respond';
 import type { RequestContext, Router } from '../router';
 
@@ -75,9 +75,7 @@ export function registerVoiceRoutes(router: Router, app: AppContext): void {
       'Cache-Control': 'no-store',
     });
     if (req.method === 'HEAD') return void res.end();
-    createReadStream(file.path, part)
-      .on('error', () => res.destroy())
-      .pipe(res);
+    streamFile(res, file.path, part);
   };
   for (const method of ['GET', 'HEAD']) {
     router.add(method, `${MODEL_ROUTE}/:id/:file`, serve);

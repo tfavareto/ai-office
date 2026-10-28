@@ -49,12 +49,15 @@ page, page decisions go back to the hooks.
 - Every response (static and API): `Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval';
   img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self';
   frame-ancestors 'none'`, `X-Frame-Options: DENY`,
-  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`. Note `connect-src 'self'` blocks `fetch`/XHR of
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and cross-origin isolation:
+  `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`,
+  `Cross-Origin-Resource-Policy: same-origin` (every asset is same-origin; isolation is also what gives the speech model
+  `SharedArrayBuffer`, so WebAssembly threads). Note `connect-src 'self'` blocks `fetch`/XHR of
   `blob:` and `data:` URLs: load assets from same-origin files and build textures on canvases (`CanvasTexture`; `<img>`
   with data:/blob: is fine). `script-src` exists for one reason: the speech model of voice input (transformers.js with
   ONNX Runtime Web) needs the browser to compile WebAssembly, and `'wasm-unsafe-eval'` is exactly that permission (it
-  does not allow `eval`, `new Function` or inline scripts). Nothing broader may be added; `security.test.ts` pins the
-  policy. See 02-server (Voice models) and 04-ui (Voice input).
+  does not allow `eval`, `new Function` or inline scripts). WebGPU and threads need no other source. Nothing broader may
+  be added; `security.test.ts` pins the policy and the isolation headers. See 02-server (Voice models) and 04-ui (Voice input).
 - Limits: request 30 s and headers 15 s (they bound receiving a request, not SSE or long-poll responses); at most 20
   SSE streams (503 `too-many-streams` beyond); transcript entries keep at most 4 KB of text, a cached view at most
   ~8 MB, and `/api/transcript` pages carry at most 500 entries.

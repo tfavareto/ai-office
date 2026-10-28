@@ -1,19 +1,27 @@
 // Local voice input: the Whisper models the server can download once (never automatically) and what the page may ask
 // about them. The audio itself never reaches the server: the browser transcribes it on this computer.
 
-export const VOICE_MODEL_SIZES = ['tiny', 'base', 'small'] as const;
+/** From the lightest to the most accurate. `turbo` is Whisper large-v3-turbo, which runs on the graphics card (WebGPU). */
+export const VOICE_MODEL_SIZES = ['tiny', 'base', 'small', 'turbo'] as const;
 export type VoiceModelSize = (typeof VOICE_MODEL_SIZES)[number];
 
-/** Good for Portuguese, Spanish and English at a size most computers handle. */
-export const DEFAULT_VOICE_MODEL_SIZE: VoiceModelSize = 'base';
+/** The most accurate model; a browser without WebGPU uses `small` in its place (the page decides). */
+export const DEFAULT_VOICE_MODEL_SIZE: VoiceModelSize = 'turbo';
+
+const MODEL_IDS: Readonly<Record<VoiceModelSize, string>> = {
+  tiny: 'whisper-tiny',
+  base: 'whisper-base',
+  small: 'whisper-small',
+  turbo: 'whisper-large-v3-turbo',
+};
 
 export function isVoiceModelSize(value: unknown): value is VoiceModelSize {
   return typeof value === 'string' && (VOICE_MODEL_SIZES as readonly string[]).includes(value);
 }
 
-/** Name of a model folder, and the id the page loads it by: `whisper-base`. */
+/** Name of a model folder, and the id the page loads it by: `whisper-base`, `whisper-large-v3-turbo`. */
 export function voiceModelId(size: VoiceModelSize): string {
-  return `whisper-${size}`;
+  return MODEL_IDS[size];
 }
 
 /** The size behind a model id, or undefined when it is not one of ours. */

@@ -75,7 +75,9 @@ describe('recorder', () => {
     mic.push(seconds(0.5));
     const recording = await recorder.stop();
 
-    expect(mic.constraints[0]).toEqual({ audio: { channelCount: 1 } });
+    expect(mic.constraints[0]).toEqual({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
+    });
     expect(recording.samples.length).toBe(16_000);
     expect(recording.durationMs).toBe(1000);
     expect(recording.samples[100]).toBeCloseTo(0.5, 6);

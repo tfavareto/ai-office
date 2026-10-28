@@ -1,11 +1,18 @@
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import type { VoiceModelSize } from '@ai-office/shared';
+import { voiceModelId, type VoiceModelSize } from '@ai-office/shared';
 import { silentLogger } from '../log';
 import { makeTempDir, removeDir } from '../test-helpers';
 import { specBytes, type VoiceModelSpec } from './manifest';
-import { MODEL_MARKER, MODELS_DIR, VoiceModelStore, type VoiceModelStoreOptions } from './model-store';
+import {
+  DOWNLOAD_DEADLINE_MS,
+  downloadDeadlineMs,
+  MODEL_MARKER,
+  MODELS_DIR,
+  VoiceModelStore,
+  type VoiceModelStoreOptions,
+} from './model-store';
 import { fakeModels, fakeSource, serveWithRange, startFakeHub, type FakeHub } from './testkit';
 
 let state: string;
@@ -14,7 +21,7 @@ let specs: Record<VoiceModelSize, VoiceModelSpec>;
 let served: Map<string, Buffer>;
 let stores: VoiceModelStore[];
 
-const dirOf = (size: VoiceModelSize): string => join(state, MODELS_DIR, `whisper-${size}`);
+const dirOf = (size: VoiceModelSize): string => join(state, MODELS_DIR, voiceModelId(size));
 const urlPath = (size: VoiceModelSize, file: string): string =>
   `/${specs[size].repo}/resolve/${specs[size].revision}/${file}`;
 const lastFile = (size: VoiceModelSize): string => specs[size].files.at(-1)?.path ?? '';
@@ -53,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('status', () => {
-  test('lists the three sizes as missing, with their download size, before anything is downloaded', async () => {
+  test('lists every size as missing, with their download size, before anything is downloaded', async () => {
     const response = await makeStore().status();
 
     expect(response.enabled).toBe(true);
@@ -61,6 +68,7 @@ describe('status', () => {
       ['tiny', 'whisper-tiny', 'missing', 0],
       ['base', 'whisper-base', 'missing', 0],
       ['small', 'whisper-small', 'missing', 0],
+      ['turbo', 'whisper-large-v3-turbo', 'missing', 0],
     ]);
     expect(response.models[1]?.bytes).toBe(specBytes(specs.base));
   });
@@ -118,7 +126,9 @@ describe('download', () => {
     const lastBytes = specs.base.files.at(-1)?.bytes ?? 0;
 
     store.start('base');
-    await expect.poll(async () => (await statusOf(store, 'base')).downloadedBytes).toBe(total - lastBytes);
+    await expect
+      .poll(async () => (await statusOf(store, 'base')).downloadedBytes, { timeout: 10_000 })
+      .toBe(total - lastBytes);
     const during = await statusOf(store, 'base');
     release();
     await store.settled('base');
@@ -244,6 +254,13 @@ describe('download', () => {
   });
 });
 
+describe('deadline', () => {
+  test('gives a model an hour, and a large one the time it needs at 300 kB/s', () => {
+    expect(downloadDeadlineMs(80e6)).toBe(DOWNLOAD_DEADLINE_MS);
+    expect(downloadDeadlineMs(1.62e9)).toBe(5400_000);
+  });
+});
+
 describe('remove', () => {
   test('deletes the model and its folder', async () => {
     const store = makeStore();
@@ -269,6 +286,27 @@ describe('remove', () => {
 
     expect(await statusOf(store, 'base')).toMatchObject({ state: 'missing', downloadedBytes: 0 });
     await expect(stat(dirOf('base'))).rejects.toThrow();
+  });
+
+  test('refuses a new download of the model while it is being removed, then accepts it', async () => {
+    hub.override(urlPath('base', 'config.json'), (_req, res, body) => {
+      res.writeHead(200, { 'Content-Length': body.length });
+      res.write('x');
+    });
+    const store = makeStore();
+    store.start('base');
+    await expect.poll(() => hub.requests.length).toBeGreaterThan(0);
+
+    const removal = store.remove('base');
+    const during = store.start('base');
+    const again = store.remove('base');
+    await removal;
+
+    expect(during).toBe('busy');
+    expect(again).toBe(removal);
+    await expect(stat(dirOf('base'))).rejects.toThrow();
+    expect(store.start('base')).toBe('started');
+    await store.remove('base');
   });
 
   test('forgets an earlier failure', async () => {

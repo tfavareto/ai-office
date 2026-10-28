@@ -3,9 +3,19 @@
 /** Whisper's language codes for the app's languages; null lets the model detect the language. */
 export type WhisperLanguage = 'pt' | 'en' | 'es';
 
+/** Where the model runs: the graphics card, or the CPU (with `threads` WebAssembly threads). */
+export type WhisperDevice = 'webgpu' | 'wasm';
+
+export interface LoadRequest {
+  type: 'load';
+  model: string;
+  baseUrl: string;
+  device: WhisperDevice;
+  threads: number;
+}
+
 export type WorkerRequest =
-  | { type: 'load'; model: string; baseUrl: string }
-  | { type: 'transcribe'; id: number; audio: Float32Array; language: WhisperLanguage | null };
+  LoadRequest | { type: 'transcribe'; id: number; audio: Float32Array; language: WhisperLanguage | null };
 
 export type WorkerErrorCode = 'load' | 'transcribe';
 

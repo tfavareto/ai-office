@@ -4,6 +4,7 @@ import { onLocaleChange, t } from '../i18n';
 import { h, setAttr, setText, toggleClass } from '../ui/dom';
 import { icon, type IconName } from '../ui/icons';
 import { micView, type MicView } from './mic-view';
+import { activeVoiceModel, type VoiceEngine } from './engine';
 import type { VoiceModels } from './models';
 import type { VoicePreference } from './preference';
 import type { VoiceInput } from './types';
@@ -12,6 +13,8 @@ export interface MicButtonOptions {
   input: VoiceInput;
   models: VoiceModels;
   preference: VoicePreference;
+  /** Where the model runs: decides which model a download means (large-v3-turbo, or small without WebGPU). */
+  engine: VoiceEngine;
   /** Receives the transcribed text (never empty). The person reviews it before anything is sent. */
   onText: (text: string) => void;
   className?: string;
@@ -27,7 +30,7 @@ const ICON_SIZE = 18;
 const LABELLED_KINDS: ReadonlySet<MicView['kind']> = new Set(['download', 'error']);
 
 export function createMicButton(options: MicButtonOptions): MicButton {
-  const { input, models, preference } = options;
+  const { input, models, preference, engine } = options;
   let currentIcon: IconName | undefined;
   let lastKind: MicView['kind'] | undefined;
   let note: string | undefined;
@@ -59,7 +62,9 @@ export function createMicButton(options: MicButtonOptions): MicButton {
   }
 
   function render(): void {
-    view = micView(input.status(), models.statusOf(preference.size())?.bytes);
+    const capabilities = engine.capabilities();
+    const size = capabilities === undefined ? undefined : activeVoiceModel(preference.size(), capabilities).size;
+    view = micView(input.status(), size === undefined ? undefined : models.statusOf(size)?.bytes);
     if (view.kind !== 'record') clearNote();
     el.dataset.kind = view.kind;
     if (currentIcon !== view.icon) {
@@ -122,6 +127,7 @@ export function createMicButton(options: MicButtonOptions): MicButton {
     input.onStatus(render),
     models.onChange(render),
     preference.onChange(render),
+    engine.onChange(render),
     // Texts are written when the control is built: a new language needs them again.
     onLocaleChange(render),
   ];

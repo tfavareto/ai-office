@@ -1,6 +1,6 @@
 // What the Whisper worker does with its messages, apart from the worker plumbing: load a model, transcribe audio.
 // `runtime` is transformers.js in the real worker and a fake in tests.
-import type { WhisperLanguage, WorkerRequest, WorkerResponse } from './protocol';
+import type { LoadRequest, WhisperDevice, WhisperLanguage, WorkerRequest, WorkerResponse } from './protocol';
 
 /** Audio longer than one Whisper window is cut into overlapping windows of this length. */
 const CHUNK_SECONDS = 30;
@@ -8,11 +8,23 @@ const STRIDE_SECONDS = 5;
 const SAMPLE_RATE = 16_000;
 /**
  * A cap on the words the model may write per window, so a take it cannot make sense of ends in seconds instead of
- * looping to Whisper's limit: a generous 8 tokens per second of audio (speech is 3 to 5), at least 32.
+ * looping to Whisper's limit: 10 tokens per second of audio (fast Portuguese with code words is about 6), at least 48
+ * (a short command full of names), at most 440 (Whisper writes 448 tokens per window, its prompt included).
  */
-const TOKENS_PER_SECOND = 8;
-const MIN_NEW_TOKENS = 32;
+const TOKENS_PER_SECOND = 10;
+const MIN_NEW_TOKENS = 48;
 const MAX_NEW_TOKENS = 440;
+
+/** The ONNX precision per part of the model: what the pinned files are (see the server's manifest). */
+export type WhisperDtype = 'q8' | { encoder_model: 'fp16'; decoder_model_merged: 'q4' };
+
+/**
+ * On the graphics card (large-v3-turbo) the encoder runs in 16-bit floats, its full precision, and the decoder in 4-bit
+ * weights; on the CPU (tiny, base, small) both are 8-bit.
+ */
+export function dtypeFor(device: WhisperDevice): WhisperDtype {
+  return device === 'webgpu' ? { encoder_model: 'fp16', decoder_model_merged: 'q4' } : 'q8';
+}
 
 export interface Transcriber {
   (audio: Float32Array, options: Record<string, unknown>): Promise<{ text: string } | { text: string }[]>;
@@ -20,8 +32,8 @@ export interface Transcriber {
 }
 
 export interface WhisperRuntime {
-  /** Loads the model from `baseUrl` (this server) and reports 0..1 as its files arrive. */
-  load(model: string, baseUrl: string, onProgress: (progress: number) => void): Promise<Transcriber>;
+  /** Loads the model from `request.baseUrl` (this server) on its device and reports 0..1 as its files arrive. */
+  load(request: LoadRequest, dtype: WhisperDtype, onProgress: (progress: number) => void): Promise<Transcriber>;
 }
 
 function textOf(output: { text: string } | { text: string }[]): string {
@@ -53,10 +65,10 @@ export function createWhisperHandler(
   let transcriber: Transcriber | undefined;
   let loading: Promise<Transcriber> | undefined;
 
-  async function load(model: string, baseUrl: string): Promise<void> {
+  async function load(request: LoadRequest): Promise<void> {
     const started = now();
     try {
-      loading ??= runtime.load(model, baseUrl, (progress) => post({ type: 'progress', progress }));
+      loading ??= runtime.load(request, dtypeFor(request.device), (progress) => post({ type: 'progress', progress }));
       transcriber = await loading;
       post({ type: 'ready', loadMs: Math.round(now() - started) });
     } catch {
@@ -77,7 +89,5 @@ export function createWhisperHandler(
   }
 
   return (message) =>
-    message.type === 'load'
-      ? load(message.model, message.baseUrl)
-      : transcribe(message.id, message.audio, message.language);
+    message.type === 'load' ? load(message) : transcribe(message.id, message.audio, message.language);
 }
