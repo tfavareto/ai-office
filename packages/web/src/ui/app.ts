@@ -26,7 +26,10 @@ import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
 import type { Store } from '../net/store';
-import { toWorldOptions, type PrefsStore } from '../prefs/prefs';
+import { toWorldOptions, type PrefsStore, type ViewMode } from '../prefs/prefs';
+import { EMPTY_MEMORY } from '../pro/model/scene';
+import { ProView, type ProSession } from '../pro/ui/pro-view';
+import type { VoiceInput } from '../voice/types';
 import type { Selection } from '../world/api';
 import { notifyPermission, showBrowserNotification } from './browser-notify';
 import { AchievementsDialog } from './components/achievements-dialog';
@@ -138,12 +141,17 @@ export class App implements AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+  /** What the Pro view keeps across a language change (it rebuilds its panels). */
+  private readonly proSession: ProSession = { camera: null, memory: EMPTY_MEMORY };
+  private voiceInput: VoiceInput | null | undefined;
+  private appliedPro: boolean | null = null;
   private seen: Seen | null = loadSeen();
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
   private sidebar!: Sidebar;
   private terminal!: TerminalPanel;
+  private proView!: ProView;
   private hoverTip!: HoverTip;
   private readonly worldContainer: HTMLElement;
   private readonly scrim = h('div', { class: 'ao-scrim ao-panel-scrim' });
@@ -174,6 +182,7 @@ export class App implements AppContext {
     readonly prefs: PrefsStore,
     readonly world: WorldHost,
     worldContainer: HTMLElement,
+    private readonly options: { createVoice?: () => VoiceInput } = {},
   ) {
     this.root = host;
     this.worldContainer = worldContainer;
@@ -240,6 +249,7 @@ export class App implements AppContext {
     for (const component of this.components) component.dispose?.();
     this.sidebar = new Sidebar(this);
     this.terminal = new TerminalPanel(this);
+    this.proView = new ProView(this, this.proSession);
     this.hoverTip = new HoverTip(this);
     const topbar = new TopBar(this);
     const drawer = new Drawer(this);
@@ -274,6 +284,7 @@ export class App implements AppContext {
       this.sidebar,
       drawer,
       this.terminal,
+      this.proView,
       feed,
       replayBar,
       replayBadge,
@@ -288,6 +299,7 @@ export class App implements AppContext {
     for (const child of Array.from(this.root.children)) if (child !== this.worldContainer) child.remove();
     if (this.worldContainer.parentElement !== this.root) this.root.prepend(this.worldContainer);
     this.root.append(
+      this.proView.el,
       topbar.el,
       banner.el,
       this.sidebar.el,
@@ -373,6 +385,38 @@ export class App implements AppContext {
   project(id: string): Project | undefined {
     if (isTeamId(id)) return this.teamOverlay.projects.find((project) => project.id === id);
     return this.snapshot?.projects.find((project) => project.id === id);
+  }
+
+  // --- AppContext: the view -------------------------------------------------------------------------------------------
+
+  get viewMode(): ViewMode {
+    return this.replay.engaged ? 'basic' : this.prefs.get().viewMode;
+  }
+
+  setViewMode(mode: ViewMode): void {
+    if (this.prefs.get().viewMode === mode) return;
+    this.prefs.set({ viewMode: mode });
+    this.announce(t(mode === 'pro' ? 'announce.view.pro' : 'announce.view.basic'));
+  }
+
+  fitView(): void {
+    if (this.viewMode === 'pro') this.proView.fitAll();
+    else this.world.overview();
+  }
+
+  zoomView(factor: number): void {
+    if (this.viewMode === 'pro') this.proView.zoomBy(factor);
+    else this.world.zoomBy(factor);
+  }
+
+  /** Numbers about the Pro canvas for `window.aiOffice.debug()`. */
+  proDebug(): { zoom: number; nodes: number; live: number } {
+    return this.proView.debug;
+  }
+
+  get voice(): VoiceInput | null {
+    if (this.voiceInput === undefined) this.voiceInput = this.options.createVoice?.() ?? null;
+    return this.voiceInput;
   }
 
   // --- AppContext: the team -------------------------------------------------------------------------------------------
@@ -948,6 +992,7 @@ export class App implements AppContext {
       feedOpen: ui.feedOpen,
       narrow: ui.narrow,
       replay: this.replay.engaged,
+      pro: this.viewMode === 'pro',
     });
   }
 
@@ -979,6 +1024,12 @@ export class App implements AppContext {
     toggleClass(this.root, 'has-terminal', ui.terminal !== null);
     toggleClass(this.root, 'feed-open', ui.feedOpen);
     toggleClass(this.root, 'is-replay', this.replay.engaged);
+    const pro = this.viewMode === 'pro';
+    toggleClass(this.root, 'is-pro', pro);
+    if (pro !== this.appliedPro) {
+      this.appliedPro = pro;
+      this.world.setPaused(pro);
+    }
     toggleClass(this.scrim, 'is-open', ui.narrow && (ui.sidebarOpen || ui.selection !== null));
 
     for (const component of this.components) component.render();
@@ -1054,7 +1105,8 @@ export class App implements AppContext {
         requestAnimationFrame(() => this.sidebar.focusSearch());
         return;
       case 'follow':
-        this.toggleFollow();
+        if (this.viewMode === 'pro') this.proView.focusOrchestrator();
+        else this.toggleFollow();
         return;
       case 'terminal':
         this.toggleTerminalShortcut();
@@ -1084,7 +1136,10 @@ export class App implements AppContext {
         this.openDialog('board');
         return;
       case 'overview':
-        this.world.overview();
+        this.fitView();
+        return;
+      case 'viewMode':
+        this.setViewMode(this.viewMode === 'pro' ? 'basic' : 'pro');
         return;
       case 'sidebar':
         this.ui.set({ sidebarOpen: !ui.sidebarOpen });
@@ -1121,6 +1176,10 @@ export class App implements AppContext {
   }
 
   private messageShortcut(): void {
+    if (this.viewMode === 'pro') {
+      this.proView.focusPrompt();
+      return;
+    }
     const ui = this.ui.get();
     if (!ui.selection) {
       this.announce(t('announce.message.select'));
@@ -1147,7 +1206,7 @@ export class App implements AppContext {
   /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, the activity feed, then the selection. */
   private escape(): void {
     const ui = this.ui.get();
-    if (this.terminal.handleEscape()) return;
+    if (this.terminal.handleEscape() || this.proView.handleEscape()) return;
     if (ui.dialog) this.closeDialog();
     else if (ui.popover) this.closePopover();
     else if (ui.terminal) this.closeTerminal();

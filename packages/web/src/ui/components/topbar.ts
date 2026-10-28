@@ -10,7 +10,8 @@ import { computeCounters, type Counters } from '../model/counters';
 import type { InboxCounts } from '../model/inbox';
 import { unreadCount } from '../model/notifications';
 import type { PopoverId } from '../state';
-import { iconButton, setPressed } from '../widgets';
+import { createSegmented, iconButton, setPressed, type Segmented } from '../widgets';
+import type { ViewMode } from '../../prefs/prefs';
 import { UsageCards } from './usage-cards';
 
 interface CounterDef {
@@ -64,6 +65,7 @@ export class TopBar implements Component {
   private readonly progressBtn: HTMLButtonElement;
   private readonly progressLevel: HTMLElement;
   private readonly helpBtn: HTMLButtonElement;
+  private readonly viewSwitch: Segmented<ViewMode>;
 
   constructor(private readonly ctx: AppContext) {
     this.sidebarBtn = iconButton({
@@ -78,6 +80,16 @@ export class TopBar implements Component {
       h('span', { class: 'ao-pill-dot' }),
       this.pillText,
     );
+    this.viewSwitch = createSegmented<ViewMode>(
+      t('topbar.view'),
+      [
+        { value: 'basic', label: t('topbar.view.basic') },
+        { value: 'pro', label: t('topbar.view.pro') },
+      ],
+      (mode) => ctx.setViewMode(mode),
+    );
+    this.viewSwitch.el.classList.add('ao-view-switch');
+    this.viewSwitch.el.title = t('topbar.view.hint');
     this.counters = COUNTERS.map((def) => this.createCounter(def));
     this.usage = new UsageCards(ctx);
 
@@ -128,7 +140,14 @@ export class TopBar implements Component {
     });
 
     this.el.append(
-      h('div', { class: 'ao-topbar-group ao-topbar-left' }, this.sidebarBtn, this.brand(), this.pill),
+      h(
+        'div',
+        { class: 'ao-topbar-group ao-topbar-left' },
+        this.sidebarBtn,
+        this.brand(),
+        this.pill,
+        this.viewSwitch.el,
+      ),
       h(
         'div',
         { class: 'ao-topbar-group ao-topbar-center' },
@@ -138,9 +157,9 @@ export class TopBar implements Component {
       h(
         'div',
         { class: 'ao-topbar-group ao-topbar-right' },
-        iconButton({ icon: 'fit', label: t('topbar.overview'), onClick: () => ctx.world.overview() }),
-        iconButton({ icon: 'zoomOut', label: t('topbar.zoomOut'), onClick: () => ctx.world.zoomBy(1 / 1.25) }),
-        iconButton({ icon: 'zoomIn', label: t('topbar.zoomIn'), onClick: () => ctx.world.zoomBy(1.25) }),
+        iconButton({ icon: 'fit', label: t('topbar.overview'), onClick: () => ctx.fitView() }),
+        iconButton({ icon: 'zoomOut', label: t('topbar.zoomOut'), onClick: () => ctx.zoomView(1 / 1.25) }),
+        iconButton({ icon: 'zoomIn', label: t('topbar.zoomIn'), onClick: () => ctx.zoomView(1.25) }),
         this.cameraBtn,
         h('span', { class: 'ao-topbar-sep', 'aria-hidden': 'true' }),
         this.bellBtn,
@@ -321,8 +340,9 @@ export class TopBar implements Component {
       unread > 0 ? t('topbar.notifications.unread', { n: unread }) : t('topbar.notifications'),
     );
 
+    this.viewSwitch.set(this.ctx.viewMode);
     const modes = this.ctx.world.cameraModes();
-    this.cameraBtn.hidden = modes.length < 2;
+    this.cameraBtn.hidden = modes.length < 2 || this.ctx.viewMode === 'pro';
     if (modes.length >= 2) setText(this.cameraLabel, t(CAMERA_LABEL[this.ctx.world.cameraMode()]));
   }
 }

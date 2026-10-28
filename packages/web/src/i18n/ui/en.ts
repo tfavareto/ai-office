@@ -1,7 +1,9 @@
+import { proEn } from './pro-en';
 import type { UiKey } from './pt-BR';
 
 // English (US) ui texts.
 export const uiEn: Readonly<Record<UiKey, string>> = {
+  ...proEn,
   // App and common
   'app.description': 'AI Office: a live office where your Claude Code sessions work like people.',
   'app.startFailed': 'Could not start AI Office.',

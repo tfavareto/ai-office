@@ -19,7 +19,8 @@ import type {
 } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
-import type { PrefsStore } from '../prefs/prefs';
+import type { PrefsStore, ViewMode } from '../prefs/prefs';
+import type { VoiceInput } from '../voice/types';
 import type { BoardStore } from './board-store';
 import type { InboxController } from './inbox-controller';
 import type { ProgressController } from './progress-controller';
@@ -69,6 +70,16 @@ export interface AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+
+  /** The view on screen: the office world (`basic`) or the Pro canvas. Always `basic` while a time-lapse is on. */
+  readonly viewMode: ViewMode;
+  setViewMode(mode: ViewMode): void;
+  /** Fits the whole picture in the free area: the world's overview, or the whole canvas in the Pro view. */
+  fitView(): void;
+  /** Zooms the picture on screen (world or canvas) by `factor`. */
+  zoomView(factor: number): void;
+  /** Local speech-to-text for the Pro view's command bar; null when this build has none. */
+  readonly voice: VoiceInput | null;
 
   /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
   readonly snapshot: OfficeSnapshot | null;

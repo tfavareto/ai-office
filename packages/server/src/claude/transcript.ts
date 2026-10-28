@@ -180,11 +180,14 @@ export class TranscriptView {
   }
 }
 
+/** Views the cache keeps open: the Pro view polls up to ten live terminals plus the terminal panel, each one a view. */
+export const TRANSCRIPT_CACHE_VIEWS = 12;
+
 /** Small LRU of open views so repeated polling only reads the new bytes. */
 export class TranscriptCache {
   private readonly views = new Map<string, TranscriptView>();
 
-  constructor(private readonly capacity = 6) {}
+  constructor(private readonly capacity = TRANSCRIPT_CACHE_VIEWS) {}
 
   async open(path: string, source?: AgentSource): Promise<TranscriptView | undefined> {
     let view = this.views.get(path);

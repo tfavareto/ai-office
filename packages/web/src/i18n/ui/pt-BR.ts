@@ -1,6 +1,9 @@
 // pt-BR ui texts (source catalog). en.ts and es.ts must define exactly the same keys — the types enforce it.
 // Sections group the keys by screen area; plurals use the ICU subset of @ai-office/shared (`=1` keeps pt-BR exact).
+import { proPtBR } from './pro-pt-BR';
+
 export const uiPtBR = {
+  ...proPtBR,
   // App and common
   'app.description': 'AI Office: um escritório ao vivo onde suas sessões do Claude Code trabalham como pessoas.',
   'app.startFailed': 'Não foi possível iniciar o AI Office.',

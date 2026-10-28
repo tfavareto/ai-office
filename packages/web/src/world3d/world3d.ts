@@ -135,6 +135,7 @@ export class World3D implements WorldApi {
   private fpTarget: string | null = null;
 
   private raf = 0;
+  private paused = false;
   private last = 0;
   private clock = 0;
   private fps = 60;
@@ -525,6 +526,15 @@ export class World3D implements WorldApi {
     this.overlay.resize(this.width, this.height, this.stage.ratio);
     this.rig.resize(this.width, this.height, this.insets);
     if (this.fitted && !this.userMoved) this.overview(false);
+  }
+
+  setPaused(paused: boolean): void {
+    if (this.disposed || paused === this.paused) return;
+    this.paused = paused;
+    cancelAnimationFrame(this.raf);
+    if (paused) return;
+    this.last = 0;
+    this.raf = requestAnimationFrame((t) => this.frame(t));
   }
 
   dispose(): void {

@@ -10,6 +10,9 @@ export const FEED_EXPANDED_HEIGHT = 200;
 /** The time-lapse controls above the feed (one row; two on narrow screens). */
 export const REPLAY_BAR_HEIGHT = 124;
 export const REPLAY_BAR_NARROW_HEIGHT = 176;
+/** The Pro view's command bar above the feed (taller on narrow screens, where its rows wrap). */
+export const COMMAND_BAR_HEIGHT = 152;
+export const COMMAND_BAR_NARROW_HEIGHT = 196;
 
 export interface LayoutState {
   sidebarOpen: boolean;
@@ -18,17 +21,20 @@ export interface LayoutState {
   narrow: boolean;
   /** A time-lapse is on: its controls take the strip above the feed. */
   replay?: boolean;
+  /** The Pro view is on: its command bar takes the strip above the feed. */
+  pro?: boolean;
 }
 
 /** The free area of the screen, i.e. what the panels do not cover. On narrow screens panels are overlays. */
 export function computeInsets(state: LayoutState): ViewInsets {
   const feed = state.feedOpen ? FEED_EXPANDED_HEIGHT : FEED_COLLAPSED_HEIGHT;
   const replay = state.replay === true ? (state.narrow ? REPLAY_BAR_NARROW_HEIGHT : REPLAY_BAR_HEIGHT) + PANEL_GAP : 0;
+  const command = state.pro === true ? (state.narrow ? COMMAND_BAR_NARROW_HEIGHT : COMMAND_BAR_HEIGHT) + PANEL_GAP : 0;
   return {
     top: TOPBAR_HEIGHT,
     left: state.sidebarOpen && !state.narrow ? SIDEBAR_WIDTH + 2 * PANEL_GAP : 0,
     right: state.drawerOpen && !state.narrow ? DRAWER_WIDTH + 2 * PANEL_GAP : 0,
-    bottom: feed + 2 * PANEL_GAP + replay,
+    bottom: feed + 2 * PANEL_GAP + replay + command,
   };
 }
 
@@ -44,5 +50,7 @@ export function layoutVariables(): Record<string, string> {
     '--gap': `${PANEL_GAP}px`,
     '--feed-collapsed-h': `${FEED_COLLAPSED_HEIGHT}px`,
     '--feed-expanded-h': `${FEED_EXPANDED_HEIGHT}px`,
+    '--command-h': `${COMMAND_BAR_HEIGHT}px`,
+    '--command-narrow-h': `${COMMAND_BAR_NARROW_HEIGHT}px`,
   };
 }

@@ -1,0 +1,907 @@
+/* Pro view: the orchestration canvas of live terminals, its tools and its command bar. */
+.ao-root.is-pro .ao-world {
+  visibility: hidden;
+}
+
+.ao-pro {
+  --pro-bg: #090d14;
+  --pro-dot: rgba(148, 163, 184, 0.17);
+  --pro-node-bg: #0d121b;
+  --pro-node-head: #131a26;
+  --pro-node-line: rgba(148, 163, 184, 0.22);
+  --pro-label-bg: rgba(13, 18, 27, 0.92);
+  --pro-code-bg: rgba(0, 0, 0, 0.35);
+  --pro-error-text: #ffb4b4;
+  --pro-node-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --pro-command-h: var(--command-h, 152px);
+  --ao-pro-inv: 1;
+
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.ao-pro[data-theme='light'] {
+  --pro-bg: #eceff5;
+  --pro-dot: rgba(51, 65, 92, 0.22);
+  --pro-node-bg: #fbfcfe;
+  --pro-node-head: #eef1f7;
+  --pro-node-line: rgba(51, 65, 92, 0.22);
+  --pro-label-bg: rgba(255, 255, 255, 0.94);
+  --pro-code-bg: rgba(15, 23, 42, 0.06);
+  --pro-error-text: #b42323;
+  --pro-node-shadow: 0 8px 22px rgba(30, 41, 59, 0.16);
+  --bg: rgba(255, 255, 255, 0.92);
+  --bg-solid: #ffffff;
+  --bg-soft: rgba(15, 23, 42, 0.045);
+  --bg-hover: rgba(15, 23, 42, 0.08);
+  --line: rgba(51, 65, 92, 0.16);
+  --line-strong: rgba(51, 65, 92, 0.32);
+  --text: #19212f;
+  --muted: #4d596d;
+  --faint: #5f6b80;
+  --accent: #2459d6;
+  --accent-soft: rgba(36, 89, 214, 0.12);
+  --working: #12875a;
+  --waiting: #b87206;
+  --shell: #0e8b95;
+  --idle: #6b7689;
+  --done: #2459d6;
+  --error: #c43838;
+  --shadow: 0 8px 24px rgba(30, 41, 59, 0.16);
+}
+
+.ao-pro-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--pro-bg);
+  background-image: radial-gradient(circle, var(--pro-dot) 1.3px, transparent 1.7px);
+  background-size: 28px 28px;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+.ao-pro-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.ao-pro-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+
+.ao-pro-empty {
+  position: absolute;
+  top: 40%;
+  left: var(--panel-left);
+  right: var(--panel-right);
+  max-width: 460px;
+  margin-inline: auto;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+/* Room frames. */
+.ao-pro-frames,
+.ao-pro-nodes,
+.ao-pro-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.ao-pro-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 2px solid color-mix(in srgb, var(--room) 42%, transparent);
+  border-radius: 36px;
+  background: color-mix(in srgb, var(--room) 5%, transparent);
+  transition:
+    transform 0.45s var(--ease),
+    width 0.45s var(--ease),
+    height 0.45s var(--ease);
+}
+
+.ao-pro-frame-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 26px 40px 0;
+  white-space: nowrap;
+}
+
+.ao-pro-frame-dot {
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--room);
+}
+
+.ao-pro-frame-name {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ao-pro-frame-meta {
+  color: var(--muted);
+  font-size: 20px;
+}
+
+/* Lines from an orchestrator to its subagents. */
+.ao-pro-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ao-pro-link-line {
+  stroke: var(--idle);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.ao-pro-link-port {
+  fill: var(--idle);
+}
+
+.ao-pro-link.is-flowing .ao-pro-link-line {
+  stroke: var(--working);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 9;
+  animation: ao-pro-flow 0.8s linear infinite;
+}
+
+.ao-pro-link.is-flowing .ao-pro-link-port {
+  fill: var(--working);
+}
+
+.ao-pro-link.is-waiting .ao-pro-link-line {
+  stroke: var(--waiting);
+  stroke-width: 2.6;
+}
+
+.ao-pro-link.is-waiting .ao-pro-link-port {
+  fill: var(--waiting);
+}
+
+.ao-pro-link.is-done {
+  opacity: 0.4;
+}
+
+.ao-pro-link.is-done .ao-pro-link-line {
+  stroke: var(--done);
+  stroke-width: 1.6;
+  stroke-dasharray: 2 7;
+}
+
+.ao-pro-link.is-done .ao-pro-link-port {
+  fill: var(--done);
+}
+
+@keyframes ao-pro-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.ao-pro-link-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  gap: 1px;
+  width: 108px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--pro-label-bg);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.25;
+  text-align: center;
+  transition: transform 0.45s var(--ease);
+}
+
+.ao-pro-link-role {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-link-task {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ao-pro-link-label.is-flowing {
+  border-color: color-mix(in srgb, var(--working) 55%, transparent);
+  color: var(--text);
+}
+
+.ao-pro-link-label.is-waiting {
+  border-color: color-mix(in srgb, var(--waiting) 65%, transparent);
+  color: var(--waiting);
+}
+
+.ao-pro-link-label.is-done {
+  opacity: 0.45;
+}
+
+.ao-pro.lod-far .ao-pro-link-label {
+  display: none;
+}
+
+/* Terminal windows. */
+.ao-pro-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--pro-node-line);
+  border-radius: 14px;
+  background: var(--pro-node-bg);
+  box-shadow: var(--pro-node-shadow);
+  contain: layout paint style;
+  container-type: inline-size;
+  transition:
+    transform 0.45s var(--ease),
+    opacity 0.4s var(--ease),
+    border-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
+  animation: ao-pro-in 0.4s var(--ease) both;
+}
+
+@keyframes ao-pro-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.ao-pro-node.is-new,
+.ao-pro-frame.is-new,
+.ao-pro.is-dragging .ao-pro-node,
+.ao-pro.is-dragging .ao-pro-frame,
+.ao-pro.is-dragging .ao-pro-link-label {
+  transition: none;
+}
+
+.ao-pro-node.is-off {
+  display: none;
+}
+
+.ao-pro-node:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ao-pro-node.is-working {
+  border-color: color-mix(in srgb, var(--working) 55%, var(--pro-node-line));
+  box-shadow:
+    var(--pro-node-shadow),
+    0 0 26px color-mix(in srgb, var(--working) 16%, transparent);
+}
+
+.ao-pro-node.is-waiting {
+  border-color: color-mix(in srgb, var(--waiting) 75%, var(--pro-node-line));
+  box-shadow:
+    var(--pro-node-shadow),
+    0 0 28px color-mix(in srgb, var(--waiting) 24%, transparent);
+}
+
+.ao-pro-node.is-error {
+  border-color: color-mix(in srgb, var(--error) 60%, var(--pro-node-line));
+}
+
+.ao-pro-node.is-selected {
+  box-shadow:
+    var(--pro-node-shadow),
+    0 0 0 2px var(--accent);
+}
+
+.ao-pro-node.is-finished {
+  opacity: 0.55;
+  filter: saturate(0.55);
+}
+
+.ao-pro-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--pro-node-line);
+  background: var(--pro-node-head);
+  cursor: grab;
+  user-select: none;
+}
+
+.ao-pro-heading {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ao-pro-name {
+  font-size: 13.5px;
+}
+
+.ao-pro-role {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.ao-pro-role.is-empty {
+  display: none;
+}
+
+.ao-pro-elapsed {
+  flex: none;
+  color: var(--faint);
+  font: 11.5px var(--mono);
+}
+
+.ao-pro-actions {
+  display: flex;
+  flex: none;
+  gap: 0;
+  opacity: 0.55;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.ao-pro-node:hover .ao-pro-actions,
+.ao-pro-node:focus-within .ao-pro-actions {
+  opacity: 1;
+}
+
+.ao-pro .ao-pro-task {
+  flex: none;
+  display: -webkit-box;
+  padding: 5px 12px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--pro-node-line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ao-pro .ao-pro-node.is-sub .ao-pro-task {
+  -webkit-line-clamp: 2;
+}
+
+.ao-pro-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.ao-pro-body {
+  position: absolute;
+  inset: 0;
+  padding: 10px 12px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font: 12px/1.5 var(--mono);
+  outline: none;
+}
+
+.ao-pro-body:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ao-pro-node .ao-term-entry {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ao-pro-node .ao-term-para {
+  font-size: 12.5px;
+}
+
+.ao-pro-node .ao-term-code {
+  background: var(--pro-code-bg);
+}
+
+.ao-pro-node .ao-term-tool.is-error .ao-term-result {
+  color: var(--pro-error-text);
+}
+
+.ao-pro .ao-pro-note {
+  padding: 4px 2px;
+}
+
+.ao-pro-earlier {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.ao-pro-end {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  box-shadow: var(--shadow);
+}
+
+.ao-pro-retry {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+}
+
+.ao-pro-card {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 18px;
+  overflow: hidden;
+}
+
+.ao-pro-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: min(calc(16px * var(--ao-pro-inv)), 11cqw);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-card-status {
+  color: var(--muted);
+  font-size: min(calc(12px * var(--ao-pro-inv)), 5.5cqw);
+  font-weight: 600;
+}
+
+.ao-pro .ao-pro-card-line {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: min(calc(13px * var(--ao-pro-inv)), 7cqw);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.ao-pro-node.lod-summary .ao-pro-body,
+.ao-pro-node.lod-summary .ao-pro-end,
+.ao-pro-node.lod-summary .ao-pro-retry {
+  display: none;
+}
+
+.ao-pro-node.lod-summary .ao-pro-card {
+  display: flex;
+}
+
+.ao-pro .ao-pro-node.lod-summary .ao-pro-task {
+  display: none;
+}
+
+.ao-pro-foot-row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-top: 1px solid var(--pro-node-line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-pro-foot {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-foot.is-waiting {
+  color: var(--waiting);
+  font-weight: 600;
+}
+
+.ao-pro-pill {
+  flex: none;
+  padding: 1px 10px;
+  border: 1px solid color-mix(in srgb, var(--done) 45%, transparent);
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--done) 14%, transparent);
+  color: var(--done);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ao-pro-pill:hover {
+  background: color-mix(in srgb, var(--done) 24%, transparent);
+}
+
+.ao-pro-done {
+  position: absolute;
+  inset: 8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--pro-node-line);
+  border-radius: 10px;
+  background: var(--pro-node-bg);
+  box-shadow: var(--shadow);
+}
+
+.ao-pro .ao-pro-done-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ao-pro-done-item {
+  display: grid;
+  gap: 1px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+}
+
+.ao-pro-done-item:hover {
+  background: var(--bg-hover);
+}
+
+.ao-pro-done-item span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A maximized terminal covers the free area of the canvas. */
+.ao-pro-max {
+  position: absolute;
+  top: calc(var(--topbar-h) + var(--gap) + 52px);
+  right: var(--panel-right);
+  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--pro-command-h));
+  left: var(--panel-left);
+  z-index: 8;
+  display: flex;
+}
+
+.ao-pro.has-maximized .ao-pro-viewport {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.ao-pro-node.is-maximized {
+  position: relative;
+  flex: 1;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  box-shadow: var(--shadow);
+}
+
+.ao-pro-node.is-maximized .ao-pro-head {
+  cursor: default;
+}
+
+.ao-pro-node.is-maximized .ao-term-para,
+.ao-pro-node.is-maximized .ao-pro-body {
+  font-size: 13px;
+}
+
+/* Tools. */
+.ao-pro-toolbar {
+  position: absolute;
+  top: calc(var(--topbar-h) + var(--gap));
+  left: var(--panel-left);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+.ao-pro-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+.ao-pro-zoom {
+  min-width: 50px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px var(--font);
+}
+
+.ao-pro-zoom:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ao-pro-minimap {
+  position: absolute;
+  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--pro-command-h));
+  left: var(--panel-left);
+  z-index: 10;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.ao-pro.has-maximized .ao-pro-minimap {
+  display: none;
+}
+
+/* Command bar. */
+.ao-pro-command {
+  position: absolute;
+  right: var(--panel-right);
+  bottom: calc(var(--feed-h) + 2 * var(--gap));
+  left: var(--panel-left);
+  z-index: 12;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  height: var(--pro-command-h);
+  max-width: 1000px;
+  margin-inline: auto;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.4),
+    0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+.ao-pro-command-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.ao-pro-target {
+  flex: none;
+  max-width: 280px;
+  font-weight: 600;
+}
+
+.ao-pro .ao-pro-outlook {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ao-pro .ao-pro-outlook.is-warn {
+  color: var(--waiting);
+}
+
+.ao-pro .ao-pro-outlook.is-blocked {
+  color: var(--faint);
+  font-style: italic;
+}
+
+.ao-pro-command-main {
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
+.ao-pro-prompt {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  resize: none;
+  font-size: 14px;
+}
+
+.ao-pro-command-buttons {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ao-pro-command-buttons .ao-btn {
+  flex: 1;
+  min-width: 112px;
+}
+
+.ao-pro-mic.is-listening {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 18%, transparent);
+  color: var(--error);
+  animation: ao-pro-rec 1.2s ease-in-out infinite;
+}
+
+.ao-pro-mic.is-busy {
+  opacity: 0.7;
+}
+
+@keyframes ao-pro-rec {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--error) 22%, transparent);
+  }
+}
+
+.ao-pro-command-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+  min-width: 0;
+}
+
+.ao-pro-command-foot .ao-quick {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.ao-pro-foot-status {
+  flex: 0 1 auto;
+  max-width: 46%;
+  overflow: hidden;
+  font-size: 12px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-delivery {
+  color: var(--accent);
+}
+
+.ao-pro-delivery.is-pending {
+  color: var(--waiting);
+}
+
+.ao-pro-delivery.is-expired {
+  color: var(--error);
+}
+
+.ao-pro[data-theme='light'] .ao-textarea,
+.ao-pro[data-theme='light'] .ao-select,
+.ao-pro[data-theme='light'] .ao-input {
+  background: #ffffff;
+}
+
+.ao-pro[data-theme='light'] .ao-quick-chip {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+/* Reduced motion: lines stay still, windows do not glide. */
+.is-reduced-motion .ao-pro-link.is-flowing .ao-pro-link-line,
+.is-reduced-motion .ao-pro-node,
+.is-reduced-motion .ao-pro-mic.is-listening {
+  animation: none;
+}
+
+.is-reduced-motion .ao-pro-node,
+.is-reduced-motion .ao-pro-frame,
+.is-reduced-motion .ao-pro-link-label {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-pro-link.is-flowing .ao-pro-link-line,
+  .ao-pro-node,
+  .ao-pro-mic.is-listening {
+    animation: none;
+  }
+
+  .ao-pro-node,
+  .ao-pro-frame,
+  .ao-pro-link-label {
+    transition: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .ao-pro {
+    --pro-command-h: var(--command-narrow-h, 196px);
+  }
+
+  .ao-pro-command-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .ao-pro-target {
+    max-width: none;
+  }
+
+  .ao-pro-command-main {
+    flex-direction: column;
+  }
+
+  .ao-pro-command-buttons {
+    flex-direction: row;
+  }
+
+  .ao-pro-command-foot .ao-quick {
+    display: none;
+  }
+
+  .ao-pro-foot-status {
+    max-width: none;
+    text-align: left;
+  }
+
+  .ao-pro-minimap {
+    display: none;
+  }
+}
+
+/* The toasts rise above the command bar instead of covering its buttons. */
+.ao-root.is-pro .ao-toasts {
+  bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--command-h));
+}
+
+@media (max-width: 899px) {
+  .ao-root.is-pro .ao-toasts {
+    bottom: calc(var(--feed-h) + 3 * var(--gap) + var(--command-narrow-h));
+  }
+}

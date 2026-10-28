@@ -1,6 +1,6 @@
 # Using the office
 
-This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
+This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the **Pro view**, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
 
 The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → General → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
 
@@ -332,6 +332,29 @@ Turn Codex off in **Settings → Data and integrations → Show Codex sessions**
 - **In the office.** Teammates appear in extra rooms grouped by member ("Ana · Project 1"), tinted with the member's color, in 2D and 3D. The sidebar gets a strip with the team's state, who is online, and a **All / Mine / Team** filter; the account chips include one per member. Click a teammate's agent or room to see who and what kind of work; the drawer is read-only (no messages, terminal, permissions or hiring) and says so. The topbar counters, the inbox and notifications are about *your* agents only.
 - **Members also see the host's merged view**: everybody except themselves.
 
+## Pro view
+
+The **Basic | Pro** switch in the top bar (or `V`) changes how the same sessions are shown. **Basic** is the office. **Pro** is a canvas for orchestration: every open session of every room is a terminal window, an orchestrator (a main agent) is a large terminal, its subagents are smaller terminals around it, and thin lines join them. Your choice is remembered. It is only a view of the Claude Code sessions already running on this computer: it does not run models or start agents.
+
+- **Reading the canvas.** A frame per room, in the room's color, holds its orchestrators. A line runs from an orchestrator to each subagent with a label (the subagent type and its task): its dashes move while the subagent works, it turns amber when the subagent needs you, and it fades when the subagent is done. A finished subagent stays on the canvas, faded, for up to five minutes (and at most four per orchestrator), then folds into the **N finished** pill on the orchestrator; click the pill for the list and open any of them in the terminal panel.
+- **A terminal window.** The title bar shows the name, the role, the account (or the Codex badge), the status dot and how long it has been in that status. The body is the live conversation: your prompts, the answers, collapsed **Thinking…** blocks and tool calls with their results. It follows the end until you scroll up (then **Jump to the end** appears). The footer says what the agent is doing now. The buttons on the title bar **maximize** it (`Esc` or the same button restores it), **open it in the terminal panel**, **show it in the office** (switches to Basic and focuses the person) and **copy the session id**. Click a terminal to select that agent (the sidebar and the drawer follow). Selecting an agent in the sidebar brings its terminal into view.
+- **Moving around.** Drag the empty canvas, or hold `Space` and drag anywhere; two-finger scrolling on a trackpad pans; the mouse wheel, a pinch or `Ctrl/Cmd` + wheel zoom toward the pointer; `+` `-` zoom and `0` (or `O`) fits everything. The toolbar at the top left has **Fit all**, **Focus the selected orchestrator** (`F`), zoom buttons (the percentage goes back to 100%), the **theme** (dark or light canvas) and **Undo the positions you dragged**. The map in the lower left shows where you are; click or drag it. Drag an orchestrator's title bar to move its whole cluster (hold `Shift` to move only that terminal) and a subagent's title bar to move that terminal; positions are remembered in this browser. With a terminal focused (`Tab`), the arrow keys move to the nearest terminal in that direction and `Enter` maximizes it.
+- **Zoomed out.** Terminals too small to read, or off the screen, do not load their conversation: they show a card with the name, the status and the last activity. At most ten terminals read their conversation at once (the best ones: the one you selected, who is busy, orchestrators, the nearest to the middle of the view), polling about once a second while they work. Zoom in to read more.
+- **Send a task.** The command bar at the bottom sends a typed task to an orchestrator, or to **the team of a room**. It starts on the agent you selected (a subagent counts as its orchestrator); pick another in the list. Send with **Send** or `Cmd/Ctrl+Enter`; four quick prompts are one click away. It uses the same message feature as the drawer (the [plugin](03-plugin.md#messages-to-agents) and this computer are required), and under the list it says what will happen: a working agent gets the order after its next tool call; an agent that just finished is on stand-by for up to ten minutes and takes it at once as a new instruction; an agent idle for longer keeps it queued until it works again (type in its terminal to wake it); an agent waiting for you takes it after it works again. Codex agents and ended sessions cannot receive orders and the bar says why. After sending, the bar shows the status of that order.
+- **Voice.** When this build includes the local voice input, the microphone button prepares it (it downloads a speech model once, on your request), records and, when you stop, puts the transcript in the box. You read and edit it, then send it yourself: dictation is never sent automatically. Without it the button is disabled with an explanation.
+- **Demo mode** shows several orchestrators that keep delegating, so the canvas moves.
+
+| Key (Pro view) | Action |
+| --- | --- |
+| `V` | Switch between Basic and Pro. |
+| `0` / `O` | Fit all. |
+| `+` / `-` | Zoom in and out. |
+| `F` | Focus the selected orchestrator. |
+| `N` | Put the cursor in the command bar. |
+| `Space` + drag | Pan. |
+| Arrows (terminal focused) | Move to the nearest terminal; `Enter` maximizes it. |
+| `Esc` | Restores a maximized terminal (before the other things it closes). |
+
 ## Terminal panel
 
 The terminal panel renders a session's conversation the way the terminal would: your prompts, the assistant's text, collapsed **Thinking…** blocks, and tool calls with a summary and result. It updates live (**Live · read-only**) and cannot send input.
@@ -442,7 +465,8 @@ Plain keys are ignored while you type in a field.
 | `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
 | `L` | Watch the day as a [time-lapse](#watch-the-day-time-lapse), or go back to live. In it: `Space` plays or pauses, `←` `→` skip a minute (`Shift`: ten), `PgUp` `PgDn` previous or next mark. |
-| `O` | Overview of the whole office. |
+| `O` | Overview of the whole office (the whole canvas in the Pro view). |
+| `V` | Switch between the Basic and the [Pro view](#pro-view). |
 | `[` | Show or hide the sidebar. |
 | `]` | Expand or collapse the activity feed. |
 | `?` | Open help. |

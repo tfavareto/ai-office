@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COMMAND_BAR_HEIGHT,
+  COMMAND_BAR_NARROW_HEIGHT,
   FEED_COLLAPSED_HEIGHT,
   FEED_EXPANDED_HEIGHT,
   PANEL_GAP,
@@ -24,6 +26,16 @@ describe('computeInsets', () => {
       FEED_COLLAPSED_HEIGHT + 2 * PANEL_GAP + REPLAY_BAR_NARROW_HEIGHT + PANEL_GAP,
     );
     expect(computeInsets({ ...base, replay: false }).bottom).toBe(computeInsets(base).bottom);
+  });
+
+  it('leaves room for the Pro view command bar above the feed, a taller one on narrow screens', () => {
+    expect(computeInsets({ ...base, pro: true }).bottom).toBe(
+      FEED_COLLAPSED_HEIGHT + 2 * PANEL_GAP + COMMAND_BAR_HEIGHT + PANEL_GAP,
+    );
+    expect(computeInsets({ ...base, narrow: true, pro: true }).bottom).toBe(
+      FEED_COLLAPSED_HEIGHT + 2 * PANEL_GAP + COMMAND_BAR_NARROW_HEIGHT + PANEL_GAP,
+    );
+    expect(computeInsets({ ...base, pro: false }).bottom).toBe(computeInsets(base).bottom);
   });
 
   it('keeps the side panels out of the free area only on wide screens', () => {

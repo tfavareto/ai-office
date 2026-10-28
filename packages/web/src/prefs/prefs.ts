@@ -9,11 +9,17 @@ export const PREFS_KEY = 'ai-office:prefs';
 export type VisualKind = '2d' | '3d';
 export type BubbleMode = WorldOptions['bubbles'];
 export type Liveliness = WorldOptions['liveliness'];
+/** Basic: the office world. Pro: the orchestration canvas of live terminals. */
+export type ViewMode = 'basic' | 'pro';
+/** Colors of the Pro canvas. */
+export type ProTheme = 'dark' | 'light';
 /** Interface language: `auto` follows the browser (pt → pt-BR, es → es, otherwise en). */
 export type LanguagePref = 'auto' | Locale;
 
 export interface Prefs {
   language: LanguagePref;
+  viewMode: ViewMode;
+  proTheme: ProTheme;
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -43,6 +49,8 @@ export interface Prefs {
 
 export const DEFAULT_PREFS: Prefs = {
   language: 'auto',
+  viewMode: 'basic',
+  proTheme: 'dark',
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -116,6 +124,8 @@ export function parsePrefs(raw: unknown): Prefs {
   const data = raw as Record<string, unknown>;
   return {
     language: oneOf(data.language, ['auto', ...LOCALES], DEFAULT_PREFS.language),
+    viewMode: oneOf(data.viewMode, ['basic', 'pro'], DEFAULT_PREFS.viewMode),
+    proTheme: oneOf(data.proTheme, ['dark', 'light'], DEFAULT_PREFS.proTheme),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),
