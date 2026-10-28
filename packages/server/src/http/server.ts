@@ -17,6 +17,7 @@ import { registerSystemRoutes } from './handlers/system';
 import { registerTeamRoutes } from './handlers/team';
 import { registerTimelapseRoutes } from './handlers/timelapse';
 import { registerUsageRoutes } from './handlers/usage';
+import { registerVoiceRoutes } from './handlers/voice';
 import { guardRequest } from './guard';
 import { HttpError, sendError } from './respond';
 import { Router } from './router';
@@ -25,7 +26,7 @@ import { StaticServer } from './static';
 /** Sent on every response (static files and API). */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Content-Security-Policy':
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
@@ -64,6 +65,7 @@ export function buildRouter(app: AppContext): Router {
   registerCodexRoutes(router, app);
   registerProgressRoutes(router, app);
   registerTeamRoutes(router, app);
+  registerVoiceRoutes(router, app);
   return router;
 }
 

@@ -22,6 +22,13 @@ function readToken(): string | undefined {
 export default defineConfig({
   base: '/',
   build: { outDir: 'dist', assetsDir: 'assets', sourcemap: true, target: 'es2022' },
+  resolve: {
+    // transformers.js imports the WebGPU build of ONNX Runtime Web, which drags in a 27 MB WebAssembly file nothing uses:
+    // voice input runs on the plain WebAssembly backend (14 MB), which is the same API without WebGPU.
+    alias: { 'onnxruntime-web/webgpu': 'onnxruntime-web/wasm' },
+  },
+  // The speech worker (transformers.js) is a module worker with its own chunks; nothing of it is in the main bundle.
+  worker: { format: 'es' },
   server: {
     port: 5173,
     proxy: {

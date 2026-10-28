@@ -82,6 +82,7 @@ import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
 import { SoundPlayer, type CueKind } from './sound';
 import { onCelebration } from '../world/celebration-bus';
+import { createVoice, isVoiceSupported, type VoiceHandle } from '../voice';
 import {
   NARROW_BREAKPOINT,
   UiState,
@@ -138,6 +139,7 @@ export class App implements AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+  readonly voice: VoiceHandle;
   private seen: Seen | null = loadSeen();
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
@@ -185,6 +187,8 @@ export class App implements AppContext {
     this.customization = new CustomizationController(() => this.store.backend);
     this.team = new TeamController(() => this.store.backend);
     this.progress = new ProgressController(() => this.store.backend);
+    // Voice talks to the AI Office server (speech model files); the offline preview has none.
+    this.voice = createVoice({ supported: () => store.mode === 'live' && isVoiceSupported() });
     // The inbox is about the live office, whatever the panels show.
     this.inbox = new InboxController({
       snapshot: () => this.liveSnapshot,

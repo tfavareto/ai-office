@@ -11,6 +11,7 @@ import { CustomizationManager } from './customize-manager';
 import { SETTINGS_GROUP_IDS, toggleGroup, type SettingsGroupId } from '../model/settings-groups';
 import { Popover } from './overlay';
 import { SettingsGroup } from './settings-group';
+import { VoiceSettings } from './voice-settings';
 
 interface Row {
   el: HTMLElement;
@@ -135,6 +136,7 @@ export class Settings extends Popover {
     h('div', { class: 'ao-team-setting' }, this.teamState, this.teamButton),
     t('settings.team.hint'),
   );
+  private readonly voiceSettings: VoiceSettings;
   private readonly about = h('p', { class: 'ao-setting-about' });
   private readonly groups: readonly SettingsGroup[];
   private readonly customization: CustomizationManager;
@@ -149,6 +151,7 @@ export class Settings extends Popover {
     super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
     this.pullRequestsRow.el.append(this.ghHint);
     this.customization = new CustomizationManager(ctx);
+    this.voiceSettings = new VoiceSettings(ctx, ctx.voice);
     this.customizationRow = h(
       'div',
       { class: 'ao-setting' },
@@ -181,7 +184,7 @@ export class Settings extends Popover {
         this.employeeProjectRow.el,
       ],
       sound: [this.soundRow.el, this.browserRow.el],
-      data: [this.repoRow.el, this.pullRequestsRow.el, this.codexRow.el],
+      data: [this.repoRow.el, this.pullRequestsRow.el, this.codexRow.el, this.voiceSettings.el],
       automation: [this.rulesRow.el, this.customizationRow],
       team: [this.teamRow.el],
       about: [
@@ -213,6 +216,11 @@ export class Settings extends Popover {
     void this.loadGitSettings();
     this.customization.onOpen();
     void this.loadCodexSettings();
+    this.voiceSettings.onOpen();
+  }
+
+  dispose(): void {
+    this.voiceSettings.dispose();
   }
 
   private async loadCodexSettings(): Promise<void> {
@@ -297,6 +305,7 @@ export class Settings extends Popover {
     setText(this.pullRequestsRow.hint, this.ctx.isLocal ? t('settings.gitPr.hint') : localOnlyHint());
 
     this.customization.update();
+    this.voiceSettings.update();
     const codex = this.codexSettings;
     this.codexRow.el.hidden = codex?.available !== true;
     this.codex.set(codex?.sessions === true);

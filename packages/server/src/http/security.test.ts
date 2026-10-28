@@ -287,9 +287,33 @@ describe('response headers', () => {
         expect(headers[name.toLowerCase()], name).toBe(value);
     }
     expect(SECURITY_HEADERS['Content-Security-Policy']).toBe(
-      "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
     );
     expect(responses.map((r) => r.status)).toEqual([200, 200, 404, 200, 200, 401, 404, 403]);
+  });
+});
+
+describe('content security policy', () => {
+  const directives = (): Map<string, string[]> =>
+    new Map(
+      (SECURITY_HEADERS['Content-Security-Policy'] ?? '').split(';').map((part) => {
+        const [name = '', ...values] = part.trim().split(/\s+/);
+        return [name, values];
+      }),
+    );
+
+  test('lets scripts compile WebAssembly (the speech model) and nothing broader', () => {
+    expect(directives().get('script-src')).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+  });
+
+  test('keeps the page from reaching any other host, and from running eval or inline scripts', () => {
+    const policy = directives();
+    expect(policy.get('connect-src')).toEqual(["'self'"]);
+    expect(policy.get('default-src')).toEqual(["'self'"]);
+    const all = [...policy.values()].flat();
+    expect(all).not.toContain("'unsafe-eval'");
+    expect(policy.get('script-src')).not.toContain("'unsafe-inline'");
+    expect(all.filter((value) => /^https?:|\*/.test(value))).toEqual([]);
   });
 });
 

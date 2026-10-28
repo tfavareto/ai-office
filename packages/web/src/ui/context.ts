@@ -34,6 +34,7 @@ import type { TeamOverlay, TeamFilter } from './model/team';
 import type { TeamController } from './team-controller';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
+import type { VoiceHandle } from '../voice';
 
 export interface Component {
   readonly el: HTMLElement;
@@ -69,6 +70,8 @@ export interface AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+  /** Local voice input: the microphone control's engine, the speech models and the size preference. */
+  readonly voice: VoiceHandle;
 
   /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
   readonly snapshot: OfficeSnapshot | null;

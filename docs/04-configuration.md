@@ -22,6 +22,7 @@ Flags do not pass through `npm start --`; use environment variables with `npm st
 | `AI_OFFICE_ALLOW_REMOTE` | `--allow-remote` | off | Accept a non-loopback `AI_OFFICE_HOST`. Even then, browsers cannot sign in remotely. See [privacy and security](05-privacy-and-security.md#remote-access). |
 | `AI_OFFICE_CLAUDE_DIRS` | `--claude-dirs <list>` | auto-discovery | Comma-separated Claude config directories to watch. Replaces auto-discovery entirely. `~` is expanded. |
 | `AI_OFFICE_CODEX_DIRS` | `--codex-dirs <list>` | none | Comma-separated extra Codex homes to follow, besides `CODEX_HOME` (or `~/.codex`). `~` is expanded. See [Codex sessions](#codex-sessions). |
+| `AI_OFFICE_VOICE` | none | on | Set to `0` or `false` to never download the speech model; voice input then says it is turned off on this server. See [Voice input](#voice-input). |
 | `AI_OFFICE_CODEX` | none | on | Set to `0` or `false` to never read Codex sessions; **Settings → Data and integrations → Show Codex sessions** then cannot turn it on. |
 | `AI_OFFICE_TEAM` | none | on | Set to `0` or `false` to remove [team mode](#team-mode): **Settings → Team → Team mode** then cannot be turned on. |
 | `AI_OFFICE_TEAM_LOOPBACK` | none | off | Let a team use `127.0.0.1` (two AI Office instances on one computer, for tests and demos). Normally only LAN addresses are offered. |
@@ -114,6 +115,18 @@ AI_OFFICE_CODEX_DIRS=~/.codex-work npm start
 AI_OFFICE_CODEX=0 npm start
 ```
 
+## Voice input
+
+Voice input turns what you say into text **on your computer**: a Whisper speech model runs inside the page, and the audio never leaves your machine. The only thing it ever downloads is the model itself, once, from Hugging Face, and only after you press **Download voice model** (**Settings → Data and integrations → Voice**, or the same button in a microphone control). Details, hashes and licenses: [privacy and security](05-privacy-and-security.md#voice-input).
+
+- **Model size**, remembered in the browser (`localStorage` key `ai-office:voice`): **Fast** (`tiny`, 44 MB), **Balanced** (`base`, 80 MB, the default) or **Accurate** (`small`, 252 MB). Each size is downloaded on its own into `<state dir>/models/whisper-<size>/` and **Remove model** deletes it.
+- **Turning it off.** `AI_OFFICE_VOICE=0` stops the server from downloading anything; Settings then cannot turn it on.
+- **Disk and memory.** The folder of a size holds exactly the files in the table of the privacy page. The model is held in the browser's memory while you use voice and released after five minutes without use.
+
+```sh
+AI_OFFICE_VOICE=0 npm start
+```
+
 ## Team mode
 
 Team mode connects computers of one local network. It is configured in **Settings → Team → Team mode**, not with variables, and it is off until you use it. The mode never changes the main listener: `AI_OFFICE_HOST` and the loopback rules apply as before.
@@ -135,6 +148,7 @@ The server keeps its own files in the state directory, `~/.ai-office` by default
 | `usage-index/` | The usage history behind **Consumo** and the usage cards, mode 0700: `meta.json` (what was read of each transcript) and one `YYYY-MM.json` shard per UTC month with hourly token counts and estimated cost per account, project, model and session. It is a cache of your transcripts: delete the folder while the server is stopped (or let AI Office do it when it finds a damaged file) and it is rebuilt from the previous month onwards. Months older than 13 are dropped. See [privacy and security](05-privacy-and-security.md#what-ai-office-stores). |
 | `progress.json` | Mode 0600: the office level, achievements and lifetime counters per day (see [privacy](05-privacy-and-security.md#the-office-that-grows)). Delete it and the history is counted again. |
 | `team/` | Mode 0700, only after you use [team mode](#team-mode): `host.json`, `member.json` (identity keys, public keys of the others, addresses; files 0600) and `settings.json` (what you share). Deleted by **Leave the team** and **End the team**. |
+| `models/whisper-<size>/` | Mode 0700, only after you download a speech model for [voice input](#voice-input): the verified model files (0600) and `model.json`. **Remove model** deletes the folder. |
 | `git-settings.json` | `{ "version": 1, "pullRequests": false }`, mode 0600: whether the server may ask your `gh` CLI for the pull request of each room's branch (**Settings → Data and integrations → Look up pull requests with gh**). Off by default; a missing or unreadable file means off. |
 | `days/YYYY-MM-DD.json` | The **My day** record for that day: per agent, milliseconds in each status. Written every 5 seconds, flushed to disk every 30 seconds. Demo agents are not recorded. |
 

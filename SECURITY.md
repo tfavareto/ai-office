@@ -32,7 +32,8 @@ AI Office runs on your own computer. These parts are in scope:
   of data from other machines, and the revocation of members. Weaknesses of the pairing design listed under residual
   risks in the spec are known; a way around them that the spec does not list is in scope.
 - **Privacy**: anything that makes the app send session content, paths or tokens off the machine. It should make no
-  outbound network requests, except the opt-in `gh` pull request lookup and, only when you host or join a team, the
+  outbound network requests, except the opt-in `gh` pull request lookup, the one-time download of the speech model when you ask for it (voice
+  input; the audio is transcribed on your computer and never leaves it) and, only when you host or join a team, the
   encrypted connection of team mode to your own local network.
 
 ## Reporting a vulnerability

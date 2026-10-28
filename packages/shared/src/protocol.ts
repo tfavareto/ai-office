@@ -92,6 +92,14 @@ export const API = {
   team: '/api/team',
   /** GET → CodexSettings · POST { sessions: boolean } → CodexSettings. Local access only. */
   codexSettings: '/api/codex/settings',
+  /**
+   * Local voice input (local access only). GET /status → VoiceStatusResponse · POST /download { size } → 202
+   * VoiceStatusResponse (starts the one-time download of that Whisper model, or joins the one running) · DELETE
+   * /model/:id → VoiceStatusResponse (removes the model, stopping its download) · GET /model/:id/<file> (also
+   * /model/:id/onnx/<file>) → the file of a downloaded model, for the page to load; only the files listed for it.
+   * A refusal answers { error }.
+   */
+  voice: '/api/voice',
   /** POST { on: boolean } → { demo } */
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */

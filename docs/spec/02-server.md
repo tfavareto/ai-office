@@ -5,7 +5,8 @@ AI_OFFICE_PORT (4848), AI_OFFICE_HOST (127.0.0.1), AI_OFFICE_CLAUDE_DIRS (comma-
 every `~/.claude*` directory containing `projects/`, plus CLAUDE_CONFIG_DIR), AI_OFFICE_STATE_DIR (~/.ai-office),
 AI_OFFICE_DEMO=1 (start with demo on), AI_OFFICE_ALLOW_REMOTE=1 (accept a non-loopback AI_OFFICE_HOST; refused
 otherwise), AI_OFFICE_CODEX_DIRS (comma-separated extra Codex homes, read besides `CODEX_HOME` / `~/.codex`),
-AI_OFFICE_CODEX=0 (never read Codex sessions, whatever Settings says). CLI flags may mirror these (`--port`, `--demo`,
+AI_OFFICE_CODEX=0 (never read Codex sessions, whatever Settings says), AI_OFFICE_VOICE=0 (never download a speech model
+for voice input). CLI flags may mirror these (`--port`, `--demo`,
 `--allow-remote`, `--codex-dirs`). The state dir also holds `token`
 (random 32 bytes hex, mode 0600) that every `/api/*` route but `GET /api/health` requires (see 01-architecture Security).
 
@@ -303,6 +304,37 @@ What the person changed about the office, kept by `CustomizationStore` (`package
 - **Snapshot.** `applyCustomization` (shared, pure) runs on every computed office state: an agent with a chosen name shows it as `name` and keeps the picked one as `defaultName`; its resolved look (agent, then room, then account, field by field; a subagent takes the room and account of its main agent) is `appearance`; a room with an alias shows it as `name` and keeps the folder's as `originalName`, carries `theme`, and `pinned`, `hidden` and `rank` (its position in `order`). A change recomputes the office, so every page gets it in the next snapshot. The page does the arranging (see [04-ui.md](04-ui.md#customization)).
 - **Names.** `NameStore` keeps the names the office picks in `names.json` as before and shows the chosen one through `display(key, person)`; feed items, notices and the day report use it too. The picked name never changes, so resetting brings it back.
 - **Demo.** The simulator puts a customization of its own on its first three rooms and agents (aliases, finishes, two names, accessories); a person's choices go on top of it.
+
+## Voice models (`/api/voice`, `packages/server/src/voice/`)
+Voice input transcribes speech in the browser with a Whisper model; the server only fetches that model once, on request,
+and serves it back to the page. It never receives audio. User-facing summary and the file lists:
+[05-privacy-and-security.md](../05-privacy-and-security.md#voice-input).
+- **Models.** `manifest.ts` pins three (`tiny` 44 MB, `base` 80 MB, `small` 252 MB; `whisper-<size>` is the id): the
+  Hugging Face repository `Xenova/whisper-<size>` at a full commit hash, seven files each (the 8-bit quantized encoder and
+  merged decoder, `config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`,
+  `tokenizer_config.json`) with exact size and SHA-256. Weights: OpenAI Whisper, MIT; the model cards say Apache-2.0.
+- **Source policy** (`source.ts`). URLs are built from the pin only; every request, redirects included, must be HTTPS on
+  `huggingface.co` or `hf.co` (or a subdomain), without credentials or a port. Redirects are followed by hand, at most 5.
+- **Download** (`download-file.ts`, `model-store.ts`). Only after `POST /api/voice/download { size }`, never at startup.
+  One model at a time (a second answers 409 `voice-busy`; the same one again joins the running job). Per file: resume a
+  `.part` file with `Range`, restart if the server ignores the range, refuse a `Content-Length`/stream that does not match
+  the pinned size (`size`), time out a connection that takes over 30 s to answer or goes quiet for 30 s (`timeout`),
+  hash the file (SHA-256) before renaming it into place and delete it on a mismatch (`integrity`), refuse to start without
+  free disk for the model plus 10 % (`disk`), give up on a model after an hour (`timeout`). Cut transfers keep their `.part`
+  so the next try continues; a leftover of another pinned revision is wiped. Folders 0700, files 0600, `model.json`
+  (marker with the revision and every hash) is written last: a model is `ready` only when it matches the pin and every
+  file has the pinned size.
+- **Routes** (all local-only, token-protected, `Sec-Fetch-Site`/origin guarded): `GET /api/voice/status` →
+  `{ enabled, models: [{ size, id, bytes, state: missing|downloading|ready|error, downloadedBytes, error? }] }` (the page
+  polls it while a download runs); `POST /api/voice/download { size }` → 202 with the status (409 `voice-disabled` with
+  `AI_OFFICE_VOICE=0`, 400 `invalid-size`); `DELETE /api/voice/model/:id` → stops the job and deletes the folder, answers
+  the status (404 for an unknown id); `GET|HEAD /api/voice/model/:id/<path>` and `/api/voice/model/:id/onnx/<file>` →
+  the bytes of a file of a `ready` model, with single `Range` support (`bytes=0-0` is how transformers.js learns a size)
+  and `Cache-Control: no-store`. Only the exact paths of the pin exist; anything else, `..` or `%2e` included, is 404.
+- **State dir**: `models/whisper-<size>/` (see 05-privacy-and-security).
+- **Tests**: `download-file.test.ts`, `model-store.test.ts` and `http/voice-route.test.ts` use a fake hub (a local HTTP
+  server, `voice/testkit.ts`); no test reaches the network. `manifest.test.ts` checks the pin and that the docs list the
+  same hashes.
 
 ## Day recorder
 Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD.json` (flush every 30 s).

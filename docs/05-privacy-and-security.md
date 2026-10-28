@@ -2,7 +2,7 @@
 
 This guide states exactly what AI Office reads, what it stores, how it keeps everything on your computer, how access is protected and how to report a vulnerability.
 
-The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests (two optional exceptions, both **off by default**: the pull request lookup through your own `gh` CLI, see [Git and pull requests](#git-and-pull-requests), and [team mode](#team-mode), which talks to computers of your own local network) and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
+The short version: the server reads Claude Code's files read-only, binds to `127.0.0.1`, makes no outbound network requests (three optional exceptions, all **off until you ask**: the pull request lookup through your own `gh` CLI, see [Git and pull requests](#git-and-pull-requests); [team mode](#team-mode), which talks to computers of your own local network; and the one-time download of the speech model for [voice input](#voice-input), whose audio never leaves your computer) and refuses requests that do not carry its access token or that come from another site. The one thing it can start is a terminal window running Claude Code, only when you hire an agent (see [Hiring an agent](#hiring-an-agent)).
 
 ## What AI Office reads
 
@@ -42,6 +42,7 @@ Only its own state directory (`~/.ai-office` by default, mode 0700):
 | `progress.json` | The office level and achievements (mode 0600, written atomically): per local day, counters (sessions, work time, tasks completed, commits, passing test runs, tokens, subagents), the agents with most completed tasks that day (name and the project folder's name, never a path), a folded total of older days, the unlock dates and the first time you watched a time-lapse or shared the card. Numbers and names only: no prompt, reply, task title or file content. Delete it and the history is counted again. |
 | `customization.json` | What you changed with **Personalization** (mode 0600, written atomically, at most 192 KB): the names you gave agents (by agent id), their looks (skin, hair, outfit and accessory choices), the aliases, finishes, pins and hidden flags of rooms (by the project's folder path), looks kept for an account (by account id) and the order of the rooms. Only what you chose: no prompt, reply, title, task or file content. A file this version cannot read is kept aside as `customization.json.unreadable-<time>`. **Settings → Automation and personalization → Personalization → Restore everything** erases it. |
 | `team/` | Only after you use [team mode](#team-mode). Mode 0700, files 0600: `host.json` (the team you host: its identity key pair, the members' **public** keys, names and devices, the removed ids, where the listener was left), `member.json` (the team you joined: your own key pair, the host's pinned public key and address) and `settings.json` (what you share, and the salt of the opaque agent ids). No pairing code, no session key and nothing received from other computers is written. **Leave the team** or **End the team** deletes the files. |
+| `models/whisper-<size>/` | Only after you download a speech model (see [Voice input](#voice-input)). Mode 0700, files 0600: the model files and `model.json`, written last, which says they were all verified. **Remove model** deletes the folder. No audio is ever stored. |
 | `git-settings.json` | Whether the pull request lookup is on (`{ "version": 1, "pullRequests": false }`, mode 0600). |
 | `rules.json` | Your approval rules and their counters (mode 0600, written atomically). |
 | `rules-log.json` | The last 500 automatic decisions of the rules: the command, file or address that was asked (cut to 200 characters, URLs without their query string), the agent and the project (mode 0600). **Clear log** in the rules dialog erases it. |
@@ -51,7 +52,7 @@ Messages, permission requests and notifications live in the server's memory and 
 ## Local only
 
 - The server binds to `127.0.0.1` by default. A non-loopback `AI_OFFICE_HOST` is refused at startup unless remote access is explicitly allowed.
-- The server and the plugin hooks make **no outbound network requests**, with one optional exception: if you turn on **Settings → Data and integrations → Look up pull requests with gh (uses the internet)**, the server starts your own `gh` CLI, which talks to GitHub (see [Git and pull requests](#git-and-pull-requests)). It is off by default. The hooks connect to `127.0.0.1` and nothing else.
+- The server and the plugin hooks make **no outbound network requests**, with one optional exception: if you turn on **Settings → Data and integrations → Look up pull requests with gh (uses the internet)**, the server starts your own `gh` CLI, which talks to GitHub (see [Git and pull requests](#git-and-pull-requests)). It is off by default. The other exception is the one-time download of the speech model, which happens only when you press **Download voice model** (see [Voice input](#voice-input)). The hooks connect to `127.0.0.1` and nothing else.
 - Features that act on sessions (terminal, session history, permissions, messages, attention marks, hiring an agent, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
 - The web app loads all its scripts, styles and assets from the server itself. 3D models and textures are bundled (CC0), not fetched from a CDN.
 
@@ -88,13 +89,13 @@ Limits: a request must arrive within 30 seconds and its headers within 15 second
 Every response, static or API, carries:
 
 ```text
-Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
 Referrer-Policy: no-referrer
 ```
 
-The page cannot be framed, cannot load scripts from other origins and cannot connect anywhere but its own server. The UI builds text with `textContent`, never `innerHTML` with session data.
+The page cannot be framed, cannot load scripts from other origins (`'wasm-unsafe-eval'` only lets it compile WebAssembly for [voice input](#voice-input)) and cannot connect anywhere but its own server. The UI builds text with `textContent`, never `innerHTML` with session data.
 
 ## Approval rules
 
@@ -113,6 +114,66 @@ The page cannot be framed, cannot load scripts from other origins and cannot con
 **Repository state (always on, local).** For each room whose folder has a `.git`, the server runs read-only `git` commands (`status`, `diff --shortstat`, `log`, `stash list`) with an argument array, no shell, the project folder as working directory and a 3 second limit, at most two at a time. They run with `--no-optional-locks` (so they never block your own git commands), `core.fsmonitor` off and no external diff or text-conversion programs, an environment reduced to `PATH`, `HOME` and a few locale variables plus `GIT_TERMINAL_PROMPT=0` (no prompt, no credentials), and they never fetch, never write and never run hooks. A room is read when it appears, every 30 seconds while its agents work and every 5 minutes otherwise, and shortly after an agent finishes a tool call. Without `git` installed, or for folders that are not repositories, nothing is shown. This part makes no network request.
 
 **Pull requests and CI (off by default, uses the internet).** The pull request and check status of a branch can only come from GitHub, so this is the **only** feature of AI Office that contacts the internet, and it never does so by itself: it works only when you turn on **Settings → Data and integrations → Look up pull requests with gh (uses the internet)** (a local-only, token-protected setting stored in `git-settings.json`), and only through the `gh` CLI that you installed and signed in. For each room with a branch the server runs `gh pr view --json number,title,state,url,isDraft,reviewDecision,statusCheckRollup` in the project folder every two minutes (and when the branch changes), with an argument array, no shell and a 15 second limit, in your own environment (so `gh` uses its own credentials; AI Office never reads, stores or sends them). What GitHub answers is validated; only the pull request number, title, state, review decision, the check counts and failing check names, and an http(s) link are kept, in memory, and shown in the page. The link opens GitHub in your browser only when you click it. Turn the switch off and the lookups stop at once. If `gh` is missing or not signed in, AI Office says so in Settings and tries again at most every ten minutes.
+
+## Voice input
+
+**Everything about voice input runs on your computer. Your voice is never recorded to disk and never leaves your machine.** The microphone is read by your browser only after you press the microphone button (the browser asks your permission the first time), the audio is turned into text by a speech model running inside a Web Worker of the page, and only the resulting text reaches the page, where you read it before anything is sent to an agent. There is no speech service, no account and no upload. The page's `connect-src 'self'` policy keeps it from talking to any other host.
+
+**What is downloaded, from where and when.** The speech model (OpenAI Whisper, in the ONNX form that transformers.js runs) is not part of AI Office: it is downloaded **once, and only when you press "Download voice model"** in **Settings → Data and integrations → Voice** (or in a microphone control that offers it). Nothing is downloaded at install, at startup or by itself. The download is made by the **AI Office server** (not by the page), which makes HTTPS requests to `huggingface.co` and its CDN (`*.hf.co`) for the files listed below, pinned to one exact commit each. Hugging Face (and its CDN) therefore sees your IP address and which file you asked for, like any download; no cookie, account, token or identifier of yours is sent. Redirects are followed only to those two hosts over HTTPS. After the download no request is ever made again; deleting the model with **Remove model** works offline too.
+
+**How it is checked.** Each file must have exactly the size and SHA-256 below, or it is deleted and the download fails (`integrity`). A transfer longer than the pinned size is refused; a connection that goes quiet for 30 seconds or a model that takes over an hour is stopped; a cut transfer continues where it stopped the next time. Folders are mode 0700 and files 0600, files get their final name only after the hash matches, and the model is marked usable only after all of them did. A server started with `AI_OFFICE_VOICE=0` cannot download anything.
+
+**Where it lives and how the page gets it.** `<state dir>/models/whisper-<size>/` (see [What AI Office stores](#what-ai-office-stores)). The page loads the files from the server itself, through `GET /api/voice/model/<id>/<file>`: local-only, token-protected, and limited to the exact files of the table (anything else, including `..`, answers 404). They are sent `Cache-Control: no-store`, so removing the model really removes it. `transformers.js` runs with `allowRemoteModels = false`, so it can only read these routes; the WebAssembly runtime it needs is a file of the build, served by the server too, not fetched from a CDN.
+
+**Content Security Policy.** Running a model needs WebAssembly, which a browser only compiles when the policy allows it, so the policy gained exactly one source: `script-src 'self' 'wasm-unsafe-eval'`. That allows WebAssembly (`'wasm-unsafe-eval'` does not allow `eval()`, `new Function()` or inline scripts) and scripts from the server itself, and nothing else; `connect-src` is still `'self'`. A test pins the policy.
+
+**Sizes.** Pick one in Settings. The model lives on your disk and, while in use, in the browser's memory (released after five minutes without use).
+
+| Size | Download | Notes |
+| --- | ---: | --- |
+| Fast (`tiny`) | 44 MB | The smallest and fastest; more mistakes on long sentences and accents. |
+| Balanced (`base`) | 80 MB | The default; good for Portuguese, Spanish and English. |
+| Accurate (`small`) | 252 MB | The most accurate; larger and slower. |
+
+**The files.** Each model is the 8-bit quantized encoder and merged decoder that transformers.js picks for the WebAssembly backend, plus the small JSON files it reads next to them. The same list, in code, is `packages/server/src/voice/manifest.ts`; a test checks that this page and that file agree.
+
+**Fast (`tiny`)**: `Xenova/whisper-tiny` at commit `5332fcc35e32a33b86612b9a57a89be7906102b1`, 44 MB in total.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `config.json` | 2248 | `2b2e4e519084e0ea028b19b153f95202735a971870d6844aa26e559edd292e94` |
+| `generation_config.json` | 3716 | `68ac791fcb4999461a313472125042934656240ba1cba7d1c2627fcbb19ac24c` |
+| `preprocessor_config.json` | 339 | `a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d` |
+| `tokenizer.json` | 2480466 | `27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566` |
+| `tokenizer_config.json` | 282683 | `2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce` |
+| `onnx/encoder_model_quantized.onnx` | 10124910 | `fd9d995b9dcb0520f0dbf6cf68651af639fc385f594d9d876e69ca2802dc438e` |
+| `onnx/decoder_model_merged_quantized.onnx` | 30727765 | `6c0c125986b007d2e3734bec84c18bda0152071b90b87fadac6d7764499927a0` |
+
+**Balanced (`base`, the default)**: `Xenova/whisper-base` at commit `64da57285918e20ea79ea5c88eed7197933abaa8`, 80 MB in total.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `config.json` | 2248 | `d1d347fdb422e6347c2f843a90d375aa67ea3f4b3e20d2c3075f9a9f6243685b` |
+| `generation_config.json` | 3776 | `3bba359e33fdd6dc1c10f71846a477d339b0242f462f70ea1dd73274caa38d05` |
+| `preprocessor_config.json` | 339 | `a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d` |
+| `tokenizer.json` | 2480466 | `27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566` |
+| `tokenizer_config.json` | 282683 | `2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce` |
+| `onnx/encoder_model_quantized.onnx` | 23200850 | `3e345e977b55620a37c0c2b2af0644e019afdfad562dcf71eb929bb7274285f9` |
+| `onnx/decoder_model_merged_quantized.onnx` | 53707539 | `a6beb6baabb66f00b6a686d828c95ffca6146d51900cbad0266cad38f64cf861` |
+
+**Accurate (`small`)**: `Xenova/whisper-small` at commit `2d67713f236afa48a18992566e7647f6ca848e13`, 252 MB in total.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `config.json` | 2232 | `5a6429d21d7a3379dd0861b74510f9f7076f32b563bffc9fcb072482d55ab3be` |
+| `generation_config.json` | 3837 | `0b7407a4e53a677f826e03c75d409e6f830663932bf43dda3b08c5efa2223279` |
+| `preprocessor_config.json` | 339 | `a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d` |
+| `tokenizer.json` | 2480466 | `27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566` |
+| `tokenizer_config.json` | 282683 | `2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce` |
+| `onnx/encoder_model_quantized.onnx` | 92324809 | `969f5ac12974340386bf7a02ea6626003e5e2dee396ffc6ab0eec282bf55ba06` |
+| `onnx/decoder_model_merged_quantized.onnx` | 156780950 | `fcfc6100dc7339e7507e10f8b274350be7c4f8d8b575f0293f94cc0e156d6d24` |
+
+**Licenses.** The weights are OpenAI's Whisper, released under the MIT license ([github.com/openai/whisper](https://github.com/openai/whisper/blob/main/LICENSE)); the Hugging Face model cards of these conversions list the Apache-2.0 license. Both are permissive; AI Office does not redistribute the weights (your computer downloads them from Hugging Face). The code that runs them is [transformers.js](https://github.com/huggingface/transformers.js) (`@huggingface/transformers`, Apache-2.0), with [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) (MIT) inside it.
 
 ## The share card
 

@@ -47,6 +47,7 @@ import { NameStore } from './office/name-store';
 import { Office } from './office/office';
 import { SnapshotPublisher } from './office/snapshot';
 import { TeamService } from './team/service';
+import { VoiceModelStore, type VoiceModelStoreOptions } from './voice/model-store';
 import { AttentionRegistry } from './registries/attention';
 import { MessageRegistry } from './registries/messages';
 import { PermissionRegistry } from './registries/permissions';
@@ -76,6 +77,11 @@ export interface AppOptions {
   /** Hiring agents: tests replace the launcher, so no terminal is ever opened. */
   /** Programs that read the repositories: tests replace them, so no test ever runs `git` or `gh` on a real folder. */
   gitRunners?: { git?: Runner; gh?: Runner };
+  /** Where the speech models come from: tests point this at a fake server, so no test ever reaches the real one. */
+  voice?: Pick<
+    VoiceModelStoreOptions,
+    'fetchImpl' | 'source' | 'specs' | 'connectTimeoutMs' | 'idleTimeoutMs' | 'deadlineMs' | 'freeBytes'
+  >;
   hire?: {
     launcher?: TerminalLauncher;
     /** Absolute path of `claude`, or undefined when there is none. */
@@ -341,6 +347,13 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     onChange: () => snapshots.markDirty(),
   });
 
+  const voice = new VoiceModelStore({
+    stateDir: config.stateDir,
+    log,
+    disabled: config.voiceDisabled,
+    ...options.voice,
+  });
+
   const report = new ReportService({
     now,
     log,
@@ -371,6 +384,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     attention,
     hires,
     team,
+    voice,
     git,
     gitSettings,
     day,
@@ -459,6 +473,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       engine.stop();
       codex.stop();
       git.stop();
+      await voice.stop();
       await team.stop();
       await progress.stop();
       await indexer.stop();

@@ -21,6 +21,7 @@ import type { GitSettingsStore } from '../git/settings-store';
 import type { GitWatcher } from '../git/watcher';
 import type { HireService } from '../hire/service';
 import type { TeamService } from '../team/service';
+import type { VoiceModelStore } from '../voice/model-store';
 import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
 import type { SnapshotPublisher } from '../office/snapshot';
@@ -46,6 +47,7 @@ export interface AppContext {
   attention: AttentionRegistry;
   hires: HireService;
   team: TeamService;
+  voice: VoiceModelStore;
   git: GitWatcher;
   gitSettings: GitSettingsStore;
   day: DayRecorder;
