@@ -86,6 +86,16 @@ The orchestration canvas ([guide](02-using-the-office.md#pro-view)) is DOM and S
 
 With the default 4 projects every view had a median of 16.7 ms, a 95th percentile of 16.7 to 16.8 ms and 1 to 9 frames over 20 ms per trial. That is the display's 60 fps in the median and the 95th percentile of every trial. Before resting terminals were throttled the fitted 8-project view fell to 43 to 55 fps (95th percentile 33 to 50 ms): redrawing dozens of terminals on every snapshot repainted the whole canvas, so a resting terminal now redraws at most once a second (`RESTING_REDRAW_MS`); live ones are never held back. The DOM held about 5100 elements for 46 terminals zoomed out and about 2100 for 21. A pan driven by a real mouse through an automation tool dropped frames in the same conditions; that measures the tool's input rate rather than the page, and was not used for the numbers above.
 
+After the flat redesign (subagents in rows under their orchestrator, square connectors without labels, no shadows or colored room areas; 2026-10-29, same machine and method, default demo with 12 to 23 terminals, load average 8 to 13) every trial of three runs had a median of 16.7 ms:
+
+| View (default demo) | Frames | Median frame | 95th percentile | Frames over 20 ms |
+| --- | --- | --- | --- | --- |
+| Everything fitted (about 21% zoom, none live) | 9 x 238 to 240 | 16.7 ms | 16.7 ms | 0 to 2 per trial |
+| One cluster at 70% to 95% (2 to 6 live terminals) | 9 x 225 to 240 | 16.7 ms | 16.7 ms (one trial 33.3 ms) | 0 to 12 per trial |
+| Dense area at 37% to 51% | 9 x 223 to 241 | 16.7 ms | 16.7 ms | 0 to 11 per trial |
+
+The DOM held about 1650 to 2860 elements for 14 to 23 terminals: each connector is now a single SVG path (its label and end ports are gone).
+
 Live terminals are capped at ten. They read only what follows the cursor of their last page, poll every 0.7 s while their agent works or waits (every 3 s when it is calm, never when it finished) and fetch at once when the office sees the agent do something, so a visible terminal shows a transcript write within about a second: at most one poll interval, or the office's own one-second scan plus one request. The server keeps twelve transcript views open (at most 48 MB together) so they do not evict each other, and runs the updates of one view one after the other.
 
 ### How to measure on your machine

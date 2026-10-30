@@ -6,7 +6,7 @@
 import type { Agent, OfficeSnapshot, Project } from '@ai-office/shared';
 import { sidebarOrder } from '../../layout/arrange';
 import type { LayoutCluster, LayoutRoom } from './layout';
-import { ringOfSlot, slotCount, MAX_RING } from './slots';
+import { MAX_SLOTS, rowsForSlot } from './slots';
 
 /** How long a finished subagent stays on the canvas before it folds into the pill. */
 export const FINISHED_FADE_MS = 5 * 60_000;
@@ -30,15 +30,15 @@ export interface ClusterMemory {
   finished: Readonly<Record<string, FinishedSub>>;
   /** Folded into the pill, newest first. */
   collapsed: readonly FinishedSub[];
-  /** The biggest ring the cluster has needed: what it reserves in the layout. */
-  ring: number;
+  /** The most rows of subagents the cluster has needed: what it reserves in the layout. */
+  rows: number;
 }
 
 export type SceneMemory = ReadonlyMap<string, ClusterMemory>;
 
 export const EMPTY_MEMORY: SceneMemory = new Map();
 
-const EMPTY_CLUSTER: ClusterMemory = { slots: {}, known: {}, finished: {}, collapsed: [], ring: 0 };
+const EMPTY_CLUSTER: ClusterMemory = { slots: {}, known: {}, finished: {}, collapsed: [], rows: 0 };
 
 export interface SceneSub {
   agent: Agent;
@@ -69,7 +69,7 @@ function byStart(a: Agent, b: Agent): number {
 }
 
 function lowestFreeSlot(used: ReadonlySet<number>): number {
-  const limit = slotCount(MAX_RING);
+  const limit = MAX_SLOTS;
   for (let slot = 0; slot < limit; slot++) if (!used.has(slot)) return slot;
   return limit - 1;
 }
@@ -133,7 +133,7 @@ function advanceCluster(
     known: Object.fromEntries(running.map((sub) => [sub.id, sub])),
     finished: Object.fromEntries(visible.map((entry) => [entry.agent.id, entry])),
     collapsed,
-    ring: highest < 0 ? prev.ring : Math.max(prev.ring, ringOfSlot(highest)),
+    rows: highest < 0 ? prev.rows : Math.max(prev.rows, rowsForSlot(highest)),
   };
   return { memory, running };
 }
@@ -173,7 +173,7 @@ export function buildScene(snapshot: OfficeSnapshot, memory: SceneMemory, now: n
         main,
         subs: sceneSubs,
         collapsed: next.collapsed,
-        layout: { id: main.id, ring: next.ring, slots: next.slots },
+        layout: { id: main.id, rows: next.rows, slots: next.slots },
       });
     }
     if (clusters.length > 0) rooms.push({ project, clusters });

@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { rectsOverlap, type Rect } from './geometry';
 import { computeLayout, holds, type LayoutCluster, type LayoutRoom, ROW_MAX_WIDTH } from './layout';
 
-function cluster(id: string, subs: string[] = [], ring = subs.length > 0 ? 1 : 0): LayoutCluster {
-  return { id, ring, slots: Object.fromEntries(subs.map((sub, index) => [sub, index])) };
+function cluster(id: string, subs: string[] = [], rows = Math.ceil(subs.length / 3)): LayoutCluster {
+  return { id, rows, slots: Object.fromEntries(subs.map((sub, index) => [sub, index])) };
 }
 
 const ROOMS: LayoutRoom[] = [
   { id: 'r1', clusters: [cluster('a', ['a1', 'a2', 'a3']), cluster('b', ['b1'])] },
   { id: 'r2', clusters: [cluster('c', ['c1', 'c2'])] },
   { id: 'r3', clusters: [cluster('d'), cluster('e', ['e1']), cluster('f', [], 1)] },
-  { id: 'r4', clusters: [cluster('g', ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 'g9'], 2)] },
+  { id: 'r4', clusters: [cluster('g', ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 'g9'], 3)] },
 ];
 
 describe('computeLayout', () => {
@@ -52,7 +52,7 @@ describe('computeLayout', () => {
     expect(new Set(layout.frames.map((frame) => frame.rect.y)).size).toBeGreaterThan(1);
   });
 
-  it('keeps every position when subagents come and go inside the ring a cluster already reserved', () => {
+  it('keeps every position when subagents come and go inside the rows a cluster already reserved', () => {
     const before = computeLayout(ROOMS);
     const fewer = computeLayout([
       { ...(ROOMS[0] as LayoutRoom), clusters: [cluster('a', ['a2'], 1), cluster('b', [], 1)] },
@@ -64,7 +64,7 @@ describe('computeLayout', () => {
     // The subagent that stayed keeps its slot, so it keeps its place.
     const slotOfA2 = { id: 'a2', slot: 1 };
     const kept = computeLayout([
-      { id: 'r1', clusters: [{ id: 'a', ring: 1, slots: { [slotOfA2.id]: slotOfA2.slot } }] },
+      { id: 'r1', clusters: [{ id: 'a', rows: 1, slots: { [slotOfA2.id]: slotOfA2.slot } }] },
     ]);
     const original = computeLayout([{ id: 'r1', clusters: [cluster('a', ['a1', 'a2', 'a3'])] }]);
     expect(kept.nodes.get('a2')).toEqual(original.nodes.get('a2'));
@@ -86,6 +86,42 @@ describe('computeLayout', () => {
       expect(frame && holds(frame.rect, moved.nodes.get(id) as Rect), id).toBe(true);
     // Other rooms did not move.
     expect(moved.nodes.get('c')).toEqual(base.nodes.get('c'));
+  });
+
+  it('puts the subagents under their orchestrator and the orchestrators of a room side by side', () => {
+    // Act
+    const layout = computeLayout(ROOMS);
+
+    // Assert
+    const a = layout.nodes.get('a') as Rect;
+    const b = layout.nodes.get('b') as Rect;
+    for (const sub of ['a1', 'a2', 'a3']) {
+      const rect = layout.nodes.get(sub) as Rect;
+      expect(rect.y, sub).toBeGreaterThan(a.y + a.height);
+      expect(rect.x + rect.width / 2, sub).toBeGreaterThan(a.x - 200);
+      expect(rect.x + rect.width / 2, sub).toBeLessThan(a.x + a.width + 200);
+    }
+    expect(b.y).toBe(a.y);
+    expect(b.x).toBeGreaterThan(a.x + a.width);
+    const g = layout.nodes.get('g') as Rect;
+    const g9 = layout.nodes.get('g9') as Rect;
+    expect(g9.y).toBeGreaterThan((layout.nodes.get('g4') as Rect).y);
+    expect(g9.y).toBeGreaterThan(g.y + g.height);
+  });
+
+  it('moves no terminal of a room when a cluster gains its first subagent or a new row', () => {
+    // Arrange
+    const room = (subs: string[]): LayoutRoom[] => [
+      { id: 'r1', clusters: [cluster('a', subs), cluster('b', ['b1'])] },
+      { id: 'r2', clusters: [cluster('c', ['c1'])] },
+    ];
+    const before = computeLayout(room([]));
+
+    // Act
+    const after = computeLayout(room(['a1', 'a2', 'a3', 'a4']));
+
+    // Assert
+    for (const id of ['a', 'b', 'b1', 'c', 'c1']) expect(after.nodes.get(id), id).toEqual(before.nodes.get(id));
   });
 
   it('skips rooms without clusters and reports no bounds when empty', () => {

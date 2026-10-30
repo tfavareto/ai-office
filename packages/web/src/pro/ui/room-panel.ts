@@ -5,9 +5,8 @@ import { changedFiles } from '@ai-office/shared';
 import { t } from '../../i18n';
 import type { AppContext } from '../../ui/context';
 import { h, setText } from '../../ui/dom';
-import { formatCost, formatElapsed, formatInteger, formatTokens } from '../../ui/format';
+import { formatCost, formatElapsed, formatTokens } from '../../ui/format';
 import { icon } from '../../ui/icons';
-import { roomColor } from '../../ui/model/rooms';
 import { liveText } from '../../ui/widgets';
 import type { VoiceInput } from '../../voice/types';
 import { statusLine } from '../model/cli-format';
@@ -29,7 +28,6 @@ function glyph(status: PanelSub['status']): HTMLElement {
 
 export class RoomPanel {
   readonly el = h('aside', { class: 'ao-pro-panel', hidden: true, tabindex: '-1' });
-  private readonly dot = h('span', { class: 'ao-pro-panel-dot', 'aria-hidden': 'true' });
   private readonly title = h('h2', { class: 'ao-pro-panel-title', id: 'ao-pro-panel-title' });
   private readonly path = h('p', { class: 'ao-pro-panel-path' });
   private readonly picker = h('div', { class: 'ao-pro-panel-picker', role: 'radiogroup' });
@@ -64,7 +62,6 @@ export class RoomPanel {
       h(
         'header',
         { class: 'ao-pro-panel-head' },
-        this.dot,
         h('div', { class: 'ao-pro-panel-name' }, this.title, this.path),
         close,
       ),
@@ -111,7 +108,6 @@ export class RoomPanel {
       this.host.close();
       return;
     }
-    this.dot.style.background = roomColor(model.seed, 58);
     setText(this.title, model.name);
     setText(this.path, room?.project.path ?? '');
     const chosen = model.orchestrators.find((one) => one.id === model.selectedId);
@@ -189,7 +185,7 @@ export class RoomPanel {
         [t('pro.panel.tokensValue', { input: formatTokens(one.tokensIn), output: formatTokens(one.tokensOut) })],
       ],
       [t('pro.panel.cost'), [formatCost(one.costUSD)]],
-      [t('pro.panel.tools'), [t('pro.panel.toolsValue', { n: formatInteger(one.toolCalls), sub: one.delegated })]],
+      [t('pro.panel.tools'), [t('pro.panel.toolsValue', { n: one.toolCalls, sub: one.delegated })]],
     ];
     if (one.codex) rows.push([t('pro.panel.source'), [t('codex.badge')]]);
     this.facts.replaceChildren(...rows.flatMap(([label, value]) => [h('dt', null, label), h('dd', null, ...value)]));

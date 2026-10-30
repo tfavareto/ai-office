@@ -55,6 +55,9 @@ export function localOnlyHint(): string {
   return t(replayHint ? 'hint.replay' : 'hint.localOnly');
 }
 
+/** How an answer to a permission request went: sent, answered first by someone else, or failed (with why). */
+export type PermissionOutcome = { kind: 'ok' } | { kind: 'already-answered' } | { kind: 'failed'; message: string };
+
 export interface AppContext {
   readonly store: Store;
   readonly ui: UiState;
@@ -138,6 +141,11 @@ export interface AppContext {
   cue(kind: CueKind): void;
 
   decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean>;
+  /**
+   * Answers the permission request the agent waits on, quietly: the caller shows the outcome itself (the Pro view's
+   * terminals do it in their own prompt). Same client and endpoint as `decidePermission`.
+   */
+  answerPermission(agent: Agent, decision: PermissionDecision): Promise<PermissionOutcome>;
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
   /** Opens a terminal with Claude Code for a new agent; rejects with the server's error. */
   hireAgent(request: HireRequest): Promise<PendingHire>;

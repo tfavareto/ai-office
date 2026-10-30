@@ -1,23 +1,24 @@
-// The canvas layout: one cluster per orchestrator (its terminal in the middle, the subagents in fixed slots around it),
-// clusters grouped in a frame per room, frames packed in rows. Deterministic: the same input gives the same positions,
-// and a cluster's footprint depends only on the ring it has grown to, so subagents coming and going move nothing.
+// The canvas layout: one cluster per orchestrator (its terminal on top, the subagents in fixed rows under it), the
+// clusters of a room side by side under the room's name, rooms packed in rows. Deterministic: the same input gives the
+// same positions. A cluster always reserves the same width and only grows downward with the rows it has needed, and
+// clusters are aligned at the top, so subagents coming and going move nothing that is already there.
 import { rectBottom, rectRight, translateRect, unionRects, type Point, type Rect } from './geometry';
 import { clusterFootprint, orchestratorRect, slotRect } from './slots';
 
-/** Space around the clusters inside a room frame, and the strip with the room's name above them. */
-export const FRAME_PADDING = 44;
-export const FRAME_HEADER = 72;
-/** Free space between the cluster footprints of a frame, and between frames. */
-export const CLUSTER_GAP = 72;
-export const FRAME_GAP = 160;
-/** Frames are packed left to right until a row would pass this width, then a new row starts. */
+/** Space around the clusters of a room (there is no box: it only separates), and the line with the room's name. */
+export const FRAME_PADDING = 0;
+export const FRAME_HEADER = 96;
+/** Free space between the clusters of a room, and between rooms. */
+export const CLUSTER_GAP = 120;
+export const FRAME_GAP = 280;
+/** Rooms are packed left to right until a row would pass this width, then a new row starts. */
 export const ROW_MAX_WIDTH = 4800;
 
 export interface LayoutCluster {
   /** The orchestrator's agent id. */
   id: string;
-  /** Biggest ring the cluster has needed so far (0 = no subagent yet): what it reserves. */
-  ring: number;
+  /** Most rows of subagents the cluster has needed so far (0 = no subagent yet): what it reserves. */
+  rows: number;
   /** Subagent id → slot. */
   slots: Readonly<Record<string, number>>;
 }
@@ -40,7 +41,7 @@ export interface ClusterPlacement {
 
 export interface FramePlacement {
   roomId: string;
-  /** The frame, header included. */
+  /** What the room takes, its name line included. */
   rect: Rect;
 }
 
@@ -60,53 +61,30 @@ export interface LayoutOffsets {
   panels?: Offsets;
 }
 
-function columnsFor(count: number): number {
-  return Math.max(1, Math.ceil(Math.sqrt(count)));
-}
-
-interface Grid {
+interface Row {
   width: number;
   height: number;
-  /** Footprint size of each cluster and where its top-left goes, relative to the frame's content origin. */
+  /** Footprint of each cluster (around (0, 0)) and where its top-left goes, relative to the room's content origin. */
   cells: { cluster: LayoutCluster; footprint: Rect; origin: Point }[];
 }
 
-function packClusters(clusters: readonly LayoutCluster[]): Grid {
-  const columns = columnsFor(clusters.length);
-  const footprints = clusters.map((cluster) => clusterFootprint({ x: 0, y: 0 }, cluster.ring));
-  const columnWidths: number[] = [];
-  const rowHeights: number[] = [];
-  footprints.forEach((footprint, index) => {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    columnWidths[column] = Math.max(columnWidths[column] ?? 0, footprint.width);
-    rowHeights[row] = Math.max(rowHeights[row] ?? 0, footprint.height);
+/** The clusters of a room side by side, aligned at the top (a taller one grows downward only). */
+function packClusters(clusters: readonly LayoutCluster[]): Row {
+  let x = 0;
+  const cells = clusters.map((cluster) => {
+    const footprint = clusterFootprint({ x: 0, y: 0 }, cluster.rows);
+    const cell = { cluster, footprint, origin: { x, y: 0 } };
+    x += footprint.width + CLUSTER_GAP;
+    return cell;
   });
-  const columnX = columnWidths.map((_, column) =>
-    columnWidths.slice(0, column).reduce((sum, width) => sum + width + CLUSTER_GAP, 0),
-  );
-  const rowY = rowHeights.map((_, row) =>
-    rowHeights.slice(0, row).reduce((sum, height) => sum + height + CLUSTER_GAP, 0),
-  );
-  const cells = clusters.map((cluster, index) => {
-    const footprint = footprints[index] as Rect;
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    // Centered in its cell, so a smaller cluster does not hug the corner.
-    const origin = {
-      x: (columnX[column] ?? 0) + ((columnWidths[column] ?? 0) - footprint.width) / 2,
-      y: (rowY[row] ?? 0) + ((rowHeights[row] ?? 0) - footprint.height) / 2,
-    };
-    return { cluster, footprint, origin };
-  });
-  const width = columnWidths.reduce((sum, w) => sum + w, 0) + CLUSTER_GAP * Math.max(0, columnWidths.length - 1);
-  const height = rowHeights.reduce((sum, h) => sum + h, 0) + CLUSTER_GAP * Math.max(0, rowHeights.length - 1);
+  const width = Math.max(0, x - CLUSTER_GAP);
+  const height = cells.reduce((max, cell) => Math.max(max, cell.footprint.height), 0);
   return { width, height, cells };
 }
 
 interface RoomBlock {
   room: LayoutRoom;
-  grid: Grid;
+  grid: Row;
   width: number;
   height: number;
 }

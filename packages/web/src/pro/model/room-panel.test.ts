@@ -9,7 +9,7 @@ function cluster(
   subs: SceneCluster['subs'] = [],
   collapsed: SceneCluster['collapsed'] = [],
 ): SceneCluster {
-  return { main, subs, collapsed, layout: { id: main.id, ring: 1, slots: {} } };
+  return { main, subs, collapsed, layout: { id: main.id, rows: 1, slots: {} } };
 }
 
 const git = {

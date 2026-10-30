@@ -1,15 +1,15 @@
-// One terminal window of the canvas, raw: a minimal title bar (status dot, session name, role, account or Codex badge,
-// model, session time, maximize and copy-id buttons), the session printed like the Claude Code CLI, what it waits for
-// (the permission prompt, amber), and a CLI-like status line. It always shows terminal text: live from the transcript
+// One terminal window of the canvas, raw: a plain title line (session name, role, `[account]` or `[codex]`, model,
+// session time, maximize and copy-id buttons), the session printed like the Claude Code CLI, what it waits for (the
+// permission prompt, amber, answered right there), and a CLI-like status line. It always shows terminal text: live from the transcript
 // when the policy lets it poll, otherwise the last lines it already has followed by what the office saw the agent do.
 import { isCodex, type Account, type Agent, type TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
 import { t, type TextKey } from '../../i18n';
-import { agentRole, agentTitle, agentWaitingFor, permissionSummary } from '../../ui/display';
+import { accountInitial, accountLabel, agentRole, agentTitle } from '../../ui/display';
 import { h, setAttr, setText, toggleClass } from '../../ui/dom';
 import { icon, type IconName } from '../../ui/icons';
 import { displayStatus, statusLabel } from '../../ui/model/status';
-import { liveText, setLive, setStatusDot, statusDot, updateAccountChip } from '../../ui/widgets';
+import { liveText, setLive } from '../../ui/widgets';
 import { ActivityEntryCache, NO_RESULT } from '../model/activity-entries';
 import { RESULT_LINES, RESULT_LINES_MAXIMIZED, shortModel, statusLine } from '../model/cli-format';
 import { demoResult } from '../model/demo-results';
@@ -17,6 +17,7 @@ import type { Rect } from '../model/geometry';
 import { WINDOW_ENTRIES, WINDOW_MAXIMIZED, WINDOW_RECENT, withNewer } from '../model/live-transcript';
 import type { Detail } from '../model/policy';
 import type { FinishedSub } from '../model/scene';
+import { AskBox, type AskHost } from './ask-box';
 import { CliBody } from './cli-body';
 import { TranscriptFeed, type FeedSource } from './transcript-feed';
 
@@ -33,7 +34,7 @@ export interface NodeModel {
   collapsed: readonly FinishedSub[];
 }
 
-export interface NodeHandlers {
+export interface NodeHandlers extends AskHost {
   maximize(): void;
   copySessionId(): void;
   select(): void;
@@ -57,14 +58,13 @@ const ACTIONS: readonly { name: ActionName; icon: IconName; key: TextKey }[] = [
 
 export class TerminalNode {
   readonly el = h('article', { class: 'ao-pro-node', tabindex: '0', role: 'group' });
-  private readonly dot = statusDot('idle');
   private readonly name = h('strong', { class: 'ao-pro-name' });
   private readonly role = h('span', { class: 'ao-pro-role' });
-  private readonly account = h('span', { class: 'ao-account' });
+  private readonly account = h('span', { class: 'ao-pro-badge' });
   private readonly codex = h(
     'span',
     { class: 'ao-pro-badge is-codex', hidden: true, title: t('codex.badge.title') },
-    t('codex.badge'),
+    `[${t('codex.badge').toLowerCase()}]`,
   );
   private readonly model = h('span', { class: 'ao-pro-model' });
   private readonly elapsed = liveText('elapsed', 0, 'ao-pro-elapsed');
@@ -81,8 +81,8 @@ export class TerminalNode {
   private readonly maximizeButton: HTMLButtonElement;
   private readonly liveFeed: TranscriptFeed;
   private readonly recent = new ActivityEntryCache();
-  private readonly ask = h('div', { class: 'ao-cli-ask' });
-  private askSignature = '';
+  private readonly ask: AskBox;
+  private asking = false;
   private detail: Detail = 'summary';
   private maximized = false;
   private doneOpen = false;
@@ -98,6 +98,7 @@ export class TerminalNode {
     private readonly handlers: NodeHandlers,
   ) {
     this.liveFeed = new TranscriptFeed(source, () => this.renderBody());
+    this.ask = new AskBox(handlers);
     this.body = new CliBody((sticking) => {
       this.toEnd.hidden = sticking;
     });
@@ -141,7 +142,6 @@ export class TerminalNode {
       h(
         'header',
         { class: 'ao-pro-head', 'data-drag': '' },
-        this.dot,
         this.name,
         this.role,
         this.codex,
@@ -194,12 +194,11 @@ export class TerminalNode {
     this.body.setCwd(agent.projectId);
     const status = model.finishedAt !== undefined ? 'done' : displayStatus(agent);
     if (!this.maximized) this.place(model.rect);
-    setStatusDot(this.dot, status);
     setText(this.name, agent.name);
     setText(this.role, model.isOrchestrator ? t('pro.term.main') : agentRole(agent));
     this.codex.hidden = !isCodex(agent);
     this.account.hidden = isCodex(agent);
-    if (!isCodex(agent)) updateAccountChip(this.account, model.account);
+    if (!isCodex(agent)) this.renderAccount(model.account);
     const shortName = agent.model === undefined ? '' : shortModel(agent.model);
     setText(this.model, shortName);
     setAttr(this.model, 'title', agent.model ?? null);
@@ -224,7 +223,7 @@ export class TerminalNode {
     toggleClass(this.el, 'is-selected', model.selected);
     this.setMaximizedState(model.maximized);
     this.renderPill(model);
-    this.renderAsk(agent, status === 'waiting');
+    this.renderAsk(agent, status === 'waiting', model.finishedAt !== undefined);
     if (agent.lastEventAt !== this.lastEventAt) {
       // The office saw it do something: a live terminal reads it now, a resting one shows the new activity.
       this.lastEventAt = agent.lastEventAt;
@@ -264,27 +263,22 @@ export class TerminalNode {
     setLive(this.statusTime, 'elapsed', since);
   }
 
-  /** The permission prompt (or the question) the agent is waiting on, as the CLI would show it. */
-  private renderAsk(agent: Agent, waiting: boolean): void {
-    if (!waiting) {
-      if (this.askSignature !== '') {
-        this.askSignature = '';
-        this.body.setTail(null);
-      }
-      return;
-    }
-    const permission = agent.permission;
-    const title = permission ? t('pro.term.permission', { tool: permission.toolName }) : t('pro.term.question');
-    const detail = permission ? permissionSummary(permission) : (agentWaitingFor(agent) ?? t('sidebar.row.needsYou'));
-    const signature = `${title}|${detail}`;
-    if (signature === this.askSignature) return;
-    this.askSignature = signature;
-    this.ask.replaceChildren(
-      h('div', { class: 'ao-cli-ask-title' }, h('span', { 'aria-hidden': 'true' }, '◆ '), title),
-      h('div', { class: 'ao-cli-ask-detail' }, detail),
-      h('div', { class: 'ao-cli-ask-hint' }, t(permission ? 'pro.term.permission.hint' : 'pro.term.question.hint')),
+  /** `[P]`: the account as plain text (its name in the tooltip). */
+  private renderAccount(account: Account | undefined): void {
+    setText(this.account, `[${account ? accountInitial(account) : '?'}]`);
+    setAttr(
+      this.account,
+      'title',
+      account ? t('account.chip', { label: accountLabel(account) }) : t('account.unknown'),
     );
-    this.body.setTail(this.ask);
+  }
+
+  /** The permission prompt (with its answer buttons) or the question the agent is waiting on, as the CLI shows it. */
+  private renderAsk(agent: Agent, waiting: boolean, finished: boolean): void {
+    const shown = this.ask.update(agent, waiting, finished);
+    if (shown === this.asking) return;
+    this.asking = shown;
+    this.body.setTail(shown ? this.ask.el : null);
   }
 
   // --- detail and text --------------------------------------------------------------------------------------------

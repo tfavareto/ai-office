@@ -55,7 +55,7 @@ import { ConnectionBanner, Splash } from './components/splash';
 import { TerminalPanel } from './components/terminal-panel';
 import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
-import { localOnlyHint, setReplayHint, type AppContext, type Component } from './context';
+import { localOnlyHint, setReplayHint, type AppContext, type Component, type PermissionOutcome } from './context';
 import { BoardStore } from './board-store';
 import { bindFeedDismiss } from './feed-dismiss';
 import { bindLanguage } from './language';
@@ -698,23 +698,29 @@ export class App implements AppContext {
   }
 
   async decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean> {
+    if (!agent.permission) return false;
+    const outcome = await this.answerPermission(agent, decision);
+    if (outcome.kind === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
+    if (outcome.kind === 'failed') this.notifyLocal('warn', outcome.message, { agentId: agent.id });
+    return outcome.kind !== 'failed';
+  }
+
+  async answerPermission(agent: Agent, decision: PermissionDecision): Promise<PermissionOutcome> {
     const permission = agent.permission;
-    if (!permission) return false;
+    if (!permission) return { kind: 'already-answered' };
     try {
       const result = await this.store.backend.decidePermission(permission.id, decision);
-      if (result === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
-      else
-        this.announce(
-          decision.behavior === 'allow'
-            ? t('announce.permission.allowed')
-            : decision.behavior === 'deny'
-              ? t('announce.permission.denied')
-              : t('announce.permission.terminal'),
-        );
-      return true;
+      if (result === 'already-answered') return { kind: 'already-answered' };
+      this.announce(
+        decision.behavior === 'allow'
+          ? t('announce.permission.allowed')
+          : decision.behavior === 'deny'
+            ? t('announce.permission.denied')
+            : t('announce.permission.terminal'),
+      );
+      return { kind: 'ok' };
     } catch (error) {
-      this.notifyLocal('warn', describeError(error), { agentId: agent.id });
-      return false;
+      return { kind: 'failed', message: describeError(error) };
     }
   }
 

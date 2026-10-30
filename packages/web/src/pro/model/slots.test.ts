@@ -1,70 +1,78 @@
 import { describe, expect, it } from 'vitest';
-import { rectsOverlap, type Rect } from './geometry';
+import { rectBottom, rectCenter, rectsOverlap, type Rect } from './geometry';
 import {
-  MAX_RING,
+  CLUSTER_WIDTH,
+  MAX_SLOTS,
   ORCHESTRATOR_SIZE,
+  SUB_COLUMNS,
   clusterFootprint,
   orchestratorRect,
-  ringOfSlot,
+  rowsForSlot,
   separation,
-  slotCount,
+  slotCell,
   slotRect,
 } from './slots';
 
 const CENTER = { x: 0, y: 0 };
 
 describe('subagent slots', () => {
-  it('holds six slots in the first ring, eight more in the second and ten in the third', () => {
-    expect(slotCount(0)).toBe(0);
-    expect(slotCount(1)).toBe(6);
-    expect(slotCount(2)).toBe(14);
-    expect(slotCount(3)).toBe(24);
-    expect(ringOfSlot(0)).toBe(1);
-    expect(ringOfSlot(5)).toBe(1);
-    expect(ringOfSlot(6)).toBe(2);
-    expect(ringOfSlot(13)).toBe(2);
-    expect(ringOfSlot(14)).toBe(3);
+  it('fills rows of three under the orchestrator: the middle first, then the left, then the right', () => {
+    expect(SUB_COLUMNS).toBe(3);
+    expect(slotCell(0)).toEqual({ row: 0, column: 1 });
+    expect(slotCell(1)).toEqual({ row: 0, column: 0 });
+    expect(slotCell(2)).toEqual({ row: 0, column: 2 });
+    expect(slotCell(3)).toEqual({ row: 1, column: 1 });
+    expect(rowsForSlot(0)).toBe(1);
+    expect(rowsForSlot(2)).toBe(1);
+    expect(rowsForSlot(3)).toBe(2);
   });
 
-  it('puts the first subagents on the right and on the left, then above and below in the second ring', () => {
-    const center = (slot: number): { x: number; y: number } => {
-      const rect = slotRect(CENTER, slot);
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-    };
-    expect(center(0).x).toBeGreaterThan(0);
-    expect(center(0).y).toBe(0);
-    expect(center(1).x).toBeLessThan(0);
-    expect(center(2).y).toBeLessThan(0);
-    expect(center(6)).toEqual({ x: 0, y: expect.any(Number) });
-    expect(center(6).y).toBeLessThan(0);
-    expect(center(7).y).toBeGreaterThan(0);
+  it('puts every subagent below its orchestrator and the first one right under its middle', () => {
+    // Arrange
+    const orchestrator = orchestratorRect(CENTER);
+
+    // Act
+    const first = slotRect(CENTER, 0);
+
+    // Assert
+    expect(rectCenter(first).x).toBe(0);
+    for (let slot = 0; slot < MAX_SLOTS; slot++)
+      expect(slotRect(CENTER, slot).y).toBeGreaterThan(rectBottom(orchestrator));
+    expect(rectCenter(slotRect(CENTER, 1)).x).toBeLessThan(0);
+    expect(rectCenter(slotRect(CENTER, 2)).x).toBeGreaterThan(0);
+    expect(slotRect(CENTER, 3).y).toBeGreaterThan(rectBottom(first));
   });
 
-  it('never overlaps two terminals or a terminal with the orchestrator, ring after ring', () => {
+  it('never overlaps two terminals or a terminal with the orchestrator, row after row', () => {
     const rects: Rect[] = [orchestratorRect(CENTER)];
-    for (let slot = 0; slot < slotCount(MAX_RING); slot++) rects.push(slotRect(CENTER, slot));
+    for (let slot = 0; slot < MAX_SLOTS; slot++) rects.push(slotRect(CENTER, slot));
     for (let a = 0; a < rects.length; a++)
       for (let b = a + 1; b < rects.length; b++)
         expect(rectsOverlap(rects[a] as Rect, rects[b] as Rect), `rects ${a} and ${b}`).toBe(false);
   });
 
-  it('keeps room for a line between the orchestrator and the first ring', () => {
+  it('keeps room for the connector between the orchestrator and the first row', () => {
     const orchestrator = orchestratorRect(CENTER);
-    for (let slot = 0; slot < slotCount(1); slot++)
-      expect(separation(slotRect(CENTER, slot), orchestrator)).toBeGreaterThanOrEqual(40);
+    for (let slot = 0; slot < SUB_COLUMNS; slot++)
+      expect(separation(slotRect(CENTER, slot), orchestrator)).toBeGreaterThanOrEqual(60);
   });
 
-  it('reserves a footprint that holds every slot of its ring and grows with it', () => {
+  it('reserves the same width with or without subagents and grows only downward', () => {
+    // Act
     const alone = clusterFootprint(CENTER, 0);
-    expect(alone.width).toBe(ORCHESTRATOR_SIZE.width);
-    const first = clusterFootprint(CENTER, 1);
-    const second = clusterFootprint(CENTER, 2);
-    expect(first.width).toBeGreaterThan(alone.width);
-    expect(second.width).toBeGreaterThan(first.width);
-    for (let slot = 0; slot < slotCount(2); slot++) {
+    const one = clusterFootprint(CENTER, 1);
+    const two = clusterFootprint(CENTER, 2);
+
+    // Assert
+    expect(alone.height).toBe(ORCHESTRATOR_SIZE.height);
+    expect([alone.width, one.width, two.width]).toEqual([CLUSTER_WIDTH, CLUSTER_WIDTH, CLUSTER_WIDTH]);
+    expect([alone.y, one.y, two.y]).toEqual([alone.y, alone.y, alone.y]);
+    expect(two.height).toBeGreaterThan(one.height);
+    for (let slot = 0; slot < 2 * SUB_COLUMNS; slot++) {
       const rect = slotRect(CENTER, slot);
-      expect(rect.x).toBeGreaterThanOrEqual(second.x);
-      expect(rect.x + rect.width).toBeLessThanOrEqual(second.x + second.width);
+      expect(rect.x).toBeGreaterThanOrEqual(two.x);
+      expect(rect.x + rect.width).toBeLessThanOrEqual(two.x + two.width);
+      expect(rectBottom(rect)).toBeLessThanOrEqual(rectBottom(two));
     }
   });
 });

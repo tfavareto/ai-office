@@ -46,7 +46,6 @@ export interface PanelOrchestrator {
 export interface RoomPanelModel {
   roomId: string;
   name: string;
-  seed: number;
   git?: ProjectGit;
   orchestrators: readonly PanelOrchestrator[];
   /** The orchestrator the panel shows and the prompt goes to. */
@@ -111,7 +110,6 @@ export function roomPanelModel(room: SceneRoom | undefined, chosenId: string | n
   return {
     roomId: room.project.id,
     name: room.project.name,
-    seed: room.project.seed,
     ...(room.project.git !== undefined ? { git: room.project.git } : {}),
     orchestrators,
     selectedId: chosen?.id ?? null,

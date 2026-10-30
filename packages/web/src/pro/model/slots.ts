@@ -1,66 +1,55 @@
-// Where the subagent terminals sit around their orchestrator. Slots are fixed offsets from the orchestrator's center:
-// a subagent keeps its slot while it lives, so terminals never jump when others come and go. Rings grow outward: the
-// first has three slots on each side of the orchestrator, the second adds one above and one below it, and so on.
-import { rectBottom, rectRight, unionRects, type Point, type Rect, type Size } from './geometry';
+// Where the subagent terminals sit under their orchestrator, like a tree: the orchestrator on top, its subagents in
+// rows of three beneath it. Slots are fixed offsets from the orchestrator's center: a subagent keeps its slot while it
+// lives, so terminals never jump when others come and go. A row fills its middle first, then the left, then the right,
+// so a single subagent sits right under its orchestrator.
+import { rectBottom, rectRight, type Point, type Rect, type Size } from './geometry';
 
 export const ORCHESTRATOR_SIZE: Size = { width: 600, height: 400 };
 export const SUB_SIZE: Size = { width: 300, height: 210 };
-/** Free space between the orchestrator and the first ring: room for the link and its label. */
-const LINK_GAP = 120;
-/** Free space between neighboring subagent terminals. */
-const NEIGHBOR_GAP = 36;
-const PITCH_X = SUB_SIZE.width + NEIGHBOR_GAP;
-const PITCH_Y = SUB_SIZE.height + NEIGHBOR_GAP;
-const FIRST_COLUMN_X = ORCHESTRATOR_SIZE.width / 2 + LINK_GAP + SUB_SIZE.width / 2;
-const FIRST_ROW_Y = ORCHESTRATOR_SIZE.height / 2 + LINK_GAP + SUB_SIZE.height / 2;
-/** Rings the layout can grow to; a subagent past the last slot shares it, which no real session reaches. */
-export const MAX_RING = 6;
+/** Subagents per row under an orchestrator. */
+export const SUB_COLUMNS = 3;
+/** Free space between the orchestrator and the first row: room for the connector. */
+export const LINK_GAP = 96;
+/** Free space between two rows of subagents (the connector to a lower row runs through it). */
+export const ROW_GAP = 48;
+/** Free space between two subagents of a row (the connectors to lower rows run down through it). */
+export const COLUMN_GAP = 36;
+/** Slots a cluster can grow to; a subagent past the last slot shares it, which no real session reaches. */
+export const MAX_SLOTS = 78;
+export const MAX_ROWS = Math.ceil(MAX_SLOTS / SUB_COLUMNS);
 
-/**
- * Center offsets of a ring's slots, in fill order. Ring 1 is a column of three on each side of the orchestrator;
- * ring 2 adds one terminal above and one below it and a second column of three on each side; each next ring is a
- * taller column on each side, farther out.
- */
-function ringOffsets(ring: number): Point[] {
-  const columnX = FIRST_COLUMN_X + PITCH_X * Math.max(0, ring - 1);
-  const half = ring <= 2 ? 1 : ring - 1;
-  const slots: Point[] = [];
-  for (let row = 0; row <= half; row++) {
-    const rows = row === 0 ? [0] : [-row, row];
-    for (const j of rows) slots.push({ x: columnX, y: j * PITCH_Y }, { x: -columnX, y: j * PITCH_Y });
-  }
-  // Closest to the orchestrator's middle first, then the top before the bottom, the right side before the left.
-  slots.sort(
-    (a, b) => Math.abs(a.y) - Math.abs(b.y) || Math.sign(a.y) - Math.sign(b.y) || Math.sign(b.x) - Math.sign(a.x),
-  );
-  if (ring === 2) slots.unshift({ x: 0, y: -FIRST_ROW_Y }, { x: 0, y: FIRST_ROW_Y });
-  return slots;
-}
-
-const RING_OFFSETS: readonly (readonly Point[])[] = Array.from({ length: MAX_RING + 1 }, (_, ring) =>
-  ring === 0 ? [] : ringOffsets(ring),
-);
-const ALL_OFFSETS: readonly Point[] = RING_OFFSETS.flat();
-/** Index of the first slot of each ring (and the total at the end). */
-const RING_STARTS: readonly number[] = RING_OFFSETS.reduce<number[]>(
-  (starts, ring) => [...starts, (starts[starts.length - 1] ?? 0) + ring.length],
-  [0],
+const PITCH_X = SUB_SIZE.width + COLUMN_GAP;
+const PITCH_Y = SUB_SIZE.height + ROW_GAP;
+/** Fill order of the columns of a row: the middle, the left, the right. */
+const COLUMN_ORDER: readonly number[] = [1, 0, 2];
+/** The width every cluster reserves, with or without subagents, so a first subagent never pushes its neighbors. */
+export const CLUSTER_WIDTH = Math.max(
+  ORCHESTRATOR_SIZE.width,
+  SUB_COLUMNS * SUB_SIZE.width + (SUB_COLUMNS - 1) * COLUMN_GAP,
 );
 
-/** How many slots rings 1..`ring` hold. */
-export function slotCount(ring: number): number {
-  return RING_STARTS[Math.min(Math.max(ring, 0), MAX_RING) + 1] ?? 0;
+function clampSlot(slot: number): number {
+  return Math.min(Math.max(Math.floor(slot), 0), MAX_SLOTS - 1);
 }
 
-/** Ring a slot belongs to (1-based). */
-export function ringOfSlot(slot: number): number {
-  for (let ring = 1; ring <= MAX_RING; ring++) if (slot < slotCount(ring)) return ring;
-  return MAX_RING;
+/** The row (0 = right under the orchestrator) and the column (0 = left) of a slot. */
+export function slotCell(slot: number): { row: number; column: number } {
+  const clamped = clampSlot(slot);
+  return { row: Math.floor(clamped / SUB_COLUMNS), column: COLUMN_ORDER[clamped % SUB_COLUMNS] ?? 0 };
 }
 
-/** Center offset of a slot from the orchestrator's center. Slots past the last ring repeat its last position. */
+/** How many rows a cluster needs to hold `slot`. */
+export function rowsForSlot(slot: number): number {
+  return slotCell(slot).row + 1;
+}
+
+/** Center offset of a slot from the orchestrator's center. */
 export function slotOffset(slot: number): Point {
-  return ALL_OFFSETS[Math.min(Math.max(slot, 0), ALL_OFFSETS.length - 1)] ?? { x: 0, y: 0 };
+  const { row, column } = slotCell(slot);
+  return {
+    x: (column - (SUB_COLUMNS - 1) / 2) * PITCH_X,
+    y: ORCHESTRATOR_SIZE.height / 2 + LINK_GAP + row * PITCH_Y + SUB_SIZE.height / 2,
+  };
 }
 
 /** The rectangle of a subagent terminal in a cluster whose orchestrator is centered on `center`. */
@@ -83,14 +72,19 @@ export function orchestratorRect(center: Point): Rect {
   };
 }
 
-/** What a cluster reserves in the layout for its rings up to `ring` (0 = the orchestrator alone), centered on `center`. */
-export function clusterFootprint(center: Point, ring: number): Rect {
-  const rects = [orchestratorRect(center)];
-  for (let slot = 0; slot < slotCount(ring); slot++) rects.push(slotRect(center, slot));
-  return unionRects(rects) as Rect;
+/** What a cluster reserves for `rows` rows of subagents (0 = the orchestrator alone), centered on `center`. */
+export function clusterFootprint(center: Point, rows: number): Rect {
+  const count = Math.min(Math.max(Math.floor(rows), 0), MAX_ROWS);
+  const below = count === 0 ? 0 : LINK_GAP + count * SUB_SIZE.height + (count - 1) * ROW_GAP;
+  return {
+    x: center.x - CLUSTER_WIDTH / 2,
+    y: center.y - ORCHESTRATOR_SIZE.height / 2,
+    width: CLUSTER_WIDTH,
+    height: ORCHESTRATOR_SIZE.height + below,
+  };
 }
 
-/** Gap between a slot terminal and the orchestrator, along the axis that separates them (for tests and links). */
+/** Gap between two rectangles along the axis that separates them (for tests). */
 export function separation(a: Rect, b: Rect): number {
   const dx = Math.max(a.x - rectRight(b), b.x - rectRight(a));
   const dy = Math.max(a.y - rectBottom(b), b.y - rectBottom(a));

@@ -11,7 +11,8 @@ export const proPtBR = {
   'help.shortcut.pro.zoom': 'Visão Pro: aproximar, afastar e enquadrar tudo',
   'help.shortcut.pro.pan': 'Visão Pro: arrastar o canvas (ou segurar Espaço e arrastar)',
   // Canvas
-  'pro.canvas.label': 'Canvas de orquestração: um terminal por sessão, com as linhas até seus subagentes',
+  'pro.canvas.label':
+    'Canvas de orquestração: um terminal por sessão, com os subagentes logo abaixo do seu orquestrador',
   'pro.canvas.empty': 'Nenhuma sessão aberta. Abra o Claude Code em um projeto e ele aparece aqui como um terminal.',
   // Toolbar
   'pro.toolbar.label': 'Ferramentas do canvas',
@@ -31,7 +32,7 @@ export const proPtBR = {
   'pro.node.restore': 'Voltar ao tamanho normal',
   'pro.node.copyId': 'Copiar o id da sessão',
   'pro.node.copied': 'Id da sessão copiado.',
-  'pro.node.done': '{n, plural, =1 {# concluído} other {# concluídos}}',
+  'pro.node.done': '{n, plural, =1 {1 subagente concluído} other {# subagentes concluídos}}',
   'pro.node.doneTitle': '{n, plural, =1 {Subagente concluído} other {Subagentes concluídos}}',
   // Command bar
   'pro.command.label': 'Enviar uma tarefa ao orquestrador',
@@ -86,14 +87,15 @@ export const proPtBR = {
   'pro.term.status.error': 'parou com erro',
   'pro.term.status.offline': 'sessão encerrada',
   'pro.term.permission': 'Permissão para {tool}',
-  'pro.term.permission.hint': 'Quer continuar? Responda pela caixa de entrada (I) ou no terminal da sessão.',
+  'pro.term.permission.hint': 'Quer continuar? Responda aqui, na caixa de entrada (I) ou no terminal da sessão.',
   'pro.term.question': 'Pergunta para você',
   'pro.term.question.hint': 'Responda no terminal da sessão.',
   'pro.demo.found': '{n, plural, =1 {1 arquivo encontrado} other {# arquivos encontrados}}',
-  'pro.demo.edit': 'Atualizado: {added} adições e {removed} remoções',
+  'pro.demo.edit':
+    'Atualizado: {added, plural, =1 {1 adição} other {# adições}} e {removed, plural, =1 {1 remoção} other {# remoções}}',
   'pro.demo.write': '{n, plural, =1 {Escreveu 1 linha} other {Escreveu # linhas}}',
   'pro.demo.fetch': 'Recebido: {kb} KB',
-  'pro.demo.tests': '✓ {n} testes passaram ({seconds} s)',
+  'pro.demo.tests': '✓ {n, plural, =1 {1 teste passou} other {# testes passaram}} ({seconds} s)',
   'pro.demo.build': '✓ build concluído em {seconds} s',
   'pro.demo.ok': 'concluído sem erros',
   'pro.panel.prompt': 'Enviar uma tarefa ao orquestrador escolhido',
@@ -111,12 +113,23 @@ export const proPtBR = {
   'pro.panel.tokensValue': '{input} entrada · {output} saída',
   'pro.panel.cost': 'custo',
   'pro.panel.tools': 'ferramentas',
-  'pro.panel.toolsValue': '{n} chamadas · {sub, plural, =1 {1 delegação} other {# delegações}}',
+  'pro.panel.toolsValue':
+    '{n, plural, =1 {1 chamada} other {# chamadas}} · {sub, plural, =1 {1 delegação} other {# delegações}}',
   'pro.panel.source': 'origem',
-  'pro.panel.subagents': 'Subagentes · {active} ativos · {finished} concluídos',
+  'pro.panel.subagents':
+    'Subagentes · {active, plural, =1 {1 ativo} other {# ativos}} · {finished, plural, =1 {1 concluído} other {# concluídos}}',
   'pro.panel.noSubs': 'Nenhum subagente nesta sessão ainda.',
-  'pro.panel.moreFinished': '+{n} concluídos mais antigos',
+  'pro.panel.moreFinished': '{n, plural, =1 {+1 concluído mais antigo} other {+# concluídos mais antigos}}',
   'pro.voice.elsewhere': 'A voz está gravando na outra caixa de texto. Pare por lá primeiro.',
+  'pro.ask.actions': 'Responder ao pedido de permissão',
+  'pro.ask.allow': 'Permitir',
+  'pro.ask.always': 'Sempre permitir',
+  'pro.ask.deny': 'Negar',
+  'pro.ask.allow.label': 'Permitir {tool} para {name}',
+  'pro.ask.always.label': 'Sempre permitir {tool} para {name} (lembra a regra {rule})',
+  'pro.ask.deny.label': 'Negar {tool} para {name}',
+  'pro.ask.failed': 'Não foi enviado: {error} Tente de novo.',
+  'pro.ask.expired': 'O pedido expirou. Responda no terminal da sessão.',
 } as const;
 
 export type ProKey = keyof typeof proPtBR;

@@ -1,5 +1,5 @@
 // The Pro view: every open session of every room on one canvas, raw and code-first. Each orchestrator is a large
-// terminal with its subagents around it, joined by lines that move while the subagent works. A click focuses a
+// terminal with its subagents in rows below it, joined by thin connectors that move while the subagent works. A click focuses a
 // terminal (it never opens the office drawer), a double click maximizes it, a room frame's header opens the room's
 // orchestration panel. It only draws what the office already knows (the snapshot) and reads the real conversations
 // from the local server; nothing here runs a model.
@@ -9,7 +9,6 @@ import type { AppContext, Component } from '../../ui/context';
 import { h, isEditable, toggleClass } from '../../ui/dom';
 import { computeInsets } from '../../ui/layout';
 import { displayStatus } from '../../ui/model/status';
-import { roomColor } from '../../ui/model/rooms';
 import {
   EMPTY_POSITIONS,
   hasPositions,
@@ -35,7 +34,8 @@ import {
   type Rect,
 } from '../model/geometry';
 import { computeLayout, type Layout } from '../model/layout';
-import { linkLabel, linkState } from '../model/links';
+import { AUTO_FIT_OFF, AUTO_FIT_START, fittedTo, shouldRefit, type AutoFit } from '../model/auto-fit';
+import { frameModels, linkModels } from '../model/canvas-models';
 import { pollFor, planTerminals, VISIBLE_MARGIN_PX, type NodePolicy, type PolicyNode } from '../model/policy';
 import {
   buildScene,
@@ -47,7 +47,7 @@ import {
 } from '../model/scene';
 import { directionOfKey, neighbor } from '../model/spatial';
 import { CameraController } from './camera-controller';
-import { CanvasLayers, type FrameModel, type LinkModel } from './canvas-layers';
+import { CanvasLayers } from './canvas-layers';
 import { CommandBar } from './command-bar';
 import { ViewportGestures } from './gestures';
 import { Listeners } from './listeners';
@@ -62,9 +62,9 @@ const FOCUS_MIN_ZOOM = 0.72;
 const FIT_PADDING = 40;
 /** Height of the tools strip under the top bar. */
 const TOOLBAR_CLEARANCE = 48;
+/** The one-line message strip (the toasts of the Pro view) at the bottom of the canvas: nothing is fitted under it. */
+const MESSAGE_LINE_CLEARANCE = 34;
 const POLICY_DELAY_MS = 120;
-/** Below this zoom the lines' labels and the grid are left out. */
-const LABEL_MIN_ZOOM = 0.34;
 const GRID_PITCH = 28;
 const GRID_MIN_PITCH_PX = 9;
 /** A press on a frame's header that moves less than this is a click (more is a pan of the canvas). */
@@ -76,6 +76,8 @@ const DETACHED_RECT: Rect = { x: 0, y: 0, width: 600, height: 400 };
 export interface ProSession {
   camera: Camera | null;
   memory: SceneMemory;
+  /** Whether the camera still follows the content (fits again as it grows). */
+  autoFit?: AutoFit;
 }
 
 type Selection = ReturnType<AppContext['ui']['get']>['selection'];
@@ -113,7 +115,7 @@ export class ProView implements Component {
   private viewportSize = { width: 0, height: 0 };
   private active = false;
   private disposed = false;
-  private needsFit = true;
+  private autoFit: AutoFit = AUTO_FIT_START;
   private maximizedId: string | null = null;
   private policyTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSelection: string | null = null;
@@ -136,7 +138,10 @@ export class ProView implements Component {
       () => this.applyPolicy(),
       () => !this.reducedMotion.matches,
     );
-    this.gestures = new ViewportGestures(this.viewport, this.camera, () => this.schedulePolicy());
+    this.gestures = new ViewportGestures(this.viewport, this.camera, () => {
+      this.releaseCamera();
+      this.schedulePolicy();
+    });
     this.drag = new NodeDrag(this.viewport, {
       resolve: (id, shift) => this.resolveDrag(id, shift),
       zoom: () => this.camera.camera.zoom,
@@ -159,14 +164,14 @@ export class ProView implements Component {
       close: () => this.closePanel(),
       reveal: (agentId) => this.focusNode(agentId),
     });
-    this.world.append(this.layers.frames, this.layers.svg, this.layers.labels, this.nodesLayer);
+    this.world.append(this.layers.frames, this.layers.svg, this.nodesLayer);
     this.viewport.append(this.world);
     this.el.append(this.viewport, this.empty, this.maxLayer, this.toolbar.el, this.panel.el, this.command.el);
     this.resizeObserver = new ResizeObserver(() => this.onResize());
     this.resizeObserver.observe(this.viewport);
     this.bindEvents();
     if (session.camera !== null) {
-      this.needsFit = false;
+      this.autoFit = session.autoFit ?? AUTO_FIT_OFF;
       this.camera.jump(session.camera);
     }
   }
@@ -301,7 +306,7 @@ export class ProView implements Component {
     this.active = active;
     this.el.hidden = !active;
     if (active) {
-      this.needsFit = this.session.camera === null;
+      if (this.session.camera === null) this.setAutoFit(AUTO_FIT_START);
       this.measure();
     } else {
       this.maximizedId = null;
@@ -331,11 +336,20 @@ export class ProView implements Component {
     const layout = computeLayout(layoutRooms(scene), this.liveOffsets());
     this.layout = layout;
     this.syncNodes(scene, layout);
-    this.layers.syncFrames(this.frameModels(scene, layout));
-    this.layers.syncLinks(this.linkModels(scene, layout));
-    if (this.needsFit && layout.bounds !== null && this.area().width > 0) {
-      this.needsFit = false;
-      this.camera.jump(fitCamera(layout.bounds, this.area(), FIT_PADDING, 1));
+    this.layers.syncFrames(frameModels(scene, layout));
+    this.layers.syncLinks(linkModels(scene, layout));
+    // Until the user moves the camera, it fits the content again whenever the content outgrows it.
+    if (
+      shouldRefit(this.autoFit, layout.bounds) &&
+      layout.bounds !== null &&
+      this.area().width > 0 &&
+      !this.drag.current
+    ) {
+      const first = this.autoFit.fitted === null;
+      const target = fitCamera(layout.bounds, this.area(), FIT_PADDING, 1);
+      if (first) this.camera.jump(target);
+      else this.camera.glideTo(target);
+      this.setAutoFit(fittedTo(layout.bounds));
     }
     this.applyPolicy();
   }
@@ -410,47 +424,6 @@ export class ProView implements Component {
     hadFocus?.focus({ preventScroll: true });
   }
 
-  private frameModels(scene: Scene, layout: Layout): FrameModel[] {
-    const light = this.ctx.prefs.get().proTheme === 'light';
-    return layout.frames.flatMap((frame) => {
-      const room = scene.rooms.find((candidate) => candidate.project.id === frame.roomId);
-      if (room === undefined) return [];
-      const agents = room.clusters.flatMap((cluster) => [cluster.main, ...cluster.subs.map((sub) => sub.agent)]);
-      const working = agents.filter((agent) => agent.status === 'working').length;
-      const waiting = agents.filter((agent) => agent.status === 'waiting').length;
-      return [
-        {
-          roomId: frame.roomId,
-          name: room.project.name,
-          color: roomColor(room.project.seed, light ? 42 : 60),
-          rect: frame.rect,
-          meta: t('pro.frame.meta', { sessions: room.clusters.length, working, waiting }),
-        },
-      ];
-    });
-  }
-
-  private linkModels(scene: Scene, layout: Layout): LinkModel[] {
-    const links: LinkModel[] = [];
-    for (const room of scene.rooms)
-      for (const cluster of room.clusters) {
-        const from = layout.nodes.get(cluster.main.id);
-        if (from === undefined) continue;
-        for (const sub of cluster.subs) {
-          const to = layout.nodes.get(sub.agent.id);
-          if (to === undefined) continue;
-          links.push({
-            id: sub.agent.id,
-            from,
-            to,
-            state: linkState(sub.agent, sub.finishedAt !== undefined),
-            label: linkLabel(sub.agent),
-          });
-        }
-      }
-    return links;
-  }
-
   // --- camera -----------------------------------------------------------------------------------------------------
 
   private measure(): void {
@@ -479,7 +452,7 @@ export class ProView implements Component {
       x: insets.left,
       y: top,
       width: Math.max(0, this.viewportSize.width - insets.left - insets.right),
-      height: Math.max(0, this.viewportSize.height - top - insets.bottom),
+      height: Math.max(0, this.viewportSize.height - top - insets.bottom - MESSAGE_LINE_CLEARANCE),
     };
   }
 
@@ -489,7 +462,6 @@ export class ProView implements Component {
     if (Math.abs(inverse - this.lastInverse) / inverse > 0.02) {
       this.lastInverse = inverse;
       this.el.style.setProperty('--ao-pro-inv', inverse.toFixed(3));
-      toggleClass(this.el, 'lod-far', camera.zoom < LABEL_MIN_ZOOM);
     }
     const pitch = GRID_PITCH * camera.zoom;
     const showGrid = pitch >= GRID_MIN_PITCH_PX;
@@ -502,6 +474,17 @@ export class ProView implements Component {
     const bounds = this.layout?.bounds;
     if (bounds === null || bounds === undefined) return;
     this.camera.glideTo(fitCamera(bounds, this.area(), FIT_PADDING, 1));
+    this.setAutoFit(fittedTo(bounds));
+  }
+
+  private setAutoFit(state: AutoFit): void {
+    this.autoFit = state;
+    this.session.autoFit = state;
+  }
+
+  /** The user moved the camera (or asked for something else than "fit all"): it stops following the content. */
+  private releaseCamera(): void {
+    if (this.autoFit.following) this.setAutoFit(AUTO_FIT_OFF);
   }
 
   /** Centers the orchestrator of the selected agent (or the first busy one) with its subagents around it. */
@@ -518,7 +501,9 @@ export class ProView implements Component {
       ) ??
       clusters.find((candidate) => candidate.main.status === 'working') ??
       clusters[0];
-    if (cluster !== undefined) this.focusCluster(cluster.main.id);
+    if (cluster === undefined) return;
+    this.releaseCamera();
+    this.focusCluster(cluster.main.id);
   }
 
   private focusCluster(mainId: string): void {
@@ -537,6 +522,7 @@ export class ProView implements Component {
   focusNode(id: string, focusElement = false): void {
     const rect = this.layout?.nodes.get(id);
     if (rect === undefined) return;
+    this.releaseCamera();
     const camera = this.camera.destination;
     const area = this.area();
     if (camera.zoom < FOCUS_MIN_ZOOM) this.camera.glideTo(centerCamera(rect, area, FOCUS_MIN_ZOOM));
@@ -545,6 +531,7 @@ export class ProView implements Component {
   }
 
   zoomBy(factor: number): void {
+    this.releaseCamera();
     const center = areaCenter(this.area());
     this.camera.zoomBy(factor, center);
   }
@@ -633,6 +620,10 @@ export class ProView implements Component {
 
   private handlersFor(id: string): NodeHandlers {
     return {
+      currentAgent: () => this.ctx.agent(id),
+      answer: (agent, decision) => this.ctx.answerPermission(agent, decision),
+      isLocal: () => this.ctx.isLocal,
+      now: () => this.ctx.now(),
       maximize: () => this.toggleMaximize(id),
       copySessionId: () => {
         const agent = this.agents.get(id);
@@ -738,6 +729,7 @@ export class ProView implements Component {
   private onDragEnd(drag: ActiveDrag, moved: boolean): void {
     toggleClass(this.el, 'is-dragging', false);
     if (!moved) return;
+    this.releaseCamera();
     const offset = { x: drag.base.x + drag.delta.x, y: drag.base.y + drag.delta.y };
     this.positions =
       drag.kind === 'cluster'

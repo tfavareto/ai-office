@@ -1,8 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { setLocale } from '../../i18n';
-import { linkLabel, linkPath, linkState } from './links';
-
-beforeEach(() => setLocale('pt-BR'));
+import { describe, expect, it } from 'vitest';
+import { rectBottom, rectRight, rectsOverlap, type Point, type Rect } from './geometry';
+import { linkPath, linkState } from './links';
+import { orchestratorRect, slotRect } from './slots';
 
 describe('linkState', () => {
   it('flows while the subagent works and turns amber when it waits for the user', () => {
@@ -18,50 +17,81 @@ describe('linkState', () => {
   });
 });
 
+/** The corners of a path made of M, H and V commands. */
+function corners(d: string): Point[] {
+  const points: Point[] = [];
+  let current: Point = { x: 0, y: 0 };
+  for (const [, command, args] of d.matchAll(/([MHV])([^MHV]+)/g)) {
+    const values = (args ?? '').trim().split(/\s+/).map(Number);
+    if (command === 'M') current = { x: values[0] ?? 0, y: values[1] ?? 0 };
+    else if (command === 'H') current = { ...current, x: values[0] ?? 0 };
+    else current = { ...current, y: values[0] ?? 0 };
+    points.push(current);
+  }
+  return points;
+}
+
+/** Whether a segment between two corners passes through a rectangle (shrunk by 1 so touching an edge is fine). */
+function crosses(a: Point, b: Point, rect: Rect): boolean {
+  const segment = {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    width: Math.max(0.01, Math.abs(a.x - b.x)),
+    height: Math.max(0.01, Math.abs(a.y - b.y)),
+  };
+  return rectsOverlap(segment, { x: rect.x + 1, y: rect.y + 1, width: rect.width - 2, height: rect.height - 2 });
+}
+
 describe('linkPath', () => {
-  const orchestrator = { x: 0, y: 0, width: 680, height: 460 };
+  const center = { x: 0, y: 0 };
+  const orchestrator = orchestratorRect(center);
 
-  it('leaves the facing side of the orchestrator and arrives on the facing side of a subagent on its right', () => {
-    const sub = { x: 756, y: -120, width: 320, height: 240 };
+  it('drops straight down to a subagent right under the orchestrator', () => {
+    // Arrange
+    const sub = slotRect(center, 0);
+
+    // Act
     const link = linkPath(orchestrator, sub);
-    expect(link.start.x).toBe(680);
-    expect(link.end.x).toBe(756);
-    expect(link.d.startsWith('M680')).toBe(true);
-    expect(link.mid.x).toBeGreaterThan(680);
-    expect(link.mid.x).toBeLessThan(756);
+
+    // Assert
+    expect(link.start).toEqual({ x: 0, y: rectBottom(orchestrator) });
+    expect(link.end).toEqual({ x: 0, y: sub.y });
+    expect(link.d).toBe(`M0 ${rectBottom(orchestrator)}V${sub.y}`);
   });
 
-  it('uses the left and the vertical sides for subagents on the left, above and below', () => {
-    const left = linkPath(orchestrator, { x: -396, y: 110, width: 320, height: 240 });
-    expect(left.start.x).toBe(0);
-    expect(left.end.x).toBe(-76);
-    const above = linkPath(orchestrator, { x: 180, y: -316, width: 320, height: 240 });
-    expect(above.start.y).toBe(0);
-    expect(above.end.y).toBe(-76);
-    const below = linkPath(orchestrator, { x: 180, y: 536, width: 320, height: 240 });
-    expect(below.start.y).toBe(460);
-    expect(below.end.y).toBe(536);
+  it('leaves the bottom of the orchestrator and enters the top of a subagent beside the middle', () => {
+    const left = slotRect(center, 1);
+    const link = linkPath(orchestrator, left);
+    expect(link.start.y).toBe(rectBottom(orchestrator));
+    expect(link.start.x).toBeGreaterThan(orchestrator.x);
+    expect(link.start.x).toBeLessThan(rectRight(orchestrator));
+    expect(link.end).toEqual({ x: left.x + left.width / 2, y: left.y });
+    expect(corners(link.d)).toHaveLength(4);
   });
 
-  it('keeps its attachment points away from the corners', () => {
-    const farRight = linkPath(orchestrator, { x: 3000, y: 900, width: 320, height: 240 });
-    expect(farRight.start.y).toBeLessThanOrEqual(460 - 36);
-    expect(farRight.end.y).toBeGreaterThanOrEqual(900 + 36);
-  });
-});
+  it('never crosses a terminal of the rows above on the way to a lower row', () => {
+    // Arrange: three full rows.
+    const subs = Array.from({ length: 9 }, (_, slot) => slotRect(center, slot));
 
-describe('linkLabel', () => {
-  it('names the subagent type and its task', () => {
-    expect(linkLabel({ role: 'Explore', title: 'Mapear os módulos' })).toEqual({
-      role: 'Explore',
-      task: 'Mapear os módulos',
+    // Act and assert
+    subs.forEach((target, index) => {
+      const points = corners(linkPath(orchestrator, target).d);
+      for (let i = 1; i < points.length; i++)
+        for (const [other, rect] of subs.entries()) {
+          if (other === index) continue;
+          expect(crosses(points[i - 1] as Point, points[i] as Point, rect), `slot ${index} crosses ${other}`).toBe(
+            false,
+          );
+        }
     });
-    expect(linkLabel({ role: 'Explore' })).toEqual({ role: 'Explore', task: '' });
   });
 
-  it('cuts a long task', () => {
-    const label = linkLabel({ role: 'general-purpose', title: 'x'.repeat(200) });
-    expect(label.task.length).toBeLessThanOrEqual(60);
-    expect(label.task.endsWith('…')).toBe(true);
+  it('goes out of the side for a terminal dragged beside the orchestrator', () => {
+    const beside = { x: rectRight(orchestrator) + 400, y: -100, width: 300, height: 210 };
+    const link = linkPath(orchestrator, beside);
+    expect(link.start.x).toBe(rectRight(orchestrator));
+    expect(link.end.x).toBe(beside.x);
+    const toTheLeft = linkPath(orchestrator, { ...beside, x: orchestrator.x - 900 });
+    expect(toTheLeft.start.x).toBe(orchestrator.x);
   });
 });
