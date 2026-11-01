@@ -187,26 +187,28 @@ The [plugin guide](docs/03-plugin.md) details each hook, the delivery paths and 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/en/pro-canvas.png" alt="Pro view zoomed out: one frame per room, each orchestrator as a large terminal with its subagents' terminals around it, linked by lines, and the command bar at the bottom." /></td>
-    <td width="50%"><img src="docs/assets/readme/en/pro-terminals.png" alt="Pro view zoomed in on one orchestrator: its live terminal shows tool calls and results, linked to two subagent terminals labeled Explore." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/pro-canvas.png" alt="Pro view zoomed out on a black canvas: each project is a plain name above its orchestrator terminals, with subagent terminals in rows below them, joined by thin square lines." /></td>
+    <td width="50%"><img src="docs/assets/readme/en/pro-terminals.png" alt="Pro view zoomed in on one orchestrator: its terminal lists tool calls and results, and the subagent terminals below it show amber permission boxes with Allow and Deny buttons." /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Every room, orchestrator and subagent on one canvas</sub></td>
-    <td align="center"><sub>Zoom in and the terminals go live</sub></td>
+    <td align="center"><sub>Every project, orchestrator and subagent on one canvas</sub></td>
+    <td align="center"><sub>Raw terminals, with permissions answered in place</sub></td>
   </tr>
 </table>
 
-Switch **Basic | Pro** in the top bar (or press `V`) to trade the office for an orchestration canvas. It shows the same real Claude Code sessions, with no extra API calls: each room is a frame, each main session is a large terminal and its subagents are smaller terminals linked to it.
+Switch **Basic | Pro** in the top bar (or press `V`) to trade the office for a raw terminal wall on a black canvas. It shows the same real Claude Code sessions, with no extra API calls: each project is its name in plain text, each main session is a large terminal and its subagents are smaller terminals in rows right below it.
 
 | You want to | In the Pro view | What happens |
 |---|---|---|
-| **See who delegates to whom** | The lines between terminals | Moving dashes while a subagent works, amber when it waits on you, dimmed when it is done; finished subagents fold into an "N finished" pill after 5 minutes |
-| **Read the work as it happens** | Zoom in on a cluster | Terminals on screen show the live conversation (prompts, replies, tool calls and results); zoomed out, each one is a status card |
-| **Move around** | Drag, scroll, pinch, the minimap, `0` to fit, `F` to focus | The camera eases to where you point; drag a title bar to arrange terminals, and the layout is remembered |
-| **Give an orchestrator a task** | The command bar (`N`), typed or spoken | Your text goes through the plugin's message channel, to one orchestrator or a whole room; the bar says when it will arrive and tracks delivery |
-| **Talk instead of typing** | **Speak** in the command bar | Speech becomes text on this computer and lands in the box for you to review; nothing is sent on its own |
+| **See who delegates to whom** | The lines going down from each orchestrator | Thin square lines, like an org chart: amber when a subagent waits on you, dimmed when it is done; finished subagents fold into a `[✓ N finished subagents]` button after 5 minutes |
+| **Read the work as it happens** | Any terminal | It reads like the CLI: `> prompt`, `⏺ Bash(npm test)` with the result under `⎿`, and errors in red, updated about once a second; double click or `Enter` maximizes it |
+| **Answer a permission** | `[ Allow ]` and `[ Deny ]` in the terminal | The answer takes the same path as the inbox; `[ Always allow ]` appears when Claude Code suggests a rule and the request is not risky |
+| **Check on a project** | Click its name | A panel with the orchestrator, session and turn time, model, branch and changes, tokens, cost and subagents, plus a box for a typed or spoken order |
+| **Move around** | Drag, scroll, pinch, `0` to fit, `F` to focus | The view keeps fitting as subagents arrive, until you move the camera; drag a title bar to arrange terminals, and the layout is remembered |
+| **Give an orchestrator a task** | The project panel, or the optional command bar (`N`) | Your text goes through the plugin's message channel, to one orchestrator or a whole project; the box says when it will arrive and tracks delivery |
+| **Talk instead of typing** | The microphone in either box | Speech becomes text on this computer and lands in the box for you to review; nothing is sent on its own |
 
-Voice needs a speech model, downloaded once when you choose **Settings → Data and integrations → Voice → Download voice model**: Fast (44 MB), Balanced (80 MB, the default) or Accurate (252 MB). After that, the audio and the text never leave your computer. Codex sessions appear read-only, and an order follows the same delivery rules as any message: it reaches an idle agent only while it is within its 10-minute stand-by. The [user guide](docs/02-using-the-office.md) covers every control and shortcut.
+Voice needs a speech model, downloaded once when you choose **Settings → Data and integrations → Voice → Download voice model**: Fast (44 MB), Balanced (80 MB), Accurate (252 MB) or Best (1.6 GB, the default, Whisper large-v3-turbo). Best runs on the graphics card through WebGPU; without it, the page uses Accurate and says so. In a test with 120 words of synthesized speech in Portuguese, English and Spanish, Best made no word errors, Accurate made 9 and Balanced 14. The first recording after opening the page waits for the model to load, which can take minutes on a busy or low-memory computer. After the download, the audio and the text never leave your computer. Codex sessions appear read-only, and an order follows the same delivery rules as any message: it reaches an idle agent only while it is within its 10-minute stand-by. The [user guide](docs/02-using-the-office.md) covers every control and shortcut.
 
 <a id="team"></a>
 
@@ -425,7 +427,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | 3500+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 3600+ Vitest tests, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |
@@ -438,7 +440,7 @@ Frame rate measured in the real app with live sessions (4 agents in 4 rooms), 14
 | 2D | 427 fps | 385 fps |
 | 3D, full quality | 83 fps | 21 fps |
 
-The Pro view holds 60 fps (median frame 16.7 ms, vsync on) with 36–48 terminals, panning zoomed out, on one cluster and in a dense area. Your screen caps what you see (usually 60 fps). The 3D night scene is the expensive one: its glow pass with anti-aliasing at a 2× pixel ratio accounts for most of the cost. The [validation guide](docs/06-validation.md) records the machine, the method and the known limits, such as cost figures being estimates and Windows not being supported.
+The Pro view holds 60 fps (median frame 16.7 ms, vsync on) with 12–23 terminals, zoomed out, on one cluster and in a dense area. Your screen caps what you see (usually 60 fps). The 3D night scene is the expensive one: its glow pass with anti-aliasing at a 2× pixel ratio accounts for most of the cost. The [validation guide](docs/06-validation.md) records the machine, the method and the known limits, such as cost figures being estimates and Windows not being supported.
 
 <a id="repository"></a>
 

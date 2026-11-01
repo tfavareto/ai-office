@@ -187,26 +187,28 @@ O [guia do plugin](docs/03-plugin.md) detalha cada hook, os caminhos de entrega 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-canvas.png" alt="Visão Pro afastada: uma moldura por sala, cada orquestrador como um terminal grande com os terminais dos subagentes em volta, ligados por linhas, e a barra de comando embaixo." /></td>
-    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-terminals.png" alt="Visão Pro aproximada num orquestrador: o terminal ao vivo mostra chamadas de ferramentas e resultados, ligado a dois terminais de subagentes marcados Explore." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-canvas.png" alt="Visão Pro afastada, em canvas preto: cada projeto é um nome simples acima dos terminais dos orquestradores, com os terminais dos subagentes em fileiras embaixo, ligados por linhas retas finas." /></td>
+    <td width="50%"><img src="docs/assets/readme/pt-BR/pro-terminals.png" alt="Visão Pro aproximada num orquestrador: o terminal lista ferramentas e resultados, e os terminais dos subagentes embaixo mostram caixas âmbar de permissão com os botões Permitir e Negar." /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Todas as salas, orquestradores e subagentes numa só tela</sub></td>
-    <td align="center"><sub>Aproxime e os terminais ficam ao vivo</sub></td>
+    <td align="center"><sub>Todos os projetos, orquestradores e subagentes numa só tela</sub></td>
+    <td align="center"><sub>Terminais brutos, com permissões respondidas ali mesmo</sub></td>
   </tr>
 </table>
 
-Troque **Básica | Pro** na barra superior (ou aperte `V`) para trocar o escritório por uma tela de orquestração. Ela mostra as mesmas sessões reais do Claude Code, sem chamadas extras de API: cada sala é uma moldura, cada sessão principal é um terminal grande e os subagentes são terminais menores ligados a ela.
+Troque **Básica | Pro** na barra superior (ou aperte `V`) para trocar o escritório por uma parede de terminais brutos em canvas preto. Ela mostra as mesmas sessões reais do Claude Code, sem chamadas extras de API: cada projeto é o nome em texto simples, cada sessão principal é um terminal grande e os subagentes são terminais menores em fileiras logo abaixo.
 
 | Você quer | Na Visão Pro | O que acontece |
 |---|---|---|
-| **Ver quem delega para quem** | As linhas entre os terminais | Tracejado em movimento enquanto o subagente trabalha, âmbar quando ele espera você, apagado quando termina; subagentes concluídos viram uma etiqueta "N concluídos" depois de 5 minutos |
-| **Ler o trabalho enquanto acontece** | Aproxime um grupo | Os terminais na tela mostram a conversa ao vivo (pedidos, respostas, ferramentas e resultados); de longe, cada um é um cartão de status |
-| **Navegar** | Arraste, role, faça pinça, use o minimapa, `0` para ver tudo, `F` para focar | A câmera desliza até onde você aponta; arraste a barra de título para organizar os terminais, e o arranjo fica salvo |
-| **Passar uma tarefa ao orquestrador** | A barra de comando (`N`), digitando ou falando | O texto vai pelo canal de mensagens do plugin, para um orquestrador ou para a sala inteira; a barra diz quando ele vai chegar e acompanha a entrega |
-| **Falar em vez de digitar** | **Falar** na barra de comando | A fala vira texto neste computador e cai na caixa para você revisar; nada é enviado sozinho |
+| **Ver quem delega para quem** | As linhas que descem de cada orquestrador | Linhas retas finas, como um organograma: âmbar quando o subagente espera você, apagadas quando ele termina; subagentes concluídos viram um botão `[✓ N subagentes concluídos]` depois de 5 minutos |
+| **Ler o trabalho enquanto acontece** | Qualquer terminal | Ele se lê como a CLI: `> pedido`, `⏺ Bash(npm test)` com o resultado sob `⎿` e erros em vermelho, atualizado cerca de uma vez por segundo; clique duplo ou `Enter` maximiza |
+| **Responder uma permissão** | `[ Permitir ]` e `[ Negar ]` no terminal | A resposta segue o mesmo caminho da caixa de entrada; `[ Sempre permitir ]` aparece quando o Claude Code sugere uma regra e o pedido não é arriscado |
+| **Acompanhar um projeto** | Clique no nome dele | Um painel com o orquestrador, tempo de sessão e de turno, modelo, branch e mudanças, tokens, custo e subagentes, além de uma caixa para uma ordem digitada ou falada |
+| **Navegar** | Arraste, role, faça pinça, `0` para ver tudo, `F` para focar | A visão continua se ajustando conforme chegam subagentes, até você mexer na câmera; arraste a barra de título para organizar os terminais, e o arranjo fica salvo |
+| **Passar uma tarefa ao orquestrador** | O painel do projeto, ou a barra de comando opcional (`N`) | O texto vai pelo canal de mensagens do plugin, para um orquestrador ou para o projeto inteiro; a caixa diz quando ele vai chegar e acompanha a entrega |
+| **Falar em vez de digitar** | O microfone em qualquer uma das caixas | A fala vira texto neste computador e cai na caixa para você revisar; nada é enviado sozinho |
 
-A voz precisa de um modelo de fala, baixado uma vez quando você escolhe **Configurações → Dados e integrações → Voz → Baixar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB, o padrão) ou Preciso (252 MB). Depois disso, o áudio e o texto nunca saem do seu computador. As sessões do Codex aparecem só para leitura, e uma ordem segue as mesmas regras de entrega de qualquer mensagem: chega a um agente parado só enquanto ele está nos 10 minutos de plantão. O [guia de uso](docs/02-using-the-office.md) cobre cada controle e atalho.
+A voz precisa de um modelo de fala, baixado uma vez quando você escolhe **Configurações → Dados e integrações → Voz → Baixar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB), Preciso (252 MB) ou Máxima (1,6 GB, o padrão, Whisper large-v3-turbo). A Máxima roda na placa de vídeo por WebGPU; sem isso, a página usa o Preciso e avisa. Num teste com 120 palavras de fala sintetizada em português, inglês e espanhol, a Máxima não errou nenhuma palavra, o Preciso errou 9 e o Equilibrado 14. A primeira gravação depois de abrir a página espera o modelo carregar, o que pode levar minutos num computador ocupado ou com pouca memória. Depois do download, o áudio e o texto nunca saem do seu computador. As sessões do Codex aparecem só para leitura, e uma ordem segue as mesmas regras de entrega de qualquer mensagem: chega a um agente parado só enquanto ele está nos 10 minutos de plantão. O [guia de uso](docs/02-using-the-office.md) cobre cada controle e atalho.
 
 <a id="team"></a>
 
@@ -425,7 +427,7 @@ O texto que vem das suas próprias sessões (prompts, títulos de tarefas, coman
 | Verificação | Como |
 |---|---|
 | **Tipos** | TypeScript em modo strict nos quatro pacotes: `npm run typecheck` |
-| **Comportamento** | Mais de 3500 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
+| **Comportamento** | Mais de 3600 testes com Vitest, incluindo uma suíte de ponta a ponta que sobe o servidor de verdade: `npm test` |
 | **Estilo** | ESLint e Prettier: `npm run lint` |
 | **Build** | Bundle web e bundle do servidor: `npm run build` |
 | **Documentação** | Todo link local, âncora e tradução do README verificados: `npm run docs:check` |
@@ -438,7 +440,7 @@ Frame rate medido no app real com sessões ao vivo (4 agentes em 4 salas), 1440�
 | 2D | 427 fps | 385 fps |
 | 3D, qualidade máxima | 83 fps | 21 fps |
 
-A Visão Pro se mantém em 60 fps (quadro mediano de 16,7 ms, vsync ligado) com 36 a 48 terminais, navegando de longe, num grupo e numa área densa. A sua tela limita o que você enxerga (geralmente 60 fps). A cena noturna em 3D é a mais cara: o efeito de brilho com anti-aliasing em proporção de pixels 2× responde pela maior parte do custo. O [guia de validação](docs/06-validation.md) registra a máquina, o método e os limites conhecidos, como os valores de custo serem estimativas e o Windows não ser suportado.
+A Visão Pro se mantém em 60 fps (quadro mediano de 16,7 ms, vsync ligado) com 12 a 23 terminais, de longe, num grupo e numa área densa. A sua tela limita o que você enxerga (geralmente 60 fps). A cena noturna em 3D é a mais cara: o efeito de brilho com anti-aliasing em proporção de pixels 2× responde pela maior parte do custo. O [guia de validação](docs/06-validation.md) registra a máquina, o método e os limites conhecidos, como os valores de custo serem estimativas e o Windows não ser suportado.
 
 <a id="repository"></a>
 

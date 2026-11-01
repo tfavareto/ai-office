@@ -187,26 +187,28 @@ La [guía del plugin](docs/03-plugin.md) detalla cada hook, las vías de entrega
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/es/pro-canvas.png" alt="Vista Pro alejada: un marco por sala, cada orquestador como una terminal grande con las terminales de sus subagentes alrededor, unidas por líneas, y la barra de comandos abajo." /></td>
-    <td width="50%"><img src="docs/assets/readme/es/pro-terminals.png" alt="Vista Pro acercada a un orquestador: su terminal en vivo muestra llamadas a herramientas y resultados, unida a dos terminales de subagentes marcadas Explore." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/pro-canvas.png" alt="Vista Pro alejada, en un lienzo negro: cada proyecto es un nombre simple sobre las terminales de sus orquestadores, con las terminales de los subagentes en filas debajo, unidas por líneas rectas finas." /></td>
+    <td width="50%"><img src="docs/assets/readme/es/pro-terminals.png" alt="Vista Pro acercada a un orquestador: su terminal lista herramientas y resultados, y las terminales de los subagentes debajo muestran cuadros ámbar de permiso con los botones Permitir y Denegar." /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Todas las salas, orquestadores y subagentes en un solo lienzo</sub></td>
-    <td align="center"><sub>Acércate y las terminales pasan a vivo</sub></td>
+    <td align="center"><sub>Todos los proyectos, orquestadores y subagentes en un solo lienzo</sub></td>
+    <td align="center"><sub>Terminales en bruto, con permisos respondidos ahí mismo</sub></td>
   </tr>
 </table>
 
-Cambia **Básica | Pro** en la barra superior (o pulsa `V`) para cambiar la oficina por un lienzo de orquestación. Muestra las mismas sesiones reales de Claude Code, sin llamadas extra a la API: cada sala es un marco, cada sesión principal es una terminal grande y sus subagentes son terminales más pequeñas unidas a ella.
+Cambia **Básica | Pro** en la barra superior (o pulsa `V`) para cambiar la oficina por una pared de terminales en bruto sobre un lienzo negro. Muestra las mismas sesiones reales de Claude Code, sin llamadas extra a la API: cada proyecto es su nombre en texto simple, cada sesión principal es una terminal grande y sus subagentes son terminales más pequeñas en filas justo debajo.
 
 | Quieres | En la Vista Pro | Qué pasa |
 |---|---|---|
-| **Ver quién delega a quién** | Las líneas entre terminales | Trazos en movimiento mientras el subagente trabaja, ámbar cuando te espera, atenuados cuando termina; los subagentes terminados se agrupan en una etiqueta "N terminados" a los 5 minutos |
-| **Leer el trabajo mientras ocurre** | Acércate a un grupo | Las terminales en pantalla muestran la conversación en vivo (pedidos, respuestas, herramientas y resultados); de lejos, cada una es una tarjeta de estado |
-| **Moverte** | Arrastra, desplaza, pellizca, usa el minimapa, `0` para ver todo, `F` para enfocar | La cámara se desliza hasta donde apuntas; arrastra la barra de título para ordenar las terminales, y la disposición se recuerda |
-| **Dar una tarea a un orquestador** | La barra de comandos (`N`), escribiendo o hablando | Tu texto va por el canal de mensajes del plugin, a un orquestador o a toda una sala; la barra dice cuándo llegará y sigue la entrega |
-| **Hablar en vez de escribir** | **Hablar** en la barra de comandos | La voz se convierte en texto en esta computadora y llega a la caja para que la revises; nada se envía solo |
+| **Ver quién delega en quién** | Las líneas que bajan de cada orquestador | Líneas rectas finas, como un organigrama: ámbar cuando un subagente te espera, atenuadas cuando termina; los subagentes terminados se pliegan en un botón `[✓ N subagentes terminados]` después de 5 minutos |
+| **Leer el trabajo mientras ocurre** | Cualquier terminal | Se lee como la CLI: `> pedido`, `⏺ Bash(npm test)` con el resultado bajo `⎿` y errores en rojo, actualizada más o menos una vez por segundo; doble clic o `Enter` la maximiza |
+| **Responder un permiso** | `[ Permitir ]` y `[ Denegar ]` en la terminal | La respuesta sigue el mismo camino que la bandeja de entrada; `[ Permitir siempre ]` aparece cuando Claude Code sugiere una regla y el pedido no es riesgoso |
+| **Revisar un proyecto** | Haz clic en su nombre | Un panel con el orquestador, tiempo de sesión y de turno, modelo, rama y cambios, tokens, costo y subagentes, más un cuadro para una orden escrita o hablada |
+| **Moverte** | Arrastra, desplaza, pellizca, `0` para ver todo, `F` para enfocar | La vista se sigue ajustando a medida que llegan subagentes, hasta que muevas la cámara; arrastra una barra de título para ordenar las terminales, y la disposición se recuerda |
+| **Darle una tarea a un orquestador** | El panel del proyecto, o la barra de comandos opcional (`N`) | Tu texto va por el canal de mensajes del plugin, a un orquestador o a todo el proyecto; el cuadro dice cuándo llegará y sigue la entrega |
+| **Hablar en vez de escribir** | El micrófono en cualquiera de los cuadros | La voz se vuelve texto en esta computadora y cae en el cuadro para que la revises; nada se envía solo |
 
-La voz necesita un modelo de habla, que se descarga una vez cuando eliges **Configuración → Datos e integraciones → Voz → Descargar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB, el predeterminado) o Preciso (252 MB). Después, el audio y el texto nunca salen de tu computadora. Las sesiones de Codex aparecen solo para lectura, y una orden sigue las mismas reglas de entrega que cualquier mensaje: llega a un agente inactivo solo mientras está en sus 10 minutos de espera. La [guía de uso](docs/02-using-the-office.md) cubre cada control y atajo.
+La voz necesita un modelo de habla, descargado una vez cuando eliges **Configuración → Datos e integraciones → Voz → Descargar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB), Preciso (252 MB) o Máxima (1,6 GB, el predeterminado, Whisper large-v3-turbo). Máxima corre en la tarjeta gráfica con WebGPU; sin ella, la página usa Preciso y lo avisa. En una prueba con 120 palabras de voz sintetizada en portugués, inglés y español, Máxima no cometió errores de palabras, Preciso cometió 9 y Equilibrado 14. La primera grabación después de abrir la página espera a que cargue el modelo, lo que puede tardar minutos en una computadora ocupada o con poca memoria. Después de la descarga, el audio y el texto nunca salen de tu computadora. Las sesiones de Codex aparecen solo para lectura, y una orden sigue las mismas reglas de entrega que cualquier mensaje: llega a un agente inactivo solo mientras está dentro de sus 10 minutos de espera. La [guía de uso](docs/02-using-the-office.md) cubre cada control y atajo.
 
 <a id="team"></a>
 
@@ -425,7 +427,7 @@ El texto que viene de tus propias sesiones (prompts, títulos de tareas, comando
 | Verificación | Cómo |
 |---|---|
 | **Tipos** | TypeScript estricto en los cuatro paquetes: `npm run typecheck` |
-| **Comportamiento** | Más de 3500 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
+| **Comportamiento** | Más de 3600 pruebas con Vitest, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
 | **Estilo** | ESLint y Prettier: `npm run lint` |
 | **Build** | Bundle web y bundle del servidor: `npm run build` |
 | **Documentación** | Todo enlace local, ancla y traducción del README verificados: `npm run docs:check` |
@@ -438,7 +440,7 @@ Frame rate medido en la app real con sesiones en vivo (4 agentes en 4 salas), 14
 | 2D | 427 fps | 385 fps |
 | 3D, calidad máxima | 83 fps | 21 fps |
 
-La Vista Pro se mantiene en 60 fps (cuadro mediano de 16,7 ms, vsync activado) con 36 a 48 terminales, recorriendo de lejos, en un grupo y en una zona densa. Tu pantalla limita lo que ves (normalmente 60 fps). La escena nocturna en 3D es la más costosa: su efecto de brillo con anti-aliasing a relación de píxeles 2× explica la mayor parte del costo. La [guía de validación](docs/06-validation.md) registra la máquina, el método y los límites conocidos, como que las cifras de costo son estimaciones y que Windows no es compatible.
+La Vista Pro se mantiene en 60 fps (cuadro mediano de 16,7 ms, vsync activado) con 12 a 23 terminales, de lejos, en un grupo y en una zona densa. Tu pantalla limita lo que ves (normalmente 60 fps). La escena nocturna en 3D es la más costosa: su efecto de brillo con anti-aliasing a relación de píxeles 2× explica la mayor parte del costo. La [guía de validación](docs/06-validation.md) registra la máquina, el método y los límites conocidos, como que las cifras de costo son estimaciones y que Windows no es compatible.
 
 <a id="repository"></a>
 
