@@ -73,6 +73,12 @@ describe('parsePrefs', () => {
     expect(DEFAULT_PREFS.proCommandBar).toBe(false);
     expect(parsePrefs({ proCommandBar: true }).proCommandBar).toBe(true);
     expect(parsePrefs({ proCommandBar: 'yes' }).proCommandBar).toBe(false);
+    expect(DEFAULT_PREFS.proPrompts).toEqual([]);
+    expect(parsePrefs({ proPrompts: 'x' }).proPrompts).toEqual([]);
+    expect(
+      parsePrefs({ proPrompts: [{ id: 'a', name: 'A', text: 'hi' }, { id: 'b' }, { id: 'c', name: 'C', text: '' }, 7] })
+        .proPrompts,
+    ).toEqual([{ id: 'a', name: 'A', text: 'hi' }]);
   });
 
   it('survives broken JSON', () => {

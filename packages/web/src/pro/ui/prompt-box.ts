@@ -19,7 +19,17 @@ import {
 import { setDisabled } from '../../ui/widgets';
 import type { VoiceInput, VoiceStatus } from '../../voice/types';
 import { canSend, type BlockReason, type CommandTarget, type DeliveryOutlook } from '../model/command';
+import {
+  activeToken,
+  addPrompt,
+  MAX_PROMPT_LENGTH,
+  removePrompt,
+  replaceToken,
+  type PromptToken,
+} from '../model/mentions';
 import { micView } from '../model/mic';
+import { searchPalette } from '../model/palette';
+import { PromptMenu, type MenuRow } from './prompt-menu';
 
 const OUTLOOK_KEY: Record<Exclude<DeliveryOutlook, 'blocked'>, TextKey> = {
   afterTool: 'pro.command.outlook.afterTool',
@@ -27,6 +37,11 @@ const OUTLOOK_KEY: Record<Exclude<DeliveryOutlook, 'blocked'>, TextKey> = {
   beyondStandby: 'pro.command.outlook.beyondStandby',
   afterPermission: 'pro.command.outlook.afterPermission',
 };
+
+/** Rows of the `@` and `$` lists. */
+const MENU_LIMIT = 12;
+/** How long a project's file list is reused before asking the server again. */
+const FILES_TTL_MS = 30_000;
 
 const BLOCK_KEY: Record<Exclude<BlockReason, 'local'>, TextKey> = {
   nobody: 'room.team.nobody',
@@ -92,6 +107,10 @@ export class PromptBox {
   /** The target the dictation in progress was started for (null when this box is not recording). */
   private recordingKey: string | null = null;
   private unsubscribeVoice: (() => void) | null = null;
+  private readonly menu: PromptMenu;
+  private readonly saveButton: HTMLButtonElement;
+  private token: PromptToken | null = null;
+  private files: { projectId: string; at: number; list: readonly string[] } | null = null;
 
   constructor(
     private readonly ctx: AppContext,
@@ -105,13 +124,25 @@ export class PromptBox {
       spellcheck: 'true',
       'aria-label': options.label,
     });
+    this.menu = new PromptMenu({
+      pick: (id) => this.pickMenu(id),
+      remove: (id) => this.deletePrompt(id),
+    });
+    this.saveButton = h(
+      'button',
+      { type: 'button', class: 'ao-quick-chip ao-pro-save-prompt', onclick: () => this.savePrompt() },
+      t('pro.prompts.save'),
+    );
     this.textarea.addEventListener('input', () => {
       if (this.currentKey !== null) this.drafts.set(this.currentKey, this.textarea.value);
       this.error.hidden = true;
       this.syncFootStatus();
       this.updateState();
+      this.syncMenu();
     });
+    this.textarea.addEventListener('blur', () => this.closeMenu());
     this.textarea.addEventListener('keydown', (event) => {
+      if (this.onMenuKey(event)) return;
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         void this.send();
@@ -151,10 +182,10 @@ export class PromptBox {
       h(
         'div',
         { class: 'ao-pro-command-main' },
-        this.textarea,
+        h('div', { class: 'ao-pro-prompt-wrap' }, this.menu.el, this.textarea),
         h('div', { class: 'ao-pro-command-buttons' }, this.micButton, this.sendButton),
       ),
-      h('div', { class: 'ao-pro-command-foot' }, quick, this.hint, this.delivery, this.error),
+      h('div', { class: 'ao-pro-command-foot' }, quick, this.saveButton, this.hint, this.delivery, this.error),
     );
     if (voice !== null) {
       this.voiceStatus = voice.status();
@@ -232,6 +263,8 @@ export class PromptBox {
     const reason = target?.blocked === 'local' ? localOnlyHint() : undefined;
     setDisabled(this.sendButton, !canSend(target, this.textarea.value, this.sending), reason);
     setDisabled(this.textarea, target === undefined || target.blocked !== null, this.outlook.textContent ?? undefined);
+    const text = this.textarea.value.trim();
+    setDisabled(this.saveButton, text === '' || text.length > MAX_PROMPT_LENGTH);
   }
 
   private insert(text: string): void {
@@ -239,6 +272,129 @@ export class PromptBox {
     this.textarea.value = current ? `${current}\n${text}` : text;
     this.textarea.dispatchEvent(new Event('input'));
     this.focus();
+  }
+
+  // --- `@` files and `$` saved prompts --------------------------------------------------------------------------
+
+  private closeMenu(): void {
+    this.token = null;
+    this.menu.hide();
+  }
+
+  private syncMenu(): void {
+    const caret = this.textarea.selectionStart;
+    this.token = this.textarea.selectionEnd === caret ? activeToken(this.textarea.value, caret) : null;
+    if (this.token === null) return this.menu.hide();
+    if (this.token.trigger === '$') this.showPrompts(this.token.query);
+    else void this.showFiles(this.token);
+  }
+
+  private showPrompts(query: string): void {
+    const prompts = this.ctx.prefs.get().proPrompts;
+    if (prompts.length === 0) {
+      this.menu.show([{ id: '', title: t('pro.prompts.empty'), note: true }]);
+      return;
+    }
+    const items = prompts.map((prompt) => ({
+      id: prompt.id,
+      kind: 'action' as const,
+      title: prompt.name,
+      detail: '',
+      words: prompt.text,
+      waiting: false,
+    }));
+    const rows = searchPalette(items, query, MENU_LIMIT).map((item): MenuRow => ({
+      id: item.id,
+      title: item.title,
+      removeLabel: t('pro.prompts.remove', { name: item.title }),
+    }));
+    this.menu.show(rows);
+  }
+
+  /** The room the order goes to; a room's own id, or the room of the agent. */
+  private targetProject(): string | undefined {
+    const target = this.target;
+    if (target === undefined) return undefined;
+    if (target.kind === 'room') return target.key.slice('room:'.length);
+    const agentId = target.agentIds[0];
+    return agentId === undefined ? undefined : this.ctx.agent(agentId)?.projectId;
+  }
+
+  private async showFiles(token: PromptToken): Promise<void> {
+    const projectId = this.targetProject();
+    if (projectId === undefined || !this.ctx.isLocal) return this.menu.hide();
+    const list = await this.filesOf(projectId);
+    // The person kept typing while the list was on its way: a newer key press already drew the menu.
+    if (this.token !== token) return;
+    const items = list.map((file) => ({
+      id: file,
+      kind: 'action' as const,
+      title: file,
+      detail: '',
+      words: '',
+      waiting: false,
+    }));
+    const found = searchPalette(items, token.query, MENU_LIMIT);
+    this.menu.show(
+      found.length > 0
+        ? found.map((item): MenuRow => ({ id: item.id, title: item.title }))
+        : [{ id: '', title: t('pro.files.none'), note: true }],
+    );
+  }
+
+  private async filesOf(projectId: string): Promise<readonly string[]> {
+    const now = this.ctx.now();
+    if (this.files?.projectId === projectId && now - this.files.at < FILES_TTL_MS) return this.files.list;
+    try {
+      const { files } = await this.ctx.store.backend.projectFiles(projectId);
+      this.files = { projectId, at: now, list: files };
+      return files;
+    } catch {
+      return [];
+    }
+  }
+
+  private pickMenu(id: string): void {
+    const token = this.token;
+    if (token === null) return;
+    const insert =
+      token.trigger === '@'
+        ? `@${id} `
+        : (this.ctx.prefs.get().proPrompts.find((prompt) => prompt.id === id)?.text ?? '');
+    const next = replaceToken(this.textarea.value, token, insert);
+    this.textarea.value = next.text;
+    this.textarea.setSelectionRange(next.caret, next.caret);
+    this.closeMenu();
+    this.textarea.dispatchEvent(new Event('input'));
+    this.closeMenu();
+  }
+
+  /** Handles the keys of an open list; true when it used the key. */
+  private onMenuKey(event: KeyboardEvent): boolean {
+    if (!this.menu.isOpen) return false;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') this.menu.move(event.key === 'ArrowDown' ? 1 : -1);
+    else if (event.key === 'Escape') {
+      this.closeMenu();
+      event.stopPropagation();
+    } else if ((event.key === 'Enter' || event.key === 'Tab') && !event.metaKey && !event.ctrlKey) {
+      if (!this.menu.pickCurrent()) this.closeMenu();
+    } else return false;
+    event.preventDefault();
+    return true;
+  }
+
+  private savePrompt(): void {
+    const text = this.textarea.value.trim();
+    if (text === '' || text.length > MAX_PROMPT_LENGTH) return;
+    const proPrompts = addPrompt(this.ctx.prefs.get().proPrompts, `p${this.ctx.now()}`, text);
+    this.ctx.prefs.set({ proPrompts });
+    this.ctx.announce(t('pro.prompts.saved'));
+  }
+
+  private deletePrompt(id: string): void {
+    const proPrompts = removePrompt(this.ctx.prefs.get().proPrompts, id);
+    this.ctx.prefs.set({ proPrompts });
+    this.syncMenu();
   }
 
   // --- sending ----------------------------------------------------------------------------------------------------

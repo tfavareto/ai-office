@@ -1577,3 +1577,213 @@
     bottom: calc(2 * var(--gap) + var(--command-narrow-h));
   }
 }
+
+/* The search (Cmd/Ctrl+P): flat, monospace, over everything in the canvas. */
+.ao-pro-palette-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: calc(var(--topbar-h) + 6vh);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.ao-pro-palette-scrim[hidden] {
+  display: none;
+}
+
+.ao-pro-palette {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100vw - 2 * var(--gap)));
+  max-height: min(520px, 70vh);
+  overflow: hidden;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 2px;
+  background: var(--pro-term-bg);
+  color: var(--pro-term-fg);
+  font-family: var(--pro-mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ao-pro-palette:focus,
+.ao-pro .ao-pro-palette-input:focus,
+.ao-pro .ao-pro-palette-input:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
+.ao-pro-palette-input {
+  flex: none;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--pro-term-line);
+  outline: 0;
+  background: transparent;
+  color: var(--pro-term-accent);
+  font: inherit;
+  font-size: 13px;
+}
+
+.ao-pro-palette-input[hidden],
+.ao-pro-palette-list[hidden],
+.ao-pro-palette-ask[hidden],
+.ao-pro-palette-empty[hidden],
+.ao-pro-palette-hint[hidden] {
+  display: none;
+}
+
+.ao-pro-palette-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ao-pro-palette-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.ao-pro-palette-row.is-current {
+  background: var(--pro-term-prompt-bg);
+}
+
+.ao-pro-palette-glyph {
+  flex: none;
+  color: var(--pro-term-faint);
+}
+
+.ao-pro-palette-title {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  color: var(--pro-term-accent);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-palette-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pro-term-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-palette-waiting {
+  flex: none;
+  color: var(--pro-warn);
+}
+
+.ao-pro .ao-pro-palette-empty,
+.ao-pro .ao-pro-palette-hint {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--pro-term-dim);
+}
+
+.ao-pro-palette-hint {
+  border-top: 1px solid var(--pro-term-line);
+  color: var(--pro-term-faint);
+}
+
+.ao-pro-palette-ask {
+  padding: 10px 12px;
+}
+
+.ao-pro-palette-ask-title {
+  margin: 0 0 8px;
+  color: var(--pro-term-accent);
+  font-weight: 600;
+}
+
+.ao-pro-number {
+  flex: none;
+  color: var(--pro-term-faint);
+}
+
+/* The `@` and `$` list above the prompt. */
+.ao-pro-prompt-wrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ao-pro-prompt-wrap > .ao-textarea {
+  flex: 1 1 auto;
+}
+
+.ao-pro-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  max-height: 220px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  border: 1px solid var(--pro-term-line);
+  border-radius: 2px;
+  background: var(--pro-term-bg);
+  color: var(--pro-term-fg);
+  font-family: var(--pro-mono);
+  font-size: 12px;
+  list-style: none;
+}
+
+.ao-pro-menu[hidden] {
+  display: none;
+}
+
+.ao-pro-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.ao-pro-menu-row.is-current {
+  background: var(--pro-term-prompt-bg);
+}
+
+.ao-pro-menu-row.is-note {
+  color: var(--pro-term-dim);
+  cursor: default;
+}
+
+.ao-pro-menu-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-pro-menu-remove {
+  flex: none;
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--pro-term-dim);
+  cursor: pointer;
+}
+
+.ao-pro-menu-remove:hover {
+  color: var(--pro-err);
+}
