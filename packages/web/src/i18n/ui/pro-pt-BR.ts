@@ -154,6 +154,11 @@ export const proPtBR = {
   'pro.prompts.empty': 'Nenhum prompt salvo ainda. Escreva um e escolha Salvar como prompt.',
   'pro.prompts.remove': 'Remover o prompt {name}',
   'pro.files.none': 'Nenhum arquivo encontrado. Só aparecem arquivos que o git conhece.',
+  'pro.terminal.ended': 'O programa terminou (código {code}).',
+  'pro.terminal.typing': 'digitando aqui · Ctrl+] para sair',
+  'pro.terminal.kill': 'Encerrar este terminal',
+  'pro.terminal.killConfirm': 'Clique de novo para encerrar o programa',
+  'pro.terminal.starting': 'Iniciando em {folder}',
 } as const;
 
 export type ProKey = keyof typeof proPtBR;

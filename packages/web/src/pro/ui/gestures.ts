@@ -9,7 +9,7 @@ const PINCH_ZOOM_RATE = 0.01;
 const LINE_HEIGHT_PX = 16;
 const PAGE_HEIGHT_PX = 400;
 /** Parts of a terminal that scroll by themselves: the wheel scrolls them instead of the canvas. */
-const SCROLLABLE = '.ao-pro-body, .ao-pro-done, textarea';
+const SCROLLABLE = '.ao-pro-body, .ao-pro-done, .ao-pro-xterm, textarea';
 
 /** A wheel that comes from a mouse (whole notches) rather than from a trackpad (small, fractional deltas). */
 export function isMouseWheel(event: Pick<WheelEvent, 'deltaMode' | 'deltaX' | 'deltaY'>): boolean {

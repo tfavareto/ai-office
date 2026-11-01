@@ -57,6 +57,10 @@ import { ReportService } from './report/service';
 import { UsageIndexer } from './usage/indexer';
 import { RulesStore } from './rules/rules-store';
 import { asString } from './util/fs-safe';
+import { loadPtySpawner } from './terminal/loader';
+import { TerminalService, type PtySpawner } from './terminal/service';
+import { TerminalSettingsStore } from './terminal/settings-store';
+import { TerminalStreams } from './terminal/stream';
 import { newId } from './util/ids';
 import { RateLimiter } from './util/rate-limit';
 
@@ -82,6 +86,8 @@ export interface AppOptions {
     VoiceModelStoreOptions,
     'fetchImpl' | 'source' | 'specs' | 'connectTimeoutMs' | 'idleTimeoutMs' | 'deadlineMs' | 'freeBytes'
   >;
+  /** The real terminal engine: tests replace it, so no test ever starts a program. `null`: not installed. */
+  ptySpawner?: PtySpawner | null;
   hire?: {
     launcher?: TerminalLauncher;
     /** Absolute path of `claude`, or undefined when there is none. */
@@ -211,12 +217,18 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     },
   });
   const hub: SseHub = new SseHub({ snapshot: () => snapshots.build(), backlog: () => office.recentFeed() });
+  // Filled in below: the office is built before the terminals because hires need both.
+  let terminalFor: (pid: number | undefined) => string | undefined = () => undefined;
   const office: Office = new Office({
     now,
     names,
     log,
     customize: (state) => applyCustomization(state, customization.current),
-    overlays: { permissionFor: (id) => permissions.pendingFor(id), attentionFor: (id) => attention.messageFor(id) },
+    overlays: {
+      terminalFor: (pid) => terminalFor(pid),
+      permissionFor: (id) => permissions.pendingFor(id),
+      attentionFor: (id) => attention.messageFor(id),
+    },
     events: {
       onChange: () => snapshots.markDirty(),
       onFeed: (items) => hub.broadcastFeed(items),
@@ -244,6 +256,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       demo: demoOn,
       ...(build !== undefined ? { build } : {}),
       ...(gitSettings.pullRequests ? { gitPullRequests: true } : {}),
+      ...(terminalSettings.enabled && terminals.list().length > 0 ? { terminals: terminals.list().length } : {}),
     }),
     hires: (time) => hireRegistry.list(time),
     git: (projectId) => git.get(projectId),
@@ -315,6 +328,18 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   };
 
   const env = options.env ?? process.env;
+  let ptySpawner: PtySpawner | null = options.ptySpawner ?? null;
+  const terminals = new TerminalService({
+    spawner: () => (config.terminalsDisabled ? null : ptySpawner),
+    now,
+    newId: () => newId(),
+  });
+  const terminalSettings = new TerminalSettingsStore(config.stateDir, log);
+  const terminalStreams = new TerminalStreams(terminals);
+  terminalFor = (pid) => terminals.idFor(pid);
+  terminals.subscribe((event) => {
+    if (event.kind === 'exit') snapshots.markDirty();
+  });
   const hires = new HireService({
     now,
     log,
@@ -334,6 +359,14 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     resolveClaude: options.hire?.resolveClaude ?? (() => resolveClaudeExecutable({ env, home: config.homeDir })),
     launchLimiter: new RateLimiter(HIRE_LAUNCH_LIMIT, HIRE_LAUNCH_WINDOW_MS, now),
     refresh,
+    env,
+    terminals: {
+      enabled: () => terminalSettings.enabled,
+      start: (spec) => {
+        terminalStreams.announce(terminals.start(spec).id);
+        snapshots.markDirty();
+      },
+    },
   });
 
   const team: TeamService = new TeamService({
@@ -383,6 +416,9 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    terminals,
+    terminalSettings,
+    terminalStreams,
     runGit,
     team,
     voice,
@@ -446,6 +482,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await rules.load();
       await customization.load();
       await gitSettings.load();
+      await terminalSettings.load();
+      if (options.ptySpawner === undefined && !config.terminalsDisabled) ptySpawner = await loadPtySpawner(log);
       await codexSettings.load();
       setDemo(config.demo);
       await refreshBuild();
@@ -471,6 +509,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     async stop() {
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
+      await terminals.stopAll();
+      terminalStreams.closeAll();
       engine.stop();
       codex.stop();
       git.stop();

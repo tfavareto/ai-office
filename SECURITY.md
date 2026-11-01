@@ -17,7 +17,7 @@ AI Office runs on your own computer. These parts are in scope:
 
 - **Local server** (`packages/server`): the loopback bind, the access token, Host, Origin and `Sec-Fetch-Site` checks,
   the cookie, Content-Security-Policy and other response headers, request and stream limits, and the local-only
-  features (terminal view, permissions, messages).
+  features (terminal view, real terminals, permissions, messages).
 - **Plugin hooks** (`packages/plugins`): the `PermissionRequest`, `PostToolUse`, `Stop`, `SubagentStop` and
   `Notification` hooks, the health challenge that proves the server's identity before a token is sent, and the
   installer script.

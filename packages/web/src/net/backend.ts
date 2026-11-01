@@ -11,6 +11,7 @@ import type {
   GitSettings,
   HireCheckResponse,
   ProjectFiles,
+  TerminalSettings,
   HireRequest,
   PendingHire,
   PermissionDecision,
@@ -80,6 +81,12 @@ export interface Backend {
   /** Tells the server the person did something only the page can see, for the first time (local access only). */
   progressEvent(event: ProgressEventName): Promise<void>;
   setDemo(on: boolean): Promise<boolean>;
+  /** Real terminals in the Pro view (local access only). */
+  terminalSettings(): Promise<TerminalSettings>;
+  setTerminals(on: boolean): Promise<TerminalSettings>;
+  terminalInput(id: string, data: string): Promise<void>;
+  terminalResize(id: string, cols: number, rows: number): Promise<void>;
+  terminalKill(id: string): Promise<void>;
   /** The files of a room, for the prompt's `@` mention (local access only). */
   projectFiles(projectId: string): Promise<ProjectFiles>;
   /** Settings of the git integration that live on the server (local access only). */

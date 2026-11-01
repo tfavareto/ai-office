@@ -114,6 +114,12 @@ export const API = {
    * POST /preview RuleInput → RulePreview. A refused rule answers 400 RuleErrorBody.
    */
   rules: '/api/rules',
+  /** GET → TerminalSettings; POST { enabled } → the same. Whether the office may open real terminals. Local access only. */
+  terminalSettings: '/api/terminals/settings',
+  /** GET → Server-Sent Events: `terminal`, `output` and `exit` of every real terminal. Local access only. */
+  terminalStream: '/api/terminals/stream',
+  /** POST <id>/input { data }, <id>/resize { cols, rows }, <id>/kill. Local access only. */
+  terminals: '/api/terminals',
   /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
   projectFiles: '/api/projects/files',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
@@ -228,6 +234,9 @@ export const HIRE_WINDOW_MS = 90_000;
 export const HIRE_HANDOVER_MS = 6_000;
 
 /** POST /api/agents/hire body. Every field but `projectPath` is optional. */
+/** Where a hired agent runs: a window of the person's terminal app, or a real terminal inside the Pro view. */
+export type HireWhere = 'window' | 'terminal';
+
 export interface HireRequest {
   /** Absolute path of an existing folder; its room is where the agent works. */
   projectPath: string;
@@ -239,11 +248,31 @@ export interface HireRequest {
   permissionMode?: HirePermissionMode;
   /** Desk the person clicked in the room (the placeholder sits there). */
   deskIndex?: number;
+  /** `terminal`: a real terminal in the Pro view, instead of a new window. */
+  where?: HireWhere;
   /** Language of the person hiring: used for the texts the launched terminal prints itself. */
   locale?: Locale;
 }
 
 /** 202 body: the hire is registered; the session shows up in the office when Claude Code starts. */
+export interface TerminalSettings {
+  /** The person allowed the office to open real terminals. */
+  enabled: boolean;
+  /** The terminal engine (`node-pty`) is installed and loads on this computer. */
+  available: boolean;
+}
+
+/** A real terminal the office opened. */
+export interface TerminalInfo {
+  id: string;
+  cwd: string;
+  cols: number;
+  rows: number;
+  startedAt: number;
+  /** Set when the program ended. */
+  exitCode?: number;
+}
+
 /** The files of a project, for the prompt's `@` mention. */
 export interface ProjectFiles {
   files: string[];
@@ -281,4 +310,8 @@ export type HireErrorCode =
   | 'claude-not-found'
   | 'no-terminal'
   | 'terminal-failed'
+  | 'invalid-where'
+  | 'terminals-off'
+  | 'terminals-unavailable'
+  | 'terminals-limit'
   | 'unsupported-platform';

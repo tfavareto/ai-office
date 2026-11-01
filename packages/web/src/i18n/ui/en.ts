@@ -708,6 +708,18 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
     'No terminal app was found to open. Install one (such as gnome-terminal or xterm) and try again.',
   'hire.error.terminalFailed':
     'Could not open the terminal. On macOS, allow AI Office to control Terminal in System Settings > Privacy & Security > Automation.',
+  'hire.where': 'Where it runs',
+  'hire.where.window': 'A new window of your terminal',
+  'hire.where.terminal': 'A real terminal in the Pro view',
+  'hire.error.terminalsOff': 'Real terminals are off. Turn them on in Settings → Data and integrations.',
+  'hire.error.terminalsUnavailable':
+    'The terminal engine is not installed on this computer. Run npm install and restart AI Office.',
+  'hire.error.terminalsLimit': 'Too many terminals open. Close one and try again.',
+  'settings.terminals': 'Real terminals in the Pro view',
+  'settings.terminals.hint':
+    'Lets this page open Claude Code in terminals you type into, on this computer only. Turning it off stops the ones running.',
+  'settings.terminals.unavailable':
+    'The terminal engine (node-pty) is not installed on this computer. Run npm install and restart AI Office.',
   'hire.error.unsupportedPlatform': 'Opening the terminal only works on macOS and Linux.',
   'hover.desk.title': 'Free desk',
   'hover.desk.hint': 'Click to hire an agent here.',

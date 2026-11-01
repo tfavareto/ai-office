@@ -221,6 +221,8 @@ export interface Agent {
   lastEventAt: number;
   /** The CLI this session runs in; absent means Claude Code. Codex agents are read-only (no hooks to answer through). */
   source?: AgentSource;
+  /** The real terminal the office opened for this session; absent for sessions opened anywhere else. */
+  terminalId?: string;
   /** Demo agent (not a real session). */
   demo?: boolean;
 }
@@ -249,6 +251,8 @@ export interface OfficeMeta {
   build?: string;
   /** Pull requests of each room's branch are being asked of `gh` (off unless the person turned it on). */
   gitPullRequests?: boolean;
+  /** Real terminals the office holds; the page opens their stream only when there are some. */
+  terminals?: number;
 }
 
 /**

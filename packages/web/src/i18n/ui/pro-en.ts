@@ -151,4 +151,9 @@ export const proEn: Readonly<Record<ProKey, string>> = {
   'pro.prompts.empty': 'No saved prompts yet. Write one and choose Save as prompt.',
   'pro.prompts.remove': 'Remove the prompt {name}',
   'pro.files.none': 'No matching file. Only files git knows about are listed.',
+  'pro.terminal.ended': 'The program ended (code {code}).',
+  'pro.terminal.typing': 'typing here · Ctrl+] to leave',
+  'pro.terminal.kill': 'Stop this terminal',
+  'pro.terminal.killConfirm': 'Click again to stop the program',
+  'pro.terminal.starting': 'Starting in {folder}',
 };

@@ -11,10 +11,11 @@ import {
   type PendingHire,
 } from '@ai-office/shared';
 import { accountsFromDirs } from '../claude/accounts';
+import { TerminalError, type TerminalSpec } from '../terminal/service';
 import { HttpError } from '../http/respond';
 import type { Logger } from '../log';
 import type { RateLimiter } from '../util/rate-limit';
-import { UnquotableError, buildLauncherScript } from './command';
+import { UnquotableError, buildLauncherScript, claudeArguments, terminalEnvironment } from './command';
 import { type FolderCheck, checkFolder, normalizeFolderInput } from './folder';
 import type { HireRegistry } from './registry';
 import { LaunchError, type TerminalLauncher } from './terminals';
@@ -43,6 +44,20 @@ export interface HireServiceDeps {
   launchLimiter: RateLimiter;
   /** Recomputes the office state, so a simulated hire shows up in the next snapshot. */
   refresh: () => void;
+  /** Real terminals in the Pro view, when the person turned them on. */
+  terminals: {
+    enabled: () => boolean;
+    start: (spec: TerminalSpec) => void;
+  };
+  /** The environment real terminals start from. */
+  env: NodeJS.ProcessEnv;
+}
+
+interface LaunchInput {
+  request: HireRequest;
+  claudePath: string;
+  projectPath: string;
+  configDir: string | undefined;
 }
 
 function fail(status: number, code: HireErrorCode): never {
@@ -61,6 +76,16 @@ function folderFailure(check: Extract<FolderCheck, { ok: false }>): never {
       return fail(403, 'project-not-readable');
   }
 }
+
+const TERMINAL_FAILURE: Record<TerminalError['code'], { status: number; code: HireErrorCode }> = {
+  unavailable: { status: 503, code: 'terminals-unavailable' },
+  'too-many': { status: 429, code: 'terminals-limit' },
+  'spawn-failed': { status: 502, code: 'terminal-failed' },
+};
+
+/** A size that reads well until the page measures the real one. */
+const INITIAL_COLS = 120;
+const INITIAL_ROWS = 36;
 
 const LAUNCH_STATUS: Record<LaunchError['code'], number> = {
   'no-terminal': 503,
@@ -92,16 +117,19 @@ export class HireService {
     if (demo !== undefined && this.simulates(requested)) return this.hireDemo(demo, requested, request);
     const folder = await checkFolder(requested, this.deps.homeDir);
     if (!folder.ok) return folderFailure(folder);
+    if (request.where === 'terminal' && !this.deps.terminals.enabled()) return fail(409, 'terminals-off');
     const account = this.accountFor(request.accountId);
     const claudePath = this.deps.resolveClaude();
     if (claudePath === undefined) return fail(503, 'claude-not-found');
     if (!this.deps.launchLimiter.tryAcquire()) return fail(429, 'rate-limited');
-    await this.launch({
+    const launch = {
       request,
       claudePath,
       projectPath: folder.path,
       configDir: account.isDefault === true ? undefined : account.dir,
-    });
+    };
+    if (request.where === 'terminal') this.startTerminal(launch);
+    else await this.launch(launch);
     const rooms = this.deps.realProjectIds();
     const projectId = rooms.find((id) => id === folder.path || id === folder.realPath) ?? folder.realPath;
     return this.deps.registry.create({
@@ -134,12 +162,28 @@ export class HireService {
     return accounts.find((account) => account.isDefault === true) ?? accounts[0] ?? fallback;
   }
 
-  private async launch(input: {
-    request: HireRequest;
-    claudePath: string;
-    projectPath: string;
-    configDir: string | undefined;
-  }): Promise<void> {
+  /** Runs Claude Code directly on a pseudo-terminal: no shell, so nothing in the request is ever interpreted. */
+  private startTerminal(input: LaunchInput): void {
+    const { request } = input;
+    if (request.prompt?.includes('\0') === true) return fail(400, 'invalid-prompt');
+    try {
+      this.deps.terminals.start({
+        file: input.claudePath,
+        args: claudeArguments(request),
+        cwd: input.projectPath,
+        env: terminalEnvironment(this.deps.env, input.configDir),
+        cols: INITIAL_COLS,
+        rows: INITIAL_ROWS,
+      });
+    } catch (error) {
+      if (!(error instanceof TerminalError)) throw error;
+      this.deps.log.warn(`Terminal: ${error.code}`);
+      const failure = TERMINAL_FAILURE[error.code];
+      return fail(failure.status, failure.code);
+    }
+  }
+
+  private async launch(input: LaunchInput): Promise<void> {
     const workDir = await mkdtemp(join(this.deps.tmpDir, 'ai-office-hire-'));
     const { request } = input;
     try {

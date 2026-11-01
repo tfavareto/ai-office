@@ -7,6 +7,7 @@ import { type SessionRecord, type SubRecord, isSubDone } from './records';
 export interface Overlay {
   permission?: PermissionRequest;
   attention?: string;
+  terminalId?: string;
 }
 
 export function mainAgentId(record: SessionRecord): string {
@@ -119,6 +120,7 @@ export function buildMainAgent(
     ...commonFields(state, now),
     ...base,
     startedAt,
+    ...(overlay.terminalId !== undefined ? { terminalId: overlay.terminalId } : {}),
     lastEventAt: Math.max(state.lastEventAt, registry?.updatedAt ?? 0) || record.openedAt,
   };
 }

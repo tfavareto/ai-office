@@ -22,6 +22,7 @@ Flags do not pass through `npm start --`; use environment variables with `npm st
 | `AI_OFFICE_ALLOW_REMOTE` | `--allow-remote` | off | Accept a non-loopback `AI_OFFICE_HOST`. Even then, browsers cannot sign in remotely. See [privacy and security](05-privacy-and-security.md#remote-access). |
 | `AI_OFFICE_CLAUDE_DIRS` | `--claude-dirs <list>` | auto-discovery | Comma-separated Claude config directories to watch. Replaces auto-discovery entirely. `~` is expanded. |
 | `AI_OFFICE_CODEX_DIRS` | `--codex-dirs <list>` | none | Comma-separated extra Codex homes to follow, besides `CODEX_HOME` (or `~/.codex`). `~` is expanded. See [Codex sessions](#codex-sessions). |
+| `AI_OFFICE_TERMINALS` | none | on | Set to `0` or `false` to keep real terminals off whatever Settings says. |
 | `AI_OFFICE_VOICE` | none | on | Set to `0` or `false` to never download the speech model; voice input then says it is turned off on this server. See [Voice input](#voice-input). |
 | `AI_OFFICE_CODEX` | none | on | Set to `0` or `false` to never read Codex sessions; **Settings → Data and integrations → Show Codex sessions** then cannot turn it on. |
 | `AI_OFFICE_TEAM` | none | on | Set to `0` or `false` to remove [team mode](#team-mode): **Settings → Team → Team mode** then cannot be turned on. |

@@ -31,6 +31,7 @@ import {
   parseDay,
   parseFolderCheck,
   parseProjectFiles,
+  parseTerminalSettings,
   parseHire,
   parseMessages,
   parsePermission,
@@ -326,6 +327,27 @@ export class HttpBackend implements Backend {
   async hireAgent(request: HireRequest) {
     const { body } = await this.post(API.hire, { ...request, locale: locale() });
     return parseHire(body);
+  }
+
+  async terminalSettings() {
+    return parseTerminalSettings(await this.get(API.terminalSettings));
+  }
+
+  async setTerminals(on: boolean) {
+    const { body } = await this.post(API.terminalSettings, { enabled: on });
+    return parseTerminalSettings(body);
+  }
+
+  async terminalInput(id: string, data: string) {
+    await this.post(`${API.terminals}/${encodeURIComponent(id)}/input`, { data });
+  }
+
+  async terminalResize(id: string, cols: number, rows: number) {
+    await this.post(`${API.terminals}/${encodeURIComponent(id)}/resize`, { cols, rows });
+  }
+
+  async terminalKill(id: string) {
+    await this.post(`${API.terminals}/${encodeURIComponent(id)}/kill`, {});
   }
 
   async projectFiles(projectId: string) {

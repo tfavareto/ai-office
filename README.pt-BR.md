@@ -206,6 +206,7 @@ Troque **Básica | Pro** na barra superior (ou aperte `V`) para trocar o escrit�
 | **Acompanhar um projeto** | Clique no nome dele | Um painel com o orquestrador, tempo de sessão e de turno, modelo, branch e mudanças, tokens, custo e subagentes, além de uma caixa para uma ordem digitada ou falada |
 | **Navegar** | Arraste, role, faça pinça, `0` para ver tudo, `F` para focar | A visão continua se ajustando conforme chegam subagentes, até você mexer na câmera; arraste a barra de título para organizar os terminais, e o arranjo fica salvo |
 | **Passar uma tarefa ao orquestrador** | O painel do projeto, ou a barra de comando opcional (`N`) | O texto vai pelo canal de mensagens do plugin, para um orquestrador ou para o projeto inteiro; a caixa diz quando ele vai chegar e acompanha a entrega |
+| **Digitar no próprio agente** | **Configurações → Dados e integrações → Terminais reais na Visão Pro**, depois contrate um agente em **Um terminal real** | O Claude Code roda no canvas e você digita nele, só neste computador, desligado por padrão; `Ctrl+]` devolve o teclado à página. Sessões abertas em outro lugar continuam só leitura |
 | **Falar em vez de digitar** | O microfone em qualquer uma das caixas | A fala vira texto neste computador e cai na caixa para você revisar; nada é enviado sozinho |
 
 A voz precisa de um modelo de fala, baixado uma vez quando você escolhe **Configurações → Dados e integrações → Voz → Baixar modelo de voz**: Rápido (44 MB), Equilibrado (80 MB), Preciso (252 MB) ou Máxima (1,6 GB, o padrão, Whisper large-v3-turbo). A Máxima roda na placa de vídeo por WebGPU; sem isso, a página usa o Preciso e avisa. Num teste com 120 palavras de fala sintetizada em português, inglês e espanhol, a Máxima não errou nenhuma palavra, o Preciso errou 9 e o Equilibrado 14. A primeira gravação depois de abrir a página espera o modelo carregar, o que pode levar minutos num computador ocupado ou com pouca memória. Depois do download, o áudio e o texto nunca saem do seu computador. As sessões do Codex aparecem só para leitura, e uma ordem segue as mesmas regras de entrega de qualquer mensagem: chega a um agente parado só enquanto ele está nos 10 minutos de plantão. O [guia de uso](docs/02-using-the-office.md) cobre cada controle e atalho.
@@ -409,6 +410,7 @@ Os padrões servem para a maioria das pessoas. Defina variáveis de ambiente (ou
 | `AI_OFFICE_DEMO` | desligado | Iniciar com sessões de demonstração |
 | `AI_OFFICE_LOG` | normal | `quiet` ou `debug` |
 | `AI_OFFICE_VOICE` | ligado | `0` desliga o download do modelo de voz |
+| `AI_OFFICE_TERMINALS` | ligado | `0` mantém os terminais reais desligados, seja o que for que as Configurações digam |
 
 As preferências da interface ficam em **Configurações**, em grupos que você abre e fecha (**Geral**, com idioma, visual e dia e noite, primeiro; depois escritório, sons e notificações, dados e integrações, automação e personalização, time, demonstração e sobre), e são salvas no seu navegador. O [guia de configuração](docs/04-configuration.md) lista tudo, inclusive os ajustes dos hooks.
 

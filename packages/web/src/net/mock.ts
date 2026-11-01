@@ -21,6 +21,7 @@ import {
   DEMO_PROJECT_FILES,
   type HireCheckResponse,
   type ProjectFiles,
+  type TerminalSettings,
   type HireRequest,
   type OfficeSnapshot,
   type PermissionDecision,
@@ -264,6 +265,21 @@ class MockBackend implements Backend {
   async setDemo(on: boolean): Promise<boolean> {
     return on;
   }
+
+  /** The demonstration runs no programs: real terminals are not available in it. */
+  async terminalSettings(): Promise<TerminalSettings> {
+    return { enabled: false, available: false };
+  }
+
+  async setTerminals(_on: boolean): Promise<TerminalSettings> {
+    return this.terminalSettings();
+  }
+
+  async terminalInput(): Promise<void> {}
+
+  async terminalResize(): Promise<void> {}
+
+  async terminalKill(): Promise<void> {}
 
   async projectFiles(): Promise<ProjectFiles> {
     return { files: [...DEMO_PROJECT_FILES], truncated: false };

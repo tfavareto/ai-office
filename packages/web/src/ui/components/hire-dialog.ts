@@ -6,6 +6,7 @@ import {
   type HireCheckReason,
   type HireModel,
   type HirePermissionMode,
+  type HireWhere,
   type Project,
 } from '@ai-office/shared';
 import { type UiKey, t } from '../../i18n';
@@ -45,6 +46,11 @@ const MODES: readonly [HirePermissionMode, UiKey][] = [
   ['default', 'hire.mode.default'],
   ['acceptEdits', 'hire.mode.acceptEdits'],
   ['plan', 'hire.mode.plan'],
+];
+
+const WHERES: readonly [HireWhere, UiKey][] = [
+  ['window', 'hire.where.window'],
+  ['terminal', 'hire.where.terminal'],
 ];
 
 const MODE_HINTS: Readonly<Record<HirePermissionMode, UiKey>> = {
@@ -92,6 +98,7 @@ export class HireDialog extends Dialog {
     prompt: '',
     model: 'default',
     permissionMode: 'default',
+    where: 'window',
   };
   private check: PathCheck = { state: 'idle' };
   private recent: { path: string; name: string }[] = [];
@@ -140,6 +147,8 @@ export class HireDialog extends Dialog {
   private readonly promptCount = h('span', { id: 'ao-hire-prompt-count', class: 'ao-hire-count' });
   private readonly modelSelect: HTMLSelectElement;
   private readonly modeSelect: HTMLSelectElement;
+  private readonly whereSelect: HTMLSelectElement;
+  private readonly whereField: HTMLElement;
   private readonly modeHint = h('p', { class: 'ao-note ao-hire-modehint' });
   private readonly errorBox = h('p', { class: 'ao-error ao-hire-error', role: 'alert', hidden: true });
   private readonly submitBtn: HTMLButtonElement;
@@ -152,6 +161,12 @@ export class HireDialog extends Dialog {
       this.form = { ...this.form, permissionMode };
       this.ctx.refresh();
     });
+    this.whereSelect = selectOf('ao-hire-where', WHERES, (where) => {
+      this.form = { ...this.form, where };
+      this.ctx.refresh();
+    });
+    this.whereField = field(t('hire.where'), this.whereSelect, 'ao-hire-where');
+    this.whereField.hidden = true;
     this.submitBtn = button({
       label: t('hire.submit'),
       icon: 'plus',
@@ -202,6 +217,7 @@ export class HireDialog extends Dialog {
           field(t('hire.mode'), this.modeSelect, 'ao-hire-mode'),
         ),
         this.modeHint,
+        this.whereField,
         h('p', { class: 'ao-hire-note' }, icon('terminal', 16), h('span', null, t('hire.note'))),
         this.errorBox,
       ),
@@ -212,6 +228,18 @@ export class HireDialog extends Dialog {
         this.submitBtn,
       ),
     );
+  }
+
+  /** The choice of where to run only appears when real terminals are on; in the Pro view it starts on them. */
+  private async loadWhere(): Promise<void> {
+    if (!this.ctx.isLocal) return;
+    const settings = await this.ctx.terminalSettings().catch(() => null);
+    const can = settings?.enabled === true && settings.available;
+    this.whereField.hidden = !can;
+    const where: HireWhere = can && this.ctx.viewMode === 'pro' ? 'terminal' : 'window';
+    this.form = { ...this.form, where };
+    this.whereSelect.value = where;
+    this.ctx.refresh();
   }
 
   // --- lifecycle -----------------------------------------------------------------------------------------------------
@@ -232,8 +260,10 @@ export class HireDialog extends Dialog {
       prompt: '',
       model: 'default',
       permissionMode: 'default',
+      where: 'window',
       ...(target.deskIndex !== undefined ? { deskIndex: target.deskIndex } : {}),
     };
+    void this.loadWhere();
     this.busy = false;
     this.error = '';
     this.check = { state: 'idle' };

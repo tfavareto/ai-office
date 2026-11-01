@@ -152,4 +152,9 @@ export const proEs: Readonly<Record<ProKey, string>> = {
   'pro.prompts.empty': 'Aún no hay prompts guardados. Escribe uno y elige Guardar como prompt.',
   'pro.prompts.remove': 'Eliminar el prompt {name}',
   'pro.files.none': 'No se encontró ningún archivo. Solo aparecen los archivos que git conoce.',
+  'pro.terminal.ended': 'El programa terminó (código {code}).',
+  'pro.terminal.typing': 'escribiendo aquí · Ctrl+] para salir',
+  'pro.terminal.kill': 'Cerrar esta terminal',
+  'pro.terminal.killConfirm': 'Haz clic otra vez para cerrar el programa',
+  'pro.terminal.starting': 'Iniciando en {folder}',
 };
