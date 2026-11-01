@@ -4,6 +4,7 @@ import { t } from '../../i18n';
 import type { Rect } from './geometry';
 import type { Layout } from './layout';
 import { linkState, type LinkState } from './links';
+import { peerPairs } from './roles';
 import type { Scene } from './scene';
 
 export interface FrameModel {
@@ -15,11 +16,11 @@ export interface FrameModel {
 }
 
 export interface LinkModel {
-  /** The subagent's id. */
+  /** The subagent's id, or the two agents' for a connection between terminals. */
   id: string;
   from: Rect;
   to: Rect;
-  state: LinkState;
+  state: LinkState | 'peer';
 }
 
 export function frameModels(scene: Scene, layout: Layout): FrameModel[] {
@@ -40,7 +41,23 @@ export function frameModels(scene: Scene, layout: Layout): FrameModel[] {
   });
 }
 
+/** The lines between terminals the person connected. */
+function peerLinks(scene: Scene, layout: Layout): LinkModel[] {
+  const mains = scene.rooms.flatMap((room) => room.clusters.map((cluster) => cluster.main));
+  return peerPairs(mains).flatMap(({ from, to }) => {
+    const fromRect = layout.nodes.get(from);
+    const toRect = layout.nodes.get(to);
+    return fromRect === undefined || toRect === undefined
+      ? []
+      : [{ id: `peer:${from}|${to}`, from: fromRect, to: toRect, state: 'peer' as const }];
+  });
+}
+
 export function linkModels(scene: Scene, layout: Layout): LinkModel[] {
+  return [...delegationLinks(scene, layout), ...peerLinks(scene, layout)];
+}
+
+function delegationLinks(scene: Scene, layout: Layout): LinkModel[] {
   return scene.rooms.flatMap((room) =>
     room.clusters.flatMap((cluster) => {
       const from = layout.nodes.get(cluster.main.id);

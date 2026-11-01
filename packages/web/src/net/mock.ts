@@ -281,6 +281,8 @@ class MockBackend implements Backend {
 
   async terminalKill(): Promise<void> {}
 
+  async terminalLink(): Promise<void> {}
+
   async projectFiles(): Promise<ProjectFiles> {
     return { files: [...DEMO_PROJECT_FILES], truncated: false };
   }

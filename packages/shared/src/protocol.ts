@@ -118,7 +118,9 @@ export const API = {
   terminalSettings: '/api/terminals/settings',
   /** GET → Server-Sent Events: `terminal`, `output` and `exit` of every real terminal. Local access only. */
   terminalStream: '/api/terminals/stream',
-  /** POST <id>/input { data }, <id>/resize { cols, rows }, <id>/kill. Local access only. */
+  /** POST { a, b, connected }: connects two real terminals so their agents can message each other. Local access only. */
+  terminalLinks: '/api/terminals/links',
+  /** POST <id>/input { data }, <id>/resize { cols, rows }, <id>/kill, <id>/send { to, text }; GET <id>/peers. Local access only. */
   terminals: '/api/terminals',
   /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
   projectFiles: '/api/projects/files',
@@ -234,6 +236,15 @@ export const HIRE_WINDOW_MS = 90_000;
 export const HIRE_HANDOVER_MS = 6_000;
 
 /** POST /api/agents/hire body. Every field but `projectPath` is optional. */
+/** Reusable instructions for an agent (Reviewer, Tester...). */
+export interface HireRole {
+  name: string;
+  instructions: string;
+}
+
+export const HIRE_MAX_ROLE_NAME = 48;
+export const HIRE_MAX_ROLE_INSTRUCTIONS = 8000;
+
 /** Where a hired agent runs: a window of the person's terminal app, or a real terminal inside the Pro view. */
 export type HireWhere = 'window' | 'terminal';
 
@@ -250,6 +261,8 @@ export interface HireRequest {
   deskIndex?: number;
   /** `terminal`: a real terminal in the Pro view, instead of a new window. */
   where?: HireWhere;
+  /** Instructions it starts with, on top of its usual ones. */
+  role?: HireRole;
   /** Language of the person hiring: used for the texts the launched terminal prints itself. */
   locale?: Locale;
 }
@@ -271,6 +284,8 @@ export interface TerminalInfo {
   startedAt: number;
   /** Set when the program ended. */
   exitCode?: number;
+  /** The role it started with. */
+  role?: string;
 }
 
 /** The files of a project, for the prompt's `@` mention. */
@@ -311,6 +326,7 @@ export type HireErrorCode =
   | 'no-terminal'
   | 'terminal-failed'
   | 'invalid-where'
+  | 'invalid-role'
   | 'terminals-off'
   | 'terminals-unavailable'
   | 'terminals-limit'

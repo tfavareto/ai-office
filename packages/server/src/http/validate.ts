@@ -3,6 +3,8 @@ import {
   HIRE_MAX_DESK_INDEX,
   HIRE_MAX_PATH,
   HIRE_MAX_PROMPT,
+  HIRE_MAX_ROLE_INSTRUCTIONS,
+  HIRE_MAX_ROLE_NAME,
   HIRE_MODELS,
   HIRE_PERMISSION_MODES,
   type HireModel,
@@ -73,6 +75,23 @@ export function parseHireRequest(body: unknown): HireRequest {
   if (raw.where !== undefined && raw.where !== null) {
     if (raw.where !== 'window' && raw.where !== 'terminal') throw new HttpError(400, 'invalid-where');
     request.where = raw.where;
+  }
+  if (raw.role !== undefined && raw.role !== null) {
+    const role = asRecord(raw.role);
+    const name = asString(role.name)?.trim();
+    const instructions = asString(role.instructions)?.trim();
+    if (
+      name === undefined ||
+      name.length === 0 ||
+      name.length > HIRE_MAX_ROLE_NAME ||
+      instructions === undefined ||
+      instructions.length === 0 ||
+      instructions.length > HIRE_MAX_ROLE_INSTRUCTIONS ||
+      name.includes('\0') ||
+      instructions.includes('\0')
+    )
+      throw new HttpError(400, 'invalid-role');
+    request.role = { name, instructions };
   }
   const locale = optionalLocale(raw.locale);
   if (locale !== undefined) request.locale = locale;

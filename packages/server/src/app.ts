@@ -44,7 +44,7 @@ import { SseHub } from './http/sse';
 import type { Logger } from './log';
 import { DayRecorder, RECORD_INTERVAL_MS } from './office/day-recorder';
 import { NameStore } from './office/name-store';
-import { Office } from './office/office';
+import { Office, type OfficeOverlays } from './office/office';
 import { SnapshotPublisher } from './office/snapshot';
 import { TeamService } from './team/service';
 import { VoiceModelStore, type VoiceModelStoreOptions } from './voice/model-store';
@@ -67,6 +67,8 @@ import { RateLimiter } from './util/rate-limit';
 const TICK_MS = 250;
 const SLOW_TICK_EVERY = 4;
 const BUILD_CHECK_MS = 5000;
+
+type OfficeOverlaysTerminal = NonNullable<OfficeOverlays['terminalFor']>;
 
 export interface AppOptions {
   now?: () => number;
@@ -218,7 +220,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   });
   const hub: SseHub = new SseHub({ snapshot: () => snapshots.build(), backlog: () => office.recentFeed() });
   // Filled in below: the office is built before the terminals because hires need both.
-  let terminalFor: (pid: number | undefined) => string | undefined = () => undefined;
+  let terminalFor: OfficeOverlaysTerminal = () => undefined;
   const office: Office = new Office({
     now,
     names,
@@ -336,7 +338,12 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   });
   const terminalSettings = new TerminalSettingsStore(config.stateDir, log);
   const terminalStreams = new TerminalStreams(terminals);
-  terminalFor = (pid) => terminals.idFor(pid);
+  terminalFor = (pid) => {
+    const id = terminals.idFor(pid);
+    if (id === undefined) return undefined;
+    const role = terminals.list().find((terminal) => terminal.id === id)?.role;
+    return { id, peers: terminals.peersOf(id), ...(role !== undefined ? { role } : {}) };
+  };
   terminals.subscribe((event) => {
     if (event.kind === 'exit') snapshots.markDirty();
   });
@@ -360,6 +367,10 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     launchLimiter: new RateLimiter(HIRE_LAUNCH_LIMIT, HIRE_LAUNCH_WINDOW_MS, now),
     refresh,
     env,
+    bridge: {
+      path: resolve(dirname(fileURLToPath(import.meta.url)), '../bridge/peers.mjs'),
+      env: { AI_OFFICE_PORT: String(config.port), AI_OFFICE_STATE_DIR: config.stateDir },
+    },
     terminals: {
       enabled: () => terminalSettings.enabled,
       start: (spec) => {

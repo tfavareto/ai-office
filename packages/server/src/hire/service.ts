@@ -15,7 +15,13 @@ import { TerminalError, type TerminalSpec } from '../terminal/service';
 import { HttpError } from '../http/respond';
 import type { Logger } from '../log';
 import type { RateLimiter } from '../util/rate-limit';
-import { UnquotableError, buildLauncherScript, claudeArguments, terminalEnvironment } from './command';
+import {
+  UnquotableError,
+  agentInstructions,
+  buildLauncherScript,
+  claudeArguments,
+  terminalEnvironment,
+} from './command';
 import { type FolderCheck, checkFolder, normalizeFolderInput } from './folder';
 import type { HireRegistry } from './registry';
 import { LaunchError, type TerminalLauncher } from './terminals';
@@ -51,6 +57,8 @@ export interface HireServiceDeps {
   };
   /** The environment real terminals start from. */
   env: NodeJS.ProcessEnv;
+  /** What real terminals need so their agents can reach this server: its port, its state folder, the command. */
+  bridge: { path: string; env: NodeJS.ProcessEnv };
 }
 
 interface LaunchInput {
@@ -169,11 +177,15 @@ export class HireService {
     try {
       this.deps.terminals.start({
         file: input.claudePath,
-        args: claudeArguments(request),
+        args: claudeArguments({
+          ...request,
+          instructions: agentInstructions(request.role, this.deps.bridge.path),
+        }),
         cwd: input.projectPath,
-        env: terminalEnvironment(this.deps.env, input.configDir),
+        env: { ...terminalEnvironment(this.deps.env, input.configDir), ...this.deps.bridge.env },
         cols: INITIAL_COLS,
         rows: INITIAL_ROWS,
+        ...(request.role !== undefined ? { role: request.role.name } : {}),
       });
     } catch (error) {
       if (!(error instanceof TerminalError)) throw error;
@@ -194,6 +206,7 @@ export class HireService {
         prompt: request.prompt,
         model: request.model,
         permissionMode: request.permissionMode,
+        instructions: agentInstructions(request.role, undefined),
         locale: request.locale ?? 'pt-BR',
         workDir,
       });

@@ -1,5 +1,7 @@
+import { execFile } from 'node:child_process';
 import { request, type IncomingMessage } from 'node:http';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { type App, createApp } from '../app';
 import { loadConfig } from '../config';
@@ -198,7 +200,9 @@ describe('hiring into a real terminal', () => {
     expect(response.status).toBe(202);
     expect(windowsOpened).toBe(0);
     expect(spawned[0]?.file).toBe('/fake/bin/claude');
-    expect(spawned[0]?.args).toEqual(['--model', 'opus', '$(rm -rf /) keep this text']);
+    const args = spawned[0]?.args ?? [];
+    expect(args.slice(0, 2)).toEqual(['--model', 'opus']);
+    expect(args.at(-1)).toBe('$(rm -rf /) keep this text');
   });
 
   test("does not pass the office's own settings to the program", async () => {
@@ -238,7 +242,8 @@ describe('hiring into a real terminal', () => {
 
     // Assert
     expect(spawned[0]?.file).toBe('/fake/bin/claude');
-    expect(spawned[0]?.args).toEqual([]);
+    expect(spawned[0]?.args).not.toContain('-c');
+    expect(spawned[0]?.args).not.toContain('id');
   });
 
   test('a hire without where still opens a window, as always', async () => {
@@ -328,6 +333,137 @@ describe('using a real terminal', () => {
     expect(text).toContain(`"id":"${id}"`);
     expect(text).toContain(Buffer.from('before').toString('base64'));
     expect(text).toContain(Buffer.from('after').toString('base64'));
+  });
+});
+
+describe('connecting agents', () => {
+  async function twoTerminals(): Promise<[string, string]> {
+    await post('/api/terminals/settings', { enabled: true });
+    await hire();
+    await hire();
+    const [a, b] = app.context.terminals.list();
+    if (a === undefined || b === undefined) throw new Error('no terminals');
+    return [a.id, b.id];
+  }
+
+  test('a connection needs two terminals that exist, and can be undone', async () => {
+    // Arrange
+    await boot();
+    const [a, b] = await twoTerminals();
+
+    // Act
+    const unknown = await post('/api/terminals/links', { a, b: 'nope', connected: true });
+    const invalid = await post('/api/terminals/links', { a, b, connected: 'yes' });
+    const made = await post('/api/terminals/links', { a, b, connected: true });
+    const peers = app.context.terminals.peersOf(a);
+    const undone = await post('/api/terminals/links', { a, b, connected: false });
+
+    // Assert
+    expect(unknown.status).toBe(404);
+    expect(invalid.status).toBe(400);
+    expect(made.status).toBe(200);
+    expect(peers).toEqual([b]);
+    expect(undone.status).toBe(200);
+    expect(app.context.terminals.peersOf(a)).toEqual([]);
+  });
+
+  test('a message to an agent that is not connected is refused and reaches nobody', async () => {
+    // Arrange
+    await boot();
+    const [a] = await twoTerminals();
+
+    // Act
+    const response = await post(`/api/terminals/${a}/send`, { to: 'Anyone', text: 'hello' });
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(spawned[1]?.pty.written).toEqual([]);
+  });
+
+  test('a message needs text, within the limit', async () => {
+    // Arrange
+    await boot();
+    const [a] = await twoTerminals();
+
+    // Act
+    const empty = await post(`/api/terminals/${a}/send`, { to: 'Anyone', text: '' });
+    const tooLong = await post(`/api/terminals/${a}/send`, { to: 'Anyone', text: 'x'.repeat(8001) });
+
+    // Assert
+    expect(empty.status).toBe(400);
+    expect(tooLong.status).toBe(400);
+  });
+
+  test('connecting and messaging need the setting on and a request from this computer', async () => {
+    // Arrange
+    await boot({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_ALLOW_REMOTE: '1' });
+    const remote = { ...authed(), host: `192.168.1.20:${port}`, 'content-type': 'application/json' };
+
+    // Act
+    const link = await raw('/api/terminals/links', remote, JSON.stringify({ a: 'x', b: 'y', connected: true }));
+    const send = await raw('/api/terminals/x/send', remote, JSON.stringify({ to: 'y', text: 'z' }));
+    const peers = await raw('/api/terminals/x/peers', remote);
+
+    // Assert
+    expect([link.statusCode, send.statusCode, peers.statusCode]).toEqual([403, 403, 403]);
+  });
+
+  test('the command agents run says who is connected and why a message was refused', async () => {
+    // Arrange
+    await boot();
+    const [a] = await twoTerminals();
+    const env = { ...process.env, AI_OFFICE_PORT: String(port), AI_OFFICE_STATE_DIR: state, AI_OFFICE_TERMINAL_ID: a };
+    const bridge = fileURLToPath(new URL('../../bridge/peers.mjs', import.meta.url));
+    const run = (...args: string[]): Promise<{ stdout: string; stderr: string; code: number }> =>
+      new Promise((resolve) => {
+        execFile(process.execPath, [bridge, ...args], { env }, (error, stdout, stderr) => {
+          resolve({ stdout, stderr, code: error === null ? 0 : 1 });
+        });
+      });
+
+    // Act
+    const list = await run('list');
+    const refused = await run('send', 'Anyone', 'hello');
+    const usage = await run('nonsense');
+
+    // Assert
+    expect(list.stdout).toContain('No agents are connected to you.');
+    expect(refused.code).toBe(1);
+    expect(refused.stderr).toContain('not connected to you');
+    expect(usage.code).toBe(1);
+    expect(usage.stderr).toContain('Usage');
+  });
+
+  test('connecting is refused while the setting is off', async () => {
+    // Arrange
+    await boot();
+
+    // Act
+    const response = await post('/api/terminals/links', { a: 'x', b: 'y', connected: true });
+
+    // Assert
+    expect(response.status).toBe(409);
+  });
+
+  test('a role and the way to reach the others reach the program as instructions, with no shell', async () => {
+    // Arrange
+    await boot();
+    await post('/api/terminals/settings', { enabled: true });
+
+    // Act
+    const response = await hire({ role: { name: 'Revisor', instructions: 'Revise $(id) com cuidado' } });
+    const invalid = await hire({ role: { name: '', instructions: 'x' } });
+
+    // Assert
+    expect(response.status).toBe(202);
+    expect(invalid.status).toBe(400);
+    const args = spawned[0]?.args ?? [];
+    expect(args[0]).toBe('--append-system-prompt');
+    expect(args[1]).toContain('Your role here is Revisor.');
+    expect(args[1]).toContain('Revise $(id) com cuidado');
+    expect(args[1]).toContain('peers.mjs');
+    expect(spawned[0]?.env.AI_OFFICE_TERMINAL_ID).toBe(app.context.terminals.list()[0]?.id);
+    expect(app.context.terminals.list()[0]?.role).toBe('Revisor');
   });
 });
 

@@ -2,6 +2,7 @@
 // chooses what runs: `start` is only reached from a hire, with the `claude` executable and arguments built here on the
 // server. What the page sends afterwards is what a person types, which is why every route around this is local-only.
 import type { TerminalInfo } from '@ai-office/shared';
+import { PASTE_END, PASTE_START, cleanMessage } from './links';
 import { ByteRing } from './ring';
 
 /** Programs running at once. */
@@ -15,6 +16,7 @@ const REPLAY_BYTES = 512 * 1024;
 /** An ended terminal stays this long, so its last words can be read. */
 const ENDED_LINGER_MS = 5 * 60_000;
 const STOP_GRACE_MS = 500;
+const PASTE_SETTLE_MS = 150;
 
 export interface PtyProcess {
   readonly pid: number;
@@ -41,6 +43,8 @@ export interface TerminalSpec {
   env: NodeJS.ProcessEnv;
   cols: number;
   rows: number;
+  /** The name of the instructions it started with, to show on its title bar. */
+  role?: string;
 }
 
 export type TerminalEvent =
@@ -70,6 +74,8 @@ export interface TerminalServiceDeps {
   newId: () => string;
   /** How long programs get to stop by themselves before being forced to. */
   stopGraceMs?: number;
+  /** How long a program gets to take a pasted message before Enter is pressed. */
+  pasteSettleMs?: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -79,6 +85,7 @@ function clamp(value: number, min: number, max: number): number {
 export class TerminalService {
   private readonly terminals = new Map<string, Running>();
   private readonly listeners = new Set<TerminalListener>();
+  private readonly links = new Map<string, Set<string>>();
 
   constructor(private readonly deps: TerminalServiceDeps) {}
 
@@ -111,13 +118,26 @@ export class TerminalService {
       throw new TerminalError('too-many');
     const cols = clamp(spec.cols, MIN_COLS, MAX_COLS);
     const rows = clamp(spec.rows, MIN_ROWS, MAX_ROWS);
+    const id = this.deps.newId();
     let pty: PtyProcess;
     try {
-      pty = spawner(spec.file, spec.args, 'xterm-256color', { cwd: spec.cwd, env: spec.env, cols, rows });
+      pty = spawner(spec.file, spec.args, 'xterm-256color', {
+        cwd: spec.cwd,
+        env: { ...spec.env, AI_OFFICE_TERMINAL_ID: id },
+        cols,
+        rows,
+      });
     } catch {
       throw new TerminalError('spawn-failed');
     }
-    const info: TerminalInfo = { id: this.deps.newId(), cwd: spec.cwd, cols, rows, startedAt: this.deps.now() };
+    const info: TerminalInfo = {
+      id,
+      cwd: spec.cwd,
+      cols,
+      rows,
+      startedAt: this.deps.now(),
+      ...(spec.role !== undefined ? { role: spec.role } : {}),
+    };
     const terminal: Running = { info, pty, ring: new ByteRing(REPLAY_BYTES), seq: 0 };
     this.terminals.set(info.id, terminal);
     pty.onData((data) => this.onOutput(terminal, data));
@@ -151,6 +171,35 @@ export class TerminalService {
     return true;
   }
 
+  /** Connects two running terminals: each one's agent can now message the other. */
+  connect(a: string, b: string): boolean {
+    if (a === b || this.running(a) === undefined || this.running(b) === undefined) return false;
+    this.linkOf(a).add(b);
+    this.linkOf(b).add(a);
+    return true;
+  }
+
+  disconnect(a: string, b: string): void {
+    this.links.get(a)?.delete(b);
+    this.links.get(b)?.delete(a);
+  }
+
+  peersOf(id: string): string[] {
+    return [...(this.links.get(id) ?? [])];
+  }
+
+  /** Pastes a message into a connected terminal and presses Enter. */
+  deliver(from: string, to: string, text: string): boolean {
+    const target = this.running(to);
+    if (target === undefined || !this.links.get(from)?.has(to)) return false;
+    target.pty.write(`${PASTE_START}${cleanMessage(text)}${PASTE_END}`);
+    // A program reads a paste in pieces: an Enter arriving in the same read would count as part of it.
+    setTimeout(() => {
+      if (target.endedAt === undefined) target.pty.write('\r');
+    }, this.deps.pasteSettleMs ?? PASTE_SETTLE_MS);
+    return true;
+  }
+
   /** What a page needs to redraw the terminal: the newest output and the number of the last chunk in it. */
   replay(id: string): { seq: number; data: Buffer } | undefined {
     const terminal = this.terminals.get(id);
@@ -174,6 +223,15 @@ export class TerminalService {
     for (const terminal of running()) terminal.pty.kill('SIGKILL');
   }
 
+  private linkOf(id: string): Set<string> {
+    let peers = this.links.get(id);
+    if (peers === undefined) {
+      peers = new Set();
+      this.links.set(id, peers);
+    }
+    return peers;
+  }
+
   private running(id: string): Running | undefined {
     const terminal = this.terminals.get(id);
     return terminal?.endedAt === undefined ? terminal : undefined;
@@ -188,6 +246,7 @@ export class TerminalService {
   private onExit(terminal: Running, code: number): void {
     terminal.endedAt = this.deps.now();
     terminal.info = { ...terminal.info, exitCode: code };
+    for (const peer of this.peersOf(terminal.info.id)) this.disconnect(terminal.info.id, peer);
     this.emit({ kind: 'exit', id: terminal.info.id, code });
   }
 

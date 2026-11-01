@@ -1881,3 +1881,72 @@
 .ao-pro-dock-window .ao-pro-xterm {
   display: block;
 }
+
+/* The line between terminals the person connected, and the sentence while connecting. */
+.ao-pro-link.is-peer {
+  stroke: var(--pro-shell);
+  stroke-dasharray: 2 5;
+  opacity: 0.9;
+}
+
+.ao-pro .ao-pro-connect-hint {
+  position: absolute;
+  top: calc(var(--topbar-h) + var(--gap));
+  left: 50%;
+  z-index: 13;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--pro-shell);
+  border-radius: 2px;
+  background: var(--pro-term-bg);
+  color: var(--pro-term-fg);
+  font-family: var(--pro-mono);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.ao-pro .ao-pro-connect-hint[hidden],
+.ao-pro-connect[hidden] {
+  display: none;
+}
+
+/* Roles */
+.ao-dialog--roles {
+  width: min(560px, calc(100vw - 2 * var(--gap)));
+}
+
+.ao-roles-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+}
+
+.ao-roles-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-roles-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.ao-roles-name {
+  flex: 1 1 auto;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ao-roles-name:hover {
+  text-decoration: underline;
+}

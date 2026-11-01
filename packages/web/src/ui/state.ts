@@ -9,7 +9,7 @@ export type PopoverId = 'notifications' | 'sessions' | 'settings' | 'usage' | 'i
 /** The tabs of the "Meu dia" dialog. */
 export type DayTab = 'time' | 'report';
 export type DialogId =
-  'day' | 'help' | 'hire' | 'board' | 'rules' | 'usage' | 'share' | 'customize' | 'team' | 'achievements';
+  'day' | 'help' | 'hire' | 'roles' | 'board' | 'rules' | 'usage' | 'share' | 'customize' | 'team' | 'achievements';
 
 /** What the customization dialog edits: one agent, one room, or the order of the rooms. */
 export type CustomizeTarget = { kind: 'agent'; id: string } | { kind: 'room'; id: string } | { kind: 'layout' };

@@ -44,7 +44,7 @@ const ERROR_NOTICE_GAP_MS = 20_000;
 
 export interface OfficeOverlays {
   /** The real terminal a process runs in, if the office opened it. */
-  terminalFor?: (pid: number | undefined) => string | undefined;
+  terminalFor?: (pid: number | undefined) => { id: string; role?: string; peers: string[] } | undefined;
   permissionFor(agentId: string): PermissionRequest | undefined;
   attentionFor(agentId: string): string | undefined;
 }
@@ -325,8 +325,8 @@ export class Office {
     };
     const mainId = mainAgentId(record);
     // The agent keeps the name the office picked; `customize` puts the chosen one on top (and remembers this one).
-    const terminalId = this.deps.overlays.terminalFor?.(record.registry?.pid);
-    const mainOverlay = { ...overlayFor(mainId), ...(terminalId !== undefined ? { terminalId } : {}) };
+    const terminal = this.deps.overlays.terminalFor?.(record.registry?.pid);
+    const mainOverlay = { ...overlayFor(mainId), ...(terminal !== undefined ? { terminal } : {}) };
     out.push(buildMainAgent(record, projectId, this.pickedPerson(record, undefined), mainOverlay, now));
     if (this.announce.delete(record.key))
       this.notice(

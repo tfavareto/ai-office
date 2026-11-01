@@ -223,6 +223,10 @@ export interface Agent {
   source?: AgentSource;
   /** The real terminal the office opened for this session; absent for sessions opened anywhere else. */
   terminalId?: string;
+  /** The real terminals connected to this one: their agents can message each other. */
+  terminalPeers?: string[];
+  /** The role it was hired with. */
+  assignedRole?: string;
   /** Demo agent (not a real session). */
   demo?: boolean;
 }

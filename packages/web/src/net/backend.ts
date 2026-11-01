@@ -87,6 +87,8 @@ export interface Backend {
   terminalInput(id: string, data: string): Promise<void>;
   terminalResize(id: string, cols: number, rows: number): Promise<void>;
   terminalKill(id: string): Promise<void>;
+  /** Connects two real terminals so their agents can message each other, or disconnects them. */
+  terminalLink(a: string, b: string, connected: boolean): Promise<void>;
   /** The files of a room, for the prompt's `@` mention (local access only). */
   projectFiles(projectId: string): Promise<ProjectFiles>;
   /** Settings of the git integration that live on the server (local access only). */

@@ -159,6 +159,21 @@ export const proPtBR = {
   'pro.terminal.kill': 'Encerrar este terminal',
   'pro.terminal.killConfirm': 'Clique de novo para encerrar o programa',
   'pro.terminal.starting': 'Iniciando em {folder}',
+  'pro.terminal.connect': 'Conectar a outro terminal',
+  'pro.terminal.connectHint':
+    'Clique em outro terminal real para conectar, ou em um já conectado para desconectar. Esc cancela.',
+  'pro.palette.action.roles': 'Gerenciar papéis',
+  'hire.role': 'Papel',
+  'hire.role.none': 'Sem papel',
+  'hire.role.manage': 'Gerenciar papéis',
+  'roles.title': 'Papéis',
+  'roles.empty':
+    'Nenhum papel ainda. Um papel é um conjunto de instruções com que o agente começa, como Revisor ou Testador.',
+  'roles.name': 'Nome',
+  'roles.instructions': 'Instruções',
+  'roles.save': 'Salvar papel',
+  'roles.saved': 'Papel {name} salvo.',
+  'roles.remove': 'Remover o papel {name}',
 } as const;
 
 export type ProKey = keyof typeof proPtBR;
