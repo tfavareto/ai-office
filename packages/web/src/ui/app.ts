@@ -26,7 +26,9 @@ import { locale, onLocaleChange, t, tm } from '../i18n';
 import { describeError } from '../net/backend';
 import { buildChanged } from '../net/reducers';
 import type { Store } from '../net/store';
-import { toWorldOptions, type PrefsStore } from '../prefs/prefs';
+import { toWorldOptions, type PrefsStore, type ViewMode } from '../prefs/prefs';
+import { EMPTY_MEMORY } from '../pro/model/scene';
+import { ProView, type ProSession } from '../pro/ui/pro-view';
 import type { Selection } from '../world/api';
 import { notifyPermission, showBrowserNotification } from './browser-notify';
 import { AchievementsDialog } from './components/achievements-dialog';
@@ -53,7 +55,7 @@ import { ConnectionBanner, Splash } from './components/splash';
 import { TerminalPanel } from './components/terminal-panel';
 import { Toasts } from './components/toasts';
 import { TopBar } from './components/topbar';
-import { localOnlyHint, setReplayHint, type AppContext, type Component } from './context';
+import { localOnlyHint, setReplayHint, type AppContext, type Component, type PermissionOutcome } from './context';
 import { BoardStore } from './board-store';
 import { bindFeedDismiss } from './feed-dismiss';
 import { bindLanguage } from './language';
@@ -82,6 +84,7 @@ import { NotificationsStore, ToastStore } from './notification-stores';
 import { resolveShortcut, type ShortcutAction } from './shortcuts';
 import { SoundPlayer, type CueKind } from './sound';
 import { onCelebration } from '../world/celebration-bus';
+import { createVoice, isVoiceSupported, type VoiceHandle } from '../voice';
 import {
   NARROW_BREAKPOINT,
   UiState,
@@ -138,12 +141,17 @@ export class App implements AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+  readonly voice: VoiceHandle;
+  /** What the Pro view keeps across a language change (it rebuilds its panels). */
+  private readonly proSession: ProSession = { camera: null, memory: EMPTY_MEMORY };
+  private appliedPro: boolean | null = null;
   private seen: Seen | null = loadSeen();
   private readonly sound = new SoundPlayer();
   private readonly root: HTMLElement;
   private components: Component[] = [];
   private sidebar!: Sidebar;
   private terminal!: TerminalPanel;
+  private proView!: ProView;
   private hoverTip!: HoverTip;
   private readonly worldContainer: HTMLElement;
   private readonly scrim = h('div', { class: 'ao-scrim ao-panel-scrim' });
@@ -185,6 +193,8 @@ export class App implements AppContext {
     this.customization = new CustomizationController(() => this.store.backend);
     this.team = new TeamController(() => this.store.backend);
     this.progress = new ProgressController(() => this.store.backend);
+    // Voice talks to the AI Office server (speech model files); the offline preview has none.
+    this.voice = createVoice({ supported: () => store.mode === 'live' && isVoiceSupported() });
     // The inbox is about the live office, whatever the panels show.
     this.inbox = new InboxController({
       snapshot: () => this.liveSnapshot,
@@ -240,6 +250,7 @@ export class App implements AppContext {
     for (const component of this.components) component.dispose?.();
     this.sidebar = new Sidebar(this);
     this.terminal = new TerminalPanel(this);
+    this.proView = new ProView(this, this.proSession);
     this.hoverTip = new HoverTip(this);
     const topbar = new TopBar(this);
     const drawer = new Drawer(this);
@@ -274,6 +285,7 @@ export class App implements AppContext {
       this.sidebar,
       drawer,
       this.terminal,
+      this.proView,
       feed,
       replayBar,
       replayBadge,
@@ -288,6 +300,7 @@ export class App implements AppContext {
     for (const child of Array.from(this.root.children)) if (child !== this.worldContainer) child.remove();
     if (this.worldContainer.parentElement !== this.root) this.root.prepend(this.worldContainer);
     this.root.append(
+      this.proView.el,
       topbar.el,
       banner.el,
       this.sidebar.el,
@@ -373,6 +386,33 @@ export class App implements AppContext {
   project(id: string): Project | undefined {
     if (isTeamId(id)) return this.teamOverlay.projects.find((project) => project.id === id);
     return this.snapshot?.projects.find((project) => project.id === id);
+  }
+
+  // --- AppContext: the view -------------------------------------------------------------------------------------------
+
+  get viewMode(): ViewMode {
+    return this.replay.engaged ? 'basic' : this.prefs.get().viewMode;
+  }
+
+  setViewMode(mode: ViewMode): void {
+    if (this.prefs.get().viewMode === mode) return;
+    this.prefs.set({ viewMode: mode });
+    this.announce(t(mode === 'pro' ? 'announce.view.pro' : 'announce.view.basic'));
+  }
+
+  fitView(): void {
+    if (this.viewMode === 'pro') this.proView.fitAll();
+    else this.world.overview();
+  }
+
+  zoomView(factor: number): void {
+    if (this.viewMode === 'pro') this.proView.zoomBy(factor);
+    else this.world.zoomBy(factor);
+  }
+
+  /** Numbers about the Pro canvas for `window.aiOffice.debug()`. */
+  proDebug(): ProView['debug'] {
+    return this.proView.debug;
   }
 
   // --- AppContext: the team -------------------------------------------------------------------------------------------
@@ -658,23 +698,29 @@ export class App implements AppContext {
   }
 
   async decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean> {
+    if (!agent.permission) return false;
+    const outcome = await this.answerPermission(agent, decision);
+    if (outcome.kind === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
+    if (outcome.kind === 'failed') this.notifyLocal('warn', outcome.message, { agentId: agent.id });
+    return outcome.kind !== 'failed';
+  }
+
+  async answerPermission(agent: Agent, decision: PermissionDecision): Promise<PermissionOutcome> {
     const permission = agent.permission;
-    if (!permission) return false;
+    if (!permission) return { kind: 'already-answered' };
     try {
       const result = await this.store.backend.decidePermission(permission.id, decision);
-      if (result === 'already-answered') this.flash('info', t('toast.alreadyAnswered'));
-      else
-        this.announce(
-          decision.behavior === 'allow'
-            ? t('announce.permission.allowed')
-            : decision.behavior === 'deny'
-              ? t('announce.permission.denied')
-              : t('announce.permission.terminal'),
-        );
-      return true;
+      if (result === 'already-answered') return { kind: 'already-answered' };
+      this.announce(
+        decision.behavior === 'allow'
+          ? t('announce.permission.allowed')
+          : decision.behavior === 'deny'
+            ? t('announce.permission.denied')
+            : t('announce.permission.terminal'),
+      );
+      return { kind: 'ok' };
     } catch (error) {
-      this.notifyLocal('warn', describeError(error), { agentId: agent.id });
-      return false;
+      return { kind: 'failed', message: describeError(error) };
     }
   }
 
@@ -942,12 +988,16 @@ export class App implements AppContext {
 
   private currentInsets(): ViewInsets {
     const ui = this.ui.get();
+    const pro = this.viewMode === 'pro';
     return computeInsets({
       sidebarOpen: ui.sidebarOpen,
-      drawerOpen: ui.selection !== null,
+      // The Pro view has no drawer: a selection focuses a terminal, a room opens the canvas's own panel.
+      drawerOpen: ui.selection !== null && !pro,
       feedOpen: ui.feedOpen,
       narrow: ui.narrow,
       replay: this.replay.engaged,
+      pro,
+      commandBar: this.prefs.get().proCommandBar,
     });
   }
 
@@ -974,11 +1024,18 @@ export class App implements AppContext {
       this.world.setOptions({ hireEnabled: this.isLocal });
     }
     toggleClass(this.root, 'is-narrow', ui.narrow);
-    toggleClass(this.root, 'has-drawer', ui.selection !== null);
+    const pro = this.viewMode === 'pro';
+    toggleClass(this.root, 'has-drawer', ui.selection !== null && !pro);
     toggleClass(this.root, 'has-sidebar', ui.sidebarOpen);
     toggleClass(this.root, 'has-terminal', ui.terminal !== null);
     toggleClass(this.root, 'feed-open', ui.feedOpen);
     toggleClass(this.root, 'is-replay', this.replay.engaged);
+    toggleClass(this.root, 'is-pro', pro);
+    toggleClass(this.root, 'has-pro-command', pro && this.prefs.get().proCommandBar);
+    if (pro !== this.appliedPro) {
+      this.appliedPro = pro;
+      this.world.setPaused(pro);
+    }
     toggleClass(this.scrim, 'is-open', ui.narrow && (ui.sidebarOpen || ui.selection !== null));
 
     for (const component of this.components) component.render();
@@ -1054,7 +1111,8 @@ export class App implements AppContext {
         requestAnimationFrame(() => this.sidebar.focusSearch());
         return;
       case 'follow':
-        this.toggleFollow();
+        if (this.viewMode === 'pro') this.proView.focusOrchestrator();
+        else this.toggleFollow();
         return;
       case 'terminal':
         this.toggleTerminalShortcut();
@@ -1084,13 +1142,17 @@ export class App implements AppContext {
         this.openDialog('board');
         return;
       case 'overview':
-        this.world.overview();
+        this.fitView();
+        return;
+      case 'viewMode':
+        this.setViewMode(this.viewMode === 'pro' ? 'basic' : 'pro');
         return;
       case 'sidebar':
         this.ui.set({ sidebarOpen: !ui.sidebarOpen });
         return;
       case 'feed':
-        this.ui.set({ feedOpen: !ui.feedOpen });
+        // The Pro view has no activity feed.
+        if (this.viewMode !== 'pro') this.ui.set({ feedOpen: !ui.feedOpen });
         return;
       case 'help':
         this.openDialog('help');
@@ -1121,6 +1183,10 @@ export class App implements AppContext {
   }
 
   private messageShortcut(): void {
+    if (this.viewMode === 'pro') {
+      this.proView.toggleCommandBar();
+      return;
+    }
     const ui = this.ui.get();
     if (!ui.selection) {
       this.announce(t('announce.message.select'));
@@ -1147,11 +1213,11 @@ export class App implements AppContext {
   /** Esc closes the topmost thing: terminal search, dialog, popover, terminal, the activity feed, then the selection. */
   private escape(): void {
     const ui = this.ui.get();
-    if (this.terminal.handleEscape()) return;
+    if (this.terminal.handleEscape() || this.proView.handleEscape()) return;
     if (ui.dialog) this.closeDialog();
     else if (ui.popover) this.closePopover();
     else if (ui.terminal) this.closeTerminal();
-    else if (ui.feedOpen) this.ui.set({ feedOpen: false });
+    else if (ui.feedOpen && this.viewMode !== 'pro') this.ui.set({ feedOpen: false });
     else if (ui.selection) this.clearSelection();
     else if (this.replay.engaged) this.stopReplay();
     else if (ui.narrow && ui.sidebarOpen) this.ui.set({ sidebarOpen: false });

@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-office/shared": "0.1.0"
+    "@ai-office/shared": "0.1.0",
+    "@huggingface/transformers": "4.3.2"
   }
 }

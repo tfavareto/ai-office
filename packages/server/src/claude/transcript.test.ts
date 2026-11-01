@@ -11,7 +11,14 @@ import {
   toolUse,
   userLine,
 } from '../test-helpers';
-import { MAX_TEXT, MAX_VIEW_BYTES, PAGE_SIZE, TranscriptCache, TranscriptView } from './transcript';
+import {
+  MAX_TEXT,
+  MAX_VIEW_BYTES,
+  PAGE_SIZE,
+  TRANSCRIPT_CACHE_VIEWS,
+  TranscriptCache,
+  TranscriptView,
+} from './transcript';
 import { scanRecentSessions } from './sessions-scan';
 
 let fake: FakeClaudeDir;
@@ -200,6 +207,52 @@ describe('TranscriptView', () => {
     expect(await cache.open(b)).not.toBe(first);
     expect(await cache.open(a)).not.toBe(first);
     expect(await cache.open('/nao/existe.jsonl')).toBeUndefined();
+  });
+
+  test('TranscriptCache keeps as many views open as the Pro view polls live terminals', async () => {
+    const cache = new TranscriptCache();
+    const paths: string[] = [];
+    for (let i = 0; i < TRANSCRIPT_CACHE_VIEWS; i++)
+      paths.push(await fake.writeTranscript(`s${i}`, jsonl(userLine('x', i))));
+    const first = await cache.open(paths[0] as string);
+    for (const path of paths.slice(1)) await cache.open(path);
+    expect(await cache.open(paths[0] as string)).toBe(first);
+  });
+
+  test('concurrent updates of one view read every line exactly once', async () => {
+    // Arrange
+    const path = await fake.writeTranscript('race', jsonl(userLine('primeiro', 0)));
+    const view = new TranscriptView(path);
+    await view.update();
+    const lines = Array.from({ length: 40 }, (_, i) => userLine(`linha ${i}`, i + 1));
+
+    // Act: two pollers ask at once while the file grows.
+    await appendFile(path, jsonl(...lines.slice(0, 20)));
+    const first = view.update();
+    const second = view.update();
+    await appendFile(path, jsonl(...lines.slice(20)));
+    await Promise.all([first, second, view.update()]);
+
+    // Assert
+    const texts = view.page(0).entries.map((entry) => ('text' in entry ? entry.text : ''));
+    expect(texts).toEqual(['primeiro', ...Array.from({ length: 40 }, (_, i) => `linha ${i}`)]);
+  });
+
+  test('TranscriptCache closes the least recently used views beyond its byte cap, never the one just opened', async () => {
+    // Arrange
+    const big = 'x'.repeat(2000);
+    const a = await fake.writeTranscript('big-a', jsonl(userLine(big, 0)));
+    const b = await fake.writeTranscript('big-b', jsonl(userLine(big, 0)));
+    const cache = new TranscriptCache(12, 3000);
+
+    // Act
+    const first = await cache.open(a);
+    const second = await cache.open(b);
+
+    // Assert
+    expect(cache.size).toBe(1);
+    expect(await cache.open(b)).toBe(second);
+    expect(await cache.open(a)).not.toBe(first);
   });
 });
 

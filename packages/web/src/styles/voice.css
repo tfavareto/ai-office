@@ -1,0 +1,188 @@
+/* Voice input: the microphone control (reusable) and the "Voz" row of the settings. */
+.ao-mic {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ao-mic [hidden] {
+  display: none !important;
+}
+
+.ao-mic-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 6px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+
+.ao-mic-main:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ao-mic-main:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.ao-mic-main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ao-mic-main:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.ao-mic-icon {
+  display: inline-grid;
+  place-items: center;
+}
+
+.ao-mic[data-kind='download'] .ao-mic-main,
+.ao-mic[data-kind='error'] .ao-mic-main {
+  padding: 0 11px;
+  border-color: rgba(110, 162, 255, 0.4);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ao-mic[data-kind='download'] .ao-mic-main:hover:not(:disabled),
+.ao-mic[data-kind='error'] .ao-mic-main:hover:not(:disabled) {
+  background: rgba(79, 134, 247, 0.26);
+  color: var(--accent);
+}
+
+.ao-mic-main.is-listening {
+  border-color: rgba(239, 107, 107, 0.45);
+  background: rgba(239, 107, 107, 0.16);
+  color: #ffb4b4;
+}
+
+.ao-mic-main.is-listening:hover:not(:disabled) {
+  background: rgba(239, 107, 107, 0.26);
+  color: #ffd0d0;
+}
+
+/* Transcribing and loading: a ring instead of the microphone. */
+.ao-mic-main.is-busy .ao-mic-icon svg {
+  display: none;
+}
+
+.ao-mic-main.is-busy .ao-mic-icon::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ao-mic-spin 0.8s linear infinite;
+}
+
+.ao-mic-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ao-mic-text {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.ao-mic-text.is-error {
+  color: #ffb4b4;
+}
+
+.ao-mic-meter {
+  display: block;
+  width: 84px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--bg-hover);
+}
+
+.ao-mic-meter-fill {
+  display: block;
+  width: calc(var(--level, 0) * 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--working), var(--waiting));
+  transition: width 90ms linear;
+}
+
+.ao-mic-progress {
+  width: 110px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ao-mic-main.is-listening {
+    animation: ao-mic-pulse 1.6s ease-out infinite;
+  }
+}
+
+@keyframes ao-mic-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ao-mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgba(239, 107, 107, 0);
+  }
+}
+
+/* Settings row. */
+.ao-voice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ao-voice-row [hidden] {
+  display: none;
+}
+
+.ao-voice-status {
+  flex: 1 1 140px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ao-setting--voice > .ao-progress--wide {
+  margin: 2px 0 0;
+}
+
+.ao-setting--voice [hidden] {
+  display: none;
+}
+
+.ao-setting--voice .ao-setting-hint--warn {
+  color: #ffb4b4;
+}

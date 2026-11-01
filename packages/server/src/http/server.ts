@@ -17,6 +17,7 @@ import { registerSystemRoutes } from './handlers/system';
 import { registerTeamRoutes } from './handlers/team';
 import { registerTimelapseRoutes } from './handlers/timelapse';
 import { registerUsageRoutes } from './handlers/usage';
+import { registerVoiceRoutes } from './handlers/voice';
 import { guardRequest } from './guard';
 import { HttpError, sendError } from './respond';
 import { Router } from './router';
@@ -25,10 +26,16 @@ import { StaticServer } from './static';
 /** Sent on every response (static files and API). */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Content-Security-Policy':
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
+  // Cross-origin isolation: no other site's window keeps a handle on this page (COOP), and the page only loads what is
+  // its own or explicitly shared (COEP, CORP). It is also what lets the speech model use several CPU threads
+  // (SharedArrayBuffer is only given to isolated pages).
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+  'Cross-Origin-Resource-Policy': 'same-origin',
 };
 
 /** A request must arrive completely within these limits (they do not apply to long-lived responses such as SSE). */
@@ -64,6 +71,7 @@ export function buildRouter(app: AppContext): Router {
   registerCodexRoutes(router, app);
   registerProgressRoutes(router, app);
   registerTeamRoutes(router, app);
+  registerVoiceRoutes(router, app);
   return router;
 }
 

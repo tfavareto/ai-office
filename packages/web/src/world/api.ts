@@ -113,6 +113,8 @@ export interface WorldApi {
   /** Debug/perf info for `window.aiOffice.debug`. */
   stats(): { fps: number; drawMs: number; agents: number; extra?: Record<string, unknown> };
   resize(): void;
+  /** Stops drawing (the Pro view covers the world) or resumes. A paused world keeps its state and its camera. */
+  setPaused(paused: boolean): void;
   dispose(): void;
 }
 

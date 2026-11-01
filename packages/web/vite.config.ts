@@ -4,6 +4,10 @@ import { join } from 'node:path';
 import { defineConfig } from 'vite';
 
 const API = `http://127.0.0.1:${process.env.AI_OFFICE_PORT ?? 4848}`;
+const ISOLATION_HEADERS = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+};
 
 /** The server's access token (`<state dir>/token`), read on every request so a restart or a new token just works. */
 function readToken(): string | undefined {
@@ -22,8 +26,13 @@ function readToken(): string | undefined {
 export default defineConfig({
   base: '/',
   build: { outDir: 'dist', assetsDir: 'assets', sourcemap: true, target: 'es2022' },
+  // The speech worker (transformers.js with the WebGPU build of ONNX Runtime Web) is a module worker with its own chunks:
+  // nothing of it is in the main bundle, and its two WebAssembly runtimes (WebGPU, plain) are only fetched by it.
+  worker: { format: 'es' },
   server: {
     port: 5173,
+    // The same cross-origin isolation as the AI Office server, so the speech model gets its threads in dev too.
+    headers: ISOLATION_HEADERS,
     proxy: {
       '/api': {
         target: API,

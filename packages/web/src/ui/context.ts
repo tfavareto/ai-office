@@ -19,7 +19,7 @@ import type {
 } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
-import type { PrefsStore } from '../prefs/prefs';
+import type { PrefsStore, ViewMode } from '../prefs/prefs';
 import type { BoardStore } from './board-store';
 import type { InboxController } from './inbox-controller';
 import type { ProgressController } from './progress-controller';
@@ -34,6 +34,7 @@ import type { TeamOverlay, TeamFilter } from './model/team';
 import type { TeamController } from './team-controller';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
+import type { VoiceHandle } from '../voice';
 
 export interface Component {
   readonly el: HTMLElement;
@@ -54,6 +55,9 @@ export function localOnlyHint(): string {
   return t(replayHint ? 'hint.replay' : 'hint.localOnly');
 }
 
+/** How an answer to a permission request went: sent, answered first by someone else, or failed (with why). */
+export type PermissionOutcome = { kind: 'ok' } | { kind: 'already-answered' } | { kind: 'failed'; message: string };
+
 export interface AppContext {
   readonly store: Store;
   readonly ui: UiState;
@@ -69,6 +73,16 @@ export interface AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
+  /** Local voice input: the microphone control's engine, the speech models and the size preference. */
+  readonly voice: VoiceHandle;
+
+  /** The view on screen: the office world (`basic`) or the Pro canvas. Always `basic` while a time-lapse is on. */
+  readonly viewMode: ViewMode;
+  setViewMode(mode: ViewMode): void;
+  /** Fits the whole picture in the free area: the world's overview, or the whole canvas in the Pro view. */
+  fitView(): void;
+  /** Zooms the picture on screen (world or canvas) by `factor`. */
+  zoomView(factor: number): void;
 
   /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
   readonly snapshot: OfficeSnapshot | null;
@@ -127,6 +141,11 @@ export interface AppContext {
   cue(kind: CueKind): void;
 
   decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean>;
+  /**
+   * Answers the permission request the agent waits on, quietly: the caller shows the outcome itself (the Pro view's
+   * terminals do it in their own prompt). Same client and endpoint as `decidePermission`.
+   */
+  answerPermission(agent: Agent, decision: PermissionDecision): Promise<PermissionOutcome>;
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
   /** Opens a terminal with Claude Code for a new agent; rejects with the server's error. */
   hireAgent(request: HireRequest): Promise<PendingHire>;

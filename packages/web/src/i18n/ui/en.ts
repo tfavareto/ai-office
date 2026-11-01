@@ -1,7 +1,9 @@
+import { proEn } from './pro-en';
 import type { UiKey } from './pt-BR';
 
 // English (US) ui texts.
 export const uiEn: Readonly<Record<UiKey, string>> = {
+  ...proEn,
   // App and common
   'app.description': 'AI Office: a live office where your Claude Code sessions work like people.',
   'app.startFailed': 'Could not start AI Office.',
@@ -950,6 +952,69 @@ export const uiEn: Readonly<Record<UiKey, string>> = {
   'settings.codex.hint':
     'Follows, read-only, the open Codex CLI sessions (the ~/.codex folder or CODEX_HOME). When off, AI Office does not read that folder.',
   'settings.codex.locked': 'The server was started with AI_OFFICE_CODEX=0; restart it without that to turn this on.',
+  // Voice input (local speech-to-text)
+  'settings.voice.label': 'Voice',
+  'settings.voice.hint':
+    'Dictation that runs on this computer: audio is transcribed here, in the browser, and never leaves your machine. The model is downloaded once, only when you ask.',
+  'settings.voice.sizeLabel': 'Voice model size',
+  'settings.voice.languageLabel': 'Spoken language',
+  'voice.language.interface': 'Same as the interface',
+  'voice.language.auto': 'Detect it (less accurate)',
+  'voice.engine.detecting': 'Checking where the model can run…',
+  'voice.engine.webgpu': 'Engine: graphics card (WebGPU)',
+  'voice.engine.wasmThreads': 'Engine: processor, {threads} threads (WebAssembly)',
+  'voice.engine.wasm': 'Engine: processor, 1 thread (WebAssembly)',
+  'voice.engine.fallback':
+    'This browser does not offer 16-bit WebGPU, which the {preferred} model needs: voice uses the {name} model instead.',
+  'voice.speed.gpu':
+    'The first recording after the page opens waits for the 1.6 GB model to load on the graphics card, which can take minutes on a busy computer or one with little memory; after that, each sentence takes a few seconds.',
+  'voice.speed.cpuSmall':
+    'On the processor, a sentence takes from a few seconds to over a minute, depending on the computer and what else is running.',
+  'voice.speed.cpuLight': 'On the processor, a sentence becomes text in a few seconds.',
+  'voice.speed.oneThread': 'With a single thread, transcribing takes much longer.',
+  'voice.speed.last': 'Last transcription: {audio} s of speech in {seconds} s.',
+  'voice.size.tiny': 'Fast',
+  'voice.size.base': 'Balanced',
+  'voice.size.small': 'Accurate',
+  'voice.size.turbo': 'Best',
+  'voice.size.option': '{name} · {size}',
+  'voice.size.tiny.hint': 'The smallest and fastest; makes more mistakes on long sentences and accents.',
+  'voice.size.base.hint': 'A good balance for short sentences in Portuguese, English and Spanish.',
+  'voice.size.small.hint': 'More accurate than Balanced; runs on the processor, a little slower.',
+  'voice.size.turbo.hint':
+    'The best accuracy (Whisper large-v3-turbo), technical terms included. Runs on the graphics card (WebGPU); without one, Accurate is used instead.',
+  'voice.status.missing': 'Model not downloaded ({size})',
+  'voice.status.ready': 'Model installed on this computer',
+  'voice.status.downloading': 'Downloading… {percent}%',
+  'voice.status.unreachable': 'Could not reach the server.',
+  'voice.download': 'Download voice model',
+  'voice.download.withSize': 'Download voice model ({size})',
+  'voice.download.privacy': 'Audio is transcribed on this computer and is never sent anywhere.',
+  'voice.cancelDownload': 'Cancel download',
+  'voice.remove': 'Remove model',
+  'voice.mic.start': 'Record by voice',
+  'voice.mic.stop': 'Stop and transcribe',
+  'voice.mic.cancel': 'Cancel recording',
+  'voice.mic.listening': 'Listening… {time}',
+  'voice.mic.limit': 'Reached the {seconds} s limit. Press stop to transcribe.',
+  'voice.mic.downloading': 'Downloading the voice model… {percent}%',
+  'voice.mic.loading': 'Loading the model… {percent}%',
+  'voice.mic.transcribing': 'Transcribing…',
+  'voice.mic.empty': 'I did not hear anything. Try again.',
+  'voice.mic.meter': 'Microphone level',
+  'voice.error.unsupported':
+    'Voice is not available here: it needs a microphone, a recent browser and the AI Office server.',
+  'voice.error.disabled': 'Voice was turned off on this server (AI_OFFICE_VOICE=0).',
+  'voice.error.denied': 'The browser blocked the microphone. Allow it in the site permissions and try again.',
+  'voice.error.noDevice': 'No microphone was found.',
+  'voice.error.busy': 'The microphone is in use by another program.',
+  'voice.error.mic': 'The microphone could not be used.',
+  'voice.error.downloadNetwork': 'The model download failed. Try again: it continues where it stopped.',
+  'voice.error.downloadIntegrity': 'The downloaded file does not match what was expected and was discarded. Try again.',
+  'voice.error.downloadDisk': 'There is no disk space, or the model could not be saved.',
+  'voice.error.downloadBusy': 'Another model is already downloading. Wait for it to finish.',
+  'voice.error.load': 'The voice model could not be loaded in the browser.',
+  'voice.error.transcribe': 'The audio could not be transcribed.',
   // Time-lapse
   'replay.badge': 'REPLAY',
   'replay.pill': 'REPLAY · {date}',

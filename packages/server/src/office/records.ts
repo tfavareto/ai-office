@@ -91,12 +91,21 @@ function isRevived(lastEventAt: number, doneAt: number | undefined, now: number)
   return doneAt !== undefined && lastEventAt > doneAt + REVIVE_MARGIN_MS && now - lastEventAt < SUB_IDLE_DONE_MS;
 }
 
+/** A completion notice for this subagent whose spawn was not read, by tool use id or agent id. */
+function noticeOf(record: SessionRecord, sub: SubRecord): number | undefined {
+  const toolUseId = sub.meta?.toolUseId;
+  const byToolUse = toolUseId === undefined ? undefined : record.main.unmatchedNoticeAt(toolUseId);
+  return byToolUse ?? record.main.unmatchedNoticeAt(sub.agentId);
+}
+
 /** Decides whether a subagent finished (see the lifecycle rules in the server spec). */
 export function isSubDone(record: SessionRecord, sub: SubRecord, now: number): boolean {
   if (record.closedAt !== undefined) return true;
   const spawn = sub.meta?.toolUseId === undefined ? undefined : record.main.spawn(sub.meta.toolUseId);
   const state = sub.state;
   if (spawn?.done === true && !isRevived(state.lastEventAt, spawn.doneAt, now)) return true;
+  const noticedAt = noticeOf(record, sub);
+  if (spawn === undefined && noticedAt !== undefined && !isRevived(state.lastEventAt, noticedAt, now)) return true;
   if (state.sawAny && state.turn === 'idle' && now - state.lastEventAt > SUB_END_TURN_GRACE_MS) return true;
   const idle = now - (state.lastEventAt > 0 ? state.lastEventAt : record.openedAt);
   if (idle <= SUB_IDLE_DONE_MS) return false;

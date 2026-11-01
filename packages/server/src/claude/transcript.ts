@@ -41,6 +41,8 @@ export class TranscriptView {
   private readonly unresolved = new Set<number>();
 
   private parse: LineParser | undefined;
+  /** The update in progress: concurrent callers wait for it instead of reading the file at the same time. */
+  private updating: Promise<boolean> = Promise.resolve(true);
 
   constructor(
     readonly path: string,
@@ -49,8 +51,21 @@ export class TranscriptView {
     this.tailer = new JsonlTailer(path, { initialTailBytes: INITIAL_BYTES });
   }
 
-  /** Reads what the file gained since the last call. Returns false when the file does not exist. */
-  async update(): Promise<boolean> {
+  /**
+   * Reads what the file gained since the last call. Returns false when the file does not exist. Updates run one after
+   * the other: two requests for the same transcript at once would otherwise read the same bytes twice (or skip some),
+   * and each caller still sees everything written before its call.
+   */
+  update(): Promise<boolean> {
+    const next = this.updating.then(
+      () => this.read(),
+      () => this.read(),
+    );
+    this.updating = next;
+    return next;
+  }
+
+  private async read(): Promise<boolean> {
     const result = await this.tailer.read();
     if (result === undefined) return false;
     if (result.reset) this.clear();
@@ -180,11 +195,24 @@ export class TranscriptView {
   }
 }
 
+/** Views the cache keeps open: the Pro view polls up to ten live terminals plus the terminal panel, each one a view. */
+export const TRANSCRIPT_CACHE_VIEWS = 12;
+/** Memory all the open views may hold together; the least recently used ones are closed beyond it. */
+export const MAX_CACHE_BYTES = 48 * 1024 * 1024;
+
 /** Small LRU of open views so repeated polling only reads the new bytes. */
 export class TranscriptCache {
   private readonly views = new Map<string, TranscriptView>();
 
-  constructor(private readonly capacity = 6) {}
+  constructor(
+    private readonly capacity = TRANSCRIPT_CACHE_VIEWS,
+    private readonly maxBytes = MAX_CACHE_BYTES,
+  ) {}
+
+  /** Views open now (for tests and diagnostics). */
+  get size(): number {
+    return this.views.size;
+  }
 
   async open(path: string, source?: AgentSource): Promise<TranscriptView | undefined> {
     let view = this.views.get(path);
@@ -198,6 +226,20 @@ export class TranscriptCache {
       this.views.delete(path);
     }
     this.views.set(path, view);
-    return (await view.update()) ? view : undefined;
+    const exists = await view.update();
+    this.trim(view);
+    return exists ? view : undefined;
+  }
+
+  /** Closes the least recently used views while all of them together hold more than the byte cap (never `keep`). */
+  private trim(keep: TranscriptView): void {
+    let total = 0;
+    for (const view of this.views.values()) total += view.size;
+    for (const [path, view] of this.views) {
+      if (total <= this.maxBytes) break;
+      if (view === keep) continue;
+      total -= view.size;
+      this.views.delete(path);
+    }
   }
 }

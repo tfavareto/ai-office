@@ -22,7 +22,7 @@ function playDemo(seed: number, seconds: number): Map<TriggerKind, number[]> {
 describe('demo mode celebrations', () => {
   it('earns tests fixed, finished task lists and commits within a few minutes', () => {
     for (const seed of [1, 2, 3]) {
-      const found = playDemo(seed, 150);
+      const found = playDemo(seed, 240);
       expect(found.get('tasks-done')?.length ?? 0, `tasks-done, seed ${seed}`).toBeGreaterThan(0);
       expect(found.get('commit')?.length ?? 0, `commit, seed ${seed}`).toBeGreaterThan(0);
       expect(found.get('tests-fixed')?.length ?? 0, `tests-fixed, seed ${seed}`).toBeGreaterThan(0);

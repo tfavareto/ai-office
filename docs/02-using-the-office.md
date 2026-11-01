@@ -1,6 +1,6 @@
 # Using the office
 
-This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
+This guide tours the screen: the top bar, the sidebar, the office itself, the details drawer, the **Pro view**, the inbox, notifications, **My day**, the terminal panel, settings, the interface language, the statuses legend, keyboard shortcuts and the 2D and 3D views.
 
 The interface comes in English, Portuguese (Brazil) and Spanish; this guide quotes the English labels. You can change the language at any time in **Settings → General → Language** (see [Language](#language)). Some features act on your sessions (permission answers, messages, terminal, session history, demo switch); they only work when the page is opened on the same computer as the server (`localhost` or `127.0.0.1`). Otherwise they show "Only available when AI Office is opened on this computer (localhost)."
 
@@ -322,6 +322,16 @@ Everything that talks back does not, because Codex has no hooks: the **Message**
 
 Turn Codex off in **Settings → Data and integrations → Show Codex sessions**; off, AI Office does not read the Codex folder.
 
+## Voice input
+
+Wherever the office offers a microphone button, you can dictate instead of typing. It works in three steps and the audio never leaves your computer.
+
+1. **Download the model, once.** Until it is installed the control reads **Download voice model (1.6 GB)** for the default, most accurate model (also in **Settings → Data and integrations → Voice**, where you can choose a lighter one). Nothing is downloaded before you press it. The AI Office server fetches the model from Hugging Face, checks every file against a pinned hash, and keeps it in `~/.ai-office/models/`. A cut download continues where it stopped.
+2. **Record.** Press the microphone (the browser asks for permission the first time). A red stop button, a timer and a level meter show that it is listening; a take stops recording by itself after 1 minute (press stop to transcribe it). Press **Esc** or the **x** to throw the take away.
+3. **Review.** A moment later (a few seconds; the first take after the page opens waits for the model to load) the text appears in the field. Nothing is sent to an agent until you do it yourself.
+
+It listens for the language of the interface (Portuguese, English or Spanish), the most accurate setting; **Spoken language → Detect it** in Settings lets Whisper guess instead. The default model, **Best** (Whisper large-v3-turbo), runs on the graphics card through WebGPU; a browser without WebGPU uses **Accurate** in its place, and Settings shows which engine is in use. If the browser blocks the microphone, the control says so; allow it in the site permissions and press the button again. **Remove model** in Settings deletes the download.
+
 ## Team mode
 
 **Settings → Team → Team mode → Open…** puts several computers in one office over your local network. It is off until you use it, read-only between machines, and shares only what you choose (see [privacy and security](05-privacy-and-security.md#team-mode)).
@@ -331,6 +341,32 @@ Turn Codex off in **Settings → Data and integrations → Show Codex sessions**
 - **What I share.** Always your agents' names, statuses and the kind of activity, with rooms numbered "Project 1, 2…". Switches add, each off by default: project names, what each agent does in words, session titles, git branches, tokens and cost. **Pause sharing** shows nobody without leaving. **Leave the team** (asks twice) tells the host and deletes this computer's keys.
 - **In the office.** Teammates appear in extra rooms grouped by member ("Ana · Project 1"), tinted with the member's color, in 2D and 3D. The sidebar gets a strip with the team's state, who is online, and a **All / Mine / Team** filter; the account chips include one per member. Click a teammate's agent or room to see who and what kind of work; the drawer is read-only (no messages, terminal, permissions or hiring) and says so. The topbar counters, the inbox and notifications are about *your* agents only.
 - **Members also see the host's merged view**: everybody except themselves.
+
+## Pro view
+
+The **Basic | Pro** switch in the top bar (or `V`) changes how the same sessions are shown. **Basic** is the office. **Pro** is a raw, code-first canvas for orchestration: every open session of every room is a terminal window, an orchestrator (a main agent) is a large terminal, its subagents are smaller terminals in rows right below it, and thin square lines join them, like an org chart. It looks like a plain terminal: black (or white) background, one monospace font, 1px grey borders, no colored areas; color only says status (green working, amber waiting, red error). The top bar and the sidebar stay; the activity feed and the office drawer are not used here. Your choice is remembered. It is only a view of the Claude Code sessions already running on this computer: it does not run models or start agents.
+
+- **Reading the canvas.** Each room is its name in plain text above its orchestrators, with how many sessions there are and how many work or wait; several orchestrators of a room sit side by side, each with its own subagents below. Subagents fill a row of three under their orchestrator (the middle first) and start a new row when it is full; terminals already on the canvas never move when another one arrives or leaves. A line goes down from an orchestrator to each subagent: its dashes move while the subagent works, it turns amber when the subagent needs you, and it fades when the subagent is done. A finished subagent stays on the canvas, faded, for up to five minutes (and at most four per orchestrator), then folds into **[✓ N finished subagents]** on the orchestrator's status line; click it for the list and open any of them as a full terminal.
+- **A terminal window.** It looks and reads like the Claude Code CLI, at every zoom: your prompts as `> …`, the answers after `⏺`, tool calls as `⏺ Bash(npm test)` or `⏺ Read(src/app.ts)` with the result indented under `⎿` (long results end in **… +N lines**: click to expand), `✻ Thinking…` in dim text (click to read it), errors in red. When the agent waits for a permission, an amber box under the conversation says what it asks with **[ Allow ]**, **[ Always allow ]** (only when Claude Code suggested a rule and the request is not risky, as in the inbox) and **[ Deny ]**: click one (or reach it with `Tab` and press `Enter`) and the answer goes out the same way as from the inbox. The box says when it is sending, when the answer was sent, when someone answered first (in the inbox or in the session's terminal) and why it failed, if it did; a request answered elsewhere disappears from the box by itself. A question is answered in the session's own terminal; you can still answer permissions in the inbox (`I`) too. The bottom line is the status, like the CLI's: `✻ working · 3:12`, `◆ waiting for you`, `✓ done`. The title bar is one line of text: the name, the role, the account as `[P]` (or `[codex]`), the model and how long the session has been open, plus **maximize** and **copy the session id**.
+- **Live, in real time.** The terminals you can read update about once a second at most behind the transcript (sooner when the office sees the agent do something), and they stick to the end unless you scroll up (then **Jump to the end** appears). Terminals off the screen, too small to read or beyond the ten live ones keep showing text: the last lines they read plus what the office saw the agent do since. Zoom in to read more.
+- **Click, double click.** A click selects a terminal (the sidebar follows; nothing else opens). A double click, `Enter` or the maximize button shows it as a full terminal over the canvas (`Esc` or the same button restores it). Selecting an agent in the sidebar brings its terminal into view.
+- **Room panel.** Click a room's name, or the room in the sidebar, to open the room's orchestration panel on the right: its orchestrators (pick one when there are several), the chosen one's status, how long the session and the current turn have been running, the model, the branch and changes, tokens and cost, and its subagents (running ones with their type, task and time, then the finished ones); click one to bring its terminal into view. A prompt at the bottom sends a task to that orchestrator, typed or by voice. `Esc` or **×** closes it.
+- **Moving around.** Drag the empty canvas, or hold `Space` and drag anywhere; two-finger scrolling on a trackpad pans; the mouse wheel, a pinch or `Ctrl/Cmd` + wheel zoom toward the pointer; `+` `-` zoom and `0` (or `O`) fits everything. Until you move the camera yourself, the view keeps fitting everything as new subagents and sessions appear; after you pan, zoom or focus something it stays where you put it until you fit all again. The toolbar at the top left has **Fit all**, **Focus the selected orchestrator** (`F`), zoom buttons (the percentage goes back to 100%), the **theme** (dark or light canvas), **Undo the positions you dragged** and the **command bar** switch. Drag an orchestrator's title bar to move its whole cluster (hold `Shift` to move only that terminal) and a subagent's title bar to move that terminal; positions are remembered in this browser. With a terminal focused (`Tab`), the arrow keys move to the nearest terminal in that direction.
+- **Send a task.** The room panel's prompt, or the optional command bar at the bottom (hidden until you turn it on with the toolbar switch or `N`; your choice is remembered), sends a typed task to an orchestrator; the command bar can also send to **the team of a room** and starts on the agent you selected (a subagent counts as its orchestrator). Send with **Send** or `Cmd/Ctrl+Enter`. It uses the same message feature as the drawer (the [plugin](03-plugin.md#messages-to-agents) and this computer are required), and it says what will happen: a working agent gets the order after its next tool call; an agent that just finished is on stand-by for up to ten minutes and takes it at once as a new instruction; an agent idle for longer keeps it queued until it works again (type in its terminal to wake it); an agent waiting for you takes it after it works again. Codex agents and ended sessions cannot receive orders and the prompt says why. After sending, it shows the status of that order.
+- **Messages.** Notices (a copied session id, an error) appear as one short line at the bottom left of the canvas, away from the terminals; "needs you" alerts stay in the bell and the inbox, because the terminals already show them.
+- **Voice.** When this build includes the local voice input, the microphone button prepares it (it downloads a speech model once, on your request), records and, when you stop, puts the transcript in the box it was recorded for. You read and edit it, then send it yourself: dictation is never sent automatically. Without it the button is disabled with an explanation.
+- **Demo mode** shows several orchestrators delegating to teams of subagents at once, some of them waiting on a permission, so the canvas moves.
+
+| Key (Pro view) | Action |
+| --- | --- |
+| `V` | Switch between Basic and Pro. |
+| `0` / `O` | Fit all. |
+| `+` / `-` | Zoom in and out. |
+| `F` | Focus the selected orchestrator. |
+| `N` | Show or hide the command bar (showing it puts the cursor in it). |
+| `Space` + drag | Pan. |
+| Arrows (terminal focused) | Move to the nearest terminal; `Enter` maximizes it. |
+| `Esc` | Restores a maximized terminal, then closes the room panel (before the other things it closes). |
 
 ## Terminal panel
 
@@ -366,6 +402,7 @@ The rows are organized in groups. Click a group's title (or focus it and press `
 | **Office evolution** | Decoration, achievements toasts and the level counter (on by default). Off shows the plain office and announces nothing. |
 | **Show the project in Employee of the month** | Add the project name next to the agent name in the achievements dialog (off by default). |
 | **Show Codex sessions** | Follow the open Codex CLI sessions, read-only. On by default when a Codex home exists (the row only shows then). Stored on the server: off, the Codex folder is not read. Needs a local page. See [Codex agents](#codex-agents). |
+| **Voice** | Dictation that runs on this computer. Pick the model (**Best** 1.6 GB, the default, on the graphics card; **Accurate** 252 MB, **Balanced** 80 MB, **Fast** 44 MB on the processor), then **Download voice model** (once; nothing downloads by itself), and **Remove model** to delete it. The row shows the engine in use and how fast the last take was; **Spoken language** chooses between the interface's language and detection. See [Voice input](#voice-input). |
 | **Show Git status** | Show or hide the branch, changes and pull request of each room (sidebar, drawer, plaques in the office). On by default. |
 | **Look up pull requests with gh (uses the internet)** | Ask your own `gh` CLI for the pull request and CI of each room's branch, every two minutes. **Off by default**; the only feature that contacts GitHub. Needs a local page. Stored on the server, not in the browser. |
 | **Team mode** | **Open…** the [team mode](#team-mode) dialog (the state next to it: off, hosting or in a team). Needs a local page. |
@@ -432,7 +469,7 @@ Plain keys are ignored while you type in a field.
 | `/` | Search agent, project or account. |
 | `F` | Follow the selected agent. |
 | `T` | Open or close the selected agent's terminal. |
-| `N` | Send a message to the agent, or to the room's team. |
+| `N` | Send a message to the agent, or to the room's team (in the Pro view: show or hide the command bar). |
 | `P` | Go to the next permission request. |
 | `I` | Open or close the [inbox](#the-inbox-what-needs-you). While it is open: `J` `K` move, `Space` selects, `A` approves, `Shift+A` approves and remembers, `D` denies, `Enter` opens the agent, `E` marks seen. |
 | `R` | Open the **day report** (the Report tab of **My day**). |
@@ -442,9 +479,10 @@ Plain keys are ignored while you type in a field.
 | `K` | Open or close the [task board](#the-task-board). |
 | `H` | Hire an agent (in the selected room, if any). |
 | `L` | Watch the day as a [time-lapse](#watch-the-day-time-lapse), or go back to live. In it: `Space` plays or pauses, `←` `→` skip a minute (`Shift`: ten), `PgUp` `PgDn` previous or next mark. |
-| `O` | Overview of the whole office. |
+| `O` | Overview of the whole office (the whole canvas in the Pro view). |
+| `V` | Switch between the Basic and the [Pro view](#pro-view). |
 | `[` | Show or hide the sidebar. |
-| `]` | Expand or collapse the activity feed. |
+| `]` | Expand or collapse the activity feed (the Pro view has none). |
 | `?` | Open help. |
 | `Cmd+Enter` / `Ctrl+Enter` | Send the message you are writing. |
 | `Cmd+F` / `Ctrl+F` | Search inside the terminal (only while it is open). |

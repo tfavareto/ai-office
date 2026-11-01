@@ -88,6 +88,8 @@ export class TranscriptState {
   private readonly history: Activity[] = [];
   private readonly pending = new Map<string, PendingTool>();
   private readonly spawnMap = new Map<string, SpawnInfo>();
+  /** Completion notices whose spawn was not read (the transcript was tailed after a restart), by task id. */
+  private readonly unmatchedNotices = new Map<string, number>();
   private readonly jobs = new Map<string, ShellJob>();
   private readonly taskAliases = new Map<string, string>();
   private readonly resultIds = new Set<string>();
@@ -133,6 +135,11 @@ export class TranscriptState {
 
   spawn(toolUseId: string): SpawnInfo | undefined {
     return this.spawnMap.get(toolUseId);
+  }
+
+  /** When a completion notice was seen for a task whose spawn was not read. */
+  unmatchedNoticeAt(id: string): number | undefined {
+    return this.unmatchedNotices.get(id);
   }
 
   /** True when the tool call finished (a result or notification was seen), even if the tool_use was not read. */
@@ -374,6 +381,7 @@ export class TranscriptState {
       const spawn =
         this.spawnMap.get(resolved) ?? [...this.spawnMap.values()].find((candidate) => candidate.agentId === id);
       if (spawn !== undefined) this.spawnMap.set(spawn.toolUseId, { ...spawn, done: true, doneAt: at });
+      else this.unmatchedNotices.set(resolved, at);
     }
   }
 

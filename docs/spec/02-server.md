@@ -5,7 +5,8 @@ AI_OFFICE_PORT (4848), AI_OFFICE_HOST (127.0.0.1), AI_OFFICE_CLAUDE_DIRS (comma-
 every `~/.claude*` directory containing `projects/`, plus CLAUDE_CONFIG_DIR), AI_OFFICE_STATE_DIR (~/.ai-office),
 AI_OFFICE_DEMO=1 (start with demo on), AI_OFFICE_ALLOW_REMOTE=1 (accept a non-loopback AI_OFFICE_HOST; refused
 otherwise), AI_OFFICE_CODEX_DIRS (comma-separated extra Codex homes, read besides `CODEX_HOME` / `~/.codex`),
-AI_OFFICE_CODEX=0 (never read Codex sessions, whatever Settings says). CLI flags may mirror these (`--port`, `--demo`,
+AI_OFFICE_CODEX=0 (never read Codex sessions, whatever Settings says), AI_OFFICE_VOICE=0 (never download a speech model
+for voice input). CLI flags may mirror these (`--port`, `--demo`,
 `--allow-remote`, `--codex-dirs`). The state dir also holds `token`
 (random 32 bytes hex, mode 0600) that every `/api/*` route but `GET /api/health` requires (see 01-architecture Security).
 
@@ -88,7 +89,8 @@ Full spec: [08-team-mode.md](08-team-mode.md). Summary:
 - One **main agent** per open session (sessionId + account). It enters when the session opens and leaves (`offline`)
   when the session closes (registry file gone or pid not alive) or after 30 min without events and not in registry.
 - One **sub agent** per subagent transcript with events in the current session; status `done` when its spawning
-  tool_use got its tool_result (or 2 min idle after the parent finished); it leaves a few seconds after done.
+  tool_use got its tool_result, when a completion notice names it even if the spawn was not read (a server restart
+  tails the transcript), or after 2 min idle once the parent finished; it leaves a few seconds after done.
 - Stable names: pick from ~120 Brazilian first names by hashing (account, session[, agentId]); avoid duplicates among
   agents currently present; look (f/m) comes with the name. Persist choices in `<stateDir>/names.json`.
 - Role: main is "Principal"; sub is meta.agentType (fallback "Subagente"). Title: registry `name`, else
@@ -303,6 +305,45 @@ What the person changed about the office, kept by `CustomizationStore` (`package
 - **Snapshot.** `applyCustomization` (shared, pure) runs on every computed office state: an agent with a chosen name shows it as `name` and keeps the picked one as `defaultName`; its resolved look (agent, then room, then account, field by field; a subagent takes the room and account of its main agent) is `appearance`; a room with an alias shows it as `name` and keeps the folder's as `originalName`, carries `theme`, and `pinned`, `hidden` and `rank` (its position in `order`). A change recomputes the office, so every page gets it in the next snapshot. The page does the arranging (see [04-ui.md](04-ui.md#customization)).
 - **Names.** `NameStore` keeps the names the office picks in `names.json` as before and shows the chosen one through `display(key, person)`; feed items, notices and the day report use it too. The picked name never changes, so resetting brings it back.
 - **Demo.** The simulator puts a customization of its own on its first three rooms and agents (aliases, finishes, two names, accessories); a person's choices go on top of it.
+
+## Voice models (`/api/voice`, `packages/server/src/voice/`)
+Voice input transcribes speech in the browser with a Whisper model; the server only fetches that model once, on request,
+and serves it back to the page. It never receives audio. User-facing summary and the file lists:
+[05-privacy-and-security.md](../05-privacy-and-security.md#voice-input).
+- **Models.** `manifest.ts` pins four, each at a full commit hash with seven files (`config.json`,
+  `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`, `tokenizer_config.json` and two ONNX files) of
+  exact size and SHA-256: `tiny` 44 MB, `base` 80 MB and `small` 252 MB from `Xenova/whisper-<size>` (8-bit quantized
+  encoder and merged decoder, for WebAssembly), and `turbo` 1.6 GB from `onnx-community/whisper-large-v3-turbo`
+  (`encoder_model_fp16.onnx` and `decoder_model_merged_q4.onnx`, for WebGPU). Ids (`voiceModelId`): `whisper-tiny`,
+  `whisper-base`, `whisper-small`, `whisper-large-v3-turbo`. Weights: OpenAI Whisper, MIT; the Xenova cards say
+  Apache-2.0, the large-v3-turbo card names its MIT base model.
+- **Source policy** (`source.ts`). URLs are built from the pin only; every request, redirects included, must be HTTPS on
+  `huggingface.co` or `hf.co` (or a subdomain), without credentials or a port. Redirects are followed by hand, at most 5.
+- **Download** (`download-file.ts`, `model-store.ts`). Only after `POST /api/voice/download { size }`, never at startup.
+  One model at a time (a second answers 409 `voice-busy`; the same one again joins the running job). Per file: resume a
+  `.part` file with `Range`, restart if the server ignores the range, refuse a `Content-Length`/stream that does not match
+  the pinned size (`size`), time out a connection that takes over 30 s to answer or goes quiet for 30 s (`timeout`),
+  hash the file (SHA-256) before renaming it into place and delete it on a mismatch (`integrity`), refuse to start without
+  free disk for the model plus 10 % (`disk`), give up on a model after an hour, or after the time it needs at 300 kB/s
+  when that is longer (`downloadDeadlineMs`; `timeout`). Anything at a `.part` path that is not a plain file (a symbolic
+  link, a folder) is removed before writing. `remove()` blocks `start()` of the same model (answers `busy`) until the
+  folder is gone; a second `remove()` joins the first. Cut transfers keep their `.part`
+  so the next try continues; a leftover of another pinned revision is wiped. Folders 0700, files 0600, `model.json`
+  (marker with the revision and every hash) is written last: a model is `ready` only when it matches the pin and every
+  file has the pinned size.
+- **Routes** (all local-only, token-protected, `Sec-Fetch-Site`/origin guarded): `GET /api/voice/status` →
+  `{ enabled, models: [{ size, id, bytes, state: missing|downloading|ready|error, downloadedBytes, error? }] }` (the page
+  polls it while a download runs); `POST /api/voice/download { size }` → 202 with the status (409 `voice-disabled` with
+  `AI_OFFICE_VOICE=0`, 400 `invalid-size`); `DELETE /api/voice/model/:id` → stops the job and deletes the folder, answers
+  the status (404 for an unknown id); `GET|HEAD /api/voice/model/:id/<path>` and `/api/voice/model/:id/onnx/<file>` →
+  the bytes of a file of a `ready` model, with single `Range` support (`bytes=0-0` is how transformers.js learns a size)
+  and `Cache-Control: no-store`, streamed with `pipeline` (`http/file-stream.ts`) so the file is closed when the page
+  disconnects halfway. Only the exact paths of the pin exist; anything else, `..` or `%2e` included, is 404.
+- **State dir**: `models/<model id>/` (see 05-privacy-and-security).
+- **Tests**: `download-file.test.ts`, `model-store.test.ts` and `http/voice-route.test.ts` use a fake hub (a local HTTP
+  server, `voice/testkit.ts`); no test reaches the network. `http/file-stream.test.ts` checks the file closes when the
+  reader goes away. `manifest.test.ts` checks the pin and that the docs list the
+  same hashes.
 
 ## Day recorder
 Every 5 s add time per status per present agent into `<stateDir>/days/YYYY-MM-DD.json` (flush every 30 s).

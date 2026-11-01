@@ -55,32 +55,31 @@ describe('demoTimelapse', () => {
   });
 
   test('is consistent: ordered, in range, every index valid, everybody arrives before anything else and subagents have a parent', () => {
+    // Thousands of events per day: the problems are collected and asserted once (one expect per event is slow).
+    const problems: string[] = [];
     for (const date of reportDates(NOW)) {
       const tl = day(date);
       const arrived = new Set<number>();
       let previous = -Infinity;
       for (const event of tl.events) {
-        expect(event.at, date).toBeGreaterThanOrEqual(previous);
+        if (event.at < previous) problems.push(`${date} ${event.type}: out of order`);
         previous = event.at;
-        expect(event.at).toBeGreaterThanOrEqual(tl.start);
-        expect(event.at).toBeLessThanOrEqual(NOW);
+        if (event.at < tl.start || event.at > NOW) problems.push(`${date} ${event.type}: out of range`);
         if (event.type === 'commit') {
-          expect(tl.projects[event.project]).toBeDefined();
+          if (tl.projects[event.project] === undefined) problems.push(`${date} commit: unknown project`);
           continue;
         }
-        expect(tl.agents[event.agent], `${date} ${event.type}`).toBeDefined();
+        if (tl.agents[event.agent] === undefined) problems.push(`${date} ${event.type}: unknown agent`);
         if (event.type === 'arrive') arrived.add(event.agent);
-        else if (event.type !== 'test')
-          expect(arrived.has(event.agent), `${date} ${event.type} before arriving`).toBe(true);
+        else if (event.type !== 'test' && !arrived.has(event.agent))
+          problems.push(`${date} ${event.type} before arriving`);
       }
       for (const agent of tl.agents)
-        if (agent.kind === 'sub')
-          expect(
-            tl.agents.some((candidate) => candidate.id === agent.parentId),
-            agent.id,
-          ).toBe(true);
+        if (agent.kind === 'sub' && !tl.agents.some((candidate) => candidate.id === agent.parentId))
+          problems.push(`${date} ${agent.id}: no parent`);
       if (tl.events.length > 0) expect([tl.from, tl.to]).toEqual([tl.events[0]?.at, expect.any(Number)]);
     }
+    expect(problems).toEqual([]);
   });
 
   test('today never goes past now, and the people of the live office are among the people of the day', () => {

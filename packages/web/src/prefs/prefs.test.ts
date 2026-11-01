@@ -62,6 +62,19 @@ describe('parsePrefs', () => {
     expect(parsePrefs({ settingsOpen: 'data' }).settingsOpen).toEqual(['general']);
   });
 
+  it('opens in the basic view with a dark canvas, and validates the view settings', () => {
+    expect(DEFAULT_PREFS.viewMode).toBe('basic');
+    expect(DEFAULT_PREFS.proTheme).toBe('dark');
+    expect(parsePrefs({ viewMode: 'pro', proTheme: 'light' })).toMatchObject({ viewMode: 'pro', proTheme: 'light' });
+    expect(parsePrefs({ viewMode: 'wide', proTheme: 3 })).toMatchObject({ viewMode: 'basic', proTheme: 'dark' });
+  });
+
+  it('hides the Pro command bar by default and validates the switch', () => {
+    expect(DEFAULT_PREFS.proCommandBar).toBe(false);
+    expect(parsePrefs({ proCommandBar: true }).proCommandBar).toBe(true);
+    expect(parsePrefs({ proCommandBar: 'yes' }).proCommandBar).toBe(false);
+  });
+
   it('survives broken JSON', () => {
     expect(parsePrefsJson('{oops')).toEqual(DEFAULT_PREFS);
     expect(parsePrefsJson(null)).toEqual(DEFAULT_PREFS);
@@ -73,6 +86,12 @@ describe('storage', () => {
     const storage = memoryStorage();
     expect(savePrefs({ ...DEFAULT_PREFS, visual: '3d' }, storage)).toBe(true);
     expect(loadPrefs(storage).visual).toBe('3d');
+  });
+
+  it('remembers the view mode between visits', () => {
+    const storage = memoryStorage();
+    new PrefsStore(DEFAULT_PREFS, storage).set({ viewMode: 'pro', proTheme: 'light', proCommandBar: true });
+    expect(loadPrefs(storage)).toMatchObject({ viewMode: 'pro', proTheme: 'light', proCommandBar: true });
   });
 
   it('works without storage or when it throws', () => {
