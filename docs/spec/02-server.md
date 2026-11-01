@@ -289,6 +289,7 @@ progress (merge, rebase, cherry-pick, revert, bisect) and, when enabled, the pul
   failure > pending > success (`none` without checks). "No pull request for this branch" is not an error. A missing `gh` or one that is not
   signed in (`gh` status `missing` / `unauthenticated`) stops lookups for 10 minutes; turning the setting off hides pull requests at once.
   This is the only code in AI Office that contacts GitHub, and only through that CLI.
+- **Project files** (`GET /api/projects/files?project=<room id>` → `{ files, truncated }`, local-only, at most 60 per minute): names from `git ls-files -z --cached --others --exclude-standard`, at most 5000, for the Pro view's `@` mention. The id must be a room of the office (404 otherwise), so the page can never point git at a folder of its choice; a folder that is not a repository has no files; the demo answers invented paths.
 - **Settings** (`GET /api/git/settings` → `{ pullRequests, gh }`, `POST { pullRequests: boolean }` → the same; 400 `invalid-pullRequests`):
   local-only, token-protected, `Sec-Fetch-Site` guarded. Stored in `<stateDir>/git-settings.json` `{ "version": 1, "pullRequests": false }`
   (mode 0600, atomic). `OfficeMeta.gitPullRequests` mirrors it in the snapshot. The demo simulator follows it for its fake pull requests.

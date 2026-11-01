@@ -383,6 +383,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    runGit,
     team,
     voice,
     git,

@@ -10,6 +10,7 @@ import type {
   CodexSettings,
   GitSettings,
   HireCheckResponse,
+  ProjectFiles,
   HireRequest,
   PendingHire,
   PermissionDecision,
@@ -79,6 +80,8 @@ export interface Backend {
   /** Tells the server the person did something only the page can see, for the first time (local access only). */
   progressEvent(event: ProgressEventName): Promise<void>;
   setDemo(on: boolean): Promise<boolean>;
+  /** The files of a room, for the prompt's `@` mention (local access only). */
+  projectFiles(projectId: string): Promise<ProjectFiles>;
   /** Settings of the git integration that live on the server (local access only). */
   gitSettings(): Promise<GitSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */

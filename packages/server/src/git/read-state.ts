@@ -9,7 +9,7 @@ import { GIT_TIMEOUT_MS, type Runner } from './run';
  * Prefix of every command. `core.fsmonitor=false` keeps a repository's configuration from starting a program on our
  * behalf; the diff flags keep external diff tools and text conversion filters out.
  */
-const BASE_ARGS = ['--no-pager', '--no-optional-locks', '-c', 'core.fsmonitor=false'] as const;
+export const BASE_ARGS = ['--no-pager', '--no-optional-locks', '-c', 'core.fsmonitor=false'] as const;
 const DIFF_ARGS = ['diff', '--shortstat', '--no-ext-diff', '--no-textconv'] as const;
 
 /** Files (or folders) inside the git directory that tell an operation is in progress, in order of precedence. */

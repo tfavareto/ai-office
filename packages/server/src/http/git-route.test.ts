@@ -45,6 +45,7 @@ const runGit: Runner = (_file, args, options) => {
   gitFolders.add(options.cwd);
   const sub = args.find((arg) => ['status', 'diff', 'log', 'stash'].includes(arg)) ?? '';
   gitCalls.push(sub);
+  if (args.includes('ls-files')) return Promise.resolve('src/b.ts\0src/a.ts\0');
   if (args.includes('config')) return Promise.resolve('me@example.com\n');
   if (args.includes('--all'))
     return Promise.resolve(`a1b2c3d\t${Math.floor((T0 + 30_000) / 1000)}\tfeat: from the day log\n`);
@@ -185,6 +186,61 @@ describe('the day report', () => {
         source: 'git',
       },
     ]);
+  });
+});
+
+describe('/api/projects/files', () => {
+  const list = (id: string, headers: Record<string, string> = authed()): Promise<Response> =>
+    fetch(`${base()}/api/projects/files?project=${encodeURIComponent(id)}`, { headers });
+
+  test('needs the access token', async () => {
+    // Arrange
+    await boot();
+
+    // Act
+    const response = await list(project, {});
+
+    // Assert
+    expect(response.status).toBe(401);
+  });
+
+  test('refuses a folder that is not a room of the office, without starting git', async () => {
+    // Arrange
+    await boot();
+    await settle();
+    gitFolders.clear();
+
+    // Act
+    const response = await list('/etc');
+
+    // Assert
+    expect(response.status).toBe(404);
+    expect(gitFolders.has('/etc')).toBe(false);
+  });
+
+  test('needs a project', async () => {
+    // Arrange
+    await boot();
+
+    // Act
+    const response = await fetch(`${base()}/api/projects/files`, { headers: authed() });
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  test('lists the files of a room from git', async () => {
+    // Arrange
+    await boot();
+    await settle();
+
+    // Act
+    const response = await list(project);
+
+    // Assert
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { files: string[]; truncated: boolean };
+    expect(body).toEqual({ files: ['src/a.ts', 'src/b.ts'], truncated: false });
   });
 });
 
