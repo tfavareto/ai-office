@@ -114,6 +114,8 @@ export const API = {
    * POST /preview RuleInput → RulePreview. A refused rule answers 400 RuleErrorBody.
    */
   rules: '/api/rules',
+  /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
+  projectFiles: '/api/projects/files',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
   hire: '/api/agents/hire',
   /** GET ?path=<absolute folder> → HireCheckResponse: whether a folder can host a new agent. Local access only. */
@@ -242,6 +244,13 @@ export interface HireRequest {
 }
 
 /** 202 body: the hire is registered; the session shows up in the office when Claude Code starts. */
+/** The files of a project, for the prompt's `@` mention. */
+export interface ProjectFiles {
+  files: string[];
+  /** The project has more than the server sends. */
+  truncated: boolean;
+}
+
 export interface HireResponse {
   hire: PendingHire;
 }

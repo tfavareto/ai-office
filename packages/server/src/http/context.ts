@@ -1,4 +1,5 @@
 // Everything the HTTP handlers need, assembled by the app.
+import type { Runner } from '../git/run';
 import type { Engine } from '../claude/engine';
 import type { CodexEngine } from '../codex/engine';
 import type { CodexSettingsStore } from '../codex/settings-store';
@@ -49,6 +50,8 @@ export interface AppContext {
   team: TeamService;
   voice: VoiceModelStore;
   git: GitWatcher;
+  /** Starts `git` on the user's repositories, under the same cap as the watcher. */
+  runGit: Runner;
   gitSettings: GitSettingsStore;
   day: DayRecorder;
   usage: UsageIndexer;

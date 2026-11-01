@@ -18,7 +18,9 @@ import {
   type DemoSimulator,
   type CodexSettings,
   type GitSettings,
+  DEMO_PROJECT_FILES,
   type HireCheckResponse,
+  type ProjectFiles,
   type HireRequest,
   type OfficeSnapshot,
   type PermissionDecision,
@@ -261,6 +263,10 @@ class MockBackend implements Backend {
 
   async setDemo(on: boolean): Promise<boolean> {
     return on;
+  }
+
+  async projectFiles(): Promise<ProjectFiles> {
+    return { files: [...DEMO_PROJECT_FILES], truncated: false };
   }
 
   async gitSettings(): Promise<GitSettings> {
