@@ -12,6 +12,7 @@ import {
   type DayStats,
   type FeedItem,
   type HireCheckResponse,
+  type ProjectFiles,
   type Notice,
   type OfficeSnapshot,
   type PendingHire,
@@ -178,6 +179,14 @@ export function parseHire(data: unknown): PendingHire {
 }
 
 const CHECK_REASONS = new Set(['not-absolute', 'not-found', 'not-directory', 'not-readable']);
+
+export function parseProjectFiles(data: unknown): ProjectFiles {
+  if (!isRecord(data) || !Array.isArray(data.files)) throw new Error(t('error.invalidResponse'));
+  return {
+    files: data.files.filter((file): file is string => typeof file === 'string'),
+    truncated: data.truncated === true,
+  };
+}
 
 export function parseFolderCheck(data: unknown): HireCheckResponse {
   if (!isRecord(data) || typeof data.ok !== 'boolean') throw new Error(t('error.invalidResponse'));

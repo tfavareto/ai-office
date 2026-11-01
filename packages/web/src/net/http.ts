@@ -30,6 +30,7 @@ import {
   parseActivities,
   parseDay,
   parseFolderCheck,
+  parseProjectFiles,
   parseHire,
   parseMessages,
   parsePermission,
@@ -325,6 +326,10 @@ export class HttpBackend implements Backend {
   async hireAgent(request: HireRequest) {
     const { body } = await this.post(API.hire, { ...request, locale: locale() });
     return parseHire(body);
+  }
+
+  async projectFiles(projectId: string) {
+    return parseProjectFiles(await this.get(API.projectFiles, { project: projectId }));
   }
 
   async checkFolder(path: string) {

@@ -3,6 +3,19 @@
 // snapshot does not change from one tick to the next.
 import { ciOfChecks, type GitChecks, type GitPullRequest, type ProjectGit } from '../git';
 
+/** What a demo room's `@` mention offers: invented paths, like the rest of the demo. */
+export const DEMO_PROJECT_FILES: readonly string[] = [
+  'README.md',
+  'package.json',
+  'src/api/pedidos.ts',
+  'src/carrinho/Carrinho.tsx',
+  'src/carrinho/cupom.ts',
+  'src/checkout/Pagamento.tsx',
+  'src/estoque/estoque.ts',
+  'src/tema.css',
+  'tests/carrinho.test.ts',
+];
+
 const MINUTE_MS = 60_000;
 const SHORTSTAT_NONE = { insertions: 0, deletions: 0 };
 

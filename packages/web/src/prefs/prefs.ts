@@ -1,4 +1,5 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
+import { MAX_PROMPT_LENGTH, MAX_PROMPTS, type SavedPrompt } from '../pro/model/mentions';
 import { LOCALES, type AccountLimits, type Locale } from '@ai-office/shared';
 import { systemLocale } from '../i18n';
 import { DEFAULT_OPEN_GROUPS, parseOpenGroups, type SettingsGroupId } from '../ui/model/settings-groups';
@@ -22,6 +23,8 @@ export interface Prefs {
   proTheme: ProTheme;
   /** The Pro view's command bar is shown (hidden by default; the canvas toolbar and `N` toggle it). */
   proCommandBar: boolean;
+  /** Prompts saved from the Pro view's box, inserted with `$`. */
+  proPrompts: readonly SavedPrompt[];
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -54,6 +57,7 @@ export const DEFAULT_PREFS: Prefs = {
   viewMode: 'basic',
   proTheme: 'dark',
   proCommandBar: false,
+  proPrompts: [],
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -121,6 +125,17 @@ export function parseUsageLimits(raw: unknown): Record<string, AccountLimits> {
   return result;
 }
 
+function parsePrompts(raw: unknown): SavedPrompt[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_PROMPTS).flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return [];
+    const { id, name, text } = entry as Record<string, unknown>;
+    if (typeof id !== 'string' || typeof name !== 'string' || typeof text !== 'string') return [];
+    if (text.length === 0 || text.length > MAX_PROMPT_LENGTH) return [];
+    return [{ id, name: name.slice(0, MAX_PROMPT_LENGTH), text }];
+  });
+}
+
 /** Validates unknown data (parsed JSON) into complete preferences; invalid fields fall back to defaults. */
 export function parsePrefs(raw: unknown): Prefs {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ...DEFAULT_PREFS };
@@ -130,6 +145,7 @@ export function parsePrefs(raw: unknown): Prefs {
     viewMode: oneOf(data.viewMode, ['basic', 'pro'], DEFAULT_PREFS.viewMode),
     proTheme: oneOf(data.proTheme, ['dark', 'light'], DEFAULT_PREFS.proTheme),
     proCommandBar: bool(data.proCommandBar, DEFAULT_PREFS.proCommandBar),
+    proPrompts: parsePrompts(data.proPrompts),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),

@@ -4,8 +4,9 @@
 // orchestration panel. It only draws what the office already knows (the snapshot) and reads the real conversations
 // from the local server; nothing here runs a model.
 import type { Agent } from '@ai-office/shared';
-import { t } from '../../i18n';
+import { t, type TextKey } from '../../i18n';
 import type { AppContext, Component } from '../../ui/context';
+import { activityText, agentRole, agentTitle } from '../../ui/display';
 import { h, isEditable, toggleClass } from '../../ui/dom';
 import { computeInsets } from '../../ui/layout';
 import { displayStatus } from '../../ui/model/status';
@@ -34,6 +35,7 @@ import {
   type Rect,
 } from '../model/geometry';
 import { computeLayout, type Layout } from '../model/layout';
+import { nextInCycle, type PaletteItem } from '../model/palette';
 import { AUTO_FIT_OFF, AUTO_FIT_START, fittedTo, shouldRefit, type AutoFit } from '../model/auto-fit';
 import { frameModels, linkModels } from '../model/canvas-models';
 import { pollFor, planTerminals, VISIBLE_MARGIN_PX, type NodePolicy, type PolicyNode } from '../model/policy';
@@ -53,6 +55,7 @@ import { ViewportGestures } from './gestures';
 import { Listeners } from './listeners';
 import { NodeDrag, type ActiveDrag, type DragTarget } from './node-drag';
 import { RoomPanel } from './room-panel';
+import { Palette } from './palette';
 import { TerminalNode, type NodeHandlers } from './terminal-node';
 import { Toolbar } from './toolbar';
 import { DemoTranscripts, feedSourceFor } from './transcript-source';
@@ -81,6 +84,43 @@ export interface ProSession {
 }
 
 type Selection = ReturnType<AppContext['ui']['get']>['selection'];
+
+const MAX_NUMBERED = 9;
+
+const PALETTE_ACTIONS = [
+  'waiting',
+  'hire',
+  'inbox',
+  'board',
+  'usage',
+  'settings',
+  'fit',
+  'commandBar',
+  'basic',
+] as const;
+type PaletteAction = (typeof PALETTE_ACTIONS)[number];
+
+const ACTION_KEY: Record<PaletteAction, TextKey> = {
+  waiting: 'pro.palette.action.waiting',
+  hire: 'pro.palette.action.hire',
+  inbox: 'pro.palette.action.inbox',
+  board: 'pro.palette.action.board',
+  usage: 'pro.palette.action.usage',
+  settings: 'pro.palette.action.settings',
+  fit: 'pro.palette.action.fit',
+  commandBar: 'pro.palette.action.commandBar',
+  basic: 'pro.palette.action.basic',
+};
+
+function actionItem(action: PaletteAction): PaletteItem {
+  return { id: action, kind: 'action', title: t(ACTION_KEY[action]), detail: '', words: '', waiting: false };
+}
+
+/** The number an orchestrator's key shows: 1 to 9, none after that. */
+function numberOf(ids: readonly string[], id: string): number | undefined {
+  const index = ids.indexOf(id);
+  return index >= 0 && index < MAX_NUMBERED ? index + 1 : undefined;
+}
 
 export class ProView implements Component {
   readonly el = h('section', { class: 'ao-pro', hidden: true });
@@ -111,6 +151,7 @@ export class ProView implements Component {
   private memory: SceneMemory;
   private positions: ProPositions = loadPositions();
   private scene: Scene | null = null;
+  private readonly palette: Palette;
   private layout: Layout | null = null;
   private viewportSize = { width: 0, height: 0 };
   private active = false;
@@ -164,9 +205,26 @@ export class ProView implements Component {
       close: () => this.closePanel(),
       reveal: (agentId) => this.focusNode(agentId),
     });
+    this.palette = new Palette(ctx, {
+      items: () => this.paletteItems(),
+      go: (item) => this.goTo(item),
+      check: (agentId) => this.checkAgent(agentId),
+      askTarget: (agentId) => {
+        const agent = this.agents.get(agentId);
+        return agent === undefined ? undefined : { name: agent.name, targetId: agent.parentId ?? agent.id };
+      },
+    });
     this.world.append(this.layers.frames, this.layers.svg, this.nodesLayer);
     this.viewport.append(this.world);
-    this.el.append(this.viewport, this.empty, this.maxLayer, this.toolbar.el, this.panel.el, this.command.el);
+    this.el.append(
+      this.viewport,
+      this.empty,
+      this.maxLayer,
+      this.toolbar.el,
+      this.panel.el,
+      this.command.el,
+      this.palette.el,
+    );
     this.resizeObserver = new ResizeObserver(() => this.onResize());
     this.resizeObserver.observe(this.viewport);
     this.bindEvents();
@@ -187,6 +245,7 @@ export class ProView implements Component {
     this.policyTimer = null;
     this.command.dispose();
     this.panel.dispose();
+    this.palette.dispose();
     for (const node of this.nodes.values()) node.dispose();
     this.nodes.clear();
   }
@@ -258,11 +317,18 @@ export class ProView implements Component {
 
   /** Zoom and fit keys work wherever the focus is on the page (as long as the user is not typing). */
   private onGlobalKey(event: KeyboardEvent): void {
-    if (!this.canPan() || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-    if (isEditable(event.target)) return;
+    if (!this.canPan() || event.defaultPrevented) return;
+    if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      this.palette.toggle();
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey || isEditable(event.target) || this.palette.isOpen) return;
     if (event.key === '+' || event.key === '=') this.zoomBy(ZOOM_STEP);
     else if (event.key === '-') this.zoomBy(1 / ZOOM_STEP);
     else if (event.key === '0') this.fitAll();
+    else if (event.key.toLowerCase() === 'a') this.nextWaiting();
+    else if (/^[1-9]$/.test(event.key)) this.goToOrchestrator(Number(event.key));
     else return;
     event.preventDefault();
   }
@@ -291,6 +357,7 @@ export class ProView implements Component {
     this.sync();
     this.command.render();
     this.panel.render(scene.rooms.find((room) => room.project.id === this.panel.openRoom));
+    this.palette.render();
     this.layers.setOpenRoom(this.panel.openRoom);
     this.toolbar.render({
       zoom: this.camera.camera.zoom,
@@ -302,6 +369,99 @@ export class ProView implements Component {
     this.empty.hidden = scene.rooms.length > 0;
   }
 
+  private orchestratorIds(): string[] {
+    return this.scene?.rooms.flatMap((room) => room.clusters.map((cluster) => cluster.main.id)) ?? [];
+  }
+
+  /** Selects an agent and brings its terminal into view with the keyboard on it. */
+  private goToAgent(id: string): void {
+    this.ctx.selectAgent(id);
+    this.focusNode(id, true);
+    this.ctx.refresh();
+  }
+
+  /** The `A` key: the next agent waiting on the person, in the order of the canvas. */
+  private nextWaiting(): void {
+    const waiting = [...this.agents.values()]
+      .filter((agent) => displayStatus(agent) === 'waiting' && !this.folded.has(agent.id))
+      .map((agent) => agent.id);
+    const selection = this.ctx.ui.get().selection;
+    const next = nextInCycle(waiting, selection?.type === 'agent' ? selection.id : null);
+    if (next === null) this.ctx.announce(t('pro.waiting.none'));
+    else this.goToAgent(next);
+  }
+
+  /** The number keys: the orchestrator with that number on its title bar. */
+  private goToOrchestrator(number: number): void {
+    const id = this.orchestratorIds()[number - 1];
+    if (id !== undefined) this.goToAgent(id);
+  }
+
+  private checkAgent(id: string): void {
+    this.ctx.selectAgent(id);
+    this.maximizedId = id;
+    this.render();
+    this.nodes.get(id)?.el.focus({ preventScroll: true });
+  }
+
+  private paletteItems(): PaletteItem[] {
+    const rooms = this.scene?.rooms ?? [];
+    const agents = rooms.flatMap((room) =>
+      room.clusters.flatMap((cluster) =>
+        [cluster.main, ...cluster.subs.filter((sub) => sub.finishedAt === undefined).map((sub) => sub.agent)].map(
+          (agent): PaletteItem => ({
+            id: agent.id,
+            kind: 'agent',
+            title: agent.name,
+            detail: [room.project.name, agentRole(agent), agent.activity && activityText(agent.activity)]
+              .filter(Boolean)
+              .join(' · '),
+            words: agentTitle(agent) ?? '',
+            waiting: displayStatus(agent) === 'waiting',
+          }),
+        ),
+      ),
+    );
+    const projects = rooms.map((room): PaletteItem => ({
+      id: room.project.id,
+      kind: 'room',
+      title: room.project.name,
+      detail: t('pro.palette.sessions', { n: room.clusters.length }),
+      words: '',
+      waiting: false,
+    }));
+    return [...agents, ...projects, ...PALETTE_ACTIONS.map(actionItem)];
+  }
+
+  private goTo(item: PaletteItem): void {
+    if (item.kind === 'agent') this.goToAgent(item.id);
+    else if (item.kind === 'room') this.openPanel(item.id);
+    else this.runAction(item.id as PaletteAction);
+  }
+
+  private runAction(action: PaletteAction): void {
+    switch (action) {
+      case 'hire':
+        return this.ctx.openHire();
+      case 'inbox':
+        return this.ctx.togglePopover('inbox');
+      case 'board':
+        return this.ctx.openDialog('board');
+      case 'usage':
+        return this.ctx.openDialog('usage');
+      case 'settings':
+        return this.ctx.togglePopover('settings');
+      case 'fit':
+        return this.fitAll();
+      case 'commandBar':
+        return this.toggleCommandBar();
+      case 'waiting':
+        return this.nextWaiting();
+      case 'basic':
+        return this.ctx.setViewMode('basic');
+    }
+  }
+
   private setActive(active: boolean): void {
     this.active = active;
     this.el.hidden = !active;
@@ -311,6 +471,7 @@ export class ProView implements Component {
     } else {
       this.maximizedId = null;
       this.closePanel();
+      if (this.palette.isOpen) this.palette.close();
       for (const node of this.nodes.values()) node.setDetail('hidden', 0);
     }
   }
@@ -410,6 +571,7 @@ export class ProView implements Component {
       selected: selection?.type === 'agent' && selection.id === agent.id,
       maximized,
       collapsed: isOrchestrator && cluster !== null ? cluster.collapsed : [],
+      number: isOrchestrator ? numberOf(this.orchestratorIds(), agent.id) : undefined,
     });
   }
 

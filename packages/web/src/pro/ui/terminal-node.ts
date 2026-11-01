@@ -32,6 +32,8 @@ export interface NodeModel {
   maximized: boolean;
   /** Finished subagents folded into the orchestrator's pill. */
   collapsed: readonly FinishedSub[];
+  /** The number key that goes to this orchestrator (1 to 9). */
+  number: number | undefined;
 }
 
 export interface NodeHandlers extends AskHost {
@@ -58,6 +60,7 @@ const ACTIONS: readonly { name: ActionName; icon: IconName; key: TextKey }[] = [
 
 export class TerminalNode {
   readonly el = h('article', { class: 'ao-pro-node', tabindex: '0', role: 'group' });
+  private readonly number = h('span', { class: 'ao-pro-number', hidden: true });
   private readonly name = h('strong', { class: 'ao-pro-name' });
   private readonly role = h('span', { class: 'ao-pro-role' });
   private readonly account = h('span', { class: 'ao-pro-badge' });
@@ -142,6 +145,7 @@ export class TerminalNode {
       h(
         'header',
         { class: 'ao-pro-head', 'data-drag': '' },
+        this.number,
         this.name,
         this.role,
         this.codex,
@@ -194,6 +198,8 @@ export class TerminalNode {
     this.body.setCwd(agent.projectId);
     const status = model.finishedAt !== undefined ? 'done' : displayStatus(agent);
     if (!this.maximized) this.place(model.rect);
+    setText(this.number, model.number === undefined ? '' : `[${model.number}]`);
+    this.number.hidden = model.number === undefined;
     setText(this.name, agent.name);
     setText(this.role, model.isOrchestrator ? t('pro.term.main') : agentRole(agent));
     this.codex.hidden = !isCodex(agent);
