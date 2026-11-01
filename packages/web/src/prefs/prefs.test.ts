@@ -74,6 +74,10 @@ describe('parsePrefs', () => {
     expect(parsePrefs({ proCommandBar: true }).proCommandBar).toBe(true);
     expect(parsePrefs({ proCommandBar: 'yes' }).proCommandBar).toBe(false);
     expect(DEFAULT_PREFS.proPrompts).toEqual([]);
+    expect(DEFAULT_PREFS.proRoles).toEqual([]);
+    expect(
+      parsePrefs({ proRoles: [{ id: 'a', name: 'A', instructions: 'do' }, { id: 'b', name: 'B' }, 3] }).proRoles,
+    ).toEqual([{ id: 'a', name: 'A', instructions: 'do' }]);
     expect(parsePrefs({ proPrompts: 'x' }).proPrompts).toEqual([]);
     expect(
       parsePrefs({ proPrompts: [{ id: 'a', name: 'A', text: 'hi' }, { id: 'b' }, { id: 'c', name: 'C', text: '' }, 7] })

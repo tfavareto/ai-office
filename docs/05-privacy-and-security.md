@@ -230,6 +230,7 @@ Off by default. When you turn them on, this page can start Claude Code on this c
 - **Limits.** 16 programs at once, 64 KB per input request, 8 streams.
 - **Output stays in memory.** At most 512 KB per terminal on the server and in the page; none of it is written to disk by AI Office.
 - **Not WebSocket.** Typing is a normal POST, so it goes through the same checks as every other action.
+- **Agents reach only who you connected.** A message goes only between connected terminals, by name, at most 30 a minute per terminal and 8000 characters. It is cleaned of control characters, so it cannot press keys in the other program or end the paste. An agent still treats it as input, so connect only agents you would let instruct each other.
 - **Off means off.** Turning the setting off stops every running program and refuses the stream and input. `AI_OFFICE_TERMINALS=0` keeps the engine off whatever the setting says.
 
 Claude Code itself works as in any terminal: its permissions, plugins and network use are its own. A program printing to the terminal cannot inject into the page, because xterm.js draws text and no HTML comes through.

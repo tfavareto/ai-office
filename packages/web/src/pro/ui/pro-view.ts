@@ -94,6 +94,7 @@ const MAX_NUMBERED = 9;
 const PALETTE_ACTIONS = [
   'waiting',
   'hire',
+  'roles',
   'inbox',
   'board',
   'usage',
@@ -107,6 +108,7 @@ type PaletteAction = (typeof PALETTE_ACTIONS)[number];
 const ACTION_KEY: Record<PaletteAction, TextKey> = {
   waiting: 'pro.palette.action.waiting',
   hire: 'pro.palette.action.hire',
+  roles: 'pro.palette.action.roles',
   inbox: 'pro.palette.action.inbox',
   board: 'pro.palette.action.board',
   usage: 'pro.palette.action.usage',
@@ -158,6 +160,8 @@ export class ProView implements Component {
   private readonly palette: Palette;
   private readonly terminals: TerminalHub;
   private readonly dock: TerminalDock;
+  private connectingFrom: string | null = null;
+  private readonly connectHint = h('p', { class: 'ao-pro-connect-hint', hidden: true }, t('pro.terminal.connectHint'));
   private readonly dismissedTerminals = new Set<string>();
   private docked: ReadonlySet<string> = new Set();
   private layout: Layout | null = null;
@@ -251,6 +255,7 @@ export class ProView implements Component {
       this.panel.el,
       this.command.el,
       this.dock.el,
+      this.connectHint,
       this.palette.el,
     );
     this.resizeObserver = new ResizeObserver(() => this.onResize());
@@ -417,6 +422,23 @@ export class ProView implements Component {
     this.docked = new Set(orphans.map((terminal) => terminal.id));
   }
 
+  /** The second click of a connection: connects the two terminals, or disconnects them if they already are. */
+  private finishConnecting(agentId: string): void {
+    const from = this.connectingFrom;
+    const target = this.agents.get(agentId);
+    this.cancelConnecting();
+    if (from === null || target?.terminalId === undefined || target.terminalId === from) return;
+    const connected = !(target.terminalPeers ?? []).includes(from);
+    this.ctx.store.backend
+      .terminalLink(from, target.terminalId, connected)
+      .catch((error: unknown) => this.ctx.notifyLocal('warn', describeError(error)));
+  }
+
+  private cancelConnecting(): void {
+    this.connectingFrom = null;
+    this.connectHint.hidden = true;
+  }
+
   private orchestratorIds(): string[] {
     return this.scene?.rooms.flatMap((room) => room.clusters.map((cluster) => cluster.main.id)) ?? [];
   }
@@ -507,6 +529,8 @@ export class ProView implements Component {
         return this.nextWaiting();
       case 'basic':
         return this.ctx.setViewMode('basic');
+      case 'roles':
+        return this.ctx.openDialog('roles');
     }
   }
 
@@ -843,8 +867,13 @@ export class ProView implements Component {
         const agent = this.agents.get(id);
         if (agent !== undefined) this.ctx.copy(agent.sessionId, t('pro.node.copied'));
       },
+      connectTerminal: (terminalId) => {
+        this.connectingFrom = terminalId;
+        this.connectHint.hidden = false;
+      },
       select: () => {
         if (this.ctx.agent(id) === undefined) return;
+        if (this.connectingFrom !== null) this.finishConnecting(id);
         this.selectedFromCanvas = id;
         this.ctx.selectAgent(id);
       },
@@ -887,6 +916,10 @@ export class ProView implements Component {
   handleEscape(): boolean {
     // A dialog or a popover over the canvas closes first.
     if (!this.canPan()) return false;
+    if (this.connectingFrom !== null) {
+      this.cancelConnecting();
+      return true;
+    }
     if (this.maximizedId !== null) {
       const id = this.maximizedId;
       this.maximizedId = null;

@@ -148,6 +148,7 @@ export class HireDialog extends Dialog {
   private readonly modelSelect: HTMLSelectElement;
   private readonly modeSelect: HTMLSelectElement;
   private readonly whereSelect: HTMLSelectElement;
+  private readonly roleSelect = h('select', { id: 'ao-hire-role', class: 'ao-select ao-hire-select' });
   private readonly whereField: HTMLElement;
   private readonly modeHint = h('p', { class: 'ao-note ao-hire-modehint' });
   private readonly errorBox = h('p', { class: 'ao-error ao-hire-error', role: 'alert', hidden: true });
@@ -164,6 +165,13 @@ export class HireDialog extends Dialog {
     this.whereSelect = selectOf('ao-hire-where', WHERES, (where) => {
       this.form = { ...this.form, where };
       this.ctx.refresh();
+    });
+    this.roleSelect.addEventListener('change', () => {
+      const chosen = this.ctx.prefs.get().proRoles.find((role) => role.id === this.roleSelect.value);
+      const next: HireForm = { ...this.form };
+      if (chosen === undefined) delete next.role;
+      else next.role = { name: chosen.name, instructions: chosen.instructions };
+      this.form = next;
     });
     this.whereField = field(t('hire.where'), this.whereSelect, 'ao-hire-where');
     this.whereField.hidden = true;
@@ -218,6 +226,16 @@ export class HireDialog extends Dialog {
         ),
         this.modeHint,
         this.whereField,
+        field(
+          t('hire.role'),
+          this.roleSelect,
+          'ao-hire-role',
+          h(
+            'button',
+            { type: 'button', class: 'ao-quick-chip ao-hire-roles', onclick: () => this.ctx.openDialog('roles') },
+            t('hire.role.manage'),
+          ),
+        ),
         h('p', { class: 'ao-hire-note' }, icon('terminal', 16), h('span', null, t('hire.note'))),
         this.errorBox,
       ),
@@ -264,6 +282,10 @@ export class HireDialog extends Dialog {
       ...(target.deskIndex !== undefined ? { deskIndex: target.deskIndex } : {}),
     };
     void this.loadWhere();
+    this.roleSelect.replaceChildren(
+      h('option', { value: '' }, t('hire.role.none')),
+      ...this.ctx.prefs.get().proRoles.map((role) => h('option', { value: role.id }, role.name)),
+    );
     this.busy = false;
     this.error = '';
     this.check = { state: 'idle' };

@@ -1,7 +1,14 @@
 // Building the command that starts Claude Code in a new terminal window. Nothing here touches the system: it turns a
 // validated request into the text of a small POSIX `sh` launcher script. Every value that is not a literal of this
 // module (paths, prompt, messages) goes through `shellQuote`, so no input can end a quoted string or run a command.
-import { type HireModel, type HirePermissionMode, type Locale, msg, translateShared } from '@ai-office/shared';
+import {
+  type HireModel,
+  type HireRole,
+  type HirePermissionMode,
+  type Locale,
+  msg,
+  translateShared,
+} from '@ai-office/shared';
 
 export interface LaunchSpec {
   /** Absolute folder the session starts in (already validated to exist). */
@@ -14,6 +21,8 @@ export interface LaunchSpec {
   prompt?: string | undefined;
   model?: HireModel | undefined;
   permissionMode?: HirePermissionMode | undefined;
+  /** Added to Claude Code's own system prompt. */
+  instructions?: string | undefined;
   /** Language of the texts the launcher prints when it cannot start the session. */
   locale: Locale;
   /** Private directory that holds the launcher (and so the prompt); the script deletes it as its first action. */
@@ -30,17 +39,41 @@ export function shellQuote(value: string): string {
 }
 
 /** Arguments for `claude` (without the executable) in the order they are passed: options first, the prompt last. */
-export function claudeArguments(spec: Pick<LaunchSpec, 'model' | 'permissionMode' | 'prompt'>): string[] {
+export function claudeArguments(
+  spec: Pick<LaunchSpec, 'model' | 'permissionMode' | 'prompt' | 'instructions'>,
+): string[] {
   const args: string[] = [];
   if (spec.model !== undefined && spec.model !== 'default') args.push('--model', spec.model);
   if (spec.permissionMode !== undefined && spec.permissionMode !== 'default')
     args.push('--permission-mode', spec.permissionMode);
+  if (spec.instructions !== undefined && spec.instructions.length > 0)
+    args.push('--append-system-prompt', spec.instructions);
   if (spec.prompt !== undefined && spec.prompt.length > 0) {
     // A prompt that starts with a dash must not be read as an option.
     if (spec.prompt.startsWith('-')) args.push('--');
     args.push(spec.prompt);
   }
   return args;
+}
+
+/** What an agent in a real terminal is told about reaching the others. */
+export function bridgeInstructions(bridgePath: string): string {
+  const run = `node ${shellQuote(bridgePath)}`;
+  return [
+    'You run in a terminal opened by AI Office. The person can connect you to other agents.',
+    `To see who is connected to you: ${run} list`,
+    `To message one of them: ${run} send "<name>" "<message>". The answer arrives later as a new message starting with "[Message from <name>".`,
+    'Message other agents only when the task calls for it, and answer briefly to avoid long back-and-forth.',
+  ].join('\n');
+}
+
+/** The instructions an agent starts with: its role, then how to reach the others when it runs in a real terminal. */
+export function agentInstructions(role: HireRole | undefined, bridgePath: string | undefined): string | undefined {
+  const parts = [
+    ...(role !== undefined ? [`Your role here is ${role.name}.\n${role.instructions}`] : []),
+    ...(bridgePath !== undefined ? [bridgeInstructions(bridgePath)] : []),
+  ];
+  return parts.length > 0 ? parts.join('\n\n') : undefined;
 }
 
 /**

@@ -1,5 +1,6 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
 import { MAX_PROMPT_LENGTH, MAX_PROMPTS, type SavedPrompt } from '../pro/model/mentions';
+import { MAX_ROLES, validRole, type SavedRole } from '../pro/model/roles';
 import { LOCALES, type AccountLimits, type Locale } from '@ai-office/shared';
 import { systemLocale } from '../i18n';
 import { DEFAULT_OPEN_GROUPS, parseOpenGroups, type SettingsGroupId } from '../ui/model/settings-groups';
@@ -25,6 +26,8 @@ export interface Prefs {
   proCommandBar: boolean;
   /** Prompts saved from the Pro view's box, inserted with `$`. */
   proPrompts: readonly SavedPrompt[];
+  /** Reusable instructions chosen when hiring an agent. */
+  proRoles: readonly SavedRole[];
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -58,6 +61,7 @@ export const DEFAULT_PREFS: Prefs = {
   proTheme: 'dark',
   proCommandBar: false,
   proPrompts: [],
+  proRoles: [],
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -125,6 +129,16 @@ export function parseUsageLimits(raw: unknown): Record<string, AccountLimits> {
   return result;
 }
 
+function parseRoles(raw: unknown): SavedRole[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_ROLES).flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null) return [];
+    const { id, name, instructions } = entry as Record<string, unknown>;
+    if (typeof id !== 'string' || typeof name !== 'string' || typeof instructions !== 'string') return [];
+    return validRole(name, instructions) ? [{ id, name, instructions }] : [];
+  });
+}
+
 function parsePrompts(raw: unknown): SavedPrompt[] {
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, MAX_PROMPTS).flatMap((entry: unknown) => {
@@ -146,6 +160,7 @@ export function parsePrefs(raw: unknown): Prefs {
     proTheme: oneOf(data.proTheme, ['dark', 'light'], DEFAULT_PREFS.proTheme),
     proCommandBar: bool(data.proCommandBar, DEFAULT_PREFS.proCommandBar),
     proPrompts: parsePrompts(data.proPrompts),
+    proRoles: parseRoles(data.proRoles),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),

@@ -346,6 +346,10 @@ export class HttpBackend implements Backend {
     await this.post(`${API.terminals}/${encodeURIComponent(id)}/resize`, { cols, rows });
   }
 
+  async terminalLink(a: string, b: string, connected: boolean) {
+    await this.post(API.terminalLinks, { a, b, connected });
+  }
+
   async terminalKill(id: string) {
     await this.post(`${API.terminals}/${encodeURIComponent(id)}/kill`, {});
   }

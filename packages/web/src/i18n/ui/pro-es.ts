@@ -157,4 +157,19 @@ export const proEs: Readonly<Record<ProKey, string>> = {
   'pro.terminal.kill': 'Cerrar esta terminal',
   'pro.terminal.killConfirm': 'Haz clic otra vez para cerrar el programa',
   'pro.terminal.starting': 'Iniciando en {folder}',
+  'pro.terminal.connect': 'Conectar a otra terminal',
+  'pro.terminal.connectHint':
+    'Haz clic en otra terminal real para conectarlas, o en una ya conectada para desconectarla. Esc cancela.',
+  'pro.palette.action.roles': 'Administrar roles',
+  'hire.role': 'Rol',
+  'hire.role.none': 'Sin rol',
+  'hire.role.manage': 'Administrar roles',
+  'roles.title': 'Roles',
+  'roles.empty':
+    'Aún no hay roles. Un rol es un conjunto de instrucciones con las que empieza un agente, como Revisor o Probador.',
+  'roles.name': 'Nombre',
+  'roles.instructions': 'Instrucciones',
+  'roles.save': 'Guardar rol',
+  'roles.saved': 'Rol {name} guardado.',
+  'roles.remove': 'Eliminar el rol {name}',
 };

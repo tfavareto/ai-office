@@ -7,7 +7,7 @@ import { type SessionRecord, type SubRecord, isSubDone } from './records';
 export interface Overlay {
   permission?: PermissionRequest;
   attention?: string;
-  terminalId?: string;
+  terminal?: { id: string; role?: string; peers: string[] };
 }
 
 export function mainAgentId(record: SessionRecord): string {
@@ -120,7 +120,13 @@ export function buildMainAgent(
     ...commonFields(state, now),
     ...base,
     startedAt,
-    ...(overlay.terminalId !== undefined ? { terminalId: overlay.terminalId } : {}),
+    ...(overlay.terminal !== undefined
+      ? {
+          terminalId: overlay.terminal.id,
+          ...(overlay.terminal.peers.length > 0 ? { terminalPeers: overlay.terminal.peers } : {}),
+          ...(overlay.terminal.role !== undefined ? { assignedRole: overlay.terminal.role } : {}),
+        }
+      : {}),
     lastEventAt: Math.max(state.lastEventAt, registry?.updatedAt ?? 0) || record.openedAt,
   };
 }

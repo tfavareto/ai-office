@@ -174,6 +174,19 @@ describe('localPathProblem', () => {
 });
 
 describe('buildHireRequest', () => {
+  it('sends the chosen role, and none when nothing was chosen', () => {
+    // Arrange
+    const role = { name: 'Revisor', instructions: 'Revise' };
+
+    // Act
+    const without = buildHireRequest(base);
+    const withRole = buildHireRequest({ ...base, role });
+
+    // Assert
+    expect(without.role).toBeUndefined();
+    expect(withRole.role).toEqual(role);
+  });
+
   it('asks for a real terminal only when that was chosen', () => {
     // Arrange
     const form: HireForm = {

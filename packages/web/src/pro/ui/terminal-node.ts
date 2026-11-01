@@ -44,6 +44,8 @@ export interface NodeHandlers extends AskHost {
   /** Opens the real terminal on screen. */
   openXterm(terminalId: string, onRelease: () => void, onFocus: (focused: boolean) => void): XtermView;
   killTerminal(terminalId: string): void;
+  /** Starts connecting this terminal to the next one clicked. */
+  connectTerminal(terminalId: string): void;
   /** A folded finished subagent was picked in the orchestrator's list: show its terminal. */
   openFinished(agent: Agent): void;
 }
@@ -96,6 +98,7 @@ export class TerminalNode {
   private readonly askSlot = h('div', { class: 'ao-pro-ask-slot', hidden: true });
   private readonly typing = h('span', { class: 'ao-pro-typing', hidden: true }, t('pro.terminal.typing'));
   private readonly killButton: HTMLButtonElement;
+  private readonly connectButton: HTMLButtonElement;
   private killArmed: ReturnType<typeof setTimeout> | null = null;
   private xterm: XtermView | null = null;
   private xtermId: string | null = null;
@@ -158,6 +161,22 @@ export class TerminalNode {
     this.status.appendChild(this.pill);
     this.status.appendChild(this.typing);
     this.content.append(this.body.el, this.toEnd, this.retry, this.doneList, this.askSlot);
+    this.connectButton = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-pro-action ao-pro-connect',
+        hidden: true,
+        title: t('pro.terminal.connect'),
+        'aria-label': t('pro.terminal.connect'),
+        'data-no-drag': '',
+        onclick: (event: Event) => {
+          event.stopPropagation();
+          if (this.xtermId !== null) this.handlers.connectTerminal(this.xtermId);
+        },
+      },
+      icon('link', 13),
+    );
     this.killButton = h(
       'button',
       {
@@ -186,7 +205,7 @@ export class TerminalNode {
         this.model,
         h('span', { class: 'ao-pro-spacer' }),
         this.elapsed,
-        h('div', { class: 'ao-pro-actions' }, this.killButton, ...buttons),
+        h('div', { class: 'ao-pro-actions' }, this.connectButton, this.killButton, ...buttons),
       ),
       this.task,
       this.content,
@@ -236,7 +255,7 @@ export class TerminalNode {
     setText(this.number, model.number === undefined ? '' : `[${model.number}]`);
     this.number.hidden = model.number === undefined;
     setText(this.name, agent.name);
-    setText(this.role, model.isOrchestrator ? t('pro.term.main') : agentRole(agent));
+    setText(this.role, agent.assignedRole ?? (model.isOrchestrator ? t('pro.term.main') : agentRole(agent)));
     this.codex.hidden = !isCodex(agent);
     this.account.hidden = isCodex(agent);
     if (!isCodex(agent)) this.renderAccount(model.account);
@@ -346,6 +365,7 @@ export class TerminalNode {
       this.xterm = null;
       this.xtermId = terminalId ?? null;
       this.killButton.hidden = terminalId === undefined;
+      this.connectButton.hidden = terminalId === undefined;
     }
     const onScreen = this.xtermOnScreen();
     if (onScreen && this.xterm === null && this.xtermId !== null) {
