@@ -89,7 +89,8 @@ Full spec: [08-team-mode.md](08-team-mode.md). Summary:
 - One **main agent** per open session (sessionId + account). It enters when the session opens and leaves (`offline`)
   when the session closes (registry file gone or pid not alive) or after 30 min without events and not in registry.
 - One **sub agent** per subagent transcript with events in the current session; status `done` when its spawning
-  tool_use got its tool_result (or 2 min idle after the parent finished); it leaves a few seconds after done.
+  tool_use got its tool_result, when a completion notice names it even if the spawn was not read (a server restart
+  tails the transcript), or after 2 min idle once the parent finished; it leaves a few seconds after done.
 - Stable names: pick from ~120 Brazilian first names by hashing (account, session[, agentId]); avoid duplicates among
   agents currently present; look (f/m) comes with the name. Persist choices in `<stateDir>/names.json`.
 - Role: main is "Principal"; sub is meta.agentType (fallback "Subagente"). Title: registry `name`, else

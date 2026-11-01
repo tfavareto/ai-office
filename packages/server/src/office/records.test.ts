@@ -25,6 +25,15 @@ function setup() {
   return { record, sub, apply };
 }
 
+function noticeLine(offsetMs: number): string {
+  return JSON.stringify({
+    type: 'queue-operation',
+    operation: 'enqueue',
+    timestamp: new Date(T0 + offsetMs).toISOString(),
+    content: '<task-notification><tool-use-id>tu1</tool-use-id><status>completed</status></task-notification>',
+  });
+}
+
 describe('subagent lifecycle', () => {
   test('a sync subagent is done as soon as its spawning tool_use gets a result', () => {
     const { record, sub, apply } = setup();
@@ -33,6 +42,32 @@ describe('subagent lifecycle', () => {
     expect(isSubDone(record, sub, T0 + 1000)).toBe(false);
     apply('main', toolResultLine('tu1', 'resultado', 5000));
     expect(isSubDone(record, sub, T0 + 5001)).toBe(true);
+  });
+
+  test('a task notification ends a subagent even when its spawning tool_use was not read', () => {
+    // Arrange: a restarted server tails the transcript, so the Agent tool_use is gone and only the notice is read.
+    const { record, sub, apply } = setup();
+    apply('sub', userLine('tarefa', 0), assistantLine([toolUse('r', 'Read', { file_path: '/a' })], 10));
+    apply('sub', toolResultLine('r', 'ok', 20));
+
+    // Act
+    apply('main', noticeLine(30));
+
+    // Assert
+    expect(record.main.spawn('tu1')).toBeUndefined();
+    expect(isSubDone(record, sub, T0 + 31)).toBe(true);
+  });
+
+  test('a subagent that keeps working after an unmatched notification is not done', () => {
+    // Arrange
+    const { record, sub, apply } = setup();
+    apply('main', noticeLine(0));
+
+    // Act
+    apply('sub', userLine('continue', 9000), assistantLine([toolUse('r', 'Read', { file_path: '/a' })], 9100));
+
+    // Assert
+    expect(isSubDone(record, sub, T0 + 9500)).toBe(false);
   });
 
   test('an async subagent survives its launch result and ends with the task notification', () => {
