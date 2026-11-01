@@ -5,6 +5,7 @@
 // from the local server; nothing here runs a model.
 import type { Agent } from '@ai-office/shared';
 import { t, type TextKey } from '../../i18n';
+import { describeError, type Backend } from '../../net/backend';
 import type { AppContext, Component } from '../../ui/context';
 import { activityText, agentRole, agentTitle } from '../../ui/display';
 import { h, isEditable, toggleClass } from '../../ui/dom';
@@ -36,6 +37,7 @@ import {
 } from '../model/geometry';
 import { computeLayout, type Layout } from '../model/layout';
 import { nextInCycle, type PaletteItem } from '../model/palette';
+import { TerminalHub, orphanTerminals } from '../model/terminal-hub';
 import { AUTO_FIT_OFF, AUTO_FIT_START, fittedTo, shouldRefit, type AutoFit } from '../model/auto-fit';
 import { frameModels, linkModels } from '../model/canvas-models';
 import { pollFor, planTerminals, VISIBLE_MARGIN_PX, type NodePolicy, type PolicyNode } from '../model/policy';
@@ -56,6 +58,8 @@ import { Listeners } from './listeners';
 import { NodeDrag, type ActiveDrag, type DragTarget } from './node-drag';
 import { RoomPanel } from './room-panel';
 import { Palette } from './palette';
+import { TerminalDock } from './terminal-dock';
+import { XtermView } from './xterm-view';
 import { TerminalNode, type NodeHandlers } from './terminal-node';
 import { Toolbar } from './toolbar';
 import { DemoTranscripts, feedSourceFor } from './transcript-source';
@@ -152,6 +156,10 @@ export class ProView implements Component {
   private positions: ProPositions = loadPositions();
   private scene: Scene | null = null;
   private readonly palette: Palette;
+  private readonly terminals: TerminalHub;
+  private readonly dock: TerminalDock;
+  private readonly dismissedTerminals = new Set<string>();
+  private docked: ReadonlySet<string> = new Set();
   private layout: Layout | null = null;
   private viewportSize = { width: 0, height: 0 };
   private active = false;
@@ -205,6 +213,25 @@ export class ProView implements Component {
       close: () => this.closePanel(),
       reveal: (agentId) => this.focusNode(agentId),
     });
+    const backend = (): Backend => ctx.store.backend;
+    this.terminals = new TerminalHub(
+      {
+        terminalInput: (id, data) => backend().terminalInput(id, data),
+        terminalResize: (id, cols, rows) => backend().terminalResize(id, cols, rows),
+        terminalKill: (id) => backend().terminalKill(id),
+      },
+      undefined,
+      (error) => ctx.notifyLocal('warn', describeError(error)),
+    );
+    this.terminals.onChange(() => ctx.refresh());
+    this.dock = new TerminalDock(
+      this.terminals,
+      (id) => {
+        this.dismissedTerminals.add(id);
+        ctx.refresh();
+      },
+      (error) => ctx.notifyLocal('warn', describeError(error)),
+    );
     this.palette = new Palette(ctx, {
       items: () => this.paletteItems(),
       go: (item) => this.goTo(item),
@@ -223,6 +250,7 @@ export class ProView implements Component {
       this.toolbar.el,
       this.panel.el,
       this.command.el,
+      this.dock.el,
       this.palette.el,
     );
     this.resizeObserver = new ResizeObserver(() => this.onResize());
@@ -246,6 +274,8 @@ export class ProView implements Component {
     this.command.dispose();
     this.panel.dispose();
     this.palette.dispose();
+    this.dock.dispose();
+    this.terminals.close();
     for (const node of this.nodes.values()) node.dispose();
     this.nodes.clear();
   }
@@ -358,6 +388,7 @@ export class ProView implements Component {
     this.command.render();
     this.panel.render(scene.rooms.find((room) => room.project.id === this.panel.openRoom));
     this.palette.render();
+    this.syncTerminals();
     this.layers.setOpenRoom(this.panel.openRoom);
     this.toolbar.render({
       zoom: this.camera.camera.zoom,
@@ -367,6 +398,23 @@ export class ProView implements Component {
     });
     toggleClass(this.el, 'is-empty', scene.rooms.length === 0);
     this.empty.hidden = scene.rooms.length > 0;
+  }
+
+  /** Terminals still without a session wait in the dock; the others live on their nodes. */
+  private syncTerminals(): void {
+    if ((this.ctx.snapshot?.meta.terminals ?? 0) > 0) this.terminals.connect();
+    const linked = new Set<string>();
+    for (const agent of this.agents.values()) if (agent.terminalId !== undefined) linked.add(agent.terminalId);
+    const orphans = orphanTerminals(this.terminals.terminals(), linked, this.dismissedTerminals);
+    this.dock.sync(orphans);
+    // The person was just answering it in the dock: the terminal moved to the canvas, so the view and the keyboard
+    // follow it, or it would sit somewhere too small to type into.
+    for (const agent of this.agents.values()) {
+      if (agent.terminalId === undefined || !this.docked.has(agent.terminalId)) continue;
+      this.goToAgent(agent.id);
+      this.nodes.get(agent.id)?.focusTerminal();
+    }
+    this.docked = new Set(orphans.map((terminal) => terminal.id));
   }
 
   private orchestratorIds(): string[] {
@@ -787,6 +835,10 @@ export class ProView implements Component {
       isLocal: () => this.ctx.isLocal,
       now: () => this.ctx.now(),
       maximize: () => this.toggleMaximize(id),
+      openXterm: (terminalId, onRelease, onFocus) => new XtermView(terminalId, this.terminals, onRelease, onFocus),
+      killTerminal: (terminalId) => {
+        this.terminals.kill(terminalId).catch((error: unknown) => this.ctx.notifyLocal('warn', describeError(error)));
+      },
       copySessionId: () => {
         const agent = this.agents.get(id);
         if (agent !== undefined) this.ctx.copy(agent.sessionId, t('pro.node.copied'));

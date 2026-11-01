@@ -70,6 +70,10 @@ export function parseHireRequest(body: unknown): HireRequest {
       throw new HttpError(400, 'invalid-deskIndex');
     request.deskIndex = desk;
   }
+  if (raw.where !== undefined && raw.where !== null) {
+    if (raw.where !== 'window' && raw.where !== 'terminal') throw new HttpError(400, 'invalid-where');
+    request.where = raw.where;
+  }
   const locale = optionalLocale(raw.locale);
   if (locale !== undefined) request.locale = locale;
   return request;

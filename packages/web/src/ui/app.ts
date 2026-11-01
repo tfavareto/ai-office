@@ -7,6 +7,7 @@ import {
   type BossMessage,
   type FeedItem,
   type CodexSettings,
+  type TerminalSettings,
   type GitSettings,
   type HireRequest,
   type Msg,
@@ -759,6 +760,14 @@ export class App implements AppContext {
 
   setGitPullRequests(on: boolean): Promise<GitSettings> {
     return this.store.backend.setGitPullRequests(on);
+  }
+
+  terminalSettings(): Promise<TerminalSettings> {
+    return this.store.backend.terminalSettings();
+  }
+
+  setTerminals(on: boolean): Promise<TerminalSettings> {
+    return this.store.backend.setTerminals(on);
   }
 
   codexSettings(): Promise<CodexSettings> {

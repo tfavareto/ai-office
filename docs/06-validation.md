@@ -94,6 +94,8 @@ After the flat redesign (subagents in rows under their orchestrator, square conn
 | One cluster at 70% to 95% (2 to 6 live terminals) | 9 x 225 to 240 | 16.7 ms | 16.7 ms (one trial 33.3 ms) | 0 to 12 per trial |
 | Dense area at 37% to 51% | 9 x 223 to 241 | 16.7 ms | 16.7 ms | 0 to 11 per trial |
 
+With real terminals (2026-11-01, same machine and method, zoomed to fit), 8 programs each printing five lines a second, 4 of them drawn live in xterm.js: median frame 16.7 ms and 95th percentile 16.7 ms in all three trials, with 0 to 5 frames over 20 ms per trial. Zoomed in on one terminal, and maximized: 16.7 ms, 0 frames over 20 ms. Other work kept the load average between about 3 and 100 during the run.
+
 The DOM held about 1650 to 2860 elements for 14 to 23 terminals: each connector is now a single SVG path (its label and end ports are gone).
 
 Live terminals are capped at ten. They read only what follows the cursor of their last page, poll every 0.7 s while their agent works or waits (every 3 s when it is calm, never when it finished) and fetch at once when the office sees the agent do something, so a visible terminal shows a transcript write within about a second: at most one poll interval, or the office's own one-second scan plus one request. The server keeps twelve transcript views open (at most 48 MB together) so they do not evict each other, and runs the updates of one view one after the other.

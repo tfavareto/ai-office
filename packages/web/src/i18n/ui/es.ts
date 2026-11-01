@@ -713,6 +713,19 @@ export const uiEs: Readonly<Record<UiKey, string>> = {
     'No encontré una aplicación de terminal para abrir. Instala una (como gnome-terminal o xterm) e inténtalo de nuevo.',
   'hire.error.terminalFailed':
     'No se pudo abrir la terminal. En macOS, permite que AI Office controle Terminal en Ajustes del Sistema > Privacidad y seguridad > Automatización.',
+  'hire.where': 'Dónde corre',
+  'hire.where.window': 'Una nueva ventana de tu terminal',
+  'hire.where.terminal': 'Una terminal real en la Vista Pro',
+  'hire.error.terminalsOff':
+    'Las terminales reales están apagadas. Actívalas en Configuración → Datos e integraciones.',
+  'hire.error.terminalsUnavailable':
+    'El motor de terminal no está instalado en esta computadora. Ejecuta npm install y reinicia AI Office.',
+  'hire.error.terminalsLimit': 'Demasiadas terminales abiertas. Cierra una e inténtalo de nuevo.',
+  'settings.terminals': 'Terminales reales en la Vista Pro',
+  'settings.terminals.hint':
+    'Permite que esta página abra Claude Code en terminales donde escribes, solo en esta computadora. Apagarlo cierra las que están corriendo.',
+  'settings.terminals.unavailable':
+    'El motor de terminal (node-pty) no está instalado en esta computadora. Ejecuta npm install y reinicia AI Office.',
   'hire.error.unsupportedPlatform': 'Abrir la terminal solo funciona en macOS y Linux.',
   'hover.desk.title': 'Escritorio libre',
   'hover.desk.hint': 'Haz clic para contratar un agente aquí.',

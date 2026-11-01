@@ -4,7 +4,14 @@ import { chmod, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { makeTempDir, removeDir } from '../test-helpers';
-import { UnquotableError, buildLauncherScript, claudeArguments, shellQuote, type LaunchSpec } from './command';
+import {
+  UnquotableError,
+  buildLauncherScript,
+  claudeArguments,
+  shellQuote,
+  type LaunchSpec,
+  terminalEnvironment,
+} from './command';
 
 /** Values that break naive quoting: quotes, spaces, expansions, newlines, backslashes, unicode, leading dashes. */
 const NASTY = [
@@ -211,5 +218,85 @@ describe('buildLauncherScript run by a real sh', () => {
     const result = await run(spec(project));
 
     expect(result.status).toBe(3);
+  });
+});
+
+describe('terminalEnvironment', () => {
+  test('keeps what the person set, and asks for a modern terminal', () => {
+    // Arrange
+    const source = { PATH: '/usr/bin', ANTHROPIC_API_KEY: 'k', CLAUDE_CODE_USE_BEDROCK: '1', TERM: 'dumb' };
+
+    // Act
+    const env = terminalEnvironment(source, undefined);
+
+    // Assert
+    expect(env).toMatchObject({ PATH: '/usr/bin', ANTHROPIC_API_KEY: 'k', CLAUDE_CODE_USE_BEDROCK: '1' });
+    expect(env.TERM).toBe('xterm-256color');
+    expect(env.COLORTERM).toBe('truecolor');
+  });
+
+  test("drops the office's own settings", () => {
+    // Arrange
+    const source = { PATH: '/usr/bin', AI_OFFICE_PORT: '4848' };
+
+    // Act
+    const env = terminalEnvironment(source, undefined);
+
+    // Assert
+    expect(env.AI_OFFICE_PORT).toBeUndefined();
+  });
+
+  test('sets the account folder, replacing an inherited one', () => {
+    // Arrange
+    const source = { CLAUDE_CONFIG_DIR: '/old' };
+
+    // Act and assert
+    expect(terminalEnvironment(source, '/work').CLAUDE_CONFIG_DIR).toBe('/work');
+    expect(terminalEnvironment(source, undefined).CLAUDE_CONFIG_DIR).toBeUndefined();
+  });
+
+  test('does not make a new session look like a child of the session that started the office', () => {
+    // Arrange: the office started from inside Claude Code, whose markers turn off the new session's transcript.
+    const source = {
+      PATH: '/usr/bin',
+      CLAUDECODE: '1',
+      CLAUDE_CODE_CHILD_SESSION: '1',
+      CLAUDE_CODE_SESSION_ID: 'abc',
+      CLAUDE_CODE_MESSAGING_TOKEN: 'secret',
+      CLAUDE_AGENT_SDK_VERSION: '1',
+      CLAUDE_PID: '7',
+      CLAUDE_EFFORT: 'high',
+      ANTHROPIC_BASE_URL: 'http://127.0.0.1:9',
+    };
+
+    // Act
+    const env = terminalEnvironment(source, undefined);
+
+    // Assert
+    expect(Object.keys(env).sort()).toEqual(['COLORTERM', 'PATH', 'TERM']);
+  });
+
+  test("keeps the person's provider settings even when started from inside a session", () => {
+    // Arrange
+    const source = {
+      CLAUDECODE: '1',
+      CLAUDE_CODE_USE_BEDROCK: '1',
+      CLAUDE_CODE_USE_VERTEX: '1',
+      CLAUDE_CODE_OAUTH_TOKEN: 'token',
+      CLAUDE_CODE_MAX_OUTPUT_TOKENS: '100',
+      ANTHROPIC_BASE_URL: 'https://gateway.example.com',
+    };
+
+    // Act
+    const env = terminalEnvironment(source, undefined);
+
+    // Assert
+    expect(env).toMatchObject({
+      CLAUDE_CODE_USE_BEDROCK: '1',
+      CLAUDE_CODE_USE_VERTEX: '1',
+      CLAUDE_CODE_OAUTH_TOKEN: 'token',
+      CLAUDE_CODE_MAX_OUTPUT_TOKENS: '100',
+      ANTHROPIC_BASE_URL: 'https://gateway.example.com',
+    });
   });
 });

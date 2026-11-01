@@ -16,6 +16,7 @@ import type {
   Project,
   ProgressEventName,
   RecentSession,
+  TerminalSettings,
 } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
@@ -161,6 +162,8 @@ export interface AppContext {
   /** Server settings of the git integration (local access only). */
   gitSettings(): Promise<GitSettings>;
   codexSettings(): Promise<CodexSettings>;
+  terminalSettings(): Promise<TerminalSettings>;
+  setTerminals(on: boolean): Promise<TerminalSettings>;
   setCodexSessions(on: boolean): Promise<CodexSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
   setGitPullRequests(on: boolean): Promise<GitSettings>;

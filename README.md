@@ -206,6 +206,7 @@ Switch **Basic | Pro** in the top bar (or press `V`) to trade the office for a r
 | **Check on a project** | Click its name | A panel with the orchestrator, session and turn time, model, branch and changes, tokens, cost and subagents, plus a box for a typed or spoken order |
 | **Move around** | Drag, scroll, pinch, `0` to fit, `F` to focus | The view keeps fitting as subagents arrive, until you move the camera; drag a title bar to arrange terminals, and the layout is remembered |
 | **Give an orchestrator a task** | The project panel, or the optional command bar (`N`) | Your text goes through the plugin's message channel, to one orchestrator or a whole project; the box says when it will arrive and tracks delivery |
+| **Type into the agent itself** | **Settings → Data and integrations → Real terminals in the Pro view**, then hire an agent into **A real terminal** | Claude Code runs on the canvas and you type into it, on this computer only, off by default; `Ctrl+]` gives the keyboard back to the page. Sessions opened anywhere else stay read-only |
 | **Talk instead of typing** | The microphone in either box | Speech becomes text on this computer and lands in the box for you to review; nothing is sent on its own |
 
 Voice needs a speech model, downloaded once when you choose **Settings → Data and integrations → Voice → Download voice model**: Fast (44 MB), Balanced (80 MB), Accurate (252 MB) or Best (1.6 GB, the default, Whisper large-v3-turbo). Best runs on the graphics card through WebGPU; without it, the page uses Accurate and says so. In a test with 120 words of synthesized speech in Portuguese, English and Spanish, Best made no word errors, Accurate made 9 and Balanced 14. The first recording after opening the page waits for the model to load, which can take minutes on a busy or low-memory computer. After the download, the audio and the text never leave your computer. Codex sessions appear read-only, and an order follows the same delivery rules as any message: it reaches an idle agent only while it is within its 10-minute stand-by. The [user guide](docs/02-using-the-office.md) covers every control and shortcut.
@@ -409,6 +410,7 @@ Defaults work for most people. Set environment variables (or the matching flags)
 | `AI_OFFICE_DEMO` | off | Start with demo sessions |
 | `AI_OFFICE_LOG` | normal | `quiet` or `debug` |
 | `AI_OFFICE_VOICE` | on | `0` turns off the voice model download |
+| `AI_OFFICE_TERMINALS` | on | `0` keeps real terminals off whatever Settings says |
 
 Interface preferences live in **Settings**, grouped into sections you can expand or collapse (**General** with language, visual and day and night first, then office, sounds and notifications, data and integrations, automation and personalization, team, demo and about), and are saved in your browser. The [configuration guide](docs/04-configuration.md) lists everything, including hook settings.
 

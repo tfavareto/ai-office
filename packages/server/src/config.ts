@@ -21,6 +21,8 @@ export interface ServerConfig {
   teamDisabled: boolean;
   /** AI_OFFICE_VOICE=0: voice input cannot download its speech model, whatever Settings says. */
   voiceDisabled: boolean;
+  /** AI_OFFICE_TERMINALS=0: real terminals stay off, whatever Settings says. */
+  terminalsDisabled: boolean;
   /** AI_OFFICE_TEAM_LOOPBACK=1: team mode may use 127.0.0.1 (two instances on one computer: tests and demos). */
   teamLoopback: boolean;
   /** AI_OFFICE_TEAM_DEVICE: the device name team mode shows instead of the computer's host name. */
@@ -122,6 +124,7 @@ export function loadConfig(env: NodeJS.ProcessEnv, argv: readonly string[], defa
     codexDisabled: env.AI_OFFICE_CODEX !== undefined && !isTruthy(env.AI_OFFICE_CODEX),
     teamDisabled: env.AI_OFFICE_TEAM !== undefined && !isTruthy(env.AI_OFFICE_TEAM),
     voiceDisabled: env.AI_OFFICE_VOICE !== undefined && !isTruthy(env.AI_OFFICE_VOICE),
+    terminalsDisabled: env.AI_OFFICE_TERMINALS !== undefined && !isTruthy(env.AI_OFFICE_TERMINALS),
     teamLoopback: isTruthy(env.AI_OFFICE_TEAM_LOOPBACK),
     teamDevice: env.AI_OFFICE_TEAM_DEVICE?.trim() || undefined,
     stateDir: expandHome(flags.get('--state-dir') ?? env.AI_OFFICE_STATE_DIR ?? join(homeDir, '.ai-office'), homeDir),

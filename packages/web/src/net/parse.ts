@@ -13,6 +13,7 @@ import {
   type FeedItem,
   type HireCheckResponse,
   type ProjectFiles,
+  type TerminalSettings,
   type Notice,
   type OfficeSnapshot,
   type PendingHire,
@@ -180,6 +181,11 @@ export function parseHire(data: unknown): PendingHire {
 
 const CHECK_REASONS = new Set(['not-absolute', 'not-found', 'not-directory', 'not-readable']);
 
+export function parseTerminalSettings(data: unknown): TerminalSettings {
+  if (!isRecord(data)) throw new Error(t('error.invalidResponse'));
+  return { enabled: data.enabled === true, available: data.available === true };
+}
+
 export function parseProjectFiles(data: unknown): ProjectFiles {
   if (!isRecord(data) || !Array.isArray(data.files)) throw new Error(t('error.invalidResponse'));
   return {
@@ -215,6 +221,7 @@ export function parseSnapshot(data: unknown): OfficeSnapshot | null {
       demo: meta.demo === true,
       build: typeof meta.build === 'string' ? meta.build : undefined,
       ...(meta.gitPullRequests === true ? { gitPullRequests: true } : {}),
+      ...(typeof meta.terminals === 'number' ? { terminals: meta.terminals } : {}),
     },
     accounts: data.accounts.filter(isRecord).map(normalizeAccount),
     projects: data.projects.filter(isRecord).map(normalizeProject),

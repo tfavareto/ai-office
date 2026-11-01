@@ -2,6 +2,7 @@
 // session time, maximize and copy-id buttons), the session printed like the Claude Code CLI, what it waits for (the
 // permission prompt, amber, answered right there), and a CLI-like status line. It always shows terminal text: live from the transcript
 // when the policy lets it poll, otherwise the last lines it already has followed by what the office saw the agent do.
+import type { XtermView } from './xterm-view';
 import { isCodex, type Account, type Agent, type TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
 import { t, type TextKey } from '../../i18n';
@@ -40,6 +41,9 @@ export interface NodeHandlers extends AskHost {
   maximize(): void;
   copySessionId(): void;
   select(): void;
+  /** Opens the real terminal on screen. */
+  openXterm(terminalId: string, onRelease: () => void, onFocus: (focused: boolean) => void): XtermView;
+  killTerminal(terminalId: string): void;
   /** A folded finished subagent was picked in the orchestrator's list: show its terminal. */
   openFinished(agent: Agent): void;
 }
@@ -57,6 +61,9 @@ const ACTIONS: readonly { name: ActionName; icon: IconName; key: TextKey }[] = [
   { name: 'maximize', icon: 'maximize', key: 'pro.node.maximize' },
   { name: 'copy', icon: 'copy', key: 'pro.node.copyId' },
 ];
+
+/** How long the stop button waits for the second click. */
+const KILL_CONFIRM_MS = 3000;
 
 export class TerminalNode {
   readonly el = h('article', { class: 'ao-pro-node', tabindex: '0', role: 'group' });
@@ -85,6 +92,14 @@ export class TerminalNode {
   private readonly liveFeed: TranscriptFeed;
   private readonly recent = new ActivityEntryCache();
   private readonly ask: AskBox;
+  private readonly content = h('div', { class: 'ao-pro-content' });
+  private readonly askSlot = h('div', { class: 'ao-pro-ask-slot', hidden: true });
+  private readonly typing = h('span', { class: 'ao-pro-typing', hidden: true }, t('pro.terminal.typing'));
+  private readonly killButton: HTMLButtonElement;
+  private killArmed: ReturnType<typeof setTimeout> | null = null;
+  private xterm: XtermView | null = null;
+  private xtermId: string | null = null;
+  private wantsTerminalFocus = false;
   private asking = false;
   private detail: Detail = 'summary';
   private maximized = false;
@@ -141,6 +156,24 @@ export class TerminalNode {
       this.renderDone();
     });
     this.status.appendChild(this.pill);
+    this.status.appendChild(this.typing);
+    this.content.append(this.body.el, this.toEnd, this.retry, this.doneList, this.askSlot);
+    this.killButton = h(
+      'button',
+      {
+        type: 'button',
+        class: 'ao-pro-action ao-pro-kill',
+        hidden: true,
+        title: t('pro.terminal.kill'),
+        'aria-label': t('pro.terminal.kill'),
+        'data-no-drag': '',
+        onclick: (event: Event) => {
+          event.stopPropagation();
+          this.onKillClick();
+        },
+      },
+      icon('x', 13),
+    );
     this.el.append(
       h(
         'header',
@@ -153,10 +186,10 @@ export class TerminalNode {
         this.model,
         h('span', { class: 'ao-pro-spacer' }),
         this.elapsed,
-        h('div', { class: 'ao-pro-actions' }, ...buttons),
+        h('div', { class: 'ao-pro-actions' }, this.killButton, ...buttons),
       ),
       this.task,
-      h('div', { class: 'ao-pro-content' }, this.body.el, this.toEnd, this.retry, this.doneList),
+      this.content,
       this.status,
     );
     this.el.addEventListener('pointerdown', (event) => {
@@ -164,7 +197,9 @@ export class TerminalNode {
       this.handlers.select();
     });
     this.el.addEventListener('dblclick', (event) => {
-      if (event.target instanceof Element && event.target.closest('button, .ao-pro-done') !== null) return;
+      // In a real terminal a double click selects a word, as in any terminal.
+      if (event.target instanceof Element && event.target.closest('button, .ao-pro-done, .ao-pro-xterm') !== null)
+        return;
       event.preventDefault();
       this.handlers.maximize();
     });
@@ -229,6 +264,7 @@ export class TerminalNode {
     toggleClass(this.el, 'is-selected', model.selected);
     this.setMaximizedState(model.maximized);
     this.renderPill(model);
+    this.syncXterm(model.finishedAt === undefined ? agent.terminalId : undefined);
     this.renderAsk(agent, status === 'waiting', model.finishedAt !== undefined);
     if (agent.lastEventAt !== this.lastEventAt) {
       // The office saw it do something: a live terminal reads it now, a resting one shows the new activity.
@@ -284,7 +320,78 @@ export class TerminalNode {
     const shown = this.ask.update(agent, waiting, finished);
     if (shown === this.asking) return;
     this.asking = shown;
-    this.body.setTail(shown ? this.ask.el : null);
+    this.placeAsk();
+  }
+
+  /** Under the conversation, or under the real terminal when it is on screen. */
+  private placeAsk(): void {
+    const inSlot = this.asking && this.xterm !== null && this.xtermOnScreen();
+    this.body.setTail(this.asking && !inSlot ? this.ask.el : null);
+    this.askSlot.hidden = !inSlot;
+    if (inSlot) this.askSlot.replaceChildren(this.ask.el);
+    else this.askSlot.replaceChildren();
+  }
+
+  // --- real terminal --------------------------------------------------------------------------------------------
+
+  private xtermOnScreen(): boolean {
+    return this.xtermId !== null && (this.detail === 'live' || this.maximized);
+  }
+
+  /** A session the office opened shows the program itself; when it scrolls off, the transcript takes over. */
+  private syncXterm(terminalId: string | undefined): void {
+    if (terminalId !== this.xtermId) {
+      this.xterm?.dispose();
+      this.xterm?.el.remove();
+      this.xterm = null;
+      this.xtermId = terminalId ?? null;
+      this.killButton.hidden = terminalId === undefined;
+    }
+    const onScreen = this.xtermOnScreen();
+    if (onScreen && this.xterm === null && this.xtermId !== null) {
+      this.xterm = this.handlers.openXterm(
+        this.xtermId,
+        () => this.el.focus({ preventScroll: true }),
+        (focused) => {
+          this.typing.hidden = !focused;
+        },
+      );
+      this.content.insertBefore(this.xterm.el, this.askSlot);
+    }
+    if (this.xterm !== null && this.wantsTerminalFocus) {
+      this.wantsTerminalFocus = false;
+      this.xterm.focus();
+    }
+    toggleClass(this.el, 'has-xterm', onScreen);
+    this.placeAsk();
+  }
+
+  /** Gives the program the keyboard as soon as its terminal is on screen. */
+  focusTerminal(): void {
+    this.wantsTerminalFocus = true;
+    this.syncXterm(this.xtermId ?? undefined);
+  }
+
+  private onKillClick(): void {
+    const id = this.xtermId;
+    if (id === null) return;
+    if (this.killArmed === null) {
+      toggleClass(this.killButton, 'is-armed', true);
+      setAttr(this.killButton, 'title', t('pro.terminal.killConfirm'));
+      setAttr(this.killButton, 'aria-label', t('pro.terminal.killConfirm'));
+      this.killArmed = setTimeout(() => this.disarmKill(), KILL_CONFIRM_MS);
+      return;
+    }
+    this.disarmKill();
+    this.handlers.killTerminal(id);
+  }
+
+  private disarmKill(): void {
+    if (this.killArmed !== null) clearTimeout(this.killArmed);
+    this.killArmed = null;
+    toggleClass(this.killButton, 'is-armed', false);
+    setAttr(this.killButton, 'title', t('pro.terminal.kill'));
+    setAttr(this.killButton, 'aria-label', t('pro.terminal.kill'));
   }
 
   // --- detail and text --------------------------------------------------------------------------------------------
@@ -301,6 +408,7 @@ export class TerminalNode {
     if (detail !== was) {
       this.configureBody();
       this.renderBody();
+      this.syncXterm(this.xtermId ?? undefined);
     }
   }
 
@@ -334,6 +442,8 @@ export class TerminalNode {
   /** Stops its polling (the terminal left the canvas, or the page rebuilds its panels). */
   dispose(): void {
     this.liveFeed.stop();
+    this.xterm?.dispose();
+    this.disarmKill();
     if (this.restingTimer !== null) clearTimeout(this.restingTimer);
     this.restingTimer = null;
   }

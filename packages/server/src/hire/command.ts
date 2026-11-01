@@ -43,6 +43,39 @@ export function claudeArguments(spec: Pick<LaunchSpec, 'model' | 'permissionMode
   return args;
 }
 
+/**
+ * What a Claude Code session passes to the programs under it, including a token of its own. When the office was started
+ * from inside one, a new session inheriting these thinks it is its child and saves no transcript or registry entry.
+ */
+const SESSION_VARIABLE = /^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_AGENT_SDK_|CLAUDE_PID$|CLAUDE_EFFORT$|CLAUDE_PREVIEW_)/;
+/** Inside those, what the person set for every session: the provider, its login and its limits. */
+const PERSON_SETTING = /^CLAUDE_CODE_(USE_|OAUTH_TOKEN$|MAX_OUTPUT_TOKENS$|API_KEY_)/;
+
+/** A session may route its own traffic through a proxy on this computer; that belongs to it. A gateway stays. */
+function isLoopbackUrl(value: string | undefined): boolean {
+  if (value === undefined) return false;
+  try {
+    return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** What a real terminal starts with: the person's environment, the account's folder and a modern terminal. */
+export function terminalEnvironment(source: NodeJS.ProcessEnv, configDir: string | undefined): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  const insideSession = source.CLAUDECODE !== undefined || source.CLAUDE_CODE_SESSION_ID !== undefined;
+  const proxied = isLoopbackUrl(source.ANTHROPIC_BASE_URL);
+  for (const [name, value] of Object.entries(source)) {
+    if (value === undefined || name === 'CLAUDE_CONFIG_DIR' || name.startsWith('AI_OFFICE_')) continue;
+    if (insideSession && SESSION_VARIABLE.test(name) && !PERSON_SETTING.test(name)) continue;
+    if (insideSession && name === 'ANTHROPIC_BASE_URL' && proxied) continue;
+    env[name] = value;
+  }
+  if (configDir !== undefined) env.CLAUDE_CONFIG_DIR = configDir;
+  return { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
+}
+
 function printLines(...lines: string[]): string {
   return lines.map((line) => `printf '%s\\n' ${shellQuote(line)}`).join('; ');
 }

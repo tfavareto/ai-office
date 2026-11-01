@@ -709,6 +709,18 @@ export const uiPtBR = {
     'Não encontrei um aplicativo de terminal para abrir. Instale um (como o gnome-terminal ou o xterm) e tente de novo.',
   'hire.error.terminalFailed':
     'Não foi possível abrir o terminal. No macOS, permita que o AI Office controle o Terminal em Ajustes do Sistema > Privacidade e Segurança > Automação.',
+  'hire.where': 'Onde roda',
+  'hire.where.window': 'Uma nova janela do seu terminal',
+  'hire.where.terminal': 'Um terminal real na Visão Pro',
+  'hire.error.terminalsOff': 'Os terminais reais estão desligados. Ligue em Configurações → Dados e integrações.',
+  'hire.error.terminalsUnavailable':
+    'O motor de terminal não está instalado neste computador. Rode npm install e reinicie o AI Office.',
+  'hire.error.terminalsLimit': 'Terminais abertos demais. Feche um e tente de novo.',
+  'settings.terminals': 'Terminais reais na Visão Pro',
+  'settings.terminals.hint':
+    'Permite que esta página abra o Claude Code em terminais onde você digita, só neste computador. Desligar encerra os que estão rodando.',
+  'settings.terminals.unavailable':
+    'O motor de terminal (node-pty) não está instalado neste computador. Rode npm install e reinicie o AI Office.',
   'hire.error.unsupportedPlatform': 'Abrir o terminal só funciona no macOS e no Linux.',
   'hover.desk.title': 'Mesa livre',
   'hover.desk.hint': 'Clique para contratar um agente aqui.',

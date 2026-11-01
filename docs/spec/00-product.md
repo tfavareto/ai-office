@@ -231,5 +231,6 @@ Several computers of one local network share one office (full design, threat mod
 - Teammates appear as extra rooms grouped by member ("Ana · Project 1", member color), in 2D and 3D, with presence, a **Team** filter in the sidebar and a read-only drawer. No message, answer, terminal or hiring reaches another computer.
 
 ## Non-goals
-Remote multi-user access (team mode shows other computers' offices read-only over the LAN; it never serves the page or the API to another computer); editing files; sending prompts to running sessions other than through the message feature (a
-first prompt can be given when hiring an agent); Windows-specific work.
+Remote multi-user access (team mode shows other computers' offices read-only over the LAN; it never serves the page or the API to another computer); editing files; sending prompts to sessions opened outside the office other than through the message feature (a first
+prompt can be given when hiring an agent; a real terminal the office opened itself takes what the person types, see
+[04-ui.md](04-ui.md#pro-view-the-orchestration-canvas)); Windows-specific work.

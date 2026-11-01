@@ -8,6 +8,7 @@ import { registerDataRoutes } from './handlers/data';
 import { registerCodexRoutes } from './handlers/codex';
 import { registerGitRoutes } from './handlers/git';
 import { registerHireRoutes } from './handlers/hire';
+import { registerTerminalRoutes } from './handlers/terminals';
 import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
 import { registerProgressRoutes } from './handlers/progress';
@@ -66,6 +67,7 @@ export function buildRouter(app: AppContext): Router {
   registerReportRoutes(router, app);
   registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
+  registerTerminalRoutes(router, app);
   registerGitRoutes(router, app);
   registerCustomizationRoutes(router, app);
   registerCodexRoutes(router, app);

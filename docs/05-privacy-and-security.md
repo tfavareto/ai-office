@@ -53,7 +53,7 @@ Messages, permission requests and notifications live in the server's memory and 
 
 - The server binds to `127.0.0.1` by default. A non-loopback `AI_OFFICE_HOST` is refused at startup unless remote access is explicitly allowed.
 - The server and the plugin hooks make **no outbound network requests**, with one optional exception: if you turn on **Settings → Data and integrations → Look up pull requests with gh (uses the internet)**, the server starts your own `gh` CLI, which talks to GitHub (see [Git and pull requests](#git-and-pull-requests)). It is off by default. The other exception is the one-time download of the speech model, which happens only when you press **Download voice model** (see [Voice input](#voice-input)). The hooks connect to `127.0.0.1` and nothing else.
-- Features that act on sessions (terminal, session history, permissions, messages, attention marks, hiring an agent, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
+- Features that act on sessions (terminal, real terminals, session history, permissions, messages, attention marks, hiring an agent, the demo switch) are **local-only**: they require a loopback bind, a loopback `Host` header and a loopback peer address. Without all three they answer 403 `local-only`.
 - The web app loads all its scripts, styles and assets from the server itself. 3D models and textures are bundled (CC0), not fetched from a CDN.
 
 ## Access token
@@ -220,6 +220,19 @@ Levels, achievements and the "Employee of the month" are computed on your comput
 - **Demo mode.** Nothing is launched: hires into non-real rooms are simulated.
 
 If you do not want this at all, do not open the page on the computer that runs AI Office: the endpoint answers 403 `local-only` to every other client. A macOS prompt asks once whether the app that runs the server may control Terminal.
+
+## Real terminals
+
+Off by default. When you turn them on, this page can start Claude Code on this computer and type into it, so anything able to act as this page could run commands as you. What limits that:
+
+- **Local only.** Every route needs a loopback bind, `Host` and peer, plus the access token and the `Host`, `Origin` and `Sec-Fetch-Site` checks. A request from another site or another computer is refused even with the token, including with `AI_OFFICE_ALLOW_REMOTE=1`.
+- **The page never picks the program.** No route takes a command. A terminal starts only from a hire, which runs the `claude` executable directly, with no shell, so a first task containing `$(...)` stays text.
+- **Limits.** 16 programs at once, 64 KB per input request, 8 streams.
+- **Output stays in memory.** At most 512 KB per terminal on the server and in the page; none of it is written to disk by AI Office.
+- **Not WebSocket.** Typing is a normal POST, so it goes through the same checks as every other action.
+- **Off means off.** Turning the setting off stops every running program and refuses the stream and input. `AI_OFFICE_TERMINALS=0` keeps the engine off whatever the setting says.
+
+Claude Code itself works as in any terminal: its permissions, plugins and network use are its own. A program printing to the terminal cannot inject into the page, because xterm.js draws text and no HTML comes through.
 
 ## Team mode
 
