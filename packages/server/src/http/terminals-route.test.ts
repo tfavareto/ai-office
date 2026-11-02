@@ -467,6 +467,46 @@ describe('connecting agents', () => {
   });
 });
 
+describe('floors', () => {
+  test('start only from a room of the office, so the page cannot point git at a folder', async () => {
+    // Arrange
+    await boot();
+
+    // Act
+    const create = await post('/api/floors', { project: '/etc', name: 'x' });
+    const remove = await post('/api/floors/remove', { project: '/etc' });
+    const status = await fetch(url('/api/floors/status?project=%2Fetc'), { headers: authed() });
+
+    // Assert
+    expect([create.status, remove.status, status.status]).toEqual([404, 404, 404]);
+  });
+
+  test('are refused from another computer and from another site', async () => {
+    // Arrange
+    await boot({ AI_OFFICE_HOST: '0.0.0.0', AI_OFFICE_ALLOW_REMOTE: '1' });
+    const remote = { ...authed(), host: `192.168.1.20:${port}`, 'content-type': 'application/json' };
+
+    // Act
+    const create = await raw('/api/floors', remote, JSON.stringify({ project: 'x', name: 'y' }));
+    const land = await raw('/api/floors/land', remote, JSON.stringify({ project: 'x', mode: 'merge' }));
+    const status = await raw('/api/floors/status?project=x', remote);
+
+    // Assert
+    expect([create.statusCode, land.statusCode, status.statusCode]).toEqual([403, 403, 403]);
+  });
+
+  test('landing needs a known way to land', async () => {
+    // Arrange
+    await boot();
+
+    // Act
+    const response = await post('/api/floors/land', { project: project, mode: 'force' });
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+});
+
 describe('turning real terminals off', () => {
   test('stops the running programs and refuses what the page sends them', async () => {
     // Arrange

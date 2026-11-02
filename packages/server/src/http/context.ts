@@ -58,6 +58,8 @@ export interface AppContext {
   git: GitWatcher;
   /** Starts `git` on the user's repositories, under the same cap as the watcher. */
   runGit: Runner;
+  /** Starts `gh` and pushes, with the person's own environment: their logins are needed there. */
+  runGh: Runner;
   gitSettings: GitSettingsStore;
   day: DayRecorder;
   usage: UsageIndexer;
