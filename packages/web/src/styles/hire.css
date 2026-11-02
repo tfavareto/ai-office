@@ -203,3 +203,58 @@
     transition: none;
   }
 }
+
+/* Roles */
+.ao-dialog--roles {
+  width: min(560px, calc(100vw - 2 * var(--gap)));
+}
+
+.ao-roles-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px;
+}
+
+.ao-roles-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ao-roles-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.ao-roles-name {
+  flex: 1 1 auto;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ao-roles-name:hover {
+  text-decoration: underline;
+}
+
+.ao-roles-remove {
+  flex: none;
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ao-roles-remove:hover {
+  color: var(--error);
+}

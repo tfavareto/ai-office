@@ -287,7 +287,7 @@ describe('response headers', () => {
         expect(headers[name.toLowerCase()], name).toBe(value);
     }
     expect(SECURITY_HEADERS['Content-Security-Policy']).toBe(
-      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
+      "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'",
     );
     expect(responses.map((r) => r.status)).toEqual([200, 200, 404, 200, 200, 401, 404, 403]);
   });
@@ -302,8 +302,8 @@ describe('content security policy', () => {
       }),
     );
 
-  test('lets scripts compile WebAssembly (the speech model) and nothing broader', () => {
-    expect(directives().get('script-src')).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+  test('sets no script source of its own: scripts fall back to this origin, without eval or WebAssembly', () => {
+    expect(directives().has('script-src')).toBe(false);
   });
 
   test('keeps the page from reaching any other host, and from running eval or inline scripts', () => {
@@ -312,13 +312,13 @@ describe('content security policy', () => {
     expect(policy.get('default-src')).toEqual(["'self'"]);
     const all = [...policy.values()].flat();
     expect(all).not.toContain("'unsafe-eval'");
-    expect(policy.get('script-src')).not.toContain("'unsafe-inline'");
+    expect(policy.get('default-src')).not.toContain("'unsafe-inline'");
     expect(all.filter((value) => /^https?:|\*/.test(value))).toEqual([]);
   });
 });
 
 describe('cross-origin isolation', () => {
-  test('isolates the page from other sites, which also gives the speech model its threads', () => {
+  test('isolates the page from other sites', () => {
     expect(SECURITY_HEADERS['Cross-Origin-Opener-Policy']).toBe('same-origin');
     expect(SECURITY_HEADERS['Cross-Origin-Embedder-Policy']).toBe('require-corp');
     expect(SECURITY_HEADERS['Cross-Origin-Resource-Policy']).toBe('same-origin');

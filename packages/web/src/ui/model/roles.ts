@@ -1,5 +1,5 @@
-// Roles (reusable instructions an agent starts with) and the connections drawn between terminals. Pure.
-import { HIRE_MAX_ROLE_INSTRUCTIONS, HIRE_MAX_ROLE_NAME, type Agent } from '@ai-office/shared';
+// Roles: reusable instructions an agent starts with. Pure.
+import { HIRE_MAX_ROLE_INSTRUCTIONS, HIRE_MAX_ROLE_NAME } from '@ai-office/shared';
 
 export interface SavedRole {
   id: string;
@@ -29,24 +29,4 @@ export function addRole(list: readonly SavedRole[], role: SavedRole): SavedRole[
 
 export function removeRole(list: readonly SavedRole[], id: string): SavedRole[] {
   return list.filter((entry) => entry.id !== id);
-}
-
-export interface PeerPair {
-  from: string;
-  to: string;
-}
-
-/** Each connection once, as the two agents to draw a line between. */
-export function peerPairs(agents: readonly Pick<Agent, 'id' | 'terminalId' | 'terminalPeers'>[]): PeerPair[] {
-  const byTerminal = new Map<string, string>();
-  for (const agent of agents) if (agent.terminalId !== undefined) byTerminal.set(agent.terminalId, agent.id);
-  const pairs: PeerPair[] = [];
-  for (const agent of agents) {
-    if (agent.terminalId === undefined) continue;
-    for (const peer of agent.terminalPeers ?? []) {
-      const other = byTerminal.get(peer);
-      if (other !== undefined && agent.terminalId < peer) pairs.push({ from: agent.id, to: other });
-    }
-  }
-  return pairs;
 }

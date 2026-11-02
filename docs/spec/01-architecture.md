@@ -46,23 +46,19 @@ page, page decisions go back to the hooks.
   POST requires `Content-Type: application/json` and an Origin that is the page itself (or no Origin, for hooks); body
   limit 256 KB. Endpoints that consume state are POSTs (`POST /api/messages/inbox`).
 - Local-only features (terminal, sessions history, usage detail, permissions, messages) require both loopback bind and loopback Host.
-- Every response (static and API): `Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval';
+- Every response (static and API): `Content-Security-Policy: default-src 'self';
   img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self';
   frame-ancestors 'none'`, `X-Frame-Options: DENY`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and cross-origin isolation:
   `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`,
-  `Cross-Origin-Resource-Policy: same-origin` (every asset is same-origin; isolation is also what gives the speech model
-  `SharedArrayBuffer`, so WebAssembly threads). Note `connect-src 'self'` blocks `fetch`/XHR of
+  `Cross-Origin-Resource-Policy: same-origin` (every asset is same-origin). Note `connect-src 'self'` blocks `fetch`/XHR of
   `blob:` and `data:` URLs: load assets from same-origin files and build textures on canvases (`CanvasTexture`; `<img>`
-  with data:/blob: is fine). `script-src` exists for one reason: the speech model of voice input (transformers.js with
-  ONNX Runtime Web) needs the browser to compile WebAssembly, and `'wasm-unsafe-eval'` is exactly that permission (it
-  does not allow `eval`, `new Function` or inline scripts). WebGPU and threads need no other source. Nothing broader may
-  be added; `security.test.ts` pins the policy and the isolation headers. See 02-server (Voice models) and 04-ui (Voice input).
+  with data:/blob: is fine). Nothing broader may be added; `security.test.ts` pins the policy and the isolation headers.
 - Limits: request 30 s and headers 15 s (they bound receiving a request, not SSE or long-poll responses); at most 20
   SSE streams (503 `too-many-streams` beyond); transcript entries keep at most 4 KB of text, a cached view at most
   ~8 MB, and `/api/transcript` pages carry at most 500 entries.
 - **Team mode** is the only code that listens beyond loopback, and only when the person turns it on: a separate `node:net` listener bound to one chosen private IPv4 address, speaking a framed, encrypted protocol with no HTTP, no routes and no static files, so it can never serve the web app or a local-only endpoint. The main listener, its guards and its allowed `Host` values are unchanged. See [08-team-mode.md](08-team-mode.md).
-- No secrets in the repo; no outbound network requests (the exceptions, all off until the person asks: the optional pull request lookup through the user's own `gh` CLI, see 02-server; team mode's encrypted connection to computers of the user's own local network, see 08-team-mode; and the one-time download of the voice input speech model by the server, see 02-server).
+- No secrets in the repo; no outbound network requests (the exceptions, both off until the person asks: the optional pull request lookup through the user's own `gh` CLI, see 02-server; and team mode's encrypted connection to computers of the user's own local network, see 08-team-mode).
 
 ## Build and run
 - `npm run dev`: server (tsx watch, port 4848) + Vite dev server (proxy /api to 4848).

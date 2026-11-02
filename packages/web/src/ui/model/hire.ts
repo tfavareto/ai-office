@@ -7,7 +7,6 @@ import {
   type HireErrorCode,
   type HireModel,
   type HirePermissionMode,
-  type HireWhere,
   type HireRole,
   type HireRequest,
   type OfficeSnapshot,
@@ -30,8 +29,6 @@ export interface HireForm {
   prompt: string;
   model: HireModel;
   permissionMode: HirePermissionMode;
-  /** Where it runs; the choice only exists when real terminals are on. */
-  where: HireWhere;
   /** The instructions it starts with. */
   role?: HireRole;
   deskIndex?: number;
@@ -113,7 +110,6 @@ export function buildHireRequest(form: HireForm): HireRequest {
   if (form.model !== 'default') request.model = form.model;
   if (form.permissionMode !== 'default') request.permissionMode = form.permissionMode;
   if (form.deskIndex !== undefined) request.deskIndex = form.deskIndex;
-  if (form.where === 'terminal') request.where = 'terminal';
   if (form.role !== undefined) request.role = form.role;
   return request;
 }
@@ -136,9 +132,6 @@ const ERROR_KEYS: Readonly<Partial<Record<HireErrorCode, UiKey>>> = {
   'claude-not-found': 'hire.error.claudeNotFound',
   'no-terminal': 'hire.error.noTerminal',
   'terminal-failed': 'hire.error.terminalFailed',
-  'terminals-off': 'hire.error.terminalsOff',
-  'terminals-unavailable': 'hire.error.terminalsUnavailable',
-  'terminals-limit': 'hire.error.terminalsLimit',
   'unsupported-platform': 'hire.error.unsupportedPlatform',
 };
 

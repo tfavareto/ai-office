@@ -82,7 +82,7 @@ const MAX_BLOCKED = 4;
 /** Per step, the chance an agent blocks on a permission request, and (just above it) on a question. */
 const PERMISSION_CHANCE = 0.07;
 const QUESTION_CHANCE = 0.09;
-/** Per step of a subagent, the chance it stops on a permission request (the Pro view shows the wait on its terminal). */
+/** Per step of a subagent, the chance it stops on a permission request. */
 const SUB_PERMISSION_CHANCE = 0.05;
 const CHURN_MIN_MS = 70_000;
 const CHURN_MAX_MS = 130_000;

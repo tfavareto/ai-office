@@ -89,9 +89,6 @@ function harness(
     resolveClaude: () => ('claude' in options ? options.claude : CLAUDE),
     launchLimiter: new RateLimiter(options.limit ?? 5, 60_000, () => clock),
     refresh: () => undefined,
-    env: {},
-    bridge: { path: '/bridge.mjs', env: {} },
-    terminals: { enabled: () => false, start: () => undefined },
   });
   return { service, registry, opened, setClock: (value) => void (clock = value) };
 }

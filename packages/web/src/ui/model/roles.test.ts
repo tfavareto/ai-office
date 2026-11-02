@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_ROLES, addRole, peerPairs, removeRole, validRole } from './roles';
+import { MAX_ROLES, addRole, removeRole, validRole } from './roles';
 
 const role = (id: string) => ({ id, name: id, instructions: 'do' });
 
@@ -49,30 +49,5 @@ describe('roles', () => {
     expect(validRole('Revisor', '  ')).toBe(false);
     expect(validRole('x'.repeat(49), 'Revise')).toBe(false);
     expect(validRole('Revisor', 'x'.repeat(8001))).toBe(false);
-  });
-});
-
-describe('peerPairs', () => {
-  it('lists each connection once, between the agents of the two terminals', () => {
-    // Arrange
-    const agents = [
-      { id: 'a1', terminalId: 't1', terminalPeers: ['t2'] },
-      { id: 'a2', terminalId: 't2', terminalPeers: ['t1'] },
-      { id: 'a3', terminalId: 't3' },
-    ];
-
-    // Act
-    const pairs = peerPairs(agents);
-
-    // Assert
-    expect(pairs).toEqual([{ from: 'a1', to: 'a2' }]);
-  });
-
-  it('skips a connection whose other terminal has no agent on the canvas yet', () => {
-    // Arrange
-    const agents = [{ id: 'a1', terminalId: 't1', terminalPeers: ['t2'] }];
-
-    // Act and assert
-    expect(peerPairs(agents)).toEqual([]);
   });
 });

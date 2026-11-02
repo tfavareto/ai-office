@@ -1,7 +1,4 @@
 // Everything the HTTP handlers need, assembled by the app.
-import type { TerminalService } from '../terminal/service';
-import type { TerminalSettingsStore } from '../terminal/settings-store';
-import type { TerminalStreams } from '../terminal/stream';
 import type { Runner } from '../git/run';
 import type { Engine } from '../claude/engine';
 import type { CodexEngine } from '../codex/engine';
@@ -25,7 +22,6 @@ import type { GitSettingsStore } from '../git/settings-store';
 import type { GitWatcher } from '../git/watcher';
 import type { HireService } from '../hire/service';
 import type { TeamService } from '../team/service';
-import type { VoiceModelStore } from '../voice/model-store';
 import type { TokenAuth } from './auth';
 import type { SseHub } from './sse';
 import type { SnapshotPublisher } from '../office/snapshot';
@@ -50,11 +46,7 @@ export interface AppContext {
   messages: MessageRegistry;
   attention: AttentionRegistry;
   hires: HireService;
-  terminals: TerminalService;
-  terminalSettings: TerminalSettingsStore;
-  terminalStreams: TerminalStreams;
   team: TeamService;
-  voice: VoiceModelStore;
   git: GitWatcher;
   /** Starts `git` on the user's repositories, under the same cap as the watcher. */
   runGit: Runner;

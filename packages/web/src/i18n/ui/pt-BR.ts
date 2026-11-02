@@ -1,9 +1,7 @@
 // pt-BR ui texts (source catalog). en.ts and es.ts must define exactly the same keys — the types enforce it.
 // Sections group the keys by screen area; plurals use the ICU subset of @ai-office/shared (`=1` keeps pt-BR exact).
-import { proPtBR } from './pro-pt-BR';
 
 export const uiPtBR = {
-  ...proPtBR,
   // App and common
   'app.description': 'AI Office: um escritório ao vivo onde suas sessões do Claude Code trabalham como pessoas.',
   'app.startFailed': 'Não foi possível iniciar o AI Office.',
@@ -709,18 +707,6 @@ export const uiPtBR = {
     'Não encontrei um aplicativo de terminal para abrir. Instale um (como o gnome-terminal ou o xterm) e tente de novo.',
   'hire.error.terminalFailed':
     'Não foi possível abrir o terminal. No macOS, permita que o AI Office controle o Terminal em Ajustes do Sistema > Privacidade e Segurança > Automação.',
-  'hire.where': 'Onde roda',
-  'hire.where.window': 'Uma nova janela do seu terminal',
-  'hire.where.terminal': 'Um terminal real na Visão Pro',
-  'hire.error.terminalsOff': 'Os terminais reais estão desligados. Ligue em Configurações → Dados e integrações.',
-  'hire.error.terminalsUnavailable':
-    'O motor de terminal não está instalado neste computador. Rode npm install e reinicie o AI Office.',
-  'hire.error.terminalsLimit': 'Terminais abertos demais. Feche um e tente de novo.',
-  'settings.terminals': 'Terminais reais na Visão Pro',
-  'settings.terminals.hint':
-    'Permite que esta página abra o Claude Code em terminais onde você digita, só neste computador. Desligar encerra os que estão rodando.',
-  'settings.terminals.unavailable':
-    'O motor de terminal (node-pty) não está instalado neste computador. Rode npm install e reinicie o AI Office.',
   'hire.error.unsupportedPlatform': 'Abrir o terminal só funciona no macOS e no Linux.',
   'hover.desk.title': 'Mesa livre',
   'hover.desk.hint': 'Clique para contratar um agente aqui.',
@@ -967,69 +953,6 @@ export const uiPtBR = {
   'settings.codex.hint':
     'Acompanha, só para leitura, as sessões abertas do Codex CLI (a pasta ~/.codex ou CODEX_HOME). Desligado, o AI Office não lê essa pasta.',
   'settings.codex.locked': 'O servidor foi iniciado com AI_OFFICE_CODEX=0; reinicie sem isso para ligar.',
-  // Voice input (local speech-to-text)
-  'settings.voice.label': 'Voz',
-  'settings.voice.hint':
-    'Ditado feito neste computador: o áudio é transcrito aqui, no navegador, e nunca sai da sua máquina. O modelo é baixado uma única vez, só quando você pedir.',
-  'settings.voice.sizeLabel': 'Tamanho do modelo de voz',
-  'settings.voice.languageLabel': 'Idioma da fala',
-  'voice.language.interface': 'Igual à interface',
-  'voice.language.auto': 'Detectar sozinho (menos preciso)',
-  'voice.engine.detecting': 'Verificando onde o modelo pode rodar…',
-  'voice.engine.webgpu': 'Motor: placa de vídeo (WebGPU)',
-  'voice.engine.wasmThreads': 'Motor: processador, {threads} threads (WebAssembly)',
-  'voice.engine.wasm': 'Motor: processador, 1 thread (WebAssembly)',
-  'voice.engine.fallback':
-    'Este navegador não oferece WebGPU com 16 bits, que o modelo {preferred} precisa: a voz usa o modelo {name} no lugar.',
-  'voice.speed.gpu':
-    'A primeira gravação depois de abrir a página espera o modelo de 1,6 GB carregar na placa de vídeo, o que pode levar minutos num computador com pouca memória ou ocupado; depois, cada frase leva alguns segundos.',
-  'voice.speed.cpuSmall':
-    'No processador, uma frase leva de alguns segundos a mais de um minuto, conforme o computador e o que mais estiver rodando.',
-  'voice.speed.cpuLight': 'No processador, uma frase vira texto em poucos segundos.',
-  'voice.speed.oneThread': 'Com um só thread, transcrever leva bem mais tempo.',
-  'voice.speed.last': 'Última transcrição: {audio} s de fala em {seconds} s.',
-  'voice.size.tiny': 'Rápido',
-  'voice.size.base': 'Equilibrado',
-  'voice.size.small': 'Preciso',
-  'voice.size.turbo': 'Máxima',
-  'voice.size.option': '{name} · {size}',
-  'voice.size.tiny.hint': 'O menor e mais rápido; erra mais em frases longas e com sotaques.',
-  'voice.size.base.hint': 'Bom equilíbrio para frases curtas em português, inglês e espanhol.',
-  'voice.size.small.hint': 'Mais preciso que o Equilibrado; roda no processador, um pouco mais devagar.',
-  'voice.size.turbo.hint':
-    'A melhor precisão (Whisper large-v3-turbo), inclusive com termos técnicos. Roda na placa de vídeo (WebGPU); sem ela, o Preciso é usado no lugar.',
-  'voice.status.missing': 'Modelo não baixado ({size})',
-  'voice.status.ready': 'Modelo instalado neste computador',
-  'voice.status.downloading': 'Baixando… {percent}%',
-  'voice.status.unreachable': 'Não foi possível consultar o servidor.',
-  'voice.download': 'Baixar modelo de voz',
-  'voice.download.withSize': 'Baixar modelo de voz ({size})',
-  'voice.download.privacy': 'O áudio é transcrito neste computador e nunca é enviado.',
-  'voice.cancelDownload': 'Cancelar download',
-  'voice.remove': 'Remover modelo',
-  'voice.mic.start': 'Gravar por voz',
-  'voice.mic.stop': 'Parar e transcrever',
-  'voice.mic.cancel': 'Cancelar gravação',
-  'voice.mic.listening': 'Ouvindo… {time}',
-  'voice.mic.limit': 'Limite de {seconds} s atingido. Toque em parar para transcrever.',
-  'voice.mic.downloading': 'Baixando o modelo de voz… {percent}%',
-  'voice.mic.loading': 'Carregando o modelo… {percent}%',
-  'voice.mic.transcribing': 'Transcrevendo…',
-  'voice.mic.empty': 'Não ouvi nada. Tente de novo.',
-  'voice.mic.meter': 'Volume do microfone',
-  'voice.error.unsupported':
-    'A voz não está disponível aqui: ela precisa de microfone, de um navegador recente e do servidor do AI Office.',
-  'voice.error.disabled': 'A voz foi desligada neste servidor (AI_OFFICE_VOICE=0).',
-  'voice.error.denied': 'O navegador bloqueou o microfone. Libere o acesso nas permissões do site e tente de novo.',
-  'voice.error.noDevice': 'Nenhum microfone foi encontrado.',
-  'voice.error.busy': 'O microfone está em uso por outro programa.',
-  'voice.error.mic': 'Não foi possível usar o microfone.',
-  'voice.error.downloadNetwork': 'O download do modelo falhou. Tente de novo: ele continua de onde parou.',
-  'voice.error.downloadIntegrity': 'O arquivo baixado não confere com o esperado e foi descartado. Tente de novo.',
-  'voice.error.downloadDisk': 'Não há espaço em disco, ou não foi possível gravar o modelo.',
-  'voice.error.downloadBusy': 'Outro modelo já está sendo baixado. Espere terminar.',
-  'voice.error.load': 'Não foi possível carregar o modelo de voz no navegador.',
-  'voice.error.transcribe': 'Não foi possível transcrever o áudio.',
   // Time-lapse
   'replay.badge': 'REPLAY',
   'replay.pill': 'REPLAY · {date}',
@@ -1571,6 +1494,18 @@ export const uiPtBR = {
   'team.toast.hosting': 'Hospedando {team}.',
   'team.toast.left': 'Você saiu do time.',
   'team.toast.ended': 'O time foi encerrado.',
+  'hire.role': 'Papel',
+  'hire.role.none': 'Sem papel',
+  'hire.role.manage': 'Gerenciar papéis',
+  'roles.title': 'Papéis',
+  'roles.empty':
+    'Nenhum papel ainda. Um papel é um conjunto de instruções com que o agente começa, como Revisor ou Testador.',
+  'roles.name': 'Nome',
+  'roles.instructions': 'Instruções',
+  'roles.save': 'Salvar papel',
+  'roles.saved': 'Papel {name} salvo.',
+  'roles.remove': 'Remover o papel {name}',
+  'help.shortcut.zoom': 'Aproximar e afastar',
 } as const;
 
 export type UiKey = keyof typeof uiPtBR;

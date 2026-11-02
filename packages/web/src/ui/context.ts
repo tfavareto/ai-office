@@ -16,11 +16,10 @@ import type {
   Project,
   ProgressEventName,
   RecentSession,
-  TerminalSettings,
 } from '@ai-office/shared';
 import { t } from '../i18n';
 import type { Store } from '../net/store';
-import type { PrefsStore, ViewMode } from '../prefs/prefs';
+import type { PrefsStore } from '../prefs/prefs';
 import type { BoardStore } from './board-store';
 import type { InboxController } from './inbox-controller';
 import type { ProgressController } from './progress-controller';
@@ -35,7 +34,6 @@ import type { TeamOverlay, TeamFilter } from './model/team';
 import type { TeamController } from './team-controller';
 import type { WorldHost } from './world-host';
 import type { CueKind } from './sound';
-import type { VoiceHandle } from '../voice';
 
 export interface Component {
   readonly el: HTMLElement;
@@ -74,15 +72,9 @@ export interface AppContext {
   readonly team: TeamController;
   readonly replay: ReplayController;
   readonly progress: ProgressController;
-  /** Local voice input: the microphone control's engine, the speech models and the size preference. */
-  readonly voice: VoiceHandle;
-
-  /** The view on screen: the office world (`basic`) or the Pro canvas. Always `basic` while a time-lapse is on. */
-  readonly viewMode: ViewMode;
-  setViewMode(mode: ViewMode): void;
-  /** Fits the whole picture in the free area: the world's overview, or the whole canvas in the Pro view. */
+  /** Fits the whole world in the free area. */
   fitView(): void;
-  /** Zooms the picture on screen (world or canvas) by `factor`. */
+  /** Zooms the world by `factor`. */
   zoomView(factor: number): void;
 
   /** What the panels show: the office now, or the office at the replay's time while a time-lapse is on. */
@@ -143,8 +135,8 @@ export interface AppContext {
 
   decidePermission(agent: Agent, decision: PermissionDecision): Promise<boolean>;
   /**
-   * Answers the permission request the agent waits on, quietly: the caller shows the outcome itself (the Pro view's
-   * terminals do it in their own prompt). Same client and endpoint as `decidePermission`.
+   * Answers the permission request the agent waits on, quietly: the caller shows the outcome itself. Same client and
+   * endpoint as `decidePermission`.
    */
   answerPermission(agent: Agent, decision: PermissionDecision): Promise<PermissionOutcome>;
   sendMessage(agentIds: readonly string[], text: string, teamLabel?: string): Promise<BossMessage[]>;
@@ -162,8 +154,6 @@ export interface AppContext {
   /** Server settings of the git integration (local access only). */
   gitSettings(): Promise<GitSettings>;
   codexSettings(): Promise<CodexSettings>;
-  terminalSettings(): Promise<TerminalSettings>;
-  setTerminals(on: boolean): Promise<TerminalSettings>;
   setCodexSessions(on: boolean): Promise<CodexSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */
   setGitPullRequests(on: boolean): Promise<GitSettings>;

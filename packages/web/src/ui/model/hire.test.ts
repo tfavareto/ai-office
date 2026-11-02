@@ -187,29 +187,7 @@ describe('buildHireRequest', () => {
     expect(withRole.role).toEqual(role);
   });
 
-  it('asks for a real terminal only when that was chosen', () => {
-    // Arrange
-    const form: HireForm = {
-      roomPath: '/w/a',
-      path: '',
-      accountId: '',
-      prompt: '',
-      model: 'default',
-      permissionMode: 'default',
-      where: 'window',
-    };
-
-    // Act
-    const inWindow = buildHireRequest(form);
-    const inTerminal = buildHireRequest({ ...form, where: 'terminal' });
-
-    // Assert
-    expect(inWindow.where).toBeUndefined();
-    expect(inTerminal.where).toBe('terminal');
-  });
-
   const base: HireForm = {
-    where: 'window',
     roomPath: '/work/app',
     path: '',
     accountId: 'work',

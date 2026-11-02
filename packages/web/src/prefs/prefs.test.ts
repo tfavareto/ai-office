@@ -62,27 +62,16 @@ describe('parsePrefs', () => {
     expect(parsePrefs({ settingsOpen: 'data' }).settingsOpen).toEqual(['general']);
   });
 
-  it('opens in the basic view with a dark canvas, and validates the view settings', () => {
-    expect(DEFAULT_PREFS.viewMode).toBe('basic');
-    expect(DEFAULT_PREFS.proTheme).toBe('dark');
-    expect(parsePrefs({ viewMode: 'pro', proTheme: 'light' })).toMatchObject({ viewMode: 'pro', proTheme: 'light' });
-    expect(parsePrefs({ viewMode: 'wide', proTheme: 3 })).toMatchObject({ viewMode: 'basic', proTheme: 'dark' });
+  it('keeps valid roles, also those saved by earlier versions', () => {
+    const role = { id: 'a', name: 'A', instructions: 'do' };
+    expect(DEFAULT_PREFS.roles).toEqual([]);
+    expect(parsePrefs({ roles: [role, { id: 'b', name: 'B' }, 3] }).roles).toEqual([role]);
+    expect(parsePrefs({ proRoles: [role] }).roles).toEqual([role]);
   });
 
-  it('hides the Pro command bar by default and validates the switch', () => {
-    expect(DEFAULT_PREFS.proCommandBar).toBe(false);
-    expect(parsePrefs({ proCommandBar: true }).proCommandBar).toBe(true);
-    expect(parsePrefs({ proCommandBar: 'yes' }).proCommandBar).toBe(false);
-    expect(DEFAULT_PREFS.proPrompts).toEqual([]);
-    expect(DEFAULT_PREFS.proRoles).toEqual([]);
-    expect(
-      parsePrefs({ proRoles: [{ id: 'a', name: 'A', instructions: 'do' }, { id: 'b', name: 'B' }, 3] }).proRoles,
-    ).toEqual([{ id: 'a', name: 'A', instructions: 'do' }]);
-    expect(parsePrefs({ proPrompts: 'x' }).proPrompts).toEqual([]);
-    expect(
-      parsePrefs({ proPrompts: [{ id: 'a', name: 'A', text: 'hi' }, { id: 'b' }, { id: 'c', name: 'C', text: '' }, 7] })
-        .proPrompts,
-    ).toEqual([{ id: 'a', name: 'A', text: 'hi' }]);
+  it('forgets the settings of the view that no longer exists', () => {
+    const prefs = parsePrefs({ viewMode: 'pro', proTheme: 'light', proCommandBar: true, proPrompts: [] });
+    expect(prefs).toEqual(DEFAULT_PREFS);
   });
 
   it('survives broken JSON', () => {
@@ -96,12 +85,6 @@ describe('storage', () => {
     const storage = memoryStorage();
     expect(savePrefs({ ...DEFAULT_PREFS, visual: '3d' }, storage)).toBe(true);
     expect(loadPrefs(storage).visual).toBe('3d');
-  });
-
-  it('remembers the view mode between visits', () => {
-    const storage = memoryStorage();
-    new PrefsStore(DEFAULT_PREFS, storage).set({ viewMode: 'pro', proTheme: 'light', proCommandBar: true });
-    expect(loadPrefs(storage)).toMatchObject({ viewMode: 'pro', proTheme: 'light', proCommandBar: true });
   });
 
   it('works without storage or when it throws', () => {

@@ -92,14 +92,6 @@ export const API = {
   team: '/api/team',
   /** GET → CodexSettings · POST { sessions: boolean } → CodexSettings. Local access only. */
   codexSettings: '/api/codex/settings',
-  /**
-   * Local voice input (local access only). GET /status → VoiceStatusResponse · POST /download { size } → 202
-   * VoiceStatusResponse (starts the one-time download of that Whisper model, or joins the one running) · DELETE
-   * /model/:id → VoiceStatusResponse (removes the model, stopping its download) · GET /model/:id/<file> (also
-   * /model/:id/onnx/<file>) → the file of a downloaded model, for the page to load; only the files listed for it.
-   * A refusal answers { error }.
-   */
-  voice: '/api/voice',
   /** POST { on: boolean } → { demo } */
   demo: '/api/demo',
   /** Permissions (local access only). Hook: POST create + GET wait. Page: GET detail + POST decision. */
@@ -114,16 +106,6 @@ export const API = {
    * POST /preview RuleInput → RulePreview. A refused rule answers 400 RuleErrorBody.
    */
   rules: '/api/rules',
-  /** GET → TerminalSettings; POST { enabled } → the same. Whether the office may open real terminals. Local access only. */
-  terminalSettings: '/api/terminals/settings',
-  /** GET → Server-Sent Events: `terminal`, `output` and `exit` of every real terminal. Local access only. */
-  terminalStream: '/api/terminals/stream',
-  /** POST { a, b, connected }: connects two real terminals so their agents can message each other. Local access only. */
-  terminalLinks: '/api/terminals/links',
-  /** POST <id>/input { data }, <id>/resize { cols, rows }, <id>/kill, <id>/send { to, text }; GET <id>/peers. Local access only. */
-  terminals: '/api/terminals',
-  /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
-  projectFiles: '/api/projects/files',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
   hire: '/api/agents/hire',
   /** GET ?path=<absolute folder> → HireCheckResponse: whether a folder can host a new agent. Local access only. */
@@ -245,9 +227,6 @@ export interface HireRole {
 export const HIRE_MAX_ROLE_NAME = 48;
 export const HIRE_MAX_ROLE_INSTRUCTIONS = 8000;
 
-/** Where a hired agent runs: a window of the person's terminal app, or a real terminal inside the Pro view. */
-export type HireWhere = 'window' | 'terminal';
-
 export interface HireRequest {
   /** Absolute path of an existing folder; its room is where the agent works. */
   projectPath: string;
@@ -259,8 +238,6 @@ export interface HireRequest {
   permissionMode?: HirePermissionMode;
   /** Desk the person clicked in the room (the placeholder sits there). */
   deskIndex?: number;
-  /** `terminal`: a real terminal in the Pro view, instead of a new window. */
-  where?: HireWhere;
   /** Instructions it starts with, on top of its usual ones. */
   role?: HireRole;
   /** Language of the person hiring: used for the texts the launched terminal prints itself. */
@@ -268,33 +245,6 @@ export interface HireRequest {
 }
 
 /** 202 body: the hire is registered; the session shows up in the office when Claude Code starts. */
-export interface TerminalSettings {
-  /** The person allowed the office to open real terminals. */
-  enabled: boolean;
-  /** The terminal engine (`node-pty`) is installed and loads on this computer. */
-  available: boolean;
-}
-
-/** A real terminal the office opened. */
-export interface TerminalInfo {
-  id: string;
-  cwd: string;
-  cols: number;
-  rows: number;
-  startedAt: number;
-  /** Set when the program ended. */
-  exitCode?: number;
-  /** The role it started with. */
-  role?: string;
-}
-
-/** The files of a project, for the prompt's `@` mention. */
-export interface ProjectFiles {
-  files: string[];
-  /** The project has more than the server sends. */
-  truncated: boolean;
-}
-
 export interface HireResponse {
   hire: PendingHire;
 }
@@ -325,9 +275,5 @@ export type HireErrorCode =
   | 'claude-not-found'
   | 'no-terminal'
   | 'terminal-failed'
-  | 'invalid-where'
   | 'invalid-role'
-  | 'terminals-off'
-  | 'terminals-unavailable'
-  | 'terminals-limit'
   | 'unsupported-platform';

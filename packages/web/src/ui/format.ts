@@ -53,11 +53,6 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** Decimal with the locale's separator and at most `digits` decimals, trailing zeros trimmed ("12,4" / "12.4"). */
-export function formatDecimal(value: number, digits = 1): string {
-  return numberFormat(`dec${digits}`, { maximumFractionDigits: digits }).format(value);
-}
-
 /** "45 s", "12 min", "2 h 05 min", "1 d 3 h" (unit symbols are the same in every supported language). */
 export function formatDuration(ms: number): string {
   const safe = Math.max(0, Math.floor(ms));

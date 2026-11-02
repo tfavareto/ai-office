@@ -26,12 +26,9 @@ function readToken(): string | undefined {
 export default defineConfig({
   base: '/',
   build: { outDir: 'dist', assetsDir: 'assets', sourcemap: true, target: 'es2022' },
-  // The speech worker (transformers.js with the WebGPU build of ONNX Runtime Web) is a module worker with its own chunks:
-  // nothing of it is in the main bundle, and its two WebAssembly runtimes (WebGPU, plain) are only fetched by it.
-  worker: { format: 'es' },
   server: {
     port: 5173,
-    // The same cross-origin isolation as the AI Office server, so the speech model gets its threads in dev too.
+    // The same cross-origin isolation as the AI Office server.
     headers: ISOLATION_HEADERS,
     proxy: {
       '/api': {
