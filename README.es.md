@@ -199,7 +199,7 @@ La oficina es también el lugar donde empieza el trabajo y donde lo mantienes en
 
 | Quieres | En la oficina | Qué pasa |
 |---|---|---|
-| **Iniciar un agente nuevo** | Haz clic en un escritorio vacío, en **Contratar un agente** en una sala, o pulsa `H` | Se abre una nueva ventana de terminal con Claude Code en esa carpeta, con tu primera tarea, el modelo y el modo de permisos; una persona camina hasta el escritorio y toma el relevo cuando empieza la sesión |
+| **Iniciar un agente nuevo** | Haz clic en un escritorio vacío, en **Contratar un agente** en una sala, o pulsa `H` | Se abre una nueva ventana de terminal con Claude Code en esa carpeta, con tu primera tarea, el modelo, el modo de permisos y, si eliges uno, un rol guardado (instrucciones reutilizables, como Revisor o Tester); una persona camina hasta el escritorio y toma el relevo cuando empieza la sesión |
 | **Despejar lo que te espera** | La **Bandeja** (`I`) | Permisos, preguntas, errores y agentes que terminaron, por orden de prioridad; **Aprobar todas las parecidas** para solicitudes idénticas, triaje con el teclado y los comandos peligrosos nunca se aprueban en bloque |
 | **Ver todo el trabajo** | El **Tablero de tareas** (`K`) o la pizarra de la sala de reuniones | Las tareas de cada agente en **Pendiente**, **En curso** y **Completada**; arrastrar una tarjeta escribe un mensaje al agente, que revisas antes de enviarlo |
 | **Dejar de responder la misma pregunta** | **Crear regla…** en cualquier solicitud, o **Configuración → Automatización y personalización → Reglas de aprobación** | Las solicitudes recurrentes (por ejemplo, `npm test` en un proyecto) se responden al instante y quedan registradas; los comandos peligrosos o compuestos siempre te llegan a ti |
@@ -396,7 +396,7 @@ El texto que viene de tus propias sesiones (prompts, títulos de tareas, comando
 | Verificación | Cómo |
 |---|---|
 | **Tipos** | TypeScript estricto en los cuatro paquetes: `npm run typecheck` |
-| **Comportamiento** | Pruebas con Vitest en todos los paquetes, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
+| **Comportamiento** | Más de 3200 pruebas con Vitest en todos los paquetes, incluida una suite de extremo a extremo que levanta el servidor real: `npm test` |
 | **Estilo** | ESLint y Prettier: `npm run lint` |
 | **Build** | Bundle web y bundle del servidor: `npm run build` |
 | **Documentación** | Todo enlace local, ancla y traducción del README verificados: `npm run docs:check` |

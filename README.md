@@ -199,7 +199,7 @@ The office is also where work starts and where you keep it moving, without hoppi
 
 | You want to | In the office | What happens |
 |---|---|---|
-| **Start a new agent** | Click an empty desk, **Hire an agent** in a room, or `H` | A new terminal window opens with Claude Code in that folder, with your first task, model and permission mode; a person walks to the desk and takes over when the session starts |
+| **Start a new agent** | Click an empty desk, **Hire an agent** in a room, or `H` | A new terminal window opens with Claude Code in that folder, with your first task, model, permission mode and, if you pick one, a saved role (reusable instructions such as Reviewer or Tester); a person walks to the desk and takes over when the session starts |
 | **Clear what waits on you** | The **Inbox** (`I`) | Permissions, questions, errors and finished agents in priority order; **Approve all similar** for identical requests, keyboard triage, risky commands never approved in bulk |
 | **See all the work** | The **Task board** (`K`) or the meeting-room whiteboard | Every agent's tasks in **Pending**, **In progress** and **Completed**; dragging a card writes a message to the agent, which you review before sending |
 | **Stop answering the same question** | **Create rule…** on any request, or **Settings → Automation and personalization → Approval rules** | Recurring requests (say, `npm test` in one project) are answered at once and logged; risky or compound commands always come to you |
@@ -396,7 +396,7 @@ Text that comes from your own sessions (prompts, task titles, commands, file nam
 | Check | How |
 |---|---|
 | **Types** | TypeScript strict across the four packages: `npm run typecheck` |
-| **Behavior** | Vitest tests across all packages, including an end-to-end suite that boots the real server: `npm test` |
+| **Behavior** | 3200+ Vitest tests across all packages, including an end-to-end suite that boots the real server: `npm test` |
 | **Style** | ESLint and Prettier: `npm run lint` |
 | **Build** | Web bundle and server bundle: `npm run build` |
 | **Documentation** | Every local link, anchor and README translation checked: `npm run docs:check` |
