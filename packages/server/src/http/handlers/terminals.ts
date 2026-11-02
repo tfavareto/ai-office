@@ -26,8 +26,46 @@ function current(app: AppContext): TerminalSettings {
 export function registerTerminalRoutes(router: Router, app: AppContext): void {
   const base = API.terminals;
   const messageLimiters = new Map<string, RateLimiter>();
+  const resuming = new Set<string>();
   const agentOf = (terminalId: string): Agent | undefined =>
     app.office.state().agents.find((agent) => agent.terminalId === terminalId);
+
+  router.add('GET', API.terminalResumable, ({ res, local }) => {
+    if (!local) return sendError(res, 403, 'local-only');
+    // With terminals off there is nothing to offer, but the list stays for when they are on again.
+    const sessions = app.terminalSettings.enabled ? app.resumable() : [];
+    sendJson(res, 200, {
+      sessions: sessions.map((session) => ({
+        sessionId: session.sessionId,
+        cwd: session.cwd,
+        ...(session.role !== undefined ? { role: session.role } : {}),
+      })),
+    });
+  });
+
+  router.add('POST', `${API.terminalResumable}/resume`, async ({ req, res, local }) => {
+    if (!local) return sendError(res, 403, 'local-only');
+    const { sessionId } = asRecord(await readJsonBody(req, SMALL_BODY_LIMIT));
+    // Only what is on the list: the page cannot resume a session of its choice.
+    const session = app.resumable().find((candidate) => candidate.sessionId === sessionId);
+    if (session === undefined) return sendError(res, 404, 'unknown-session');
+    // A double click must not run one conversation in two terminals.
+    if (resuming.has(session.sessionId)) return sendError(res, 409, 'already-resuming');
+    resuming.add(session.sessionId);
+    try {
+      await app.hires.resume(session);
+      app.dismissResumable(session.sessionId);
+    } finally {
+      resuming.delete(session.sessionId);
+    }
+    sendJson(res, 200, { ok: true });
+  });
+
+  router.add('POST', `${API.terminalResumable}/dismiss`, ({ res, local }) => {
+    if (!local) return sendError(res, 403, 'local-only');
+    app.dismissResumable(undefined);
+    sendJson(res, 200, { ok: true });
+  });
 
   router.add('POST', API.terminalLinks, async ({ req, res, local }) => {
     if (!local) return sendError(res, 403, 'local-only');

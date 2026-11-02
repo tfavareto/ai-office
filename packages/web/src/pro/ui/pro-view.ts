@@ -95,6 +95,7 @@ const PALETTE_ACTIONS = [
   'waiting',
   'hire',
   'roles',
+  'routines',
   'inbox',
   'board',
   'usage',
@@ -109,6 +110,7 @@ const ACTION_KEY: Record<PaletteAction, TextKey> = {
   waiting: 'pro.palette.action.waiting',
   hire: 'pro.palette.action.hire',
   roles: 'pro.palette.action.roles',
+  routines: 'pro.palette.action.routines',
   inbox: 'pro.palette.action.inbox',
   board: 'pro.palette.action.board',
   usage: 'pro.palette.action.usage',
@@ -161,6 +163,8 @@ export class ProView implements Component {
   private readonly terminals: TerminalHub;
   private readonly dock: TerminalDock;
   private connectingFrom: string | null = null;
+  private resumeAsked = false;
+  private readonly resumeBar = h('div', { class: 'ao-pro-connect-hint ao-pro-resume', hidden: true });
   private readonly connectHint = h('p', { class: 'ao-pro-connect-hint', hidden: true }, t('pro.terminal.connectHint'));
   private readonly dismissedTerminals = new Set<string>();
   private docked: ReadonlySet<string> = new Set();
@@ -256,6 +260,7 @@ export class ProView implements Component {
       this.command.el,
       this.dock.el,
       this.connectHint,
+      this.resumeBar,
       this.palette.el,
     );
     this.resizeObserver = new ResizeObserver(() => this.onResize());
@@ -394,6 +399,7 @@ export class ProView implements Component {
     this.panel.render(scene.rooms.find((room) => room.project.id === this.panel.openRoom));
     this.palette.render();
     this.syncTerminals();
+    void this.offerResume();
     this.layers.setOpenRoom(this.panel.openRoom);
     this.toolbar.render({
       zoom: this.camera.camera.zoom,
@@ -403,6 +409,47 @@ export class ProView implements Component {
     });
     toggleClass(this.el, 'is-empty', scene.rooms.length === 0);
     this.empty.hidden = scene.rooms.length > 0;
+  }
+
+  /** Offers once, when the view opens, the terminals that were open when the office last stopped. */
+  private async offerResume(): Promise<void> {
+    if (this.resumeAsked || !this.ctx.isLocal) return;
+    this.resumeAsked = true;
+    const backend = this.ctx.store.backend;
+    const sessions = await backend.resumableTerminals().catch(() => []);
+    if (sessions.length === 0) return;
+    const close = (): void => {
+      this.resumeBar.hidden = true;
+    };
+    const fail = (error: unknown): void => this.ctx.notifyLocal('warn', describeError(error));
+    this.resumeBar.replaceChildren(
+      h('span', null, t('pro.resume.offer', { n: sessions.length })),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'ao-btn ao-btn--soft',
+          onclick: () => {
+            close();
+            for (const session of sessions) backend.resumeTerminal(session.sessionId).catch(fail);
+          },
+        },
+        t('pro.resume.all'),
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'ao-btn ao-btn--ghost',
+          onclick: () => {
+            close();
+            backend.dismissResumable().catch(fail);
+          },
+        },
+        t('pro.resume.dismiss'),
+      ),
+    );
+    this.resumeBar.hidden = false;
   }
 
   /** Terminals still without a session wait in the dock; the others live on their nodes. */
@@ -531,6 +578,8 @@ export class ProView implements Component {
         return this.ctx.setViewMode('basic');
       case 'roles':
         return this.ctx.openDialog('roles');
+      case 'routines':
+        return this.ctx.openDialog('routines');
     }
   }
 

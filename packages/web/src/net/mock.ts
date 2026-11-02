@@ -21,6 +21,7 @@ import {
   DEMO_PROJECT_FILES,
   type HireCheckResponse,
   type FloorInfo,
+  type Routine,
   type ProjectFiles,
   type TerminalSettings,
   type HireRequest,
@@ -266,6 +267,29 @@ class MockBackend implements Backend {
   async setDemo(on: boolean): Promise<boolean> {
     return on;
   }
+
+  /** The demonstration runs no programs: no routines and nothing to resume. */
+  async routines(): Promise<Routine[]> {
+    return [];
+  }
+
+  async addRoutine(): Promise<void> {
+    throw new BackendError('demo', 409);
+  }
+
+  async setRoutineEnabled(): Promise<void> {}
+
+  async runRoutine(): Promise<void> {}
+
+  async removeRoutine(): Promise<void> {}
+
+  async resumableTerminals(): Promise<{ sessionId: string; cwd: string; role?: string }[]> {
+    return [];
+  }
+
+  async resumeTerminal(): Promise<void> {}
+
+  async dismissResumable(): Promise<void> {}
 
   /** The demonstration has no repositories: floors are not available in it. */
   async floorStatus(): Promise<FloorInfo> {

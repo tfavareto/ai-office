@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import type { Server } from 'node:http';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   applyCustomization,
@@ -56,19 +56,29 @@ import { ProgressStore } from './progress/store';
 import { ReportService } from './report/service';
 import { UsageIndexer } from './usage/indexer';
 import { RulesStore } from './rules/rules-store';
-import { asString } from './util/fs-safe';
+import { asRecord, asString, readJsonFile, writeJsonAtomic } from './util/fs-safe';
+import { roomAccount, routineTerminals } from './routines/room';
+import { RoutineService } from './routines/service';
 import { loadPtySpawner } from './terminal/loader';
+import { MAX_RESUMABLE, loadResumable, saveResumable, type ResumableSession } from './terminal/resume';
 import { TerminalService, type PtySpawner } from './terminal/service';
 import { TerminalSettingsStore } from './terminal/settings-store';
 import { TerminalStreams } from './terminal/stream';
 import { newId } from './util/ids';
+import { SerialWriter } from './util/serial-writer';
 import { RateLimiter } from './util/rate-limit';
 
 const TICK_MS = 250;
+const ROUTINES_FILE = 'routines.json';
 const SLOW_TICK_EVERY = 4;
 const BUILD_CHECK_MS = 5000;
 
 type OfficeOverlaysTerminal = NonNullable<OfficeOverlays['terminalFor']>;
+
+function savedRoutines(raw: unknown): unknown[] {
+  const { routines } = asRecord(raw);
+  return Array.isArray(routines) ? routines : [];
+}
 
 export interface AppOptions {
   now?: () => number;
@@ -348,6 +358,64 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   terminals.subscribe((event) => {
     if (event.kind === 'exit') snapshots.markDirty();
   });
+  const routinesFile = join(config.stateDir, ROUTINES_FILE);
+  const routines: RoutineService = new RoutineService({
+    now,
+    newId: () => newId(),
+    enabled: () => terminalSettings.enabled && !demoOn,
+    terminalsIn: (path) => routineTerminals(office.state(), terminals, path, now()),
+    paste: (id, text) => terminals.paste(id, text),
+    start: async (path, prompt) => {
+      const accountId = roomAccount(office.state(), engine.accountList(), path);
+      await hires.hire({
+        projectPath: path,
+        where: 'terminal',
+        prompt,
+        ...(accountId !== undefined ? { accountId } : {}),
+      });
+    },
+    onChange: () => routinesWriter.request(),
+  });
+  const routinesWriter = new SerialWriter(
+    () => writeJsonAtomic(routinesFile, { version: 1, routines: routines.list() }),
+    (error) => log.warn(`Não foi possível salvar as rotinas: ${String(error)}`),
+  );
+  let resumable: ResumableSession[] = [];
+  let openSessions: readonly ResumableSession[] = [];
+  let savedOpen = '[]';
+  const openWriter = new SerialWriter(
+    () => saveResumable(config.stateDir, openSessions),
+    (error) => {
+      savedOpen = '';
+      log.warn(`Não foi possível salvar os terminais abertos: ${String(error)}`);
+    },
+  );
+  /** What to bring back next time: the sessions in real terminals now, and those not brought back yet. */
+  const saveOpenSessions = (): void => {
+    const open = office.state().agents.flatMap((agent): ResumableSession[] => {
+      const info = terminals.list().find((terminal) => terminal.id === agent.terminalId);
+      const start = agent.terminalId === undefined ? undefined : terminals.startInfo(agent.terminalId);
+      if (info === undefined || start === undefined || info.exitCode !== undefined) return [];
+      return [
+        {
+          sessionId: agent.sessionId,
+          cwd: info.cwd,
+          ...(info.role !== undefined ? { role: info.role } : {}),
+          ...(start.configDir !== undefined ? { configDir: start.configDir } : {}),
+          ...(start.roleInstructions !== undefined ? { roleInstructions: start.roleInstructions } : {}),
+        },
+      ];
+    });
+    const sessions = [
+      ...open,
+      ...resumable.filter((one) => !open.some((other) => other.sessionId === one.sessionId)),
+    ].slice(0, MAX_RESUMABLE);
+    const text = JSON.stringify(sessions);
+    if (text === savedOpen) return;
+    savedOpen = text;
+    openSessions = sessions;
+    openWriter.request();
+  };
   const hires = new HireService({
     now,
     log,
@@ -428,6 +496,12 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    routines,
+    resumable: () => (demoOn ? [] : resumable),
+    dismissResumable: (sessionId) => {
+      resumable = sessionId === undefined ? [] : resumable.filter((one) => one.sessionId !== sessionId);
+      saveOpenSessions();
+    },
     runGh,
     terminals,
     terminalSettings,
@@ -463,6 +537,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     if (!demoOn) progress.observeAgents(office.state().agents.filter((agent) => agent.demo !== true).length);
     hireRegistry.sweep(office.state().agents, time);
     git.tick();
+    saveOpenSessions();
+    if (!demoOn) void routines.tick().catch((error: unknown) => log.warn(`Rotinas: ${String(error)}`));
     if (time - lastDayRecord >= RECORD_INTERVAL_MS) {
       lastDayRecord = time;
       void day
@@ -496,6 +572,8 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await customization.load();
       await gitSettings.load();
       await terminalSettings.load();
+      resumable = await loadResumable(config.stateDir);
+      routines.restore(savedRoutines(await readJsonFile(routinesFile).catch(() => null)));
       if (options.ptySpawner === undefined && !config.terminalsDisabled) ptySpawner = await loadPtySpawner(log);
       await codexSettings.load();
       setDemo(config.demo);
@@ -523,6 +601,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
       await terminals.stopAll();
+      await Promise.all([routinesWriter.flush(), openWriter.flush()]);
       terminalStreams.closeAll();
       engine.stop();
       codex.stop();

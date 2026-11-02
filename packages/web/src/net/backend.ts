@@ -12,6 +12,7 @@ import type {
   HireCheckResponse,
   FloorInfo,
   ProjectFiles,
+  Routine,
   TerminalSettings,
   HireRequest,
   PendingHire,
@@ -87,6 +88,16 @@ export interface Backend {
   createFloor(projectId: string, name: string): Promise<{ path: string; branch: string }>;
   landFloor(projectId: string, mode: 'merge' | 'pull-request'): Promise<{ url?: string }>;
   removeFloor(projectId: string, acceptIgnored: boolean): Promise<{ branchKept: boolean }>;
+  /** Routines: prompts on a schedule (local access only). */
+  routines(): Promise<Routine[]>;
+  addRoutine(routine: Pick<Routine, 'name' | 'prompt' | 'projectPath' | 'schedule'>): Promise<void>;
+  setRoutineEnabled(id: string, enabled: boolean): Promise<void>;
+  runRoutine(id: string): Promise<void>;
+  removeRoutine(id: string): Promise<void>;
+  /** Real terminals open when the office last stopped. */
+  resumableTerminals(): Promise<{ sessionId: string; cwd: string; role?: string }[]>;
+  resumeTerminal(sessionId: string): Promise<void>;
+  dismissResumable(): Promise<void>;
   /** Real terminals in the Pro view (local access only). */
   terminalSettings(): Promise<TerminalSettings>;
   setTerminals(on: boolean): Promise<TerminalSettings>;

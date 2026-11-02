@@ -124,6 +124,10 @@ export const API = {
   terminals: '/api/terminals',
   /** POST { project, name }: a checkout of its own for a task; GET status?project=; POST land { project, mode }; POST remove { project }. Local access only. */
   floors: '/api/floors',
+  /** GET; POST a routine; POST <id>/enabled { enabled }, <id>/run, <id>/remove. Local access only. */
+  routines: '/api/routines',
+  /** GET → { sessions }: real terminals open when the office last stopped; POST resume { sessionId }, dismiss. Local access only. */
+  terminalResumable: '/api/terminals/resumable',
   /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
   projectFiles: '/api/projects/files',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
@@ -294,6 +298,25 @@ export interface TerminalInfo {
 export type FloorInfo =
   | { isFloor: false }
   | { isFloor: true; branch: string; target: string; ahead: number; dirty: boolean; detached: boolean };
+
+/** When a routine runs. */
+export type RoutineSchedule = { kind: 'interval'; minutes: number } | { kind: 'daily'; hour: number; minute: number };
+export type RoutineOutcome = 'sent' | 'started' | 'skipped-busy' | 'skipped-off' | 'failed';
+export const ROUTINE_MAX_NAME = 80;
+export const ROUTINE_MAX_PROMPT = 8000;
+
+/** A prompt that runs on a schedule, in a project. */
+export interface Routine {
+  id: string;
+  name: string;
+  prompt: string;
+  projectPath: string;
+  schedule: RoutineSchedule;
+  enabled: boolean;
+  nextRunAt: number;
+  /** Newest first. */
+  history: { at: number; outcome: RoutineOutcome }[];
+}
 
 /** The files of a project, for the prompt's `@` mention. */
 export interface ProjectFiles {
