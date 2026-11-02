@@ -1,6 +1,6 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import type { Routine } from '@ai-office/shared';
-import { parseResumableTerminals, parseRoutines } from './parse-routines';
+import type { Routine, SquadRequest } from '@ai-office/shared';
+import { parseNote, parseResumableTerminals, parseRoutines } from './parse-routines';
 import {
   API,
   type HireRequest,
@@ -352,6 +352,19 @@ export class HttpBackend implements Backend {
   async removeFloor(projectId: string, acceptIgnored: boolean) {
     const { body } = await this.post(`${API.floors}/remove`, { project: projectId, acceptIgnored });
     return { branchKept: isRecord(body) && body.branchKept === true };
+  }
+
+  async note(projectId: string) {
+    return parseNote(await this.get(API.notes, { project: projectId }));
+  }
+
+  async saveNote(projectId: string, text: string, baseUpdatedAt: number) {
+    const { body } = await this.post(API.notes, { project: projectId, text, baseUpdatedAt });
+    return parseNote(body);
+  }
+
+  async startSquad(request: SquadRequest) {
+    await this.post(API.squads, request);
   }
 
   async routines() {

@@ -48,6 +48,7 @@ export interface TerminalSpec {
   /** What is needed to start it again later with `--resume`. */
   roleInstructions?: string | undefined;
   configDir?: string | undefined;
+  squad?: string | undefined;
 }
 
 export type TerminalEvent =
@@ -143,6 +144,7 @@ export class TerminalService {
       rows,
       startedAt: this.deps.now(),
       ...(spec.role !== undefined ? { role: spec.role } : {}),
+      ...(spec.squad !== undefined ? { squad: spec.squad } : {}),
     };
     const terminal: Running = {
       info,

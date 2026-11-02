@@ -47,11 +47,22 @@ export interface SceneSub {
   finishedAt?: number;
 }
 
+/** The squad of a terminal, when it still has others with it. */
+export interface SceneSquad {
+  id: string;
+  members: readonly Agent[];
+  /** The member this block shows. */
+  currentId: string;
+  /** One block, or each member in its own. */
+  folded: boolean;
+}
+
 export interface SceneCluster {
   main: Agent;
   subs: readonly SceneSub[];
   collapsed: readonly FinishedSub[];
   layout: LayoutCluster;
+  squad?: SceneSquad;
 }
 
 export interface SceneRoom {

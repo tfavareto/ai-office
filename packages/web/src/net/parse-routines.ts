@@ -1,4 +1,5 @@
-// Defensive parsing of GET /api/routines and GET /api/terminals/resumable: anything malformed is dropped.
+// Defensive parsing of GET /api/routines, GET /api/terminals/resumable and the note of a room: anything malformed is dropped.
+import { NOTE_MAX_CHARS, type ProjectNote } from '@ai-office/shared';
 import {
   ROUTINE_MAX_NAME,
   ROUTINE_MAX_PROMPT,
@@ -48,6 +49,12 @@ function parseRoutine(raw: unknown): Routine[] {
       history: Array.isArray(history) ? history.flatMap(parseRun) : [],
     },
   ];
+}
+
+export function parseNote(data: unknown): ProjectNote {
+  if (!isRecord(data) || typeof data.text !== 'string' || typeof data.updatedAt !== 'number')
+    return { text: '', updatedAt: 0 };
+  return { text: data.text.slice(0, NOTE_MAX_CHARS), updatedAt: data.updatedAt };
 }
 
 export function parseRoutines(data: unknown): Routine[] {

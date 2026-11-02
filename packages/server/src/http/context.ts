@@ -1,4 +1,5 @@
 // Everything the HTTP handlers need, assembled by the app.
+import type { NoteStore } from '../notes/service';
 import type { RoutineService } from '../routines/service';
 import type { ResumableSession } from '../terminal/resume';
 import type { TerminalService } from '../terminal/service';
@@ -54,6 +55,7 @@ export interface AppContext {
   hires: HireService;
   terminals: TerminalService;
   routines: RoutineService;
+  notes: NoteStore;
   /** Real terminals open when the office last stopped, not brought back yet. */
   resumable: () => readonly ResumableSession[];
   dismissResumable: (sessionId: string | undefined) => void;

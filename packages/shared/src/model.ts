@@ -227,6 +227,8 @@ export interface Agent {
   terminalPeers?: string[];
   /** The role it was hired with. */
   assignedRole?: string;
+  /** The squad of its real terminal: those started together, shown as one block. */
+  terminalSquad?: string;
   /** Demo agent (not a real session). */
   demo?: boolean;
 }

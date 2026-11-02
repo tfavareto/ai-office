@@ -59,9 +59,10 @@ import { RulesStore } from './rules/rules-store';
 import { asRecord, asString, readJsonFile, writeJsonAtomic } from './util/fs-safe';
 import { roomAccount, routineTerminals } from './routines/room';
 import { RoutineService } from './routines/service';
+import { NoteStore } from './notes/service';
 import { loadPtySpawner } from './terminal/loader';
 import { MAX_RESUMABLE, loadResumable, saveResumable, type ResumableSession } from './terminal/resume';
-import { TerminalService, type PtySpawner } from './terminal/service';
+import { MAX_TERMINALS, TerminalService, type PtySpawner } from './terminal/service';
 import { TerminalSettingsStore } from './terminal/settings-store';
 import { TerminalStreams } from './terminal/stream';
 import { newId } from './util/ids';
@@ -352,12 +353,18 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
   terminalFor = (pid) => {
     const id = terminals.idFor(pid);
     if (id === undefined) return undefined;
-    const role = terminals.list().find((terminal) => terminal.id === id)?.role;
-    return { id, peers: terminals.peersOf(id), ...(role !== undefined ? { role } : {}) };
+    const info = terminals.list().find((terminal) => terminal.id === id);
+    return {
+      id,
+      peers: terminals.peersOf(id),
+      ...(info?.role !== undefined ? { role: info.role } : {}),
+      ...(info?.squad !== undefined ? { squad: info.squad } : {}),
+    };
   };
   terminals.subscribe((event) => {
     if (event.kind === 'exit') snapshots.markDirty();
   });
+  const notes = new NoteStore(config.stateDir, now, log);
   const routinesFile = join(config.stateDir, ROUTINES_FILE);
   const routines: RoutineService = new RoutineService({
     now,
@@ -443,9 +450,14 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     terminals: {
       enabled: () => terminalSettings.enabled,
       start: (spec) => {
-        terminalStreams.announce(terminals.start(spec).id);
+        const info = terminals.start(spec);
+        terminalStreams.announce(info.id);
         snapshots.markDirty();
+        return info;
       },
+      room: () => MAX_TERMINALS - terminals.list().filter((terminal) => terminal.exitCode === undefined).length,
+      kill: (id) => void terminals.kill(id),
+      connect: (a, b) => void terminals.connect(a, b),
     },
   });
 
@@ -496,6 +508,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    notes,
     routines,
     resumable: () => (demoOn ? [] : resumable),
     dismissResumable: (sessionId) => {
@@ -573,6 +586,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       await gitSettings.load();
       await terminalSettings.load();
       resumable = await loadResumable(config.stateDir);
+      await notes.load();
       routines.restore(savedRoutines(await readJsonFile(routinesFile).catch(() => null)));
       if (options.ptySpawner === undefined && !config.terminalsDisabled) ptySpawner = await loadPtySpawner(log);
       await codexSettings.load();
@@ -601,7 +615,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
       if (ticker !== undefined) clearInterval(ticker);
       if (buildTimer !== undefined) clearInterval(buildTimer);
       await terminals.stopAll();
-      await Promise.all([routinesWriter.flush(), openWriter.flush()]);
+      await Promise.all([routinesWriter.flush(), openWriter.flush(), notes.flush()]);
       terminalStreams.closeAll();
       engine.stop();
       codex.stop();

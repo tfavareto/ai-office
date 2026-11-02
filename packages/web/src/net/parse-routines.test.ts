@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseResumableTerminals, parseRoutines } from './parse-routines';
+import { parseNote, parseResumableTerminals, parseRoutines } from './parse-routines';
 
 const valid = {
   id: 'r1',
@@ -32,6 +32,14 @@ describe('parseRoutines', () => {
       [],
     );
     expect(parseRoutines(null)).toEqual([]);
+  });
+});
+
+describe('parseNote', () => {
+  test('reads a note, and anything else as an empty one', () => {
+    expect(parseNote({ text: 'Plan', updatedAt: 3 })).toEqual({ text: 'Plan', updatedAt: 3 });
+    expect(parseNote({ text: 3 })).toEqual({ text: '', updatedAt: 0 });
+    expect(parseNote(null)).toEqual({ text: '', updatedAt: 0 });
   });
 });
 

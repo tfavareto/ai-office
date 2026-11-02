@@ -3,6 +3,7 @@
 // terminal (it never opens the office drawer), a double click maximizes it, a room frame's header opens the room's
 // orchestration panel. It only draws what the office already knows (the snapshot) and reads the real conversations
 // from the local server; nothing here runs a model.
+import { foldSquads } from '../model/squads';
 import type { Agent } from '@ai-office/shared';
 import { t, type TextKey } from '../../i18n';
 import { describeError, type Backend } from '../../net/backend';
@@ -96,6 +97,7 @@ const PALETTE_ACTIONS = [
   'hire',
   'roles',
   'routines',
+  'squads',
   'inbox',
   'board',
   'usage',
@@ -111,6 +113,7 @@ const ACTION_KEY: Record<PaletteAction, TextKey> = {
   hire: 'pro.palette.action.hire',
   roles: 'pro.palette.action.roles',
   routines: 'pro.palette.action.routines',
+  squads: 'pro.palette.action.squads',
   inbox: 'pro.palette.action.inbox',
   board: 'pro.palette.action.board',
   usage: 'pro.palette.action.usage',
@@ -164,6 +167,8 @@ export class ProView implements Component {
   private readonly dock: TerminalDock;
   private connectingFrom: string | null = null;
   private resumeAsked = false;
+  private squadsOpen: ReadonlySet<string> = new Set();
+  private squadChoice: ReadonlyMap<string, string> = new Map();
   private readonly resumeBar = h('div', { class: 'ao-pro-connect-hint ao-pro-resume', hidden: true });
   private readonly connectHint = h('p', { class: 'ao-pro-connect-hint', hidden: true }, t('pro.terminal.connectHint'));
   private readonly dismissedTerminals = new Set<string>();
@@ -388,15 +393,18 @@ export class ProView implements Component {
     toggleClass(this.el, 'has-panel', this.panel.openRoom !== null);
     if (snapshot === null) return;
     this.demo.observe(snapshot);
-    const scene = buildScene(snapshot, this.memory, this.ctx.now());
-    this.memory = scene.memory;
-    this.session.memory = scene.memory;
+    const built = buildScene(snapshot, this.memory, this.ctx.now());
+    this.memory = built.memory;
+    this.session.memory = built.memory;
+    this.rememberSquadChoice(snapshot.agents);
+    const scene = foldSquads(built, this.squadsOpen, this.squadChoice);
     this.scene = scene;
     this.rememberAgents(scene);
     this.followSelection();
     this.sync();
     this.command.render();
-    this.panel.render(scene.rooms.find((room) => room.project.id === this.panel.openRoom));
+    // The panel lists everyone in the room, also the members a squad's block is not showing.
+    this.panel.render(built.rooms.find((room) => room.project.id === this.panel.openRoom));
     this.palette.render();
     this.syncTerminals();
     void this.offerResume();
@@ -461,12 +469,13 @@ export class ProView implements Component {
     this.dock.sync(orphans);
     // The person was just answering it in the dock: the terminal moved to the canvas, so the view and the keyboard
     // follow it, or it would sit somewhere too small to type into.
-    for (const agent of this.agents.values()) {
-      if (agent.terminalId === undefined || !this.docked.has(agent.terminalId)) continue;
+    const wasDocked = this.docked;
+    this.docked = new Set(orphans.map((terminal) => terminal.id));
+    for (const agent of [...this.agents.values()]) {
+      if (agent.terminalId === undefined || !wasDocked.has(agent.terminalId)) continue;
       this.goToAgent(agent.id);
       this.nodes.get(agent.id)?.focusTerminal();
     }
-    this.docked = new Set(orphans.map((terminal) => terminal.id));
   }
 
   /** The second click of a connection: connects the two terminals, or disconnects them if they already are. */
@@ -493,6 +502,8 @@ export class ProView implements Component {
   /** Selects an agent and brings its terminal into view with the keyboard on it. */
   private goToAgent(id: string): void {
     this.ctx.selectAgent(id);
+    // A member its squad's block is not showing has no terminal on the canvas until a render.
+    if (!this.nodes.has(id)) this.render();
     this.focusNode(id, true);
     this.ctx.refresh();
   }
@@ -580,6 +591,8 @@ export class ProView implements Component {
         return this.ctx.openDialog('roles');
       case 'routines':
         return this.ctx.openDialog('routines');
+      case 'squads':
+        return this.ctx.openDialog('squads');
     }
   }
 
@@ -597,12 +610,22 @@ export class ProView implements Component {
     }
   }
 
+  /** Whoever gets selected, by any path, is who its squad's block shows. */
+  private rememberSquadChoice(agents: readonly Agent[]): void {
+    const selection = this.ctx.ui.get().selection;
+    if (selection?.type !== 'agent') return;
+    const squad = agents.find((agent) => agent.id === selection.id)?.terminalSquad;
+    if (squad === undefined || this.squadChoice.get(squad) === selection.id) return;
+    this.squadChoice = new Map(this.squadChoice).set(squad, selection.id);
+  }
+
   private rememberAgents(scene: Scene): void {
     this.agents.clear();
     this.folded.clear();
     for (const room of scene.rooms)
       for (const cluster of room.clusters) {
         this.agents.set(cluster.main.id, cluster.main);
+        for (const member of cluster.squad?.members ?? []) this.agents.set(member.id, member);
         for (const sub of cluster.subs) this.agents.set(sub.agent.id, sub.agent);
         for (const entry of cluster.collapsed) {
           this.folded.set(entry.agent.id, entry);
@@ -693,6 +716,7 @@ export class ProView implements Component {
       maximized,
       collapsed: isOrchestrator && cluster !== null ? cluster.collapsed : [],
       number: isOrchestrator ? numberOf(this.orchestratorIds(), agent.id) : undefined,
+      squad: isOrchestrator ? cluster?.squad : undefined,
     });
   }
 
@@ -915,6 +939,17 @@ export class ProView implements Component {
       copySessionId: () => {
         const agent = this.agents.get(id);
         if (agent !== undefined) this.ctx.copy(agent.sessionId, t('pro.node.copied'));
+      },
+      pickSquadMember: (memberId) => {
+        this.goToAgent(memberId);
+        this.nodes.get(memberId)?.focusTerminal();
+      },
+      toggleSquad: (squadId) => {
+        const next = new Set(this.squadsOpen);
+        if (!next.delete(squadId)) next.add(squadId);
+        this.squadsOpen = next;
+        this.render();
+        this.fitAll();
       },
       connectTerminal: (terminalId) => {
         this.connectingFrom = terminalId;

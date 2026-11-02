@@ -44,7 +44,7 @@ const ERROR_NOTICE_GAP_MS = 20_000;
 
 export interface OfficeOverlays {
   /** The real terminal a process runs in, if the office opened it. */
-  terminalFor?: (pid: number | undefined) => { id: string; role?: string; peers: string[] } | undefined;
+  terminalFor?: (pid: number | undefined) => { id: string; role?: string; squad?: string; peers: string[] } | undefined;
   permissionFor(agentId: string): PermissionRequest | undefined;
   attentionFor(agentId: string): string | undefined;
 }

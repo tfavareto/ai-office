@@ -1,4 +1,5 @@
 // Defensive validation of request bodies and query parameters.
+import { SQUAD_MAX_MEMBERS, SQUAD_MIN_MEMBERS, type HireRole, type SquadRequest } from '@ai-office/shared';
 import {
   HIRE_MAX_DESK_INDEX,
   HIRE_MAX_PATH,
@@ -48,6 +49,20 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], code: st
 }
 
 /** Body of POST /api/agents/hire: types, enums and sizes only; the folder and the account are checked by the service. */
+/** Each member's role goes through the same checks as a role in a hire. */
+export function parseSquadRequest(body: unknown): SquadRequest {
+  const raw = asRecord(body);
+  if (!Array.isArray(raw.members) || raw.members.length < SQUAD_MIN_MEMBERS || raw.members.length > SQUAD_MAX_MEMBERS)
+    throw new HttpError(400, 'invalid-squad');
+  const { projectPath, prompt } = parseHireRequest({ projectPath: raw.projectPath, prompt: raw.task });
+  const members = raw.members.map((member: unknown): HireRole => {
+    const { role } = parseHireRequest({ projectPath, role: member });
+    if (role === undefined) throw new HttpError(400, 'invalid-squad');
+    return role;
+  });
+  return { projectPath, members, ...(prompt !== undefined ? { task: prompt } : {}) };
+}
+
 export function parseHireRequest(body: unknown): HireRequest {
   const raw = asRecord(body);
   const projectPath = asString(raw.projectPath);
