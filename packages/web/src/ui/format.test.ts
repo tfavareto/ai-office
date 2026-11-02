@@ -11,7 +11,6 @@ import {
   formatDateLong,
   formatDayNumber,
   formatDayShort,
-  formatDecimal,
   formatDuration,
   formatElapsed,
   formatHourLabel,
@@ -75,11 +74,6 @@ describe('number formatting', () => {
     expect(formatCost(undefined)).toBe('—');
   });
 
-  it('trims trailing zeros in decimals', () => {
-    expect(formatDecimal(3, 2)).toBe('3');
-    expect(formatDecimal(3.5, 2)).toBe('3,5');
-  });
-
   it('computes safe percentages', () => {
     expect(percent(1, 4)).toBe(25);
     expect(percent(1, 0)).toBe(0);
@@ -136,8 +130,7 @@ describe('formatting in English', () => {
     expect(formatCost(undefined)).toBe('—');
   });
 
-  it('formats decimals, dates and the time until a reset', () => {
-    expect(formatDecimal(3.5, 2)).toBe('3.5');
+  it('formats dates and the time until a reset', () => {
     expect(formatDateKey('2026-10-19')).toBe('10/19/2026');
     expect(formatResetIn(10_000 + 2 * 3_600_000 + 10 * 60_000, 10_000)).toBe('in 2 h 10 min');
     expect(formatResetIn(5, 10)).toBe('now');

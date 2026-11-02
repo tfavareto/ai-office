@@ -1,7 +1,7 @@
 // Roles: reusable instructions an agent starts with (Reviewer, Tester...). They stay in this browser and are chosen when
 // hiring an agent. Saving under a name that exists replaces it.
 import { t } from '../../i18n';
-import { addRole, removeRole, validRole } from '../../pro/model/roles';
+import { addRole, removeRole, validRole } from '../model/roles';
 import type { AppContext } from '../context';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -61,7 +61,7 @@ export class RolesDialog extends Dialog {
   }
 
   protected update(): void {
-    const roles = this.ctx.prefs.get().proRoles;
+    const roles = this.ctx.prefs.get().roles;
     const signature = roles.map((role) => `${role.id}:${role.name}`).join('|');
     if (signature === this.signature) return;
     this.signature = signature;
@@ -88,11 +88,11 @@ export class RolesDialog extends Dialog {
             'button',
             {
               type: 'button',
-              class: 'ao-pro-menu-remove',
+              class: 'ao-roles-remove',
               title: t('roles.remove', { name: role.name }),
               'aria-label': t('roles.remove', { name: role.name }),
               onclick: () => {
-                this.ctx.prefs.set({ proRoles: removeRole(this.ctx.prefs.get().proRoles, role.id) });
+                this.ctx.prefs.set({ roles: removeRole(this.ctx.prefs.get().roles, role.id) });
                 this.ctx.refresh();
               },
             },
@@ -112,7 +112,7 @@ export class RolesDialog extends Dialog {
     const instructions = this.instructionsInput.value;
     if (!validRole(name, instructions)) return;
     const role = { id: `r${this.ctx.now()}`, name, instructions };
-    this.ctx.prefs.set({ proRoles: addRole(this.ctx.prefs.get().proRoles, role) });
+    this.ctx.prefs.set({ roles: addRole(this.ctx.prefs.get().roles, role) });
     this.nameInput.value = '';
     this.instructionsInput.value = '';
     this.syncSave();

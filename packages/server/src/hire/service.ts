@@ -1,7 +1,5 @@
 // Hiring an agent: validates the request, opens a terminal window running Claude Code in the project folder and
 // registers the pending hire the office draws as a placeholder. Demo mode simulates the hire instead of opening anything.
-import { randomUUID } from 'node:crypto';
-import type { SquadRequest } from '@ai-office/shared';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
@@ -13,18 +11,10 @@ import {
   type PendingHire,
 } from '@ai-office/shared';
 import { accountsFromDirs } from '../claude/accounts';
-import { resumeArguments, type ResumableSession } from '../terminal/resume';
-import { TerminalError, type TerminalSpec } from '../terminal/service';
 import { HttpError } from '../http/respond';
 import type { Logger } from '../log';
 import type { RateLimiter } from '../util/rate-limit';
-import {
-  UnquotableError,
-  agentInstructions,
-  buildLauncherScript,
-  claudeArguments,
-  terminalEnvironment,
-} from './command';
+import { UnquotableError, agentInstructions, buildLauncherScript } from './command';
 import { type FolderCheck, checkFolder, normalizeFolderInput } from './folder';
 import type { HireRegistry } from './registry';
 import { LaunchError, type TerminalLauncher } from './terminals';
@@ -53,19 +43,6 @@ export interface HireServiceDeps {
   launchLimiter: RateLimiter;
   /** Recomputes the office state, so a simulated hire shows up in the next snapshot. */
   refresh: () => void;
-  /** Real terminals in the Pro view, when the person turned them on. */
-  terminals: {
-    enabled: () => boolean;
-    start: (spec: TerminalSpec) => { id: string };
-    /** How many more can start. */
-    room: () => number;
-    kill: (id: string) => void;
-    connect: (a: string, b: string) => void;
-  };
-  /** The environment real terminals start from. */
-  env: NodeJS.ProcessEnv;
-  /** What real terminals need so their agents can reach this server: its port, its state folder, the command. */
-  bridge: { path: string; env: NodeJS.ProcessEnv };
 }
 
 interface LaunchInput {
@@ -91,16 +68,6 @@ function folderFailure(check: Extract<FolderCheck, { ok: false }>): never {
       return fail(403, 'project-not-readable');
   }
 }
-
-const TERMINAL_FAILURE: Record<TerminalError['code'], { status: number; code: HireErrorCode }> = {
-  unavailable: { status: 503, code: 'terminals-unavailable' },
-  'too-many': { status: 429, code: 'terminals-limit' },
-  'spawn-failed': { status: 502, code: 'terminal-failed' },
-};
-
-/** A size that reads well until the page measures the real one. */
-const INITIAL_COLS = 120;
-const INITIAL_ROWS = 36;
 
 const LAUNCH_STATUS: Record<LaunchError['code'], number> = {
   'no-terminal': 503,
@@ -132,7 +99,6 @@ export class HireService {
     if (demo !== undefined && this.simulates(requested)) return this.hireDemo(demo, requested, request);
     const folder = await checkFolder(requested, this.deps.homeDir);
     if (!folder.ok) return folderFailure(folder);
-    if (request.where === 'terminal' && !this.deps.terminals.enabled()) return fail(409, 'terminals-off');
     const account = this.accountFor(request.accountId);
     const claudePath = this.deps.resolveClaude();
     if (claudePath === undefined) return fail(503, 'claude-not-found');
@@ -143,8 +109,7 @@ export class HireService {
       projectPath: folder.path,
       configDir: account.isDefault === true ? undefined : account.dir,
     };
-    if (request.where === 'terminal') void this.startTerminal(launch);
-    else await this.launch(launch);
+    await this.launch(launch);
     const rooms = this.deps.realProjectIds();
     const projectId = rooms.find((id) => id === folder.path || id === folder.realPath) ?? folder.realPath;
     return this.deps.registry.create({
@@ -177,112 +142,6 @@ export class HireService {
     return accounts.find((account) => account.isDefault === true) ?? accounts[0] ?? fallback;
   }
 
-  /** Several real terminals in one folder, connected to each other. All of them start, or none stays open. */
-  async hireSquad(request: SquadRequest): Promise<number> {
-    const requested = normalizeFolderInput(request.projectPath, this.deps.homeDir);
-    if (requested === undefined) return fail(400, 'invalid-projectPath');
-    const folder = await checkFolder(requested, this.deps.homeDir);
-    if (!folder.ok) return folderFailure(folder);
-    if (!this.deps.terminals.enabled()) return fail(409, 'terminals-off');
-    const account = this.accountFor(undefined);
-    const claudePath = this.deps.resolveClaude();
-    if (claudePath === undefined) return fail(503, 'claude-not-found');
-    // Before anyone starts: otherwise the first ones would begin on the task only to be stopped.
-    if (this.deps.terminals.room() < request.members.length) return fail(429, 'terminals-limit');
-    if (!this.deps.launchLimiter.tryAcquire()) return fail(429, 'rate-limited');
-    const squad = randomUUID();
-    const started: string[] = [];
-    try {
-      for (const [index, role] of request.members.entries()) {
-        const prompt = index === 0 ? request.task : undefined;
-        const member = {
-          projectPath: folder.path,
-          role,
-          where: 'terminal' as const,
-          ...(prompt !== undefined ? { prompt } : {}),
-        };
-        started.push(
-          this.startTerminal(
-            {
-              request: member,
-              claudePath,
-              projectPath: folder.path,
-              configDir: account.isDefault === true ? undefined : account.dir,
-            },
-            squad,
-          ),
-        );
-      }
-    } catch (error) {
-      for (const id of started) this.deps.terminals.kill(id);
-      throw error;
-    }
-    for (const [index, id] of started.entries())
-      for (const other of started.slice(index + 1)) this.deps.terminals.connect(id, other);
-    return started.length;
-  }
-
-  /**
-   * Starts a real terminal that goes on with a session of the last time. The list it comes from is bounded and each
-   * entry runs once. Its instructions are rebuilt, so they point at this install of the office; a saved account folder
-   * counts only if it is still an account.
-   */
-  async resume(session: ResumableSession): Promise<void> {
-    if (!this.deps.terminals.enabled()) return fail(409, 'terminals-off');
-    const folder = await checkFolder(session.cwd, this.deps.homeDir);
-    if (!folder.ok) return folderFailure(folder);
-    const claudePath = this.deps.resolveClaude();
-    if (claudePath === undefined) return fail(503, 'claude-not-found');
-    const { configDir, role, roleInstructions } = session;
-    if (configDir !== undefined && !this.deps.accounts().some((account) => account.dir === configDir))
-      return fail(400, 'unknown-account');
-    const hireRole =
-      role !== undefined && roleInstructions !== undefined ? { name: role, instructions: roleInstructions } : undefined;
-    try {
-      this.deps.terminals.start({
-        file: claudePath,
-        args: resumeArguments(session.sessionId, agentInstructions(hireRole, this.deps.bridge.path)),
-        cwd: folder.path,
-        env: { ...terminalEnvironment(this.deps.env, configDir), ...this.deps.bridge.env },
-        cols: INITIAL_COLS,
-        rows: INITIAL_ROWS,
-        roleInstructions,
-        configDir,
-        ...(role !== undefined ? { role } : {}),
-      });
-    } catch (error) {
-      if (!(error instanceof TerminalError)) throw error;
-      const failure = TERMINAL_FAILURE[error.code];
-      return fail(failure.status, failure.code);
-    }
-  }
-
-  /** Runs Claude Code directly on a pseudo-terminal: no shell, so nothing in the request is ever interpreted. */
-  private startTerminal(input: LaunchInput, squad?: string): string {
-    const { request } = input;
-    if (request.prompt?.includes('\0') === true) return fail(400, 'invalid-prompt');
-    try {
-      const { id } = this.deps.terminals.start({
-        file: input.claudePath,
-        args: claudeArguments({ ...request, instructions: agentInstructions(request.role, this.deps.bridge.path) }),
-        roleInstructions: request.role?.instructions,
-        configDir: input.configDir,
-        cwd: input.projectPath,
-        env: { ...terminalEnvironment(this.deps.env, input.configDir), ...this.deps.bridge.env },
-        cols: INITIAL_COLS,
-        rows: INITIAL_ROWS,
-        ...(request.role !== undefined ? { role: request.role.name } : {}),
-        ...(squad !== undefined ? { squad } : {}),
-      });
-      return id;
-    } catch (error) {
-      if (!(error instanceof TerminalError)) throw error;
-      this.deps.log.warn(`Terminal: ${error.code}`);
-      const failure = TERMINAL_FAILURE[error.code];
-      return fail(failure.status, failure.code);
-    }
-  }
-
   private async launch(input: LaunchInput): Promise<void> {
     const workDir = await mkdtemp(join(this.deps.tmpDir, 'ai-office-hire-'));
     const { request } = input;
@@ -294,7 +153,7 @@ export class HireService {
         prompt: request.prompt,
         model: request.model,
         permissionMode: request.permissionMode,
-        instructions: agentInstructions(request.role, undefined),
+        instructions: agentInstructions(request.role),
         locale: request.locale ?? 'pt-BR',
         workDir,
       });

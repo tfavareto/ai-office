@@ -209,7 +209,7 @@ describe('TranscriptView', () => {
     expect(await cache.open('/nao/existe.jsonl')).toBeUndefined();
   });
 
-  test('TranscriptCache keeps as many views open as the Pro view polls live terminals', async () => {
+  test('TranscriptCache keeps as many views open as its limit', async () => {
     const cache = new TranscriptCache();
     const paths: string[] = [];
     for (let i = 0; i < TRANSCRIPT_CACHE_VIEWS; i++)

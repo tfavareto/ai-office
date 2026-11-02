@@ -195,7 +195,7 @@ export class TranscriptView {
   }
 }
 
-/** Views the cache keeps open: the Pro view polls up to ten live terminals plus the terminal panel, each one a view. */
+/** Views the cache keeps open, one per open terminal panel of a session. */
 export const TRANSCRIPT_CACHE_VIEWS = 12;
 /** Memory all the open views may hold together; the least recently used ones are closed beyond it. */
 export const MAX_CACHE_BYTES = 48 * 1024 * 1024;

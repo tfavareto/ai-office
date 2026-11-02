@@ -63,7 +63,6 @@ export class WorldHost {
   private clock: number | null = null;
   private selection: Selection = null;
   private loadToken = 0;
-  private paused = false;
   private unsubscribers: (() => void)[] = [];
   private readonly selectListeners = new Set<Listener<Selection>>();
   private readonly hoverListeners = new Set<Listener<HoverInfo | null>>();
@@ -128,7 +127,6 @@ export class WorldHost {
     world.setClock(this.clock);
     if (this.snapshot) world.setSnapshot(this.snapshot, this.snapshotTime);
     if (this.selection) world.select(this.selection);
-    world.setPaused(this.paused);
   }
 
   private detach(): void {
@@ -253,12 +251,6 @@ export class WorldHost {
 
   resize(): void {
     this.world?.resize();
-  }
-
-  /** The renderer rests while the Pro view covers it (and keeps resting through a 2D/3D switch). */
-  setPaused(paused: boolean): void {
-    this.paused = paused;
-    this.world?.setPaused(paused);
   }
 
   onSelect(listener: Listener<Selection>): () => void {

@@ -10,12 +10,6 @@ import type {
   CodexSettings,
   GitSettings,
   HireCheckResponse,
-  FloorInfo,
-  ProjectFiles,
-  ProjectNote,
-  SquadRequest,
-  Routine,
-  TerminalSettings,
   HireRequest,
   PendingHire,
   PermissionDecision,
@@ -85,36 +79,6 @@ export interface Backend {
   /** Tells the server the person did something only the page can see, for the first time (local access only). */
   progressEvent(event: ProgressEventName): Promise<void>;
   setDemo(on: boolean): Promise<boolean>;
-  /** Floors: a checkout of its own for a task (local access only). Rejects with the server's error code. */
-  floorStatus(projectId: string): Promise<FloorInfo>;
-  createFloor(projectId: string, name: string): Promise<{ path: string; branch: string }>;
-  landFloor(projectId: string, mode: 'merge' | 'pull-request'): Promise<{ url?: string }>;
-  removeFloor(projectId: string, acceptIgnored: boolean): Promise<{ branchKept: boolean }>;
-  /** The note of a room (local access only). saveNote rejects with the server's code if it changed since it was read. */
-  note(projectId: string): Promise<ProjectNote>;
-  saveNote(projectId: string, text: string, baseUpdatedAt: number): Promise<ProjectNote>;
-  /** Real terminals started together and connected (local access only). */
-  startSquad(request: SquadRequest): Promise<void>;
-  /** Routines: prompts on a schedule (local access only). */
-  routines(): Promise<Routine[]>;
-  addRoutine(routine: Pick<Routine, 'name' | 'prompt' | 'projectPath' | 'schedule'>): Promise<void>;
-  setRoutineEnabled(id: string, enabled: boolean): Promise<void>;
-  runRoutine(id: string): Promise<void>;
-  removeRoutine(id: string): Promise<void>;
-  /** Real terminals open when the office last stopped. */
-  resumableTerminals(): Promise<{ sessionId: string; cwd: string; role?: string }[]>;
-  resumeTerminal(sessionId: string): Promise<void>;
-  dismissResumable(): Promise<void>;
-  /** Real terminals in the Pro view (local access only). */
-  terminalSettings(): Promise<TerminalSettings>;
-  setTerminals(on: boolean): Promise<TerminalSettings>;
-  terminalInput(id: string, data: string): Promise<void>;
-  terminalResize(id: string, cols: number, rows: number): Promise<void>;
-  terminalKill(id: string): Promise<void>;
-  /** Connects two real terminals so their agents can message each other, or disconnects them. */
-  terminalLink(a: string, b: string, connected: boolean): Promise<void>;
-  /** The files of a room, for the prompt's `@` mention (local access only). */
-  projectFiles(projectId: string): Promise<ProjectFiles>;
   /** Settings of the git integration that live on the server (local access only). */
   gitSettings(): Promise<GitSettings>;
   /** Turns the pull request lookup (the `gh` CLI, which uses the internet) on or off. */

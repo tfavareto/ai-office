@@ -1,5 +1,5 @@
 // Settings popover: collapsible groups (general, office, sounds, data, automation, team, demo and about) of rows.
-import { LOCALES, LOCALE_NAMES, type CodexSettings, type GitSettings, type TerminalSettings } from '@ai-office/shared';
+import { LOCALES, LOCALE_NAMES, type CodexSettings, type GitSettings } from '@ai-office/shared';
 import { t } from '../../i18n';
 import { describeError } from '../../net/backend';
 import type { LanguagePref } from '../../prefs/prefs';
@@ -11,7 +11,6 @@ import { CustomizationManager } from './customize-manager';
 import { SETTINGS_GROUP_IDS, toggleGroup, type SettingsGroupId } from '../model/settings-groups';
 import { Popover } from './overlay';
 import { SettingsGroup } from './settings-group';
-import { VoiceSettings } from './voice-settings';
 
 interface Row {
   el: HTMLElement;
@@ -98,8 +97,6 @@ export class Settings extends Popover {
   private readonly pullRequests = createSwitch(t('settings.gitPr'), (on) => void this.togglePullRequests(on));
   private readonly codex = createSwitch(t('settings.codex'), (on) => void this.toggleCodex(on));
   private readonly codexRow = row(t('settings.codex'), this.codex.el, t('settings.codex.hint'));
-  private readonly terminals = createSwitch(t('settings.terminals'), (on) => void this.toggleTerminals(on));
-  private readonly terminalsRow = row(t('settings.terminals'), this.terminals.el, t('settings.terminals.hint'));
   private readonly celebrationsRow = row(
     t('settings.celebrations'),
     this.celebrations.el,
@@ -138,7 +135,6 @@ export class Settings extends Popover {
     h('div', { class: 'ao-team-setting' }, this.teamState, this.teamButton),
     t('settings.team.hint'),
   );
-  private readonly voiceSettings: VoiceSettings;
   private readonly about = h('p', { class: 'ao-setting-about' });
   private readonly groups: readonly SettingsGroup[];
   private readonly customization: CustomizationManager;
@@ -148,13 +144,11 @@ export class Settings extends Popover {
   private gitSettings: GitSettings | null = null;
   /** What the server says about the Codex integration (read when the popover opens). */
   private codexSettings: CodexSettings | null = null;
-  private terminalSettings: TerminalSettings | null = null;
 
   constructor(ctx: AppContext) {
     super(ctx, 'settings', t('topbar.settings'), 'ao-popover--settings');
     this.pullRequestsRow.el.append(this.ghHint);
     this.customization = new CustomizationManager(ctx);
-    this.voiceSettings = new VoiceSettings(ctx, ctx.voice);
     this.customizationRow = h(
       'div',
       { class: 'ao-setting' },
@@ -187,7 +181,7 @@ export class Settings extends Popover {
         this.employeeProjectRow.el,
       ],
       sound: [this.soundRow.el, this.browserRow.el],
-      data: [this.repoRow.el, this.pullRequestsRow.el, this.codexRow.el, this.terminalsRow.el, this.voiceSettings.el],
+      data: [this.repoRow.el, this.pullRequestsRow.el, this.codexRow.el],
       automation: [this.rulesRow.el, this.customizationRow],
       team: [this.teamRow.el],
       about: [
@@ -219,36 +213,9 @@ export class Settings extends Popover {
     void this.loadGitSettings();
     this.customization.onOpen();
     void this.loadCodexSettings();
-    void this.loadTerminalSettings();
-    this.voiceSettings.onOpen();
   }
 
-  dispose(): void {
-    this.voiceSettings.dispose();
-  }
-
-  private async loadTerminalSettings(): Promise<void> {
-    if (!this.ctx.isLocal) return;
-    try {
-      this.terminalSettings = await this.ctx.terminalSettings();
-    } catch {
-      this.terminalSettings = null;
-    }
-    this.ctx.refresh();
-  }
-
-  private async toggleTerminals(on: boolean): Promise<void> {
-    if (this.busy) return;
-    this.busy = true;
-    try {
-      this.terminalSettings = await this.ctx.setTerminals(on);
-    } catch (error) {
-      this.ctx.notifyLocal('warn', describeError(error));
-    } finally {
-      this.busy = false;
-      this.ctx.refresh();
-    }
-  }
+  dispose(): void {}
 
   private async loadCodexSettings(): Promise<void> {
     if (!this.ctx.isLocal) return;
@@ -332,18 +299,6 @@ export class Settings extends Popover {
     setText(this.pullRequestsRow.hint, this.ctx.isLocal ? t('settings.gitPr.hint') : localOnlyHint());
 
     this.customization.update();
-    this.voiceSettings.update();
-    const terminals = this.terminalSettings;
-    this.terminals.set(terminals?.enabled === true);
-    this.terminals.el.disabled = !this.ctx.isLocal || this.busy || terminals?.available !== true;
-    setText(
-      this.terminalsRow.hint,
-      !this.ctx.isLocal
-        ? localOnlyHint()
-        : terminals?.available === false
-          ? t('settings.terminals.unavailable')
-          : t('settings.terminals.hint'),
-    );
     const codex = this.codexSettings;
     this.codexRow.el.hidden = codex?.available !== true;
     this.codex.set(codex?.sessions === true);

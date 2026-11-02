@@ -10,8 +10,7 @@ import { computeCounters, type Counters } from '../model/counters';
 import type { InboxCounts } from '../model/inbox';
 import { unreadCount } from '../model/notifications';
 import type { PopoverId } from '../state';
-import { createSegmented, iconButton, setPressed, type Segmented } from '../widgets';
-import type { ViewMode } from '../../prefs/prefs';
+import { iconButton, setPressed } from '../widgets';
 import { UsageCards } from './usage-cards';
 
 interface CounterDef {
@@ -65,7 +64,6 @@ export class TopBar implements Component {
   private readonly progressBtn: HTMLButtonElement;
   private readonly progressLevel: HTMLElement;
   private readonly helpBtn: HTMLButtonElement;
-  private readonly viewSwitch: Segmented<ViewMode>;
 
   constructor(private readonly ctx: AppContext) {
     this.sidebarBtn = iconButton({
@@ -80,16 +78,6 @@ export class TopBar implements Component {
       h('span', { class: 'ao-pill-dot' }),
       this.pillText,
     );
-    this.viewSwitch = createSegmented<ViewMode>(
-      t('topbar.view'),
-      [
-        { value: 'basic', label: t('topbar.view.basic') },
-        { value: 'pro', label: t('topbar.view.pro') },
-      ],
-      (mode) => ctx.setViewMode(mode),
-    );
-    this.viewSwitch.el.classList.add('ao-view-switch');
-    this.viewSwitch.el.title = t('topbar.view.hint');
     this.counters = COUNTERS.map((def) => this.createCounter(def));
     this.usage = new UsageCards(ctx);
 
@@ -140,14 +128,7 @@ export class TopBar implements Component {
     });
 
     this.el.append(
-      h(
-        'div',
-        { class: 'ao-topbar-group ao-topbar-left' },
-        this.sidebarBtn,
-        this.brand(),
-        this.pill,
-        this.viewSwitch.el,
-      ),
+      h('div', { class: 'ao-topbar-group ao-topbar-left' }, this.sidebarBtn, this.brand(), this.pill),
       h(
         'div',
         { class: 'ao-topbar-group ao-topbar-center' },
@@ -322,8 +303,6 @@ export class TopBar implements Component {
     const ui = this.ctx.ui.get();
     setPressed(this.sidebarBtn, ui.sidebarOpen);
     setPressed(this.feedBtn, ui.feedOpen);
-    // The Pro view has no activity feed, so its switch leaves the bar there.
-    this.feedBtn.hidden = this.ctx.viewMode === 'pro';
     for (const [id, btn] of this.popoverButtons) setPressed(btn, ui.popover === id);
     setPressed(this.bellBtn, ui.popover === 'notifications');
     setPressed(this.boardBtn, ui.dialog === 'board');
@@ -342,9 +321,8 @@ export class TopBar implements Component {
       unread > 0 ? t('topbar.notifications.unread', { n: unread }) : t('topbar.notifications'),
     );
 
-    this.viewSwitch.set(this.ctx.viewMode);
     const modes = this.ctx.world.cameraModes();
-    this.cameraBtn.hidden = modes.length < 2 || this.ctx.viewMode === 'pro';
+    this.cameraBtn.hidden = modes.length < 2;
     if (modes.length >= 2) setText(this.cameraLabel, t(CAMERA_LABEL[this.ctx.world.cameraMode()]));
   }
 }

@@ -18,13 +18,7 @@ import {
   type DemoSimulator,
   type CodexSettings,
   type GitSettings,
-  DEMO_PROJECT_FILES,
   type HireCheckResponse,
-  type FloorInfo,
-  type ProjectNote,
-  type Routine,
-  type ProjectFiles,
-  type TerminalSettings,
   type HireRequest,
   type OfficeSnapshot,
   type PermissionDecision,
@@ -267,80 +261,6 @@ class MockBackend implements Backend {
 
   async setDemo(on: boolean): Promise<boolean> {
     return on;
-  }
-
-  /** The demonstration has no notes and starts no squads. */
-  async note(): Promise<ProjectNote> {
-    return { text: '', updatedAt: 0 };
-  }
-
-  async saveNote(): Promise<ProjectNote> {
-    throw new BackendError('demo', 409);
-  }
-
-  async startSquad(): Promise<void> {
-    throw new BackendError('demo', 409);
-  }
-
-  /** The demonstration runs no programs: no routines and nothing to resume. */
-  async routines(): Promise<Routine[]> {
-    return [];
-  }
-
-  async addRoutine(): Promise<void> {
-    throw new BackendError('demo', 409);
-  }
-
-  async setRoutineEnabled(): Promise<void> {}
-
-  async runRoutine(): Promise<void> {}
-
-  async removeRoutine(): Promise<void> {}
-
-  async resumableTerminals(): Promise<{ sessionId: string; cwd: string; role?: string }[]> {
-    return [];
-  }
-
-  async resumeTerminal(): Promise<void> {}
-
-  async dismissResumable(): Promise<void> {}
-
-  /** The demonstration has no repositories: floors are not available in it. */
-  async floorStatus(): Promise<FloorInfo> {
-    return { isFloor: false };
-  }
-
-  async createFloor(): Promise<{ path: string; branch: string }> {
-    throw new BackendError('demo', 409);
-  }
-
-  async landFloor(): Promise<{ url?: string }> {
-    throw new BackendError('demo', 409);
-  }
-
-  async removeFloor(): Promise<{ branchKept: boolean }> {
-    throw new BackendError('demo', 409);
-  }
-
-  /** The demonstration runs no programs: real terminals are not available in it. */
-  async terminalSettings(): Promise<TerminalSettings> {
-    return { enabled: false, available: false };
-  }
-
-  async setTerminals(_on: boolean): Promise<TerminalSettings> {
-    return this.terminalSettings();
-  }
-
-  async terminalInput(): Promise<void> {}
-
-  async terminalResize(): Promise<void> {}
-
-  async terminalKill(): Promise<void> {}
-
-  async terminalLink(): Promise<void> {}
-
-  async projectFiles(): Promise<ProjectFiles> {
-    return { files: [...DEMO_PROJECT_FILES], truncated: false };
   }
 
   async gitSettings(): Promise<GitSettings> {

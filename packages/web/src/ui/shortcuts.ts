@@ -16,7 +16,6 @@ export type ShortcutAction =
   | 'feed'
   | 'help'
   | 'hire'
-  | 'viewMode'
   | 'replay'
   | 'replayPlay'
   | 'replayBack'
@@ -51,7 +50,6 @@ const PLAIN_KEYS: Readonly<Record<string, ShortcutAction>> = {
   ']': 'feed',
   '?': 'help',
   h: 'hire',
-  v: 'viewMode',
   l: 'replay',
 };
 

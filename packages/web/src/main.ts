@@ -76,7 +76,6 @@ async function main(): Promise<void> {
       rev: store.snapshot?.rev ?? null,
       kind: world.kind,
       world: world.stats(),
-      pro: app.proDebug(),
     }),
   };
 }

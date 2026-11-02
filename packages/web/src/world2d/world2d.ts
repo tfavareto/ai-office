@@ -71,7 +71,6 @@ export class World2D implements WorldApi {
   private lastSnapshot: { snapshot: OfficeSnapshot; serverNow: number } | null = null;
 
   private raf = 0;
-  private paused = false;
   private last = 0;
   private clock = 0;
   private fps = 60;
@@ -383,15 +382,6 @@ export class World2D implements WorldApi {
     this.cam.view = { width, height, insets: this.insets };
     this.renderer.setWindow({ width, height, dpr });
     if (this.fitted && !this.userMoved) this.overview(false);
-  }
-
-  setPaused(paused: boolean): void {
-    if (this.disposed || paused === this.paused) return;
-    this.paused = paused;
-    cancelAnimationFrame(this.raf);
-    if (paused) return;
-    this.last = 0;
-    this.raf = requestAnimationFrame((t) => this.frame(t));
   }
 
   dispose(): void {

@@ -1,6 +1,4 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
-import type { Routine, SquadRequest } from '@ai-office/shared';
-import { parseNote, parseResumableTerminals, parseRoutines } from './parse-routines';
 import {
   API,
   type HireRequest,
@@ -32,9 +30,6 @@ import {
   parseActivities,
   parseDay,
   parseFolderCheck,
-  parseFloorInfo,
-  parseProjectFiles,
-  parseTerminalSettings,
   parseHire,
   parseMessages,
   parsePermission,
@@ -330,102 +325,6 @@ export class HttpBackend implements Backend {
   async hireAgent(request: HireRequest) {
     const { body } = await this.post(API.hire, { ...request, locale: locale() });
     return parseHire(body);
-  }
-
-  async floorStatus(projectId: string) {
-    return parseFloorInfo(await this.get(`${API.floors}/status`, { project: projectId }));
-  }
-
-  async createFloor(projectId: string, name: string) {
-    const { body } = await this.post(API.floors, { project: projectId, name });
-    const { path, branch } = (isRecord(body) ? body : {}) as { path?: unknown; branch?: unknown };
-    if (typeof path !== 'string' || typeof branch !== 'string') throw new BackendError(t('error.invalidResponse'), 500);
-    return { path, branch };
-  }
-
-  async landFloor(projectId: string, mode: 'merge' | 'pull-request') {
-    const { body } = await this.post(`${API.floors}/land`, { project: projectId, mode });
-    const url = isRecord(body) && typeof body.url === 'string' ? body.url : undefined;
-    return url !== undefined ? { url } : {};
-  }
-
-  async removeFloor(projectId: string, acceptIgnored: boolean) {
-    const { body } = await this.post(`${API.floors}/remove`, { project: projectId, acceptIgnored });
-    return { branchKept: isRecord(body) && body.branchKept === true };
-  }
-
-  async note(projectId: string) {
-    return parseNote(await this.get(API.notes, { project: projectId }));
-  }
-
-  async saveNote(projectId: string, text: string, baseUpdatedAt: number) {
-    const { body } = await this.post(API.notes, { project: projectId, text, baseUpdatedAt });
-    return parseNote(body);
-  }
-
-  async startSquad(request: SquadRequest) {
-    await this.post(API.squads, request);
-  }
-
-  async routines() {
-    return parseRoutines(await this.get(API.routines));
-  }
-
-  async addRoutine(routine: Pick<Routine, 'name' | 'prompt' | 'projectPath' | 'schedule'>) {
-    await this.post(API.routines, routine);
-  }
-
-  async setRoutineEnabled(id: string, enabled: boolean) {
-    await this.post(`${API.routines}/${encodeURIComponent(id)}/enabled`, { enabled });
-  }
-
-  async runRoutine(id: string) {
-    await this.post(`${API.routines}/${encodeURIComponent(id)}/run`, {});
-  }
-
-  async removeRoutine(id: string) {
-    await this.post(`${API.routines}/${encodeURIComponent(id)}/remove`, {});
-  }
-
-  async resumableTerminals() {
-    return parseResumableTerminals(await this.get(API.terminalResumable));
-  }
-
-  async resumeTerminal(sessionId: string) {
-    await this.post(`${API.terminalResumable}/resume`, { sessionId });
-  }
-
-  async dismissResumable() {
-    await this.post(`${API.terminalResumable}/dismiss`, {});
-  }
-
-  async terminalSettings() {
-    return parseTerminalSettings(await this.get(API.terminalSettings));
-  }
-
-  async setTerminals(on: boolean) {
-    const { body } = await this.post(API.terminalSettings, { enabled: on });
-    return parseTerminalSettings(body);
-  }
-
-  async terminalInput(id: string, data: string) {
-    await this.post(`${API.terminals}/${encodeURIComponent(id)}/input`, { data });
-  }
-
-  async terminalResize(id: string, cols: number, rows: number) {
-    await this.post(`${API.terminals}/${encodeURIComponent(id)}/resize`, { cols, rows });
-  }
-
-  async terminalLink(a: string, b: string, connected: boolean) {
-    await this.post(API.terminalLinks, { a, b, connected });
-  }
-
-  async terminalKill(id: string) {
-    await this.post(`${API.terminals}/${encodeURIComponent(id)}/kill`, {});
-  }
-
-  async projectFiles(projectId: string) {
-    return parseProjectFiles(await this.get(API.projectFiles, { project: projectId }));
   }
 
   async checkFolder(path: string) {
