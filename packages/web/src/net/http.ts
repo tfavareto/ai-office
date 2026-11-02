@@ -1,4 +1,6 @@
 // HTTP implementation of the Backend, speaking the protocol in @ai-office/shared.
+import type { Routine } from '@ai-office/shared';
+import { parseResumableTerminals, parseRoutines } from './parse-routines';
 import {
   API,
   type HireRequest,
@@ -350,6 +352,38 @@ export class HttpBackend implements Backend {
   async removeFloor(projectId: string, acceptIgnored: boolean) {
     const { body } = await this.post(`${API.floors}/remove`, { project: projectId, acceptIgnored });
     return { branchKept: isRecord(body) && body.branchKept === true };
+  }
+
+  async routines() {
+    return parseRoutines(await this.get(API.routines));
+  }
+
+  async addRoutine(routine: Pick<Routine, 'name' | 'prompt' | 'projectPath' | 'schedule'>) {
+    await this.post(API.routines, routine);
+  }
+
+  async setRoutineEnabled(id: string, enabled: boolean) {
+    await this.post(`${API.routines}/${encodeURIComponent(id)}/enabled`, { enabled });
+  }
+
+  async runRoutine(id: string) {
+    await this.post(`${API.routines}/${encodeURIComponent(id)}/run`, {});
+  }
+
+  async removeRoutine(id: string) {
+    await this.post(`${API.routines}/${encodeURIComponent(id)}/remove`, {});
+  }
+
+  async resumableTerminals() {
+    return parseResumableTerminals(await this.get(API.terminalResumable));
+  }
+
+  async resumeTerminal(sessionId: string) {
+    await this.post(`${API.terminalResumable}/resume`, { sessionId });
+  }
+
+  async dismissResumable() {
+    await this.post(`${API.terminalResumable}/dismiss`, {});
   }
 
   async terminalSettings() {

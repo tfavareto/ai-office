@@ -1,4 +1,6 @@
 // Everything the HTTP handlers need, assembled by the app.
+import type { RoutineService } from '../routines/service';
+import type { ResumableSession } from '../terminal/resume';
 import type { TerminalService } from '../terminal/service';
 import type { TerminalSettingsStore } from '../terminal/settings-store';
 import type { TerminalStreams } from '../terminal/stream';
@@ -51,6 +53,10 @@ export interface AppContext {
   attention: AttentionRegistry;
   hires: HireService;
   terminals: TerminalService;
+  routines: RoutineService;
+  /** Real terminals open when the office last stopped, not brought back yet. */
+  resumable: () => readonly ResumableSession[];
+  dismissResumable: (sessionId: string | undefined) => void;
   terminalSettings: TerminalSettingsStore;
   terminalStreams: TerminalStreams;
   team: TeamService;

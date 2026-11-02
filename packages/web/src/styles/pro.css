@@ -1983,3 +1983,29 @@
   border-color: var(--pro-warn);
   color: var(--pro-warn);
 }
+
+/* Terminals of the last time, and the text of a routine in its list. */
+.ao-pro .ao-pro-resume {
+  top: calc(var(--topbar-h) + var(--gap) + 52px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 2 * var(--gap));
+}
+
+.ao-pro .ao-pro-resume[hidden] {
+  display: none;
+}
+
+/* The welcome card would cover the bar: the bar is what matters until it is answered. */
+body:has(.ao-pro-resume:not([hidden])) .ao-empty {
+  display: none;
+}
+
+.ao-routine-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}

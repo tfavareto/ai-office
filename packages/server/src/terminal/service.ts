@@ -45,6 +45,9 @@ export interface TerminalSpec {
   rows: number;
   /** The name of the instructions it started with, to show on its title bar. */
   role?: string;
+  /** What is needed to start it again later with `--resume`. */
+  roleInstructions?: string | undefined;
+  configDir?: string | undefined;
 }
 
 export type TerminalEvent =
@@ -65,6 +68,9 @@ interface Running {
   ring: ByteRing;
   seq: number;
   endedAt?: number;
+  typedAt?: number;
+  roleInstructions: string | undefined;
+  configDir: string | undefined;
 }
 
 export interface TerminalServiceDeps {
@@ -138,7 +144,14 @@ export class TerminalService {
       startedAt: this.deps.now(),
       ...(spec.role !== undefined ? { role: spec.role } : {}),
     };
-    const terminal: Running = { info, pty, ring: new ByteRing(REPLAY_BYTES), seq: 0 };
+    const terminal: Running = {
+      info,
+      pty,
+      ring: new ByteRing(REPLAY_BYTES),
+      seq: 0,
+      roleInstructions: spec.roleInstructions,
+      configDir: spec.configDir,
+    };
     this.terminals.set(info.id, terminal);
     pty.onData((data) => this.onOutput(terminal, data));
     pty.onExit((code) => this.onExit(terminal, code));
@@ -148,8 +161,14 @@ export class TerminalService {
   write(id: string, data: string): boolean {
     const terminal = this.running(id);
     if (terminal === undefined) return false;
+    terminal.typedAt = this.deps.now();
     terminal.pty.write(data);
     return true;
+  }
+
+  /** When it last got text: Enter right after would send a half-written message, or two messages as one. */
+  typedAt(id: string): number | undefined {
+    return this.terminals.get(id)?.typedAt;
   }
 
   resize(id: string, cols: number, rows: number): boolean {
@@ -188,10 +207,25 @@ export class TerminalService {
     return [...(this.links.get(id) ?? [])];
   }
 
+  /** What is needed to start the terminal again later. */
+  startInfo(id: string): { roleInstructions: string | undefined; configDir: string | undefined } | undefined {
+    const terminal = this.terminals.get(id);
+    return terminal === undefined
+      ? undefined
+      : { roleInstructions: terminal.roleInstructions, configDir: terminal.configDir };
+  }
+
   /** Pastes a message into a connected terminal and presses Enter. */
   deliver(from: string, to: string, text: string): boolean {
+    if (!this.links.get(from)?.has(to)) return false;
+    return this.paste(to, text);
+  }
+
+  /** Pastes text into a terminal and presses Enter, as if the person had. */
+  paste(to: string, text: string): boolean {
     const target = this.running(to);
-    if (target === undefined || !this.links.get(from)?.has(to)) return false;
+    if (target === undefined) return false;
+    target.typedAt = this.deps.now();
     target.pty.write(`${PASTE_START}${cleanMessage(text)}${PASTE_END}`);
     // A program reads a paste in pieces: an Enter arriving in the same read would count as part of it.
     setTimeout(() => {

@@ -11,6 +11,7 @@ import {
   type PendingHire,
 } from '@ai-office/shared';
 import { accountsFromDirs } from '../claude/accounts';
+import { resumeArguments, type ResumableSession } from '../terminal/resume';
 import { TerminalError, type TerminalSpec } from '../terminal/service';
 import { HttpError } from '../http/respond';
 import type { Logger } from '../log';
@@ -170,6 +171,41 @@ export class HireService {
     return accounts.find((account) => account.isDefault === true) ?? accounts[0] ?? fallback;
   }
 
+  /**
+   * Starts a real terminal that goes on with a session of the last time. The list it comes from is bounded and each
+   * entry runs once. Its instructions are rebuilt, so they point at this install of the office; a saved account folder
+   * counts only if it is still an account.
+   */
+  async resume(session: ResumableSession): Promise<void> {
+    if (!this.deps.terminals.enabled()) return fail(409, 'terminals-off');
+    const folder = await checkFolder(session.cwd, this.deps.homeDir);
+    if (!folder.ok) return folderFailure(folder);
+    const claudePath = this.deps.resolveClaude();
+    if (claudePath === undefined) return fail(503, 'claude-not-found');
+    const { configDir, role, roleInstructions } = session;
+    if (configDir !== undefined && !this.deps.accounts().some((account) => account.dir === configDir))
+      return fail(400, 'unknown-account');
+    const hireRole =
+      role !== undefined && roleInstructions !== undefined ? { name: role, instructions: roleInstructions } : undefined;
+    try {
+      this.deps.terminals.start({
+        file: claudePath,
+        args: resumeArguments(session.sessionId, agentInstructions(hireRole, this.deps.bridge.path)),
+        cwd: folder.path,
+        env: { ...terminalEnvironment(this.deps.env, configDir), ...this.deps.bridge.env },
+        cols: INITIAL_COLS,
+        rows: INITIAL_ROWS,
+        roleInstructions,
+        configDir,
+        ...(role !== undefined ? { role } : {}),
+      });
+    } catch (error) {
+      if (!(error instanceof TerminalError)) throw error;
+      const failure = TERMINAL_FAILURE[error.code];
+      return fail(failure.status, failure.code);
+    }
+  }
+
   /** Runs Claude Code directly on a pseudo-terminal: no shell, so nothing in the request is ever interpreted. */
   private startTerminal(input: LaunchInput): void {
     const { request } = input;
@@ -177,10 +213,9 @@ export class HireService {
     try {
       this.deps.terminals.start({
         file: input.claudePath,
-        args: claudeArguments({
-          ...request,
-          instructions: agentInstructions(request.role, this.deps.bridge.path),
-        }),
+        args: claudeArguments({ ...request, instructions: agentInstructions(request.role, this.deps.bridge.path) }),
+        roleInstructions: request.role?.instructions,
+        configDir: input.configDir,
         cwd: input.projectPath,
         env: { ...terminalEnvironment(this.deps.env, input.configDir), ...this.deps.bridge.env },
         cols: INITIAL_COLS,
