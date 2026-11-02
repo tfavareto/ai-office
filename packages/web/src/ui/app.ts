@@ -45,6 +45,7 @@ import { Feed } from './components/feed';
 import { HelpDialog } from './components/help-dialog';
 import { RolesDialog } from './components/roles-dialog';
 import { RoutinesDialog } from './components/routines-dialog';
+import { SquadsDialog } from './components/squads-dialog';
 import { HireDialog } from './components/hire-dialog';
 import { HoverTip } from './components/hover-tip';
 import { InboxPopover } from './components/inbox-popover';
@@ -274,6 +275,7 @@ export class App implements AppContext {
       new HireDialog(this),
       new RolesDialog(this),
       new RoutinesDialog(this),
+      new SquadsDialog(this),
       new RulesDialog(this),
       new ShareDialog(this),
       new CustomizeDialog(this),

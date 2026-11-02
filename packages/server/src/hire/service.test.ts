@@ -91,7 +91,13 @@ function harness(
     refresh: () => undefined,
     env: {},
     bridge: { path: '/bridge.mjs', env: {} },
-    terminals: { enabled: () => false, start: () => undefined },
+    terminals: {
+      enabled: () => false,
+      start: () => ({ id: 't' }),
+      room: () => 16,
+      kill: () => undefined,
+      connect: () => undefined,
+    },
   });
   return { service, registry, opened, setClock: (value) => void (clock = value) };
 }

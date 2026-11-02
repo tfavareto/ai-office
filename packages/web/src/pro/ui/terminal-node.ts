@@ -2,6 +2,7 @@
 // session time, maximize and copy-id buttons), the session printed like the Claude Code CLI, what it waits for (the
 // permission prompt, amber, answered right there), and a CLI-like status line. It always shows terminal text: live from the transcript
 // when the policy lets it poll, otherwise the last lines it already has followed by what the office saw the agent do.
+import type { SceneSquad } from '../model/scene';
 import type { XtermView } from './xterm-view';
 import { isCodex, type Account, type Agent, type TranscriptEntry } from '@ai-office/shared';
 import { describeError } from '../../net/backend';
@@ -35,6 +36,7 @@ export interface NodeModel {
   collapsed: readonly FinishedSub[];
   /** The number key that goes to this orchestrator (1 to 9). */
   number: number | undefined;
+  squad: SceneSquad | undefined;
 }
 
 export interface NodeHandlers extends AskHost {
@@ -46,6 +48,10 @@ export interface NodeHandlers extends AskHost {
   killTerminal(terminalId: string): void;
   /** Starts connecting this terminal to the next one clicked. */
   connectTerminal(terminalId: string): void;
+  /** Brings a member of the squad into this block. */
+  pickSquadMember(agentId: string): void;
+  /** One block, or each member in its own. */
+  toggleSquad(squadId: string): void;
   /** A folded finished subagent was picked in the orchestrator's list: show its terminal. */
   openFinished(agent: Agent): void;
 }
@@ -99,6 +105,8 @@ export class TerminalNode {
   private readonly typing = h('span', { class: 'ao-pro-typing', hidden: true }, t('pro.terminal.typing'));
   private readonly killButton: HTMLButtonElement;
   private readonly connectButton: HTMLButtonElement;
+  private readonly squadBar = h('div', { class: 'ao-pro-squad', hidden: true, 'data-no-drag': '' });
+  private squadSignature = '';
   private killArmed: ReturnType<typeof setTimeout> | null = null;
   private xterm: XtermView | null = null;
   private xtermId: string | null = null;
@@ -207,6 +215,7 @@ export class TerminalNode {
         this.elapsed,
         h('div', { class: 'ao-pro-actions' }, this.connectButton, this.killButton, ...buttons),
       ),
+      this.squadBar,
       this.task,
       this.content,
       this.status,
@@ -249,6 +258,7 @@ export class TerminalNode {
   update(model: NodeModel): void {
     this.model_ = model;
     const { agent } = model;
+    this.renderSquad(model.squad);
     this.body.setCwd(agent.projectId);
     const status = model.finishedAt !== undefined ? 'done' : displayStatus(agent);
     if (!this.maximized) this.place(model.rect);
@@ -352,6 +362,61 @@ export class TerminalNode {
   }
 
   // --- real terminal --------------------------------------------------------------------------------------------
+
+  private renderSquad(squad: SceneSquad | undefined): void {
+    const members = (squad?.folded === true ? squad.members : []).map((member) => ({
+      member,
+      status: displayStatus(member),
+    }));
+    const signature =
+      squad === undefined
+        ? ''
+        : JSON.stringify([
+            squad.id,
+            squad.folded,
+            squad.currentId,
+            members.map(({ member: m, status }) => [m.id, m.name, status]),
+          ]);
+    if (signature === this.squadSignature) return;
+    this.squadSignature = signature;
+    this.squadBar.hidden = squad === undefined;
+    if (squad === undefined) return void this.squadBar.replaceChildren();
+    this.squadBar.replaceChildren(
+      ...members.map(({ member, status }) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            class: `ao-pro-squad-member is-${status}${member.id === squad.currentId ? ' is-current' : ''}`,
+            'aria-pressed': String(member.id === squad.currentId),
+            'aria-label': t('pro.node.label', {
+              name: member.name,
+              role: member.assignedRole ?? '',
+              status: statusLabel(status),
+            }),
+            onclick: (event: Event) => {
+              event.stopPropagation();
+              this.handlers.pickSquadMember(member.id);
+            },
+          },
+          `${member.name}${member.assignedRole !== undefined ? ` (${member.assignedRole})` : ''}${status === 'waiting' ? ' !' : ''}`,
+        ),
+      ),
+      h('span', { class: 'ao-pro-spacer' }),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'ao-pro-squad-toggle',
+          onclick: (event: Event) => {
+            event.stopPropagation();
+            this.handlers.toggleSquad(squad.id);
+          },
+        },
+        t(squad.folded ? 'pro.squad.split' : 'pro.squad.gather'),
+      ),
+    );
+  }
 
   private xtermOnScreen(): boolean {
     return this.xtermId !== null && (this.detail === 'live' || this.maximized);

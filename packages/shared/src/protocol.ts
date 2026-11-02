@@ -124,6 +124,10 @@ export const API = {
   terminals: '/api/terminals',
   /** POST { project, name }: a checkout of its own for a task; GET status?project=; POST land { project, mode }; POST remove { project }. Local access only. */
   floors: '/api/floors',
+  /** POST SquadRequest → 202 { count }: real terminals started together and connected. Local access only. */
+  squads: '/api/terminals/squads',
+  /** GET ?project=<id> → ProjectNote; POST { project, text, baseUpdatedAt }. Local access only. */
+  notes: '/api/notes',
   /** GET; POST a routine; POST <id>/enabled { enabled }, <id>/run, <id>/remove. Local access only. */
   routines: '/api/routines',
   /** GET → { sessions }: real terminals open when the office last stopped; POST resume { sessionId }, dismiss. Local access only. */
@@ -292,12 +296,34 @@ export interface TerminalInfo {
   exitCode?: number;
   /** The role it started with. */
   role?: string;
+  /** The squad it started with: terminals started together and shown as one block. */
+  squad?: string;
 }
 
 /** What a room is when it is a floor: a checkout of its own for one task. */
 export type FloorInfo =
   | { isFloor: false }
   | { isFloor: true; branch: string; target: string; ahead: number; dirty: boolean; detached: boolean };
+
+export const SQUAD_MIN_MEMBERS = 2;
+export const SQUAD_MAX_MEMBERS = 5;
+
+/** Several agents started together in a project, each with its role and connected to the others. */
+export interface SquadRequest {
+  projectPath: string;
+  members: HireRole[];
+  /** The first member's first prompt. */
+  task?: string;
+}
+
+export const NOTE_MAX_CHARS = 32_000;
+
+/** What everyone working in a project shares: the person edits it, agents in real terminals read and add to it. */
+export interface ProjectNote {
+  text: string;
+  /** 0 while there is none. Saving sends the one it started from, so a newer note is not overwritten. */
+  updatedAt: number;
+}
 
 /** When a routine runs. */
 export type RoutineSchedule = { kind: 'interval'; minutes: number } | { kind: 'daily'; hour: number; minute: number };

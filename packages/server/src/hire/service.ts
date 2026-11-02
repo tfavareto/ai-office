@@ -1,5 +1,7 @@
 // Hiring an agent: validates the request, opens a terminal window running Claude Code in the project folder and
 // registers the pending hire the office draws as a placeholder. Demo mode simulates the hire instead of opening anything.
+import { randomUUID } from 'node:crypto';
+import type { SquadRequest } from '@ai-office/shared';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
@@ -54,7 +56,11 @@ export interface HireServiceDeps {
   /** Real terminals in the Pro view, when the person turned them on. */
   terminals: {
     enabled: () => boolean;
-    start: (spec: TerminalSpec) => void;
+    start: (spec: TerminalSpec) => { id: string };
+    /** How many more can start. */
+    room: () => number;
+    kill: (id: string) => void;
+    connect: (a: string, b: string) => void;
   };
   /** The environment real terminals start from. */
   env: NodeJS.ProcessEnv;
@@ -137,7 +143,7 @@ export class HireService {
       projectPath: folder.path,
       configDir: account.isDefault === true ? undefined : account.dir,
     };
-    if (request.where === 'terminal') this.startTerminal(launch);
+    if (request.where === 'terminal') void this.startTerminal(launch);
     else await this.launch(launch);
     const rooms = this.deps.realProjectIds();
     const projectId = rooms.find((id) => id === folder.path || id === folder.realPath) ?? folder.realPath;
@@ -169,6 +175,51 @@ export class HireService {
       return accounts.find((account) => account.id === requested) ?? fail(400, 'unknown-account');
     const fallback = accountsFromDirs([join(this.deps.homeDir, '.claude')], this.deps.homeDir)[0] as Account;
     return accounts.find((account) => account.isDefault === true) ?? accounts[0] ?? fallback;
+  }
+
+  /** Several real terminals in one folder, connected to each other. All of them start, or none stays open. */
+  async hireSquad(request: SquadRequest): Promise<number> {
+    const requested = normalizeFolderInput(request.projectPath, this.deps.homeDir);
+    if (requested === undefined) return fail(400, 'invalid-projectPath');
+    const folder = await checkFolder(requested, this.deps.homeDir);
+    if (!folder.ok) return folderFailure(folder);
+    if (!this.deps.terminals.enabled()) return fail(409, 'terminals-off');
+    const account = this.accountFor(undefined);
+    const claudePath = this.deps.resolveClaude();
+    if (claudePath === undefined) return fail(503, 'claude-not-found');
+    // Before anyone starts: otherwise the first ones would begin on the task only to be stopped.
+    if (this.deps.terminals.room() < request.members.length) return fail(429, 'terminals-limit');
+    if (!this.deps.launchLimiter.tryAcquire()) return fail(429, 'rate-limited');
+    const squad = randomUUID();
+    const started: string[] = [];
+    try {
+      for (const [index, role] of request.members.entries()) {
+        const prompt = index === 0 ? request.task : undefined;
+        const member = {
+          projectPath: folder.path,
+          role,
+          where: 'terminal' as const,
+          ...(prompt !== undefined ? { prompt } : {}),
+        };
+        started.push(
+          this.startTerminal(
+            {
+              request: member,
+              claudePath,
+              projectPath: folder.path,
+              configDir: account.isDefault === true ? undefined : account.dir,
+            },
+            squad,
+          ),
+        );
+      }
+    } catch (error) {
+      for (const id of started) this.deps.terminals.kill(id);
+      throw error;
+    }
+    for (const [index, id] of started.entries())
+      for (const other of started.slice(index + 1)) this.deps.terminals.connect(id, other);
+    return started.length;
   }
 
   /**
@@ -207,11 +258,11 @@ export class HireService {
   }
 
   /** Runs Claude Code directly on a pseudo-terminal: no shell, so nothing in the request is ever interpreted. */
-  private startTerminal(input: LaunchInput): void {
+  private startTerminal(input: LaunchInput, squad?: string): string {
     const { request } = input;
     if (request.prompt?.includes('\0') === true) return fail(400, 'invalid-prompt');
     try {
-      this.deps.terminals.start({
+      const { id } = this.deps.terminals.start({
         file: input.claudePath,
         args: claudeArguments({ ...request, instructions: agentInstructions(request.role, this.deps.bridge.path) }),
         roleInstructions: request.role?.instructions,
@@ -221,7 +272,9 @@ export class HireService {
         cols: INITIAL_COLS,
         rows: INITIAL_ROWS,
         ...(request.role !== undefined ? { role: request.role.name } : {}),
+        ...(squad !== undefined ? { squad } : {}),
       });
+      return id;
     } catch (error) {
       if (!(error instanceof TerminalError)) throw error;
       this.deps.log.warn(`Terminal: ${error.code}`);

@@ -21,6 +21,7 @@ import {
   DEMO_PROJECT_FILES,
   type HireCheckResponse,
   type FloorInfo,
+  type ProjectNote,
   type Routine,
   type ProjectFiles,
   type TerminalSettings,
@@ -266,6 +267,19 @@ class MockBackend implements Backend {
 
   async setDemo(on: boolean): Promise<boolean> {
     return on;
+  }
+
+  /** The demonstration has no notes and starts no squads. */
+  async note(): Promise<ProjectNote> {
+    return { text: '', updatedAt: 0 };
+  }
+
+  async saveNote(): Promise<ProjectNote> {
+    throw new BackendError('demo', 409);
+  }
+
+  async startSquad(): Promise<void> {
+    throw new BackendError('demo', 409);
   }
 
   /** The demonstration runs no programs: no routines and nothing to resume. */

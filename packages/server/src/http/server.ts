@@ -9,7 +9,9 @@ import { registerCodexRoutes } from './handlers/codex';
 import { registerGitRoutes } from './handlers/git';
 import { registerFloorRoutes } from './handlers/floors';
 import { registerHireRoutes } from './handlers/hire';
+import { registerNoteRoutes } from './handlers/notes';
 import { registerRoutineRoutes } from './handlers/routines';
+import { registerSquadRoutes } from './handlers/squads';
 import { registerTerminalRoutes } from './handlers/terminals';
 import { registerMessageRoutes } from './handlers/messages';
 import { registerPermissionRoutes } from './handlers/permissions';
@@ -70,6 +72,8 @@ export function buildRouter(app: AppContext): Router {
   registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
   registerRoutineRoutes(router, app);
+  registerSquadRoutes(router, app);
+  registerNoteRoutes(router, app);
   registerFloorRoutes(router, app);
   registerTerminalRoutes(router, app);
   registerGitRoutes(router, app);

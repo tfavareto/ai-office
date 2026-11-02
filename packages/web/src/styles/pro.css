@@ -2009,3 +2009,63 @@ body:has(.ao-pro-resume:not([hidden])) .ao-empty {
   flex-direction: column;
   min-width: 0;
 }
+
+/* A squad's block: the members on one plain line under the title bar. */
+.ao-pro-squad {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--pro-shell);
+  font-family: var(--pro-mono);
+  font-size: 11px;
+}
+
+.ao-pro-squad[hidden] {
+  display: none;
+}
+
+.ao-pro-squad-member,
+.ao-pro-squad-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pro-term-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ao-pro-squad-member:hover,
+.ao-pro-squad-toggle:hover,
+.ao-pro-squad-member.is-current {
+  color: var(--pro-term-fg);
+}
+
+.ao-pro-squad-member.is-current {
+  text-decoration: underline;
+}
+
+.ao-pro-squad-member.is-waiting {
+  color: var(--pro-warn);
+}
+
+.ao-pro-note-text {
+  width: 100%;
+  margin-bottom: 6px;
+  font-family: var(--pro-mono);
+  font-size: 12px;
+}
+
+.ao-squad-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.ao-squad-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

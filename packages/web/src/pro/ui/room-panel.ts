@@ -2,6 +2,7 @@
 // room's orchestrators (pick one), how long the chosen one has been running (session and current turn), its model,
 // branch and spend, the subagents it delegated to, and a prompt that sends to it. Esc or the close button closes it.
 import { FloorSection } from './floor-section';
+import { NoteSection } from './note-section';
 import { changedFiles } from '@ai-office/shared';
 import { t } from '../../i18n';
 import type { AppContext } from '../../ui/context';
@@ -37,6 +38,7 @@ export class RoomPanel {
   private readonly subs = h('ul', { class: 'ao-pro-panel-subs' });
   private readonly prompt: PromptBox;
   private readonly floor: FloorSection;
+  private readonly note: NoteSection;
   private roomId: string | null = null;
   private chosenId: string | null = null;
   private signature = '';
@@ -49,6 +51,7 @@ export class RoomPanel {
     this.el.setAttribute('aria-labelledby', this.title.id);
     this.prompt = new PromptBox(ctx, voice, { label: t('pro.panel.prompt'), quick: false });
     this.floor = new FloorSection(ctx);
+    this.note = new NoteSection(ctx);
     const close = h(
       'button',
       {
@@ -76,6 +79,7 @@ export class RoomPanel {
         this.facts,
         this.subsTitle,
         this.subs,
+        this.note.el,
         this.floor.el,
       ),
       h('footer', { class: 'ao-pro-panel-foot' }, this.prompt.el),
@@ -96,6 +100,7 @@ export class RoomPanel {
       this.chosenId = null;
       this.signature = '';
       this.floor.show(roomId);
+      this.note.show(roomId);
     }
     this.el.hidden = false;
     this.el.focus({ preventScroll: true });

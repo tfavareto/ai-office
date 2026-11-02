@@ -14,6 +14,7 @@ export type DialogId =
   | 'hire'
   | 'roles'
   | 'routines'
+  | 'squads'
   | 'board'
   | 'rules'
   | 'usage'

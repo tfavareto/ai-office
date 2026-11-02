@@ -12,6 +12,8 @@ import type {
   HireCheckResponse,
   FloorInfo,
   ProjectFiles,
+  ProjectNote,
+  SquadRequest,
   Routine,
   TerminalSettings,
   HireRequest,
@@ -88,6 +90,11 @@ export interface Backend {
   createFloor(projectId: string, name: string): Promise<{ path: string; branch: string }>;
   landFloor(projectId: string, mode: 'merge' | 'pull-request'): Promise<{ url?: string }>;
   removeFloor(projectId: string, acceptIgnored: boolean): Promise<{ branchKept: boolean }>;
+  /** The note of a room (local access only). saveNote rejects with the server's code if it changed since it was read. */
+  note(projectId: string): Promise<ProjectNote>;
+  saveNote(projectId: string, text: string, baseUpdatedAt: number): Promise<ProjectNote>;
+  /** Real terminals started together and connected (local access only). */
+  startSquad(request: SquadRequest): Promise<void>;
   /** Routines: prompts on a schedule (local access only). */
   routines(): Promise<Routine[]>;
   addRoutine(routine: Pick<Routine, 'name' | 'prompt' | 'projectPath' | 'schedule'>): Promise<void>;

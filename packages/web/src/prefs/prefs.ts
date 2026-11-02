@@ -1,4 +1,5 @@
 // User preferences persisted in localStorage (`ai-office:prefs`), validated field by field on load.
+import { parseSquads, type SavedSquad } from '../pro/model/squads';
 import { MAX_PROMPT_LENGTH, MAX_PROMPTS, type SavedPrompt } from '../pro/model/mentions';
 import { MAX_ROLES, validRole, type SavedRole } from '../pro/model/roles';
 import { LOCALES, type AccountLimits, type Locale } from '@ai-office/shared';
@@ -28,6 +29,7 @@ export interface Prefs {
   proPrompts: readonly SavedPrompt[];
   /** Reusable instructions chosen when hiring an agent. */
   proRoles: readonly SavedRole[];
+  proSquads: readonly SavedSquad[];
   visual: VisualKind;
   daylight: DaylightMode;
   showNames: boolean;
@@ -62,6 +64,7 @@ export const DEFAULT_PREFS: Prefs = {
   proCommandBar: false,
   proPrompts: [],
   proRoles: [],
+  proSquads: [],
   visual: '2d',
   daylight: DEFAULT_WORLD_OPTIONS.daylight,
   showNames: DEFAULT_WORLD_OPTIONS.showNames,
@@ -161,6 +164,7 @@ export function parsePrefs(raw: unknown): Prefs {
     proCommandBar: bool(data.proCommandBar, DEFAULT_PREFS.proCommandBar),
     proPrompts: parsePrompts(data.proPrompts),
     proRoles: parseRoles(data.proRoles),
+    proSquads: parseSquads(data.proSquads),
     visual: oneOf(data.visual, ['2d', '3d'], DEFAULT_PREFS.visual),
     daylight: oneOf(data.daylight, ['auto', 'day', 'night'], DEFAULT_PREFS.daylight),
     showNames: bool(data.showNames, DEFAULT_PREFS.showNames),
