@@ -174,6 +174,40 @@ export const proPtBR = {
   'roles.save': 'Salvar papel',
   'roles.saved': 'Papel {name} salvo.',
   'roles.remove': 'Remover o papel {name}',
+  'hire.floor': 'Tarefa isolada (opcional)',
+  'hire.floor.placeholder': 'Nome: uma cópia e uma branch só dela',
+  'pro.floor.title': 'Andar',
+  'pro.floor.line': '{branch} → {target}',
+  'pro.floor.ahead': '{n, plural, =0 {nada para pousar ainda} =1 {1 commit para pousar} other {# commits para pousar}}',
+  'pro.floor.dirty': 'trabalho não salvo: o agente precisa fazer commit antes',
+  'pro.floor.merge': 'Merge local',
+  'pro.floor.pr': 'Abrir pull request',
+  'pro.floor.remove': 'Remover andar',
+  'pro.floor.confirm': 'Clique de novo para confirmar',
+  'pro.floor.merged': 'Merge feito em {target}.',
+  'pro.floor.opened': 'Pull request aberto: {url}',
+  'pro.floor.removed': 'Andar removido.',
+  'pro.floor.removedKept': 'Andar removido. A branch fica, porque tem trabalho não pousado.',
+  'pro.floor.error.invalid-name': 'Esse nome não tem nada aproveitável. Use letras ou números.',
+  'pro.floor.error.not-a-repository': 'Esta sala não é um repositório Git.',
+  'pro.floor.error.floor-exists': 'Já existe um andar com esse nome.',
+  'pro.floor.error.not-a-floor': 'Esta sala não é um andar.',
+  'pro.floor.error.floor-dirty': 'O andar tem trabalho não salvo. Peça ao agente para fazer commit antes.',
+  'pro.floor.error.target-dirty': 'O repositório tem trabalho não salvo que um merge poderia sobrescrever.',
+  'pro.floor.error.nothing-to-land': 'O andar ainda não tem commits para pousar.',
+  'pro.floor.error.floor-conflict':
+    'Há conflito com a branch de destino. Nada mudou. Peça ao agente para trazê-la e resolver.',
+  'pro.floor.error.floor-busy': 'Tem um agente trabalhando aqui. Pare ele antes.',
+  'pro.floor.error.git-failed':
+    'O Git não conseguiu. Para pull request, confira se o gh está logado e se o repositório tem remoto.',
+  'pro.floor.error.demo': 'Andares não estão disponíveis no modo demo.',
+  'pro.floor.error.floor-detached':
+    'O andar ou o repositório não está numa branch. Faça checkout de uma branch lá antes, para nenhum commit se perder.',
+  'pro.floor.error.floor-has-ignored':
+    'Este andar tem arquivos que o Git ignora, como .env ou dependências, e remover apaga esses arquivos. Remova de novo para aceitar.',
+  'pro.floor.error.unsafe-config':
+    'A configuração Git deste repositório pode rodar programas (um filtro, um driver de merge, um gerenciador de credenciais...). Revise o .git/config; o escritório não age nele até lá.',
+  'pro.floor.error.target-busy': 'O repositório tem um merge em andamento. Termine ele antes.',
 } as const;
 
 export type ProKey = keyof typeof proPtBR;

@@ -7,6 +7,7 @@ import { registerCustomizationRoutes } from './handlers/customization';
 import { registerDataRoutes } from './handlers/data';
 import { registerCodexRoutes } from './handlers/codex';
 import { registerGitRoutes } from './handlers/git';
+import { registerFloorRoutes } from './handlers/floors';
 import { registerHireRoutes } from './handlers/hire';
 import { registerTerminalRoutes } from './handlers/terminals';
 import { registerMessageRoutes } from './handlers/messages';
@@ -67,6 +68,7 @@ export function buildRouter(app: AppContext): Router {
   registerReportRoutes(router, app);
   registerTimelapseRoutes(router, app);
   registerHireRoutes(router, app);
+  registerFloorRoutes(router, app);
   registerTerminalRoutes(router, app);
   registerGitRoutes(router, app);
   registerCustomizationRoutes(router, app);

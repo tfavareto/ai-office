@@ -20,6 +20,7 @@ import {
   type GitSettings,
   DEMO_PROJECT_FILES,
   type HireCheckResponse,
+  type FloorInfo,
   type ProjectFiles,
   type TerminalSettings,
   type HireRequest,
@@ -264,6 +265,23 @@ class MockBackend implements Backend {
 
   async setDemo(on: boolean): Promise<boolean> {
     return on;
+  }
+
+  /** The demonstration has no repositories: floors are not available in it. */
+  async floorStatus(): Promise<FloorInfo> {
+    return { isFloor: false };
+  }
+
+  async createFloor(): Promise<{ path: string; branch: string }> {
+    throw new BackendError('demo', 409);
+  }
+
+  async landFloor(): Promise<{ url?: string }> {
+    throw new BackendError('demo', 409);
+  }
+
+  async removeFloor(): Promise<{ branchKept: boolean }> {
+    throw new BackendError('demo', 409);
   }
 
   /** The demonstration runs no programs: real terminals are not available in it. */

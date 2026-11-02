@@ -1950,3 +1950,36 @@
 .ao-roles-name:hover {
   text-decoration: underline;
 }
+
+/* A floor in the room panel. */
+.ao-pro-floor {
+  margin-top: 14px;
+}
+
+.ao-pro-floor[hidden] {
+  display: none;
+}
+
+.ao-pro-floor-line,
+.ao-pro .ao-pro-floor-note {
+  margin: 0 0 6px;
+  color: var(--pro-term-dim);
+  overflow-wrap: anywhere;
+}
+
+.ao-pro-floor-dirty {
+  margin: 0 0 6px;
+  color: var(--pro-warn);
+}
+
+.ao-pro-floor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ao-pro-floor-actions .ao-btn.is-armed {
+  border-color: var(--pro-warn);
+  color: var(--pro-warn);
+}

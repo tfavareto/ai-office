@@ -1,5 +1,6 @@
 // "Hire an agent": choose the project folder (an existing room or a new folder), the account, a first task, the model
 // and the permission mode, then open a terminal window with Claude Code for it. Cmd/Ctrl+Enter submits.
+import { floorErrorKey } from '../../pro/model/floor';
 import {
   type Account,
   HIRE_MAX_PROMPT,
@@ -150,6 +151,15 @@ export class HireDialog extends Dialog {
   private readonly whereSelect: HTMLSelectElement;
   private readonly roleSelect = h('select', { id: 'ao-hire-role', class: 'ao-select ao-hire-select' });
   private readonly whereField: HTMLElement;
+  private readonly floorInput = h('input', {
+    id: 'ao-hire-floor',
+    type: 'text',
+    class: 'ao-input',
+    maxlength: 48,
+    autocomplete: 'off',
+    placeholder: t('hire.floor.placeholder'),
+  });
+  private readonly floorField: HTMLElement;
   private readonly modeHint = h('p', { class: 'ao-note ao-hire-modehint' });
   private readonly errorBox = h('p', { class: 'ao-error ao-hire-error', role: 'alert', hidden: true });
   private readonly submitBtn: HTMLButtonElement;
@@ -175,6 +185,7 @@ export class HireDialog extends Dialog {
     });
     this.whereField = field(t('hire.where'), this.whereSelect, 'ao-hire-where');
     this.whereField.hidden = true;
+    this.floorField = field(t('hire.floor'), this.floorInput, 'ao-hire-floor');
     this.submitBtn = button({
       label: t('hire.submit'),
       icon: 'plus',
@@ -226,6 +237,7 @@ export class HireDialog extends Dialog {
         ),
         this.modeHint,
         this.whereField,
+        this.floorField,
         field(
           t('hire.role'),
           this.roleSelect,
@@ -282,6 +294,7 @@ export class HireDialog extends Dialog {
       ...(target.deskIndex !== undefined ? { deskIndex: target.deskIndex } : {}),
     };
     void this.loadWhere();
+    this.floorInput.value = '';
     this.roleSelect.replaceChildren(
       h('option', { value: '' }, t('hire.role.none')),
       ...this.ctx.prefs.get().proRoles.map((role) => h('option', { value: role.id }, role.name)),
@@ -316,6 +329,8 @@ export class HireDialog extends Dialog {
     setText(this.promptCount, t('hire.prompt.count', { n: this.form.prompt.length, max: HIRE_MAX_PROMPT }));
     toggleClass(this.promptCount, 'is-over', promptTooLong(this.form.prompt));
     setText(this.modeHint, t(MODE_HINTS[this.form.permissionMode]));
+    // A floor comes from a repository the office already has a room for.
+    this.floorField.hidden = this.form.roomPath === undefined;
     this.errorBox.hidden = this.error === '';
     setText(this.errorBox, this.error);
     setText(this.submitLabel, this.busy ? t('hire.submitting') : t('hire.submit'));
@@ -512,13 +527,21 @@ export class HireDialog extends Dialog {
     this.error = '';
     this.ctx.refresh();
     try {
-      await this.ctx.hireAgent(buildHireRequest(this.form));
+      const request = buildHireRequest(this.form);
+      const floorName = this.floorInput.value.trim();
+      if (floorName !== '' && this.form.roomPath !== undefined) {
+        // The agent starts in a checkout of its own, on its own branch.
+        const floor = await this.ctx.store.backend.createFloor(this.form.roomPath, floorName);
+        request.projectPath = floor.path;
+      }
+      await this.ctx.hireAgent(request);
       this.busy = false;
       this.ctx.closeDialog();
     } catch (error) {
       this.busy = false;
       const key = hireErrorKey(error);
-      this.error = key !== null ? t(key) : describeError(error);
+      const floorKey = error instanceof Error ? floorErrorKey(error.message) : undefined;
+      this.error = key !== null ? t(key) : floorKey !== undefined ? t(floorKey) : describeError(error);
       this.ctx.announce(this.error);
     }
     this.ctx.refresh();

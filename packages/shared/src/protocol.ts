@@ -122,6 +122,8 @@ export const API = {
   terminalLinks: '/api/terminals/links',
   /** POST <id>/input { data }, <id>/resize { cols, rows }, <id>/kill, <id>/send { to, text }; GET <id>/peers. Local access only. */
   terminals: '/api/terminals',
+  /** POST { project, name }: a checkout of its own for a task; GET status?project=; POST land { project, mode }; POST remove { project }. Local access only. */
+  floors: '/api/floors',
   /** GET ?project=<id> → ProjectFiles: names of a room's files, from git (never contents). Local access only. */
   projectFiles: '/api/projects/files',
   /** POST HireRequest → 202 HireResponse: opens a terminal window running Claude Code in a project folder. Local access only. */
@@ -287,6 +289,11 @@ export interface TerminalInfo {
   /** The role it started with. */
   role?: string;
 }
+
+/** What a room is when it is a floor: a checkout of its own for one task. */
+export type FloorInfo =
+  | { isFloor: false }
+  | { isFloor: true; branch: string; target: string; ahead: number; dirty: boolean; detached: boolean };
 
 /** The files of a project, for the prompt's `@` mention. */
 export interface ProjectFiles {

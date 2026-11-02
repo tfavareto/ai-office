@@ -172,4 +172,39 @@ export const proEs: Readonly<Record<ProKey, string>> = {
   'roles.save': 'Guardar rol',
   'roles.saved': 'Rol {name} guardado.',
   'roles.remove': 'Eliminar el rol {name}',
+  'hire.floor': 'Tarea aislada (opcional)',
+  'hire.floor.placeholder': 'Nombre: una copia y una rama solo para ella',
+  'pro.floor.title': 'Piso',
+  'pro.floor.line': '{branch} → {target}',
+  'pro.floor.ahead':
+    '{n, plural, =0 {nada para aterrizar aún} =1 {1 commit para aterrizar} other {# commits para aterrizar}}',
+  'pro.floor.dirty': 'trabajo sin guardar: el agente debe hacer commit antes',
+  'pro.floor.merge': 'Merge local',
+  'pro.floor.pr': 'Abrir pull request',
+  'pro.floor.remove': 'Quitar piso',
+  'pro.floor.confirm': 'Haz clic otra vez para confirmar',
+  'pro.floor.merged': 'Merge hecho en {target}.',
+  'pro.floor.opened': 'Pull request abierto: {url}',
+  'pro.floor.removed': 'Piso quitado.',
+  'pro.floor.removedKept': 'Piso quitado. La rama se queda, porque tiene trabajo sin aterrizar.',
+  'pro.floor.error.invalid-name': 'Ese nombre no tiene nada útil. Usa letras o números.',
+  'pro.floor.error.not-a-repository': 'Esta sala no es un repositorio Git.',
+  'pro.floor.error.floor-exists': 'Ya existe un piso con ese nombre.',
+  'pro.floor.error.not-a-floor': 'Esta sala no es un piso.',
+  'pro.floor.error.floor-dirty': 'El piso tiene trabajo sin guardar. Pide al agente que haga commit antes.',
+  'pro.floor.error.target-dirty': 'El repositorio tiene trabajo sin guardar que un merge podría sobrescribir.',
+  'pro.floor.error.nothing-to-land': 'El piso aún no tiene commits para aterrizar.',
+  'pro.floor.error.floor-conflict':
+    'Hay un conflicto con la rama de destino. Nada cambió. Pide al agente que la traiga y lo resuelva.',
+  'pro.floor.error.floor-busy': 'Hay un agente trabajando aquí. Detenlo antes.',
+  'pro.floor.error.git-failed':
+    'Git no pudo hacerlo. Para un pull request, comprueba que gh tenga sesión y que el repositorio tenga remoto.',
+  'pro.floor.error.demo': 'Los pisos no están disponibles en el modo demo.',
+  'pro.floor.error.floor-detached':
+    'El piso o el repositorio no está en una rama. Haz checkout de una rama allí antes, para que no se pierda ningún commit.',
+  'pro.floor.error.floor-has-ignored':
+    'Este piso tiene archivos que Git ignora, como .env o dependencias, y quitarlo los borra. Quítalo otra vez para aceptarlo.',
+  'pro.floor.error.unsafe-config':
+    'La configuración Git de este repositorio puede ejecutar programas (un filtro, un driver de merge, un gestor de credenciales...). Revisa .git/config; la oficina no actúa en él hasta entonces.',
+  'pro.floor.error.target-busy': 'El repositorio tiene un merge en curso. Termínalo antes.',
 };

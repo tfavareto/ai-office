@@ -10,6 +10,7 @@ import type {
   CodexSettings,
   GitSettings,
   HireCheckResponse,
+  FloorInfo,
   ProjectFiles,
   TerminalSettings,
   HireRequest,
@@ -81,6 +82,11 @@ export interface Backend {
   /** Tells the server the person did something only the page can see, for the first time (local access only). */
   progressEvent(event: ProgressEventName): Promise<void>;
   setDemo(on: boolean): Promise<boolean>;
+  /** Floors: a checkout of its own for a task (local access only). Rejects with the server's error code. */
+  floorStatus(projectId: string): Promise<FloorInfo>;
+  createFloor(projectId: string, name: string): Promise<{ path: string; branch: string }>;
+  landFloor(projectId: string, mode: 'merge' | 'pull-request'): Promise<{ url?: string }>;
+  removeFloor(projectId: string, acceptIgnored: boolean): Promise<{ branchKept: boolean }>;
   /** Real terminals in the Pro view (local access only). */
   terminalSettings(): Promise<TerminalSettings>;
   setTerminals(on: boolean): Promise<TerminalSettings>;

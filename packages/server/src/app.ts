@@ -271,9 +271,10 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     options.gitRunners?.git ?? createGitRunner(options.env ?? process.env),
     MAX_CONCURRENT_READS,
   );
+  const runGh = options.gitRunners?.gh ?? createGhRunner(options.env ?? process.env);
   const git = new GitWatcher({
     runGit,
-    runGh: options.gitRunners?.gh ?? createGhRunner(options.env ?? process.env),
+    runGh,
     now,
     log,
     projects: () => {
@@ -427,6 +428,7 @@ export function createApp(config: ServerConfig, log: Logger, options: AppOptions
     messages,
     attention,
     hires,
+    runGh,
     terminals,
     terminalSettings,
     terminalStreams,

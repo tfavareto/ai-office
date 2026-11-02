@@ -30,6 +30,7 @@ import {
   parseActivities,
   parseDay,
   parseFolderCheck,
+  parseFloorInfo,
   parseProjectFiles,
   parseTerminalSettings,
   parseHire,
@@ -327,6 +328,28 @@ export class HttpBackend implements Backend {
   async hireAgent(request: HireRequest) {
     const { body } = await this.post(API.hire, { ...request, locale: locale() });
     return parseHire(body);
+  }
+
+  async floorStatus(projectId: string) {
+    return parseFloorInfo(await this.get(`${API.floors}/status`, { project: projectId }));
+  }
+
+  async createFloor(projectId: string, name: string) {
+    const { body } = await this.post(API.floors, { project: projectId, name });
+    const { path, branch } = (isRecord(body) ? body : {}) as { path?: unknown; branch?: unknown };
+    if (typeof path !== 'string' || typeof branch !== 'string') throw new BackendError(t('error.invalidResponse'), 500);
+    return { path, branch };
+  }
+
+  async landFloor(projectId: string, mode: 'merge' | 'pull-request') {
+    const { body } = await this.post(`${API.floors}/land`, { project: projectId, mode });
+    const url = isRecord(body) && typeof body.url === 'string' ? body.url : undefined;
+    return url !== undefined ? { url } : {};
+  }
+
+  async removeFloor(projectId: string, acceptIgnored: boolean) {
+    const { body } = await this.post(`${API.floors}/remove`, { project: projectId, acceptIgnored });
+    return { branchKept: isRecord(body) && body.branchKept === true };
   }
 
   async terminalSettings() {

@@ -58,6 +58,12 @@ export function ghEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     GH_PAGER: 'cat',
     NO_COLOR: '1',
     GIT_TERMINAL_PROMPT: '0',
+    // `gh` runs git by itself: its reads get the same protections as ours.
+    GIT_CONFIG_COUNT: '2',
+    GIT_CONFIG_KEY_0: 'core.fsmonitor',
+    GIT_CONFIG_VALUE_0: 'false',
+    GIT_CONFIG_KEY_1: 'core.hooksPath',
+    GIT_CONFIG_VALUE_1: '/dev/null',
   };
 }
 

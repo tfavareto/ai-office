@@ -170,4 +170,38 @@ export const proEn: Readonly<Record<ProKey, string>> = {
   'roles.save': 'Save role',
   'roles.saved': 'Role {name} saved.',
   'roles.remove': 'Remove the role {name}',
+  'hire.floor': 'Isolated task (optional)',
+  'hire.floor.placeholder': 'Name: its own checkout and branch',
+  'pro.floor.title': 'Floor',
+  'pro.floor.line': '{branch} → {target}',
+  'pro.floor.ahead': '{n, plural, =0 {nothing to land yet} =1 {1 commit to land} other {# commits to land}}',
+  'pro.floor.dirty': 'unsaved work: the agent needs to commit it first',
+  'pro.floor.merge': 'Merge locally',
+  'pro.floor.pr': 'Open pull request',
+  'pro.floor.remove': 'Remove floor',
+  'pro.floor.confirm': 'Click again to confirm',
+  'pro.floor.merged': 'Merged into {target}.',
+  'pro.floor.opened': 'Pull request opened: {url}',
+  'pro.floor.removed': 'Floor removed.',
+  'pro.floor.removedKept': 'Floor removed. Its branch stays, because it has work not landed.',
+  'pro.floor.error.invalid-name': 'That name has nothing usable. Use letters or numbers.',
+  'pro.floor.error.not-a-repository': 'This room is not a Git repository.',
+  'pro.floor.error.floor-exists': 'A floor with that name already exists.',
+  'pro.floor.error.not-a-floor': 'This room is not a floor.',
+  'pro.floor.error.floor-dirty': 'The floor has unsaved work. Ask the agent to commit it first.',
+  'pro.floor.error.target-dirty': 'The repository has unsaved work that a merge could overwrite.',
+  'pro.floor.error.nothing-to-land': 'The floor has no commits to land yet.',
+  'pro.floor.error.floor-conflict':
+    'There is a conflict with the target branch. Nothing changed. Ask the agent to bring it in and resolve it.',
+  'pro.floor.error.floor-busy': 'An agent is still working here. Stop it first.',
+  'pro.floor.error.git-failed':
+    'Git could not do it. For a pull request, check that gh is signed in and the repository has a remote.',
+  'pro.floor.error.demo': 'Floors are not available in demo mode.',
+  'pro.floor.error.floor-detached':
+    'The floor or the repository is not on a branch. Check out a branch there first, so no commit is lost.',
+  'pro.floor.error.floor-has-ignored':
+    'This floor has files git ignores, such as .env or dependencies, and removing it deletes them. Remove again to accept that.',
+  'pro.floor.error.unsafe-config':
+    'This repository’s own Git configuration can run programs (a filter, a merge driver, a credential helper...). Review .git/config; the office will not act on it until then.',
+  'pro.floor.error.target-busy': 'The repository has a merge in progress. Finish it first.',
 };
